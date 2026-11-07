@@ -29,18 +29,14 @@
 #include <memory>
 #include <span>
 
-// The native solver integrates the logarithmic Green function over each source
-// cell. IPPL's point-sampled 2D kernel has a spacing-independent self value,
-// which gives large errors for thin beams. Retain the alternative for comparison.
-#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER false
-
 namespace opalx::spacecharge {
 
     /**
      * @brief Persistent fields and a reusable Poisson workspace for one FFT2D5 run.
      *
      * The 3D fields stage deposition and gathering. The default serial path shares one pair
-     * of 2D IPPL fields and one FFT plan. Explicit --2D5BatchSize enables bounded native
+     * of 2D IPPL fields and one FFT plan. MPI always uses local native batches; on one rank,
+     * explicit --2D5BatchSize enables bounded native
      * heFFTe batches owned by the same OPALX solver; no longitudinal transform is performed.
      * The Field API cannot borrow a Kokkos subview, so the serial path copies each slice;
      * batching instead packs physical cells directly into contiguous FFT buffers.
@@ -57,19 +53,16 @@ namespace opalx::spacecharge {
         using ScalarField3 = Field_t<3>;
         using VectorField2 = VField_t<double, 2>;
         using VectorField3 = VField_t<double, 3>;
-        using OpenSolver2  = ippl::FFTOpenPoissonSolver<VectorField2, ScalarField2>;
 
         struct Slice final {
             std::unique_ptr<VectorField2> electricField;
             std::unique_ptr<ScalarField2> chargeDensity;
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            std::unique_ptr<OpenSolver2> solver;
-#else
-            std::unique_ptr<FFT2D5Poisson> solver2;
-#endif
+            std::unique_ptr<FFT2D5Poisson> solver;
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
+        /// Destroy native solver fields/plans in the same library translation unit that constructs
+        /// them.
         ~FFT2D5FieldStorage();
         /** Prepare plans, Green spectra and FFT execution on a zero source, without
          * touching particles or counting a physical solve. Runtime FFT-phase samples
@@ -85,14 +78,18 @@ namespace opalx::spacecharge {
         [[nodiscard]] const Vector3& origin() const { return origin_m; }
         [[nodiscard]] const Vector3& size() const { return size_m; }
         [[nodiscard]] const std::array<std::size_t, 3>& meshSize() const { return meshSize_m; }
+        /// Return the path-coordinate deposition mesh shared by all local z planes.
         [[nodiscard]] Mesh3& mesh() { return mesh_m; }
         [[nodiscard]] Mesh2& sliceMesh() { return sliceMesh_m; }
         [[nodiscard]] Layout2& sliceLayout() { return sliceLayout_m; }
         [[nodiscard]] Layout3& layout() { return layout_m; }
         [[nodiscard]] ScalarField3& chargeDensity() { return chargeDensity_m; }
         [[nodiscard]] VectorField3& electricField() { return electricField_m; }
+        /// Return the single reusable native transverse solver workspace.
         [[nodiscard]] Slice& workspace() { return workspace_m; }
+        /// Return mathematical occupied-slice solves since the last reset, not FFT launch count.
         [[nodiscard]] std::size_t backendSolves() const { return backendSolves_m; }
+        /// Reset the per-physical-solve occupied-slice counter.
         void resetBackendSolves() { backendSolves_m = 0; }
 
         /**
@@ -101,7 +98,8 @@ namespace opalx::spacecharge {
          * to keep CUDA kernel stubs and their device registration in the same translation unit.
          */
         void solveSlice();
-        /// Explicit CLI opt-in; zero preserves the single-slice implementation.
+        /// Effective batch capacity: zero keeps serial slices on one rank; MPI promotes zero to
+        /// one.
         [[nodiscard]] int batchSize() const { return batchSize_m; }
         /// Solve the occupied physical slices together; counts mathematical slice solves.
         void solveBatchedSlices(
@@ -120,7 +118,6 @@ namespace opalx::spacecharge {
         ippl::NDIndex<2> sliceDomain_m;
         Mesh2 sliceMesh_m;
         Layout2 sliceLayout_m;
-        ippl::ParameterList solverParameters_m;
         Slice workspace_m;
         std::size_t backendSolves_m = 0;
         int batchSize_m             = 0;

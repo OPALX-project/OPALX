@@ -85,7 +85,7 @@ void FFT2D5Poisson::initialiseViews(const ScalarField2_t& chargeDensity) {
             }
             // Create the FFT
             fft_m = std::make_unique<FFT_t>(doubledLayout_m, complexLayout_m, this->params_m);
-            fft_m->warmup(doubledRho_m, doubledRhoTr_m);  // Really?
+            fft_m->warmup(doubledRho_m, doubledRhoTr_m);
             // And the Greens function
         });
         makeGreensFn();
@@ -224,6 +224,26 @@ void FFT2D5Poisson::determineField(const ScalarField2_t& potential, VectorField2
 void FFT2D5Poisson::solveBatched(
         const ScalarField3_t& density, VectorField3_t& electric, std::span<const size_t> occupied,
         int batchSize, double coupling, ScalarField3_t* potential) {
+    const int capacity = validateBatchGeometry(density, occupied, batchSize);
+    Kokkos::deep_copy(electric.getView(), Vector3_t(0.));
+    if (potential) Kokkos::deep_copy(potential->getView(), 0.);
+    if (occupied.empty()) return;
+    prepareBatchBuffers(capacity);
+    copyOccupiedSlices(occupied);
+    prepareBatchGreen();
+    for (size_t first = 0; first < occupied.size(); first += capacity) {
+        const int count = static_cast<int>(std::min(size_t(capacity), occupied.size() - first));
+        prepareRowExecutors(count);
+        packBatch(density, first, count, coupling);
+        transformBatch(count, true);
+        multiplyBatchGreen(count);
+        transformBatch(count, false);
+        extractBatchFields(electric, potential, first, count);
+    }
+}
+
+int FFT2D5Poisson::validateBatchGeometry(
+        const ScalarField3_t& density, std::span<const size_t> occupied, int batchSize) {
     if (batchSize <= 0)
         throw OpalException("FFT2D5Poisson::solveBatched", "Positive batch size required.");
     const auto mesh = density.get_mesh();
@@ -233,10 +253,10 @@ void FFT2D5Poisson::solveBatched(
     const bool localMPI = ippl::Comm->size() > 1;
     if (localMPI) {
         if (nx2_ != 2 * nx || ny2_ != 2 * ny || dr_[0] != spacing[0] || dr_[1] != spacing[1]) {
-            batchPlan_m.reset();
-            nx2_ = 2 * nx;
-            ny2_ = 2 * ny;
-            dr_  = Vector2_t(spacing[0], spacing[1]);
+            batchCapacity_m = 0;
+            nx2_            = 2 * nx;
+            ny2_            = 2 * ny;
+            dr_             = Vector2_t(spacing[0], spacing[1]);
         }
     } else if (nx2_ != 2 * nx || ny2_ != 2 * ny || dr_[0] != spacing[0] || dr_[1] != spacing[1]) {
         throw OpalException("FFT2D5Poisson::solveBatched", "Initialize the matching workspace.");
@@ -244,13 +264,13 @@ void FFT2D5Poisson::solveBatched(
     for (size_t z : occupied)
         if (z >= nz)
             throw OpalException("FFT2D5Poisson::solveBatched", "Invalid physical slice index.");
-    const auto field = electric.getView();
-    Kokkos::deep_copy(field, Vector3_t(0.));
-    if (potential) Kokkos::deep_copy(potential->getView(), 0.);
-    if (occupied.empty()) return;
-    const int capacity = static_cast<int>(std::min(size_t(batchSize), nz));
+    return static_cast<int>(std::min(size_t(batchSize), nz));
+}
+
+void FFT2D5Poisson::prepareBatchBuffers(int capacity) {
     const size_t nr = nx2_ * ny2_, ncx = nx2_ / 2 + 1, nc = ncx * ny2_;
-    if (!batchPlan_m || batchNx_m != nx2_ || batchNy_m != ny2_ || batchCapacity_m != capacity) {
+    if (batchReal_m.extent(0) == 0 || batchNx_m != nx2_ || batchNy_m != ny2_
+        || batchCapacity_m != capacity) {
         opalx::spacecharge::fft2d5_detail::timed("2D5 Plan", [&] {
             const heffte::box3d<long long> inbox(
                     {0, 0, 0},
@@ -258,13 +278,17 @@ void FFT2D5Poisson::solveBatched(
             const heffte::box3d<long long> outbox(
                     {0, 0, 0},
                     {static_cast<long long>(ncx - 1), static_cast<long long>(ny2_ - 1), 0});
-            batchPlan_m = std::make_unique<BatchPlan>(
-                    inbox, outbox, 0, MPI_COMM_SELF,
-                    ippl::fft::makeHeffteOptions<BatchBackend::backend_t>(params_m));
+            batchPlan_m.reset();
+            batchWorkspace_m = BatchWorkspace{};
+            if (ippl::Comm->size() > 1) {
+                batchPlan_m = std::make_unique<BatchPlan>(
+                        inbox, outbox, 0, MPI_COMM_SELF,
+                        ippl::fft::makeHeffteOptions<BatchBackend::backend_t>(params_m));
+                batchWorkspace_m = BatchWorkspace(batchPlan_m->size_workspace());
+            }
             batchXRows_m.clear();
             batchYRows_m.clear();
             batchColumns_m    = decltype(batchColumns_m)("FFT2D5BatchColumns", nc * capacity);
-            batchWorkspace_m  = BatchWorkspace(batchPlan_m->size_workspace() * capacity);
             batchReal_m       = decltype(batchReal_m)("FFT2D5BatchReal", nr * capacity);
             batchSpectrum_m   = decltype(batchSpectrum_m)("FFT2D5BatchSpectrum", nc * capacity);
             batchGreen_m      = decltype(batchGreen_m)("FFT2D5BatchGreen", nc);
@@ -274,12 +298,20 @@ void FFT2D5Poisson::solveBatched(
             localGreenReady_m = false;
         });
     }
+}
+
+void FFT2D5Poisson::copyOccupiedSlices(std::span<const size_t> occupied) {
     if (batchSlices_m.extent(0) < occupied.size())
         batchSlices_m = decltype(batchSlices_m)("FFT2D5BatchSlices", occupied.size());
     auto hostSlices = Kokkos::create_mirror_view(batchSlices_m);
     for (size_t i = 0; i < occupied.size(); ++i)
         hostSlices(i) = occupied[i];
     Kokkos::deep_copy(batchSlices_m, hostSlices);
+}
+
+void FFT2D5Poisson::prepareBatchGreen() {
+    const bool localMPI = ippl::Comm->size() > 1;
+    const size_t nr = nx2_ * ny2_, ncx = nx2_ / 2 + 1, nc = ncx * ny2_;
     const auto green = batchGreen_m;
     if (localMPI && !localGreenReady_m) {
         opalx::spacecharge::fft2d5_detail::timed("2D5 Green Init", [&] {
@@ -308,75 +340,89 @@ void FFT2D5Poisson::solveBatched(
                 "FFT2D5Batch::green", nc,
                 KOKKOS_LAMBDA(size_t p) { green(p) = originalGreen(p % ncx + ng, p / ncx + ng); });
     }
-    const auto source   = density.getView();
+}
+
+void FFT2D5Poisson::prepareRowExecutors(int count) {
+    const auto nx2 = nx2_, ny2 = ny2_;
+    const size_t ncx = nx2 / 2 + 1;
+    if (!batchXRows_m.contains(count)) {
+        opalx::spacecharge::fft2d5_detail::timed("2D5 Plan", [&] {
+            // Keep only the full batch and the current final remainder: changing
+            // occupied counts must not accumulate backend workspaces over tracking.
+            for (auto it = batchXRows_m.begin(); it != batchXRows_m.end();) {
+                if (it->first != batchCapacity_m) {
+                    batchYRows_m.erase(it->first);
+                    it = batchXRows_m.erase(it);
+                } else
+                    ++it;
+            }
+            using Backend = BatchBackend::backend_t;
+            using Stream  = typename heffte::backend::device_instance<
+                     typename heffte::backend::buffer_traits<Backend>::location>::stream_type;
+#ifdef KOKKOS_ENABLE_CUDA
+            Stream stream = Kokkos::DefaultExecutionSpace().cuda_stream();
+#else
+            Stream stream = nullptr;
+#endif
+            const heffte::box3d<long long> xRows(
+                    {0, 0, 0},
+                    {static_cast<long long>(nx2 - 1), static_cast<long long>(ny2 * count - 1), 0});
+            const heffte::box3d<long long> yRows(
+                    {0, 0, 0},
+                    {static_cast<long long>(ny2 - 1), static_cast<long long>(ncx * count - 1), 0});
+            auto x = heffte::make_executor_r2c<Backend>(stream, xRows, 0);
+            auto y = heffte::make_executor<Backend>(stream, yRows, 0);
+            const size_t workspace =
+                    std::max({size_t(1), x->workspace_size(), y->workspace_size()});
+            if (batchRowScratch_m.extent(0) < workspace)
+                batchRowScratch_m = decltype(batchRowScratch_m)("FFT2D5RowScratch", workspace);
+            batchXRows_m.emplace(count, std::move(x));
+            batchYRows_m.emplace(count, std::move(y));
+        });
+    }
+}
+
+void FFT2D5Poisson::packBatch(
+        const ScalarField3_t& density, size_t first, int count, double coupling) {
+    const auto real = batchReal_m;
+    const auto nx2 = nx2_, ny2 = ny2_;
+    const size_t nr   = nx2 * ny2;
+    const auto source = density.getView();
+    const auto slices = batchSlices_m;
+    const auto mesh   = density.get_mesh();
+    const size_t nx = mesh.getGridsize(0), ny = mesh.getGridsize(1);
+    const auto ghost = density.getNghost();
+    using Policy     = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    timedPhase("2D5 Pack", [&] {
+        Kokkos::parallel_for(
+                "FFT2D5Batch::pack",
+                Policy({0, 0, 0},
+                       {count, static_cast<long long>(nx2), static_cast<long long>(ny2)}),
+                KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                    real(b * nr + i + nx2 * j) =
+                            (i < nx && j < ny)
+                                    ? source(i + ghost, j + ghost, slices(first + b) + ghost)
+                                              * coupling
+                                    : 0.;
+                });
+        Kokkos::fence();
+    });
+}
+
+void FFT2D5Poisson::transformBatch(int count, bool forward) {
     const auto real     = batchReal_m;
     const auto spectrum = batchSpectrum_m;
-    const auto slices   = batchSlices_m;
     const auto columns  = batchColumns_m;
-    const auto ghost = density.getNghost(), eg = electric.getNghost();
     const auto nx2 = nx2_, ny2 = ny2_;
-    const auto scaling  = dr_[0] * dr_[1];
-    const double inv2dx = 1. / (2 * dr_[0]), inv2dy = 1. / (2 * dr_[1]);
-    using Policy = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
-    for (size_t first = 0; first < occupied.size(); first += capacity) {
-        const int count = static_cast<int>(std::min(size_t(capacity), occupied.size() - first));
-        if (!batchXRows_m.contains(count)) {
-            opalx::spacecharge::fft2d5_detail::timed("2D5 Plan", [&] {
-                // Keep only the full batch and the current final remainder: changing
-                // occupied counts must not accumulate backend workspaces over tracking.
-                for (auto it = batchXRows_m.begin(); it != batchXRows_m.end();) {
-                    if (it->first != capacity) {
-                        batchYRows_m.erase(it->first);
-                        it = batchXRows_m.erase(it);
-                    } else
-                        ++it;
-                }
-                using Backend = BatchBackend::backend_t;
-                using Stream  = typename heffte::backend::device_instance<
-                         typename heffte::backend::buffer_traits<Backend>::location>::stream_type;
-#ifdef KOKKOS_ENABLE_CUDA
-                Stream stream = Kokkos::DefaultExecutionSpace().cuda_stream();
-#else
-                Stream stream = nullptr;
-#endif
-                const heffte::box3d<long long> xRows(
-                        {0, 0, 0}, {static_cast<long long>(nx2 - 1),
-                                    static_cast<long long>(ny2 * count - 1), 0});
-                const heffte::box3d<long long> yRows(
-                        {0, 0, 0}, {static_cast<long long>(ny2 - 1),
-                                    static_cast<long long>(ncx * count - 1), 0});
-                auto x = heffte::make_executor_r2c<Backend>(stream, xRows, 0);
-                auto y = heffte::make_executor<Backend>(stream, yRows, 0);
-                const size_t workspace =
-                        std::max({size_t(1), x->workspace_size(), y->workspace_size()});
-                if (batchRowScratch_m.extent(0) < workspace)
-                    batchRowScratch_m = decltype(batchRowScratch_m)("FFT2D5RowScratch", workspace);
-                batchXRows_m.emplace(count, std::move(x));
-                batchYRows_m.emplace(count, std::move(y));
-            });
-        }
-        auto& xRows = *batchXRows_m.at(count);
-        auto& yRows = *batchYRows_m.at(count);
-        // heFFTe's native complex ABI is shared with the Kokkos complex buffers.
-        static_assert(sizeof(Complex) == sizeof(std::complex<double>));
-        auto* rowData    = reinterpret_cast<std::complex<double>*>(spectrum.data());
-        auto* columnData = reinterpret_cast<std::complex<double>*>(columns.data());
-        auto* scratch    = reinterpret_cast<std::complex<double>*>(batchRowScratch_m.data());
-        timedPhase("2D5 Pack", [&] {
-            Kokkos::parallel_for(
-                    "FFT2D5Batch::pack",
-                    Policy({0, 0, 0},
-                           {count, static_cast<long long>(nx2), static_cast<long long>(ny2)}),
-                    KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                        real(b * nr + i + nx2 * j) =
-                                (i < nx && j < ny)
-                                        ? source(i + ghost, j + ghost, slices(first + b) + ghost)
-                                                  * coupling
-                                        : 0.;
-                    });
-            Kokkos::fence();
-        });
-        timedPhase("2D5 FFT Rho", [&] {
+    const size_t ncx = nx2 / 2 + 1, nc = ncx * ny2;
+    auto& xRows = *batchXRows_m.at(count);
+    auto& yRows = *batchYRows_m.at(count);
+    static_assert(sizeof(Complex) == sizeof(std::complex<double>));
+    auto* rowData    = reinterpret_cast<std::complex<double>*>(spectrum.data());
+    auto* columnData = reinterpret_cast<std::complex<double>*>(columns.data());
+    auto* scratch    = reinterpret_cast<std::complex<double>*>(batchRowScratch_m.data());
+    timedPhase(forward ? "2D5 FFT Rho" : "2D5 FFT Back", [&] {
+        if (forward) {
             xRows.forward(real.data(), rowData, scratch);
             Kokkos::parallel_for(
                     "FFT2D5Batch::columns", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
@@ -385,16 +431,7 @@ void FFT2D5Poisson::solveBatched(
                     });
             yRows.forward(columnData, scratch);
             Kokkos::fence();
-        });
-        timedPhase("2D5 Convolution", [&] {
-            Kokkos::parallel_for(
-                    "FFT2D5Batch::applyGreen", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
-                        const size_t k = p % nc;
-                        columns(p) *= green(k / ny2 + ncx * (k % ny2)) * scaling;
-                    });
-            Kokkos::fence();
-        });
-        timedPhase("2D5 FFT Back", [&] {
+        } else {
             yRows.backward(columnData, scratch);
             Kokkos::parallel_for(
                     "FFT2D5Batch::rows", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
@@ -403,39 +440,67 @@ void FFT2D5Poisson::solveBatched(
                     });
             xRows.backward(rowData, real.data(), scratch);
             Kokkos::fence();
-        });
-        timedPhase("2D5 Field", [&] {
+        }
+    });
+}
+
+void FFT2D5Poisson::multiplyBatchGreen(int count) {
+    const auto columns = batchColumns_m, green = batchGreen_m;
+    const size_t ncx = nx2_ / 2 + 1, nc = ncx * ny2_;
+    const auto ny2     = ny2_;
+    const auto scaling = dr_[0] * dr_[1];
+    timedPhase("2D5 Convolution", [&] {
+        Kokkos::parallel_for(
+                "FFT2D5Batch::applyGreen", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
+                    const size_t k = p % nc;
+                    columns(p) *= green(k / ny2 + ncx * (k % ny2)) * scaling;
+                });
+        Kokkos::fence();
+    });
+}
+
+void FFT2D5Poisson::extractBatchFields(
+        VectorField3_t& electric, ScalarField3_t* potential, size_t first, int count) {
+    const auto real = batchReal_m;
+    const auto nx2 = nx2_, ny2 = ny2_;
+    const size_t nr   = nx2 * ny2;
+    const auto field  = electric.getView();
+    const auto slices = batchSlices_m;
+    const auto mesh   = electric.get_mesh();
+    const size_t nx = mesh.getGridsize(0), ny = mesh.getGridsize(1);
+    const auto eg       = electric.getNghost();
+    const double inv2dx = 1. / (2 * dr_[0]), inv2dy = 1. / (2 * dr_[1]);
+    using Policy = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    timedPhase("2D5 Field", [&] {
+        Kokkos::parallel_for(
+                "FFT2D5Batch::field",
+                Policy({0, 0, 0}, {count, static_cast<long long>(nx), static_cast<long long>(ny)}),
+                KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                    const size_t base                             = b * nr;
+                    field(i + eg, j + eg, slices(first + b) + eg) = Vector3_t(
+                            -(real(base + (i + 1) % nx2 + nx2 * j)
+                              - real(base + (i + nx2 - 1) % nx2 + nx2 * j))
+                                    * inv2dx,
+                            -(real(base + i + nx2 * ((j + 1) % ny2))
+                              - real(base + i + nx2 * ((j + ny2 - 1) % ny2)))
+                                    * inv2dy,
+                            0.);
+                });
+        if (potential) {
+            const auto phi = potential->getView();
+            const auto pg  = potential->getNghost();
             Kokkos::parallel_for(
-                    "FFT2D5Batch::field",
-                    Policy({0, 0, 0},
-                           {count, static_cast<long long>(nx), static_cast<long long>(ny)}),
+                    "FFT2D5Batch::potential",
+                    Policy({0, 0, 0}, {count, static_cast<long long>(phi.extent(0)),
+                                       static_cast<long long>(phi.extent(1))}),
                     KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                        const size_t base                             = b * nr;
-                        field(i + eg, j + eg, slices(first + b) + eg) = Vector3_t(
-                                -(real(base + (i + 1) % nx2 + nx2 * j)
-                                  - real(base + (i + nx2 - 1) % nx2 + nx2 * j))
-                                        * inv2dx,
-                                -(real(base + i + nx2 * ((j + 1) % ny2))
-                                  - real(base + i + nx2 * ((j + ny2 - 1) % ny2)))
-                                        * inv2dy,
-                                0.);
+                        const size_t x = (static_cast<int>(i) - pg + static_cast<int>(nx2))
+                                         % static_cast<int>(nx2);
+                        const size_t y = (static_cast<int>(j) - pg + static_cast<int>(ny2))
+                                         % static_cast<int>(ny2);
+                        phi(i, j, slices(first + b) + pg) = real(b * nr + x + nx2 * y);
                     });
-            if (potential) {
-                const auto phi = potential->getView();
-                const auto pg  = potential->getNghost();
-                Kokkos::parallel_for(
-                        "FFT2D5Batch::potential",
-                        Policy({0, 0, 0}, {count, static_cast<long long>(phi.extent(0)),
-                                           static_cast<long long>(phi.extent(1))}),
-                        KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                            const size_t x = (static_cast<int>(i) - pg + static_cast<int>(nx2))
-                                             % static_cast<int>(nx2);
-                            const size_t y = (static_cast<int>(j) - pg + static_cast<int>(ny2))
-                                             % static_cast<int>(ny2);
-                            phi(i, j, slices(first + b) + pg) = real(b * nr + x + nx2 * y);
-                        });
-            }
-            Kokkos::fence();
-        });
-    }
+        }
+        Kokkos::fence();
+    });
 }

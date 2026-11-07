@@ -98,22 +98,9 @@ namespace opalx::spacecharge {
         chargeDensity_m.initialize(mesh_m, layout_m);
         electricField_m.initialize(mesh_m, layout_m);
 
-        solverParameters_m.add("use_heffte_defaults", false);
-        solverParameters_m.add("use_pencils", true);
-        solverParameters_m.add("use_gpu_aware", true);
-        solverParameters_m.add("comm", ippl::a2av);
-        solverParameters_m.add("r2c_direction", 0);
-        solverParameters_m.add("algorithm", OpenSolver2::HOCKNEY);
-        solverParameters_m.add("output_type", OpenSolver2::SOL_AND_GRAD);
-
         workspace_m.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
         workspace_m.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        workspace_m.solver = std::make_unique<OpenSolver2>(
-                *workspace_m.electricField, *workspace_m.chargeDensity, solverParameters_m);
-#else
-        workspace_m.solver2 = std::make_unique<FFT2D5Poisson>();
-#endif
+        workspace_m.solver        = std::make_unique<FFT2D5Poisson>();
     }
 
     FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
@@ -123,9 +110,7 @@ namespace opalx::spacecharge {
         Kokkos::deep_copy(electricField_m.getView(), Vector3(0.));
         Kokkos::deep_copy(workspace_m.chargeDensity->getView(), 0.);
         Kokkos::deep_copy(workspace_m.electricField->getView(), Vector2(0.));
-#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        workspace_m.solver2->setWarmupTiming(true);
-#endif
+        workspace_m.solver->setWarmupTiming(true);
         try {
             if (batchSize_m > 0) {
                 const auto count = std::min(
@@ -138,14 +123,10 @@ namespace opalx::spacecharge {
                 solveSlice();
             }
         } catch (...) {
-#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            workspace_m.solver2->setWarmupTiming(false);
-#endif
+            workspace_m.solver->setWarmupTiming(false);
             throw;
         }
-#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        workspace_m.solver2->setWarmupTiming(false);
-#endif
+        workspace_m.solver->setWarmupTiming(false);
         Kokkos::deep_copy(chargeDensity_m.getView(), 0.);
         Kokkos::deep_copy(electricField_m.getView(), Vector3(0.));
         Kokkos::fence();
@@ -154,25 +135,16 @@ namespace opalx::spacecharge {
 
     void FFT2D5FieldStorage::solveBatchedSlices(
             std::span<const size_t> occupied, ScalarField3* potential) {
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        throw OpalException(
-                "FFT2D5FieldStorage", "Batching requires the native OPALX slice solver.");
-#else
         if (ippl::Comm->size() == 1)
-            workspace_m.solver2->initialiseViews(*workspace_m.chargeDensity);
-        workspace_m.solver2->solveBatched(
+            workspace_m.solver->initialiseViews(*workspace_m.chargeDensity);
+        workspace_m.solver->solveBatched(
                 chargeDensity_m, electricField_m, occupied, batchSize_m, 1 / Physics::epsilon_0,
                 potential);
         backendSolves_m += occupied.size();
-#endif
     }
 
     void FFT2D5FieldStorage::solveSlice() {
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        workspace_m.solver->solve();
-#else
-        workspace_m.solver2->solve(*workspace_m.chargeDensity, *workspace_m.electricField);
-#endif
+        workspace_m.solver->solve(*workspace_m.chargeDensity, *workspace_m.electricField);
         ++backendSolves_m;
     }
 

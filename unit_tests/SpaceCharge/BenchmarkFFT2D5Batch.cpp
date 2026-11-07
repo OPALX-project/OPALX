@@ -34,6 +34,7 @@ namespace {
     using RV      = Kokkos::View<double*, Mem>;
     using IV      = Kokkos::View<size_t*, Mem>;
     using Policy  = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    /** @brief Construct a zero-based three-dimensional iteration range; arguments are extents. */
     Policy range(size_t a, size_t b, size_t c) {
         return Policy(
                 {0, 0, 0},
@@ -42,6 +43,7 @@ namespace {
     using Clock  = std::chrono::steady_clock;
     using Stream = typename heffte::backend::device_instance<
             typename heffte::backend::buffer_traits<Backend>::location>::stream_type;
+    /** @brief Return the default CUDA stream, or the host backend null stream. */
     Stream stream() {
 #ifdef KOKKOS_ENABLE_CUDA
         return Kokkos::DefaultExecutionSpace().cuda_stream();
@@ -49,16 +51,19 @@ namespace {
         return nullptr;
 #endif
     }
+    /** @brief Construct a zero-based heFFTe box; all three arguments are positive extents. */
     Box box(size_t x, size_t y, size_t z) {
         return Box(
                 {0, 0, 0}, {static_cast<long long>(x - 1), static_cast<long long>(y - 1),
                             static_cast<long long>(z - 1)});
     }
+    /** @brief Expose Kokkos complex storage through the verified native complex ABI. */
     std::complex<double>* ptr(CV v) {
         static_assert(sizeof(C) == sizeof(std::complex<double>));
         return reinterpret_cast<std::complex<double>*>(v.data());
     }
     enum Mode { PublicReorder, PublicNoReorder, RowsTranspose, MergedC2C };
+    /** @brief Return the stable CSV name of a backend candidate. */
     const char* label(Mode m) {
         switch (m) {
             case PublicReorder:
@@ -78,6 +83,7 @@ namespace {
         std::unique_ptr<Exec> y, xy;
         typename HB::workspace_t workspace;
         CV scratch;
+        /** @brief Create executor plans and scratch for one candidate and actual plane count. */
         Plans(Mode mode, size_t nx2, size_t ny2, int count) {
             size_t ncx = nx2 / 2 + 1;
             if (mode == PublicReorder || mode == PublicNoReorder) {
@@ -113,6 +119,8 @@ namespace {
         CV spectrum, columns, full, greenRow, greenColumn, greenFull;
         IV slices;
         std::map<int, std::unique_ptr<Plans>> plans;
+        /** @brief Allocate a bounded candidate layout and copy the normalized reference Green
+         * spectrum. */
         Candidate(
                 Mode m, size_t x, size_t y, int b, const P::ComplexField2_t& normalizedGreen,
                 double dx, double dy)
@@ -137,6 +145,8 @@ namespace {
             if (mode == MergedC2C) full = CV("batchFull", nr * b);
             initializeGreen(normalizedGreen);
         }
+        /** @brief Materialize row, column and full-complex Green layouts for equivalent candidate
+         * checks. */
         void initializeGreen(const P::ComplexField2_t& normalizedGreen) {
             auto g       = normalizedGreen.getView();
             const int ng = normalizedGreen.getNghost();
@@ -159,6 +169,7 @@ namespace {
             Kokkos::fence();
         }
         template <class Work>
+        /** @brief Time completed work with the same explicit inner fence as production phases. */
         static void phase(const char* name, Work&& work) {
             opalx::spacecharge::fft2d5_detail::timed(name, [&] {
                 work();
@@ -166,11 +177,13 @@ namespace {
                 Kokkos::fence();
             });
         }
+        /** @brief Return or create plans cached for the actual batch size. */
         Plans& plan(int count) {
             auto& p = plans[count];
             if (!p) p = std::make_unique<Plans>(mode, nx2, ny2, count);
             return *p;
         }
+        /** @brief Clear outputs, stage occupied IDs and execute each bounded candidate batch. */
         void solve(
                 const P::ScalarField3_t& density, P::VectorField3_t& electric,
                 std::span<const size_t> occupied, double coupling, P::ScalarField3_t* potential) {
@@ -182,111 +195,145 @@ namespace {
             for (size_t i = 0; i < occupied.size(); ++i)
                 host(i) = occupied[i];
             Kokkos::deep_copy(slices, host);
-            const auto source = density.getView();
-            auto e            = electric.getView();
-            const int sg = density.getNghost(), eg = electric.getNghost();
-            auto r = real;
-            auto s = spectrum, c = columns, f = full;
-            auto ids = slices;
-            auto gr = greenRow, gc = greenColumn, gf = greenFull;
-            const size_t x = nx, y = ny, xx = nx2, yy = ny2, cx = ncx, rr = nr, cc = nc;
-            const bool complex = mode == MergedC2C;
-            const double scale = area, idx = inv2dx, idy = inv2dy;
             for (size_t first = 0; first < occupied.size(); first += capacity) {
-                int count = static_cast<int>(std::min(size_t(capacity), occupied.size() - first));
-                auto& p   = plan(count);
-                phase("2D5 Pack", [&] {
-                    Kokkos::parallel_for(
-                            "benchmarkPack", range(count, xx, yy),
-                            KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                                double value = (i < x && j < y)
-                                                       ? source(i + sg, j + sg, ids(first + b) + sg)
-                                                                 * coupling
-                                                       : 0.;
-                                if (complex)
-                                    f(b * rr + i + xx * j) = C(value, 0.);
-                                else
-                                    r(b * rr + i + xx * j) = value;
-                            });
-                });
-                phase("2D5 FFT Rho", [&] {
-                    if (mode == MergedC2C)
-                        p.xy->forward(ptr(full), ptr(p.scratch));
-                    else if (mode == RowsTranspose) {
-                        p.x->forward(real.data(), ptr(spectrum), ptr(p.scratch));
-                        Kokkos::parallel_for(
-                                "benchmarkTransposeToColumns", size_t(count) * cc,
-                                KOKKOS_LAMBDA(size_t v) {
-                                    size_t b = v / cc, k = v % cc, kx = k % cx, ky = k / cx;
-                                    c(b * cc + kx * yy + ky) = s(v);
-                                });
-                        p.y->forward(ptr(columns), ptr(p.scratch));
-                    } else
-                        p.publicPlan->forward(
-                                count, real.data(), spectrum.data(), p.workspace.data(),
-                                heffte::scale::none);
-                });
-                phase("2D5 Convolution", [&] {
-                    if (mode == MergedC2C) {
-                        Kokkos::parallel_for(
-                                "benchmarkMultiplyFull", size_t(count) * rr,
-                                KOKKOS_LAMBDA(size_t v) { f(v) *= gf(v % rr) * scale; });
-                    } else if (mode == RowsTranspose) {
-                        Kokkos::parallel_for(
-                                "benchmarkMultiplyColumns", size_t(count) * cc,
-                                KOKKOS_LAMBDA(size_t v) { c(v) *= gc(v % cc) * scale; });
-                    } else {
-                        Kokkos::parallel_for(
-                                "benchmarkMultiplyRows", size_t(count) * cc,
-                                KOKKOS_LAMBDA(size_t v) { s(v) *= gr(v % cc) * scale; });
-                    }
-                });
-                phase("2D5 FFT Back", [&] {
-                    if (mode == MergedC2C)
-                        p.xy->backward(ptr(full), ptr(p.scratch));
-                    else if (mode == RowsTranspose) {
-                        p.y->backward(ptr(columns), ptr(p.scratch));
-                        Kokkos::parallel_for(
-                                "benchmarkTransposeToRows", size_t(count) * cc,
-                                KOKKOS_LAMBDA(size_t v) {
-                                    size_t b = v / cc, k = v % cc, kx = k % cx, ky = k / cx;
-                                    s(v) = c(b * cc + kx * yy + ky);
-                                });
-                        p.x->backward(ptr(spectrum), real.data(), ptr(p.scratch));
-                    } else
-                        p.publicPlan->backward(
-                                count, spectrum.data(), real.data(), p.workspace.data(),
-                                heffte::scale::none);
-                });
-                phase("2D5 Field", [&] {
-                    Kokkos::parallel_for(
-                            "benchmarkField", range(count, x, y),
-                            KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                                const size_t a  = b * rr + (i + 1) % xx + xx * j,
-                                             bx = b * rr + (i + xx - 1) % xx + xx * j;
-                                const size_t d  = b * rr + i + xx * ((j + 1) % yy),
-                                             dy = b * rr + i + xx * ((j + yy - 1) % yy);
-                                e(i + eg, j + eg, ids(first + b) + eg) = P::Vector3_t(
-                                        -(complex ? f(a).real() - f(bx).real() : r(a) - r(bx))
-                                                * idx,
-                                        -(complex ? f(d).real() - f(dy).real() : r(d) - r(dy))
-                                                * idy,
-                                        0.);
-                            });
-                    if (potential) {
-                        auto phi = potential->getView();
-                        int pg   = potential->getNghost();
-                        Kokkos::parallel_for(
-                                "benchmarkPotential", range(count, phi.extent(0), phi.extent(1)),
-                                KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
-                                    size_t ix = (int(i) - pg + int(xx)) % int(xx),
-                                           iy = (int(j) - pg + int(yy)) % int(yy),
-                                           v  = b * rr + ix + xx * iy;
-                                    phi(i, j, ids(first + b) + pg) = complex ? f(v).real() : r(v);
-                                });
-                    }
-                });
+                const int count =
+                        static_cast<int>(std::min(size_t(capacity), occupied.size() - first));
+                auto& plansForBatch = plan(count);
+                pack(density, first, count, coupling);
+                transformForward(count, plansForBatch);
+                convolve(count);
+                transformBackward(count, plansForBatch);
+                extractFields(electric, potential, first, count);
             }
+        }
+        /** @brief Pack source planes with the candidate's real or full-complex layout. */
+        void pack(const P::ScalarField3_t& density, size_t first, int count, double coupling) {
+            const auto source = density.getView();
+            const int sg      = density.getNghost();
+            auto r            = real;
+            auto f            = full;
+            auto ids          = slices;
+            const size_t x = nx, y = ny, xx = nx2, yy = ny2, rr = nr;
+            const bool complex = mode == MergedC2C;
+            phase("2D5 Pack", [&] {
+                Kokkos::parallel_for(
+                        "benchmarkPack", range(count, xx, yy),
+                        KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                            double value =
+                                    (i < x && j < y)
+                                            ? source(i + sg, j + sg, ids(first + b) + sg) * coupling
+                                            : 0.;
+                            if (complex)
+                                f(b * rr + i + xx * j) = C(value, 0.);
+                            else
+                                r(b * rr + i + xx * j) = value;
+                        });
+            });
+        }
+        /** @brief Apply the selected forward executor pipeline to count planes. */
+        void transformForward(int count, Plans& p) {
+            auto s = spectrum, c = columns;
+            const size_t cc = nc, cx = ncx, yy = ny2;
+            phase("2D5 FFT Rho", [&] {
+                if (mode == MergedC2C)
+                    p.xy->forward(ptr(full), ptr(p.scratch));
+                else if (mode == RowsTranspose) {
+                    p.x->forward(real.data(), ptr(spectrum), ptr(p.scratch));
+                    Kokkos::parallel_for(
+                            "benchmarkTransposeToColumns", size_t(count) * cc,
+                            KOKKOS_LAMBDA(size_t v) {
+                                size_t b = v / cc, k = v % cc, kx = k % cx, ky = k / cx;
+                                c(b * cc + kx * yy + ky) = s(v);
+                            });
+                    p.y->forward(ptr(columns), ptr(p.scratch));
+                } else
+                    p.publicPlan->forward(
+                            count, real.data(), spectrum.data(), p.workspace.data(),
+                            heffte::scale::none);
+            });
+        }
+        /** @brief Multiply candidate spectra by the matching layout of normalized Green. */
+        void convolve(int count) {
+            auto s = spectrum, c = columns, f = full;
+            auto gr = greenRow, gc = greenColumn, gf = greenFull;
+            const size_t rr = nr, cc = nc;
+            const double scale = area;
+            phase("2D5 Convolution", [&] {
+                if (mode == MergedC2C) {
+                    Kokkos::parallel_for(
+                            "benchmarkMultiplyFull", size_t(count) * rr,
+                            KOKKOS_LAMBDA(size_t v) { f(v) *= gf(v % rr) * scale; });
+                } else if (mode == RowsTranspose) {
+                    Kokkos::parallel_for(
+                            "benchmarkMultiplyColumns", size_t(count) * cc,
+                            KOKKOS_LAMBDA(size_t v) { c(v) *= gc(v % cc) * scale; });
+                } else {
+                    Kokkos::parallel_for(
+                            "benchmarkMultiplyRows", size_t(count) * cc,
+                            KOKKOS_LAMBDA(size_t v) { s(v) *= gr(v % cc) * scale; });
+                }
+            });
+        }
+        /** @brief Reverse the selected executor pipeline without changing its scaling. */
+        void transformBackward(int count, Plans& p) {
+            auto s = spectrum, c = columns;
+            const size_t cc = nc, cx = ncx, yy = ny2;
+            phase("2D5 FFT Back", [&] {
+                if (mode == MergedC2C)
+                    p.xy->backward(ptr(full), ptr(p.scratch));
+                else if (mode == RowsTranspose) {
+                    p.y->backward(ptr(columns), ptr(p.scratch));
+                    Kokkos::parallel_for(
+                            "benchmarkTransposeToRows", size_t(count) * cc,
+                            KOKKOS_LAMBDA(size_t v) {
+                                size_t b = v / cc, k = v % cc, kx = k % cx, ky = k / cx;
+                                s(v) = c(b * cc + kx * yy + ky);
+                            });
+                    p.x->backward(ptr(spectrum), real.data(), ptr(p.scratch));
+                } else
+                    p.publicPlan->backward(
+                            count, spectrum.data(), real.data(), p.workspace.data(),
+                            heffte::scale::none);
+            });
+        }
+        /** @brief Extract all transverse fields and optional wrapped potential halos for checks. */
+        void extractFields(
+                P::VectorField3_t& electric, P::ScalarField3_t* potential, size_t first,
+                int count) {
+            auto e         = electric.getView();
+            const int eg   = electric.getNghost();
+            auto r         = real;
+            auto f         = full;
+            auto ids       = slices;
+            const size_t x = nx, y = ny, xx = nx2, yy = ny2, rr = nr;
+            const bool complex = mode == MergedC2C;
+            const double idx = inv2dx, idy = inv2dy;
+            phase("2D5 Field", [&] {
+                Kokkos::parallel_for(
+                        "benchmarkField", range(count, x, y),
+                        KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                            const size_t a  = b * rr + (i + 1) % xx + xx * j,
+                                         bx = b * rr + (i + xx - 1) % xx + xx * j;
+                            const size_t d  = b * rr + i + xx * ((j + 1) % yy),
+                                         dy = b * rr + i + xx * ((j + yy - 1) % yy);
+                            e(i + eg, j + eg, ids(first + b) + eg) = P::Vector3_t(
+                                    -(complex ? f(a).real() - f(bx).real() : r(a) - r(bx)) * idx,
+                                    -(complex ? f(d).real() - f(dy).real() : r(d) - r(dy)) * idy,
+                                    0.);
+                        });
+                if (potential) {
+                    auto phi = potential->getView();
+                    int pg   = potential->getNghost();
+                    Kokkos::parallel_for(
+                            "benchmarkPotential", range(count, phi.extent(0), phi.extent(1)),
+                            KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                                size_t ix                      = (int(i) - pg + int(xx)) % int(xx),
+                                       iy                      = (int(j) - pg + int(yy)) % int(yy),
+                                       v                       = b * rr + ix + xx * iy;
+                                phi(i, j, ids(first + b) + pg) = complex ? f(v).real() : r(v);
+                            });
+                }
+            });
         }
     };
 
@@ -305,6 +352,8 @@ namespace {
         P gold;
         std::vector<size_t> occupied;
         typename P::ScalarField3_t::view_type original;
+        /** @brief Allocate a rectangular source, native reference solver and independent result
+         * fields. */
         Problem(size_t x, size_t y, size_t z)
             : nx(x),
               ny(y),
@@ -323,6 +372,8 @@ namespace {
               slice(mesh2, layout2) {
             gold.initialiseViews(slice);
         }
+        /** @brief Fill a deterministic dense, neutral/sparse or empty source and record occupied
+         * planes. */
         void fill(int sourceCase) {
             occupied.clear();
             if (sourceCase == 0) {
@@ -357,11 +408,15 @@ namespace {
             original = decltype(original)("sourceCopy", nx + 2, ny + 2, nz + 2);
             Kokkos::deep_copy(original, density.getView());
         }
+        /** @brief Compute the native reference and retain source density for unchanged-input
+         * checks. */
         void reference(int batch) {
             gold.solveBatched(
                     density, referenceField, occupied, batch, 1. / Physics::epsilon_0,
                     &referencePotential);
         }
+        /** @brief Compare every field and potential halo to the reference and reject nonfinite or
+         * excessive errors. */
         std::pair<double, double> check() {
             auto a = field.getView(), b = referenceField.getView();
             auto p = potential.getView(), q = referencePotential.getView();
@@ -408,6 +463,7 @@ namespace {
         }
     };
 
+    /** @brief Measure mean synchronized runtime over the requested positive repeat count. */
     template <class Work>
     double measure(Work work, int repeat) {
         Kokkos::fence();
@@ -417,16 +473,14 @@ namespace {
         Kokkos::fence();
         return std::chrono::duration<double>(Clock::now() - t).count() / repeat;
     }
-    void run(bool validateOnly, bool quick) {
-        std::ofstream checks("validation.csv"), times("samples.csv");
-        checks << std::setprecision(17);
-        times << std::setprecision(17);
-        checks << "method,nx,ny,nz,batch,source_case,occupied,relative_E_error,relative_phi_"
-                  "error\n";
-        times << "method,nx,ny,nz,batch,round,seconds_per_solve\n";
-        // The pinned heFFTe no-reorder R2C path fails multi-batch equivalence.
-        // Retain its single-slice measurement; never execute that path with batch > 1.
-        const std::vector<Mode> modes{PublicReorder, PublicNoReorder, RowsTranspose, MergedC2C};
+    /** @brief Return candidate modes; the known-invalid no-reorder multi-batch mode is gated by
+     * callers. */
+    std::vector<Mode> benchmarkModes() {
+        return {PublicReorder, PublicNoReorder, RowsTranspose, MergedC2C};
+    }
+    /** @brief Validate fields and potential halos on rectangular dense/sparse/empty cases. */
+    void validateCandidates(std::ostream& checks) {
+        const auto modes = benchmarkModes();
         for (auto shape : std::vector<std::pair<int, int>>{{6, 8}, {8, 6}}) {
             Problem p(shape.first, shape.second, 73);
             for (int batch : {1, 8, 32, 64}) {
@@ -453,63 +507,85 @@ namespace {
                 }
             }
         }
+    }
+    /** @brief Warm all candidates, then alternate synchronized timing order across rounds. */
+    void timeCandidates(
+            Problem& p, int batch, std::vector<std::unique_ptr<Candidate>>& candidates,
+            const std::vector<Mode>& selected, std::ofstream& times, bool quick) {
+        const int nz = p.nz;
+        // Retained implementations have the same output and synchronized phase boundaries.
+        auto operation = [&](int method) {
+            if (method == 0)
+                p.gold.solveBatched(
+                        p.density, p.field, p.occupied, batch, 1. / Physics::epsilon_0,
+                        &p.potential);
+            else
+                candidates[method - 1]->solve(
+                        p.density, p.field, p.occupied, 1. / Physics::epsilon_0, &p.potential);
+        };
+        for (int i = 0; i < 3; ++i)
+            for (int method = 0; method < int(candidates.size()) + 1; ++method)
+                operation(method);
+        for (int round = 0; round < (quick ? 3 : 5); ++round)
+            for (int offset = 0; offset < int(candidates.size()) + 1; ++offset) {
+                int method     = (round + offset) % (int(candidates.size()) + 1);
+                double elapsed = measure(
+                        [&] {
+                            operation(method);
+                        },
+                        quick ? 3 : 5);
+                times << (method == 0 ? "current_solveBatched" : label(selected[method - 1]))
+                      << ",64,64," << nz << ',' << batch << ',' << round << ',' << elapsed << '\n';
+                times.flush();
+            }
+    }
+    /** @brief Validate and time one physical grid and batch size, retaining final checks. */
+    void measureProblem(
+            Problem& p, int batch, std::ostream& checks, std::ofstream& times, bool quick) {
+        const int nz = p.nz;
+        p.reference(batch);
+        std::vector<std::unique_ptr<Candidate>> candidates;
+        std::vector<Mode> selected;
+        for (auto m : benchmarkModes()) {
+            if (m == PublicNoReorder && batch > 1) continue;
+            selected.push_back(m);
+            auto c = std::make_unique<Candidate>(
+                    m, 64, 64, batch, p.gold.getGreensFnTr(), p.dx, p.dy);
+            c->solve(p.density, p.field, p.occupied, 1. / Physics::epsilon_0, &p.potential);
+            auto e = p.check();
+            checks << label(m) << ",64,64," << nz << ',' << batch << ",0," << p.occupied.size()
+                   << ',' << e.first << ',' << e.second << '\n';
+            candidates.push_back(std::move(c));
+        }
+        timeCandidates(p, batch, candidates, selected, times, quick);
+        for (auto& c : candidates) {
+            c->solve(p.density, p.field, p.occupied, 1. / Physics::epsilon_0, &p.potential);
+            p.check();
+        }
+        std::cout << "COMPLETE nz=" << nz << " batch=" << batch << std::endl;
+    }
+    /** @brief Write validation tables and, unless validateOnly, a bounded or full timing sweep.
+     * @param validateOnly Suppress timing cases. @param quick Reduce physical-grid timing rounds.
+     */
+    void run(bool validateOnly, bool quick) {
+        std::ofstream checks("validation.csv"), times("samples.csv");
+        checks << std::setprecision(17);
+        times << std::setprecision(17);
+        checks << "method,nx,ny,nz,batch,source_case,occupied,relative_E_error,relative_phi_"
+                  "error\n";
+        times << "method,nx,ny,nz,batch,round,seconds_per_solve\n";
+        validateCandidates(checks);
         if (validateOnly) return;
         for (int nz : (quick ? std::vector<int>{256} : std::vector<int>{256, 512})) {
             Problem p(64, 64, nz);
             p.fill(0);
-            for (int batch : (quick ? std::vector<int>{64} : std::vector<int>{1, 8, 32, 64})) {
-                p.reference(batch);
-                std::vector<std::unique_ptr<Candidate>> candidates;
-                std::vector<Mode> selected;
-                for (auto m : modes) {
-                    if (m == PublicNoReorder && batch > 1) continue;
-                    selected.push_back(m);
-                    auto c = std::make_unique<Candidate>(
-                            m, 64, 64, batch, p.gold.getGreensFnTr(), p.dx, p.dy);
-                    c->solve(p.density, p.field, p.occupied, 1. / Physics::epsilon_0, &p.potential);
-                    auto e = p.check();
-                    checks << label(m) << ",64,64," << nz << ',' << batch << ",0,"
-                           << p.occupied.size() << ',' << e.first << ',' << e.second << '\n';
-                    candidates.push_back(std::move(c));
-                }
-                // Retained implementations have the same output and synchronized phase boundaries.
-                auto operation = [&](int method) {
-                    if (method == 0)
-                        p.gold.solveBatched(
-                                p.density, p.field, p.occupied, batch, 1. / Physics::epsilon_0,
-                                &p.potential);
-                    else
-                        candidates[method - 1]->solve(
-                                p.density, p.field, p.occupied, 1. / Physics::epsilon_0,
-                                &p.potential);
-                };
-                for (int i = 0; i < 3; ++i)
-                    for (int method = 0; method < int(candidates.size()) + 1; ++method)
-                        operation(method);
-                for (int round = 0; round < (quick ? 3 : 5); ++round)
-                    for (int offset = 0; offset < int(candidates.size()) + 1; ++offset) {
-                        int method     = (round + offset) % (int(candidates.size()) + 1);
-                        double elapsed = measure(
-                                [&] {
-                                    operation(method);
-                                },
-                                quick ? 3 : 5);
-                        times
-                                << (method == 0 ? "current_solveBatched"
-                                                : label(selected[method - 1]))
-                                << ",64,64," << nz << ',' << batch << ',' << round << ',' << elapsed
-                                << '\n';
-                        times.flush();
-                    }
-                for (auto& c : candidates) {
-                    c->solve(p.density, p.field, p.occupied, 1. / Physics::epsilon_0, &p.potential);
-                    p.check();
-                }
-                std::cout << "COMPLETE nz=" << nz << " batch=" << batch << std::endl;
-            }
+            for (int batch : (quick ? std::vector<int>{64} : std::vector<int>{1, 8, 32, 64}))
+                measureProblem(p, batch, checks, times, quick);
         }
     }
 }  // namespace
+/** @brief Run a one-rank backend benchmark; report validation or setup failures with nonzero
+ * status. */
 int main(int argc, char** argv) {
     bool validate = false, quick = false;
     for (int i = 1; i < argc; ++i) {

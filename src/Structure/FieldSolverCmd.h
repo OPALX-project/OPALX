@@ -121,8 +121,12 @@ public:
 
     Inform& printInfo(Inform& os) const;
 
+    /// Return the configured FFT2D5 identity; ORIGINAL is the default and only supported model.
     std::string getFFT2D5Model() const;
+    /// Whether FFT2D5MODEL was explicitly supplied rather than inherited from its default.
     bool hasFFT2D5Model() const;
+    /** @brief Set a predefined FFT2D5 model identity.
+     * @param model ORIGINAL; invalid predefined values are rejected by attribute validation. */
     void setFFT2D5Model(const std::string& model);
     std::string getPipeMode() const;
     double getBeamRadius() const;

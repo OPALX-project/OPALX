@@ -84,8 +84,11 @@ public:
     using NDIndex2_t      = ippl::NDIndex<2>;
     using ComplexField2_t = FFT_t::ComplexField;
 
-    // API
+    /// Register collective-safe phase timers and default native FFT parameters.
     FFT2D5Poisson();
+    /** @brief Solve one transverse free-space slice with the cell-integrated Green function.
+     * @param chargeDensity Input density, replaced by potential including its halo.
+     * @param electricField Output centered transverse field on physical cells. */
     void solve(ScalarField2_t& chargeDensity, VectorField2_t& electricField);
 
     /**
@@ -175,8 +178,11 @@ public:
     void setWarmupTiming(bool value) { warmupTiming_m = value; }
 
     // Accessors for unit tests
+    /// Return the sampled cell-integrated Green function for independent unit checks.
     const ScalarField2_t& getGreensFn() const { return greensFn_m; }
+    /// Return the normalized Green spectrum used by serial and row-batched unit checks.
     const ComplexField2_t& getGreensFnTr() const { return greensFnTr_m; }
+    /// Return the doubled convolution workspace for verification.
     const ScalarField2_t& getDoubledRho() const { return doubledRho_m; }
 
     // Constants
@@ -185,16 +191,60 @@ public:
     static constexpr size_t Z = 2;
 
     // Helpers
+    /// Initialize or resize serial fields/plans to match the supplied transverse mesh.
     void initialiseViews(const ScalarField2_t& chargeDensity);
+    /// Sample the integrated Green kernel and transform it with the serial normalization.
     void makeGreensFn();
+    /// Zero-pad physical source cells into the doubled convolution workspace.
     void placeChargeDensity(const ScalarField2_t& chargeDensity);
+    /// Apply unscaled forward/inverse transforms with Green and source-area scaling.
     void performConvolution();
     /// Copy the physical potential and its halo from the doubled free-space convolution.
     void extractPotential(ScalarField2_t& potential);
     /// Centered gradient; potential must include a valid one-cell halo (as extractPotential does).
     void determineField(const ScalarField2_t& potential, VectorField2_t& electricField);
 
+    /** @internal @brief Validate local slice indices and refresh MPI geometry metadata.
+     * @param density Source mesh and local slab. @param occupied Unique local slice indices.
+     * @param batchSize Positive requested capacity. @return Capacity bounded by local planes.
+     * @throws OpalException For invalid indices or an unmatched single-rank workspace. */
+    int validateBatchGeometry(
+            const ScalarField3_t& density, std::span<const size_t> occupied, int batchSize);
+    /** @internal @brief Resize batch buffers and invalidate cached row plans only when needed.
+     * @param capacity Maximum planes per batch. MPI Green initialization receives one
+     * plan workspace, independent of capacity; single-rank rows allocate none of that scratch. */
+    void prepareBatchBuffers(int capacity);
+    /** @internal @brief Copy the occupied local slice list to its reusable device buffer.
+     * @param occupied Unique physical local indices, already validated. */
+    void copyOccupiedSlices(std::span<const size_t> occupied);
+    /** @internal @brief Initialize the normalized Green spectrum without transforming z.
+     * MPI uses one private 2D transform; one rank copies the existing serial spectrum. */
+    void prepareBatchGreen();
+    /** @internal @brief Cache native x/y row executors for the actual full/remainder size.
+     * @param count Positive planes in this batch; retains at most full and final-size plans. */
+    void prepareRowExecutors(int count);
+    /** @internal @brief Pack source cells into zero-padded batch planes, applying coupling.
+     * @param density Unmodified source. @param first Offset in the occupied list.
+     * @param count Planes in this batch. @param coupling Electrostatic source multiplier. */
+    void packBatch(const ScalarField3_t& density, size_t first, int count, double coupling);
+    /** @internal @brief Transform x rows/y columns in the original execution order.
+     * @param count Actual batch size with cached executors. @param forward Select forward
+     * R2C/transpose/C2C or inverse C2C/transpose/C2R; transforms remain unscaled. */
+    void transformBatch(int count, bool forward);
+    /** @internal @brief Multiply column spectra by Green and source-cell area.
+     * @param count Number of active planes; no longitudinal mixing occurs. */
+    void multiplyBatchGreen(int count);
+    /** @internal @brief Extract centered transverse fields and optional potential halos.
+     * @param electric Destination physical fields. @param potential Optional verification grid.
+     * @param first Offset in occupied slices. @param count Number of active planes.
+     * Helpers launching CUDA extended lambdas stay public for NVCC accessibility. */
+    void extractBatchFields(
+            VectorField3_t& electric, ScalarField3_t* potential, size_t first, int count);
+
 private:
+    /** @brief Execute a phase with completed-device timing except during zero-source warmup.
+     * @tparam Work Host callable launching a complete phase. @param name Registered timer.
+     * @param work Work to execute; exception-safe timing is delegated to the shared helper. */
     template <class Work>
     void timedPhase(const char* name, Work&& work) {
         if (warmupTiming_m)
@@ -203,9 +253,10 @@ private:
             opalx::spacecharge::fft2d5_detail::timed(name, work);
     }
     bool warmupTiming_m = false;
-    // Mixed primitive of log(sqrt(x*x+y*y)), extended continuously to the axes.
-    // Using atan2 on absolute coordinates preserves the odd symmetry in each
-    // coordinate without branch jumps across the source-cell singularity.
+    /** @brief Mixed primitive of log(sqrt(x*x+y*y)), continued to the coordinate axes.
+     * @param x First corner coordinate. @param y Second corner coordinate.
+     * @return Odd-in-each-coordinate primitive, with zero value on either axis.
+     * Absolute-coordinate atan2 avoids branch jumps across the source-cell singularity. */
     KOKKOS_INLINE_FUNCTION static double logPrimitive(const double x, const double y) {
         const double a = Kokkos::abs(x);
         const double b = Kokkos::abs(y);

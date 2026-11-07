@@ -68,7 +68,6 @@ namespace opalx::spacecharge {
         static constexpr unsigned Dim = 3;
         using ParticleContainer       = ::ParticleContainer<double>;
         using LongitudinalFieldMode   = FFT2D5LongitudinalFieldMode;
-        using OpenSolver2D_t          = ippl::FFTOpenPoissonSolver<VField_t<T, 2U>, Field_t<2U>>;
         using Mesh3D_t                = ippl::UniformCartesian<T, 3U>;
         using Mesh2D_t                = ippl::UniformCartesian<T, 2U>;
         using Vector2D_t              = Mesh2D_t::vector_type;
@@ -548,8 +547,10 @@ namespace opalx::spacecharge {
          * For use only by test cases.
          */
         const ReferenceView_t& getReferencePath() const { return referencePathView(); }
-        /// Read-only handles for independent geometry and hierarchy validation.
+        /// Return segment data for independent numerical verification; handle constness does not
+        /// protect elements.
         const SegmentGeometryView_t& getSegmentGeometry() const { return segmentGeometry_m; }
+        /// Return the complete bounding-box heap, including padded leaves, for verification.
         const SegmentGeometryView_t& getSegmentBounds() const { return segmentBounds_m; }
 
         /**
@@ -580,6 +581,8 @@ namespace opalx::spacecharge {
         const VectorView_t& getProjectedPositions(size_t container = 0) const {
             return projectedPositions_m.at(container);
         }
+        /// Return winning segment indices for a container; invalid particles carry the
+        /// segment-count sentinel.
         const SegmentIndexView_t& getProjectedSegments(size_t container = 0) const {
             return projectedSegments_m.at(container);
         }
@@ -689,7 +692,158 @@ namespace opalx::spacecharge {
         void migrateToSlabs(const SpaceChargeSolveContext& context);
         /// Exchange slab halos while preserving open transverse boundaries.
         void accumulateDensityHalos();
+        /// Exchange z-slab field halos, then zero transverse ghosts to keep open x/y boundaries.
         void fillFieldHalos();
+
+        /** @internal @brief Resize segment and complete binary-heap bounds storage.
+         * @return Power-of-two leaf count. @throws OpalException On index overflow. */
+        size_t resizePathGeometry();
+        /** @internal @brief Compute independent segment data and endpoint boxes in one kernel.
+         * @param leaves Complete heap leaf count; padded leaves receive empty boxes. */
+        void buildPathSegments(size_t leaves);
+        /** @internal @brief Preserve ordered arc lengths and merge bounds level by level.
+         * @param leaves Complete heap leaf count; preceding segment kernel shares the stream. */
+        void buildPathHierarchy(size_t leaves);
+        /** @internal @brief Refresh projections for one active container without moving particles.
+         * @param container Container index. @param leaves Heap leaf count.
+         * @param periodicLength Positive only for post-migration closed-ring seam wrapping.
+         * Kernel-launching helpers are public to satisfy NVCC extended-lambda accessibility. */
+        void projectContainer(size_t container, size_t leaves, T periodicLength);
+        /** @internal @brief Score one nondegenerate segment with the unchanged lowest-index tie.
+         * @param i Segment index. @param position Cartesian query. @param ref Path vertices.
+         * @param geometry Segment data. @param bestDistance2 Current squared distance, updated.
+         * @param best Winning index, updated. @param bestFraction Winning clamped fraction.
+         * @param closest Winning Cartesian closest point; updated with the score. */
+        KOKKOS_FUNCTION static void evaluatePathSegment(
+                size_t i, const Vector3D_t& position, const ReferenceView_t& ref,
+                const SegmentGeometryView_t& geometry, T& bestDistance2, size_t& best,
+                T& bestFraction, Vector3D_t& closest);
+        /** @internal @brief Conservative pruning allowance for rounded Cartesian arithmetic.
+         * @param position Query point. @param bounds Complete heap. @return Squared-distance
+         * margin. */
+        KOKKOS_FUNCTION static T pathDistanceRoundoff(
+                const Vector3D_t& position, const SegmentGeometryView_t& bounds);
+        /** @internal @brief Compute the unchanged squared point-to-box lower bound.
+         * @param node Heap index. @param position Query point. @param bounds Heap boxes.
+         * @return Rounded squared lower bound, used only with the conservative allowance. */
+        KOKKOS_FUNCTION static T pathNodeDistance2(
+                size_t node, const Vector3D_t& position, const SegmentGeometryView_t& bounds);
+        /** @internal @brief Search the full hierarchy, falling back to exhaustive scoring on stack
+         * exhaustion.
+         * @param position Query point. @param seed Previous segment, used only as an upper bound.
+         * @param ref Vertices. @param geometry Segment data. @param bounds Heap boxes.
+         * @param leaves Power-of-two leaves. @param best Winning index, initialized by caller.
+         * @param bestFraction Winning fraction. @param closest Winning Cartesian point. */
+        KOKKOS_FUNCTION static void findClosestPathSegment(
+                const Vector3D_t& position, size_t seed, const ReferenceView_t& ref,
+                const SegmentGeometryView_t& geometry, const SegmentGeometryView_t& bounds,
+                size_t leaves, size_t& best, T& bestFraction, Vector3D_t& closest);
+        /** @internal @brief Project one particle using exact segment scoring and the existing
+         * basis.
+         * @param n Particle index. @param positions Cartesian source. @param invalid Invalid mask.
+         * @param ref Vertices. @param geometry Segment data. @param bounds Heap boxes.
+         * @param projected Output local coordinates. @param indices Output winning indices.
+         * @param leaves Heap leaf count. @param periodicLength Post-migration seam-wrap length. */
+        KOKKOS_FUNCTION static void projectPreparedParticle(
+                size_t n, const VectorView_t& positions, const BooleanView_t& invalid,
+                const ReferenceView_t& ref, const SegmentGeometryView_t& geometry,
+                const SegmentGeometryView_t& bounds, const VectorView_t& projected,
+                const SegmentIndexView_t& indices, size_t leaves, T periodicLength);
+
+        /** @internal @brief Clear self fields and enter the common solve frame for active
+         * containers.
+         * @param context Activity flags. @param labToSolve Current laboratory-to-solve transform.
+         */
+        void enterParticleSolveFrames(
+                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
+        /** @internal @brief Restore tracker frames and their moments, also after solver exceptions.
+         * @param context Activity flags. @param labToSolve Transform used for entry. */
+        void restoreParticleSolveFrames(
+                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
+        /** @internal @brief Reject transverse ownership outside the fixed open FFT domain.
+         * @param container Active container index. All ranks participate in the error reduction. */
+        void checkMigrationDomain(size_t container);
+        /** @internal @brief Save registered Cartesian coordinates and expose logical slab
+         * coordinates.
+         * @param container Active container with current projections; particle attributes migrate
+         * together. */
+        void saveMigrationPositions(size_t container);
+        /** @internal @brief Restore Cartesian coordinates from the migrated registered attribute.
+         * @param pc Container on its current ownership; invalidates its moment cache. */
+        void restoreMigrationPositions(ParticleContainer& pc);
+        /** @internal @brief Migrate one container through OPEN spatial infrastructure and restore
+         * its BC.
+         * @param container Active container index. Restoration also runs if particle migration
+         * throws. */
+        void migrateContainer(size_t container);
+
+        /** @internal @brief Refresh moments, check charge and validate open-path coverage before
+         * deposition.
+         * @param container Active source index. @param usePreparedProjections Use the per-solve
+         * caches. */
+        void validateDepositionContainer(size_t container, bool usePreparedProjections);
+        /** @internal @brief Deposit one container and restore its charge-scaled time steps.
+         * @tparam DiagnosticPolicy Stage observer. @param container Active source index.
+         * @param diagnostic Observer. @param usePreparedProjections Use current projection caches.
+         */
+        template <typename DiagnosticPolicy>
+        void scatterContainer(
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
+        /** @internal @brief Fold serial periodic ghosts, scale charge and accumulate MPI source
+         * halos.
+         * @tparam DiagnosticPolicy Stage observer. @param context Current dt/activity.
+         * @param diagnostic Receives normalized density after pre-halo line-density assembly. */
+        template <typename DiagnosticPolicy>
+        void finishChargeDeposition(
+                const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic);
+        /** @internal @brief Sum transverse planes and assemble the replicated ordered 1D profile.
+         * Source ghosts stay separate until host accumulation; boundary ghosts are filled before
+         * return. */
+        void sumLineDensityProfile();
+        /** @internal @brief Convert raw plane sums to line charge and centered longitudinal
+         * differences.
+         * @tparam DiagnosticPolicy Observer. @param diagnostic Receives area-scaled density and
+         * gradient. */
+        template <typename DiagnosticPolicy>
+        void scaleLineDensityAndGradient(DiagnosticPolicy diagnostic);
+        /** @internal @brief Run MPI-local batches while exposing each slice potential to
+         * diagnostics.
+         * @tparam OccupiedView Host mask type. @tparam DiagnosticPolicy Observer.
+         * @param occupiedHost Mask of nonzero local planes. @param diagnostic Potential observer.
+         */
+        template <typename OccupiedView, typename DiagnosticPolicy>
+        void solveDiagnosticSlabs(OccupiedView occupiedHost, DiagnosticPolicy diagnostic);
+        /** @internal @brief Solve occupied one-rank slices with a shared serial workspace.
+         * @tparam OccupiedView Host mask type. @tparam DiagnosticPolicy Observer.
+         * @param occupiedHost Nonzero source mask; neutral nonzero sources remain active.
+         * @param diagnostic Receives potentials including empty planes and halos. */
+        template <typename OccupiedView, typename DiagnosticPolicy>
+        void solveSerialSlices(OccupiedView occupiedHost, DiagnosticPolicy diagnostic);
+        /** @internal @brief Fill z field ghosts and retain open transverse boundaries. */
+        void setTransverseFieldGhosts();
+        /** @internal @brief Return the unchanged local longitudinal closure coefficient.
+         * @return Geometry factor divided by 4*pi*epsilon0; OPEN uses its fixed model constant. */
+        T longitudinalCoupling() const;
+        /** @internal @brief Gather one active container with the selected z interpolation.
+         * @tparam ScatterLongitudinally Select linear z interpolation. @tparam DiagnosticPolicy
+         * Observer.
+         * @param container Source index. @param diagnostic Field observer.
+         * @param usePreparedProjections Use current per-solve path caches. */
+        template <bool ScatterLongitudinally, typename DiagnosticPolicy>
+        void gatherContainer(
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
+
+        /** @internal @brief Recover the unchanged path basis and momentum components from a cached
+         * winner.
+         * @param n Particle index. @param p Cartesian momenta. @param geometry Segment data.
+         * @param projectedR Cached local positions. @param projectedSegment Cached winners.
+         * @param fsR Output position. @param fsP Output momentum. @param bUnit Output binormal.
+         * @param nUnit Output fixed normal. @param tUnit Output tangent. */
+        KOKKOS_FUNCTION static void loadPreparedCoordinates(
+                size_t n, const VectorView_t& p, const SegmentGeometryView_t& geometry,
+                const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment,
+                Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit, Vector3D_t& nUnit,
+                Vector3D_t& tUnit);
 
     private:
         // The first physical step is retained, but its cache/migration setup cost is

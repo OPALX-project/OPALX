@@ -36,7 +36,7 @@ namespace Options {
     extern bool info;
     extern int infoLevel;
 
-    /// Explicit FFT2D5 slice batch size; zero retains the serial slice path.
+    /// Requested FFT2D5 batch size; zero uses serial slices on one rank and batch one with MPI.
     extern int fft2d5BatchSize;
 
     /// Trace flag.

@@ -15,11 +15,11 @@
 //
 /**
  * @file FFT2D5Algorithm.hpp
- * @brief Numerical routines retained from master a5c859240, PartBunch/Solve2d5.hpp.
+ * @brief FFT2D5 deposition, line-density reduction, transverse solves and field gathering.
  *
- * Arithmetic, interpolation, field signs, stage ordering, and diagnostic hooks are retained.
- * Integration changes replace PartBunch access with borrowed containers and per-call state,
- * redirect workspace access, select tracking-active containers, and check deposition inputs.
+ * Uses common-frame path projections, laboratory-normalized charge and the integrated
+ * free-space transverse Green function. Diagnostic hooks expose the same numerical stages
+ * to independent tests; no extra physical solver mode is selected here.
  */
 #ifndef OPALX_FFT2D5_ALGORITHM_HPP
 #define OPALX_FFT2D5_ALGORITHM_HPP
@@ -64,6 +64,8 @@ namespace opalx::spacecharge {
             Algorithm::Vector3D_t origin_m;
             DiagnosticPolicy diagnostic_m;
 
+            /** @brief Deposit one local particle through the captured projection/grid policy; n is
+             * the local index. */
             KOKKOS_FUNCTION void operator()(const size_t n) const {
                 Algorithm::doScatterToGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, meanPs_m, dt_m, invalid_m, invDr_m, nGhost_m, lDom_m,
@@ -84,6 +86,8 @@ namespace opalx::spacecharge {
             Algorithm::T length_m;
             Algorithm::T tolerance_m;
 
+            /** @brief Add one to outside for an active particle projected beyond either open
+             * endpoint. */
             KOKKOS_FUNCTION void operator()(const size_t n, size_t& outside) const {
                 if (invalid_m(n)) return;
                 Algorithm::Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
@@ -113,6 +117,7 @@ namespace opalx::spacecharge {
             Kokkos::View<int*> occupied_m;
             int nGhost_m;
 
+            /** @brief Mark plane z occupied when transverse row x contains any nonzero charge. */
             KOKKOS_FUNCTION void operator()(const size_t z, const size_t x) const {
                 for (size_t y = 0; y < rho_m.extent(1); ++y) {
                     // Net charge can vanish while opposite charges still generate a field.
@@ -130,6 +135,8 @@ namespace opalx::spacecharge {
             size_t firstRealZ_m;
             size_t lastRealZ_m;
 
+            /** @brief Fold the two deposited z ghosts for transverse cell (i,j), then clear them.
+             */
             KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 rhoView_m(i, j, firstRealZ_m) += rhoView_m(i, j, lastRealZ_m + 1);
                 rhoView_m(i, j, lastRealZ_m) += rhoView_m(i, j, firstRealZ_m - 1);
@@ -143,6 +150,8 @@ namespace opalx::spacecharge {
             Algorithm::ScalarGridView3D_t rho_m;
             Algorithm::T scale_m;
 
+            /** @brief Divide cell (i,j,k), including source ghosts, by the captured volume/time
+             * factor. */
             KOKKOS_FUNCTION void operator()(const size_t i, const size_t j, const size_t k) const {
                 rho_m(i, j, k) /= scale_m;
             }
@@ -154,13 +163,7 @@ namespace opalx::spacecharge {
             size_t k_m;
             Algorithm::LineDensityView_t sums_m;
 
-            // Scalar form retained for independent single-slice diagnostic callers.
-            KOKKOS_FUNCTION void operator()(
-                    const size_t i, const size_t j, Algorithm::T& localSum) const {
-                localSum += rho3d_m(i, j, k_m);
-            }
-
-            /** One league entry per local z plane, including deposited source ghosts.
+            /** @brief Reduce one local z plane per team, including deposited source ghosts.
              * Vector lanes traverse the faster transverse dimension; team threads cover
              * rows. Each team writes a distinct local slot, never a wrapped global slot:
              * tiny periodic grids can map both ghosts to the same global slice. */
@@ -195,6 +198,8 @@ namespace opalx::spacecharge {
             Algorithm::T dx_m;
             Algorithm::T dy_m;
 
+            /** @brief Multiply global profile entry k, including boundary ghosts, by transverse
+             * cell area. */
             KOKKOS_FUNCTION void operator()(const size_t k) const {
                 lineDensity_m(k) *= dx_m * dy_m;
             }
@@ -207,6 +212,7 @@ namespace opalx::spacecharge {
             size_t firstRealCell_m;
             Algorithm::T dz_m;
 
+            /** @brief Set real-slice gradient k from its two neighboring line-density entries. */
             KOKKOS_FUNCTION void operator()(const size_t k) const {
                 gradient_m(k) = (lineDensity_m(k + firstRealCell_m + 1)
                                  - lineDensity_m(k + firstRealCell_m - 1))
@@ -218,6 +224,8 @@ namespace opalx::spacecharge {
         struct PoissonCouplingFunctor {
             Algorithm::ScalarGridView2D_t rho2d_m;
 
+            /** @brief Apply inverse permittivity to source cell (i,j) before a serial slice solve.
+             */
             KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 rho2d_m(i, j) *= 1 / Physics::epsilon_0;
             }
@@ -229,6 +237,8 @@ namespace opalx::spacecharge {
             Algorithm::VectorGridView3D_t e3d_m;
             size_t z_m;
 
+            /** @brief Copy transverse field cell (i,j) to the captured z plane and zero its z
+             * component. */
             KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 e3d_m(i, j, z_m)[0] = e2d_m(i, j)[0];
                 e3d_m(i, j, z_m)[1] = e2d_m(i, j)[1];
@@ -243,6 +253,8 @@ namespace opalx::spacecharge {
             size_t leftGhost_m;
             size_t rightGhost_m;
 
+            /** @brief Set both z field ghosts for transverse cell (i,j) using the selected boundary
+             * mode. */
             KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 if constexpr (ClosedRing) {
                     e3d_m(i, j, leftGhost_m)[0]  = e3d_m(i, j, rightGhost_m - 1)[0];
@@ -286,6 +298,8 @@ namespace opalx::spacecharge {
             bool closedRing_m;
             DiagnosticPolicy diagnostic_m;
 
+            /** @brief Gather and rotate fields for local particle n using the captured
+             * interpolation policy. */
             KOKKOS_FUNCTION void operator()(const size_t n) const {
                 Algorithm::doGatherFromGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, beamGamma_m, beamBeta_m, e_m, b_m, invalid_m, invDr_m,
@@ -324,127 +338,97 @@ namespace opalx::spacecharge {
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::scatterToGrid(
             const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic,
-            const bool usePreparedProjections) {
-        opalx::spacecharge::fft2d5_detail::timed("2D5 Scatter", [&] {
-            using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
-            using Policy3D_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
-            if (solveReferencePath_m.extent(0) > 1) {
-                const auto ref     = solveReferencePath_m;
-                const auto invDr   = 1.0 / fieldStorage_m->spacing();
-                const int nGhost   = fieldStorage_m->chargeDensity().getNghost();
-                const auto lDom    = fieldStorage_m->chargeDensity().getLayout().getLocalNDIndex();
-                const auto rhoView = fieldStorage_m->chargeDensity().getView();
-                const auto origin  = fieldStorage_m->origin();
-                // Do the scattering for all the particle containers
-                Kokkos::deep_copy(rhoView, 0.0);
-                for (std::size_t container = 0; container < particles_m.size(); ++container) {
-                    if (context.trackingActive()[container] == 0) {
-                        continue;
-                    }
-                    auto* pc = particles_m[container];
-                    const auto geometry =
-                            usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
-                    const auto projectedR = usePreparedProjections ? projectedPositions_m[container]
-                                                                   : VectorView_t();
-                    const auto projectedSegment = usePreparedProjections
-                                                          ? projectedSegments_m[container]
-                                                          : SegmentIndexView_t();
-                    pc->updateMoments();
-                    if (pc->getTotalNum() > 0 && pc->getChargePerParticle() == 0.0) {
-                        throw OpalException(
-                                "FFT2D5Algorithm::scatterToGrid",
-                                "Per-particle charge is zero for an active FFT2D5 container.");
-                    }
-                    // A clamped projection would put particles beyond a finite path
-                    // into its end slice. Fail before mutating the per-particle time steps.
-                    if (!config_m.closedRing) {
-                        const auto length = referencePath_m->length();
-                        const auto tolerance =
-                                64 * std::numeric_limits<T>::epsilon() * std::max(T(1), length);
-                        size_t outside = 0;
-                        Kokkos::parallel_reduce(
-                                "FFT2D5::checkPathCoverage", pc->getLocalNum(),
-                                fft2d5_detail::CheckPathCoverageFunctor{
-                                        pc->R.getView(), pc->P.getView(), ref, geometry, projectedR,
-                                        projectedSegment, pc->InvalidMask.getView(), length,
-                                        tolerance},
-                                outside);
-                        ippl::Comm->allreduce(outside, 1, std::plus<size_t>());
-                        if (outside != 0) {
-                            throw OpalException(
-                                "FFT2D5Algorithm::scatterToGrid",
-                                "Open reference path does not cover " + std::to_string(outside)
-                                + " active particle(s). Extend REFPATHFNAME to cover the full "
-                                  "bunch throughout tracking; endpoint clamping would pile up charge.");
-                        }
-                    }
-                    pc->scaleDtByCharge();
-                    const auto r       = pc->R.getView();
-                    const auto p       = pc->P.getView();
-                    const auto meanPs  = pc->getMeanP().data_m[2];
-                    const auto dt      = pc->dt.getView();
-                    const auto invalid = pc->InvalidMask.getView();
-                    if (config_m.scatterLongitudinally) {
-                        Kokkos::parallel_for(
-                                "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
-                                fft2d5_detail::ScatterToGridFunctor<
-                                        true, DiagnosticPolicy, decltype(invDr)>{
-                                        r, p, ref, geometry, projectedR, projectedSegment, meanPs,
-                                        dt, invalid, invDr, nGhost, lDom, rhoView, origin,
-                                        diagnostic});
-                    } else {
-                        Kokkos::parallel_for(
-                                "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
-                                fft2d5_detail::ScatterToGridFunctor<
-                                        false, DiagnosticPolicy, decltype(invDr)>{
-                                        r, p, ref, geometry, projectedR, projectedSegment, meanPs,
-                                        dt, invalid, invDr, nGhost, lDom, rhoView, origin,
-                                        diagnostic});
-                    }
-                    Kokkos::fence();
-                    diagnostic.scatterCharge(rhoView);
-                    pc->unscaleDtByCharge();
-                }
-                // Handle the closed ring periodic boundary condition
-                if (ippl::Comm->size() == 1 && config_m.closedRing) {
-                    constexpr auto firstRealZ = LineDensityFirstRealCell;
-                    const auto lastRealZ =
-                            fieldStorage_m->meshSize()[2] - 1 + LineDensityFirstRealCell;
-                    Kokkos::parallel_for(
-                            "Solve2d5::scatterToGrid::boundaries",
-                            Policy2D_t({0, 0}, {rhoView.extent(0), rhoView.extent(1)}),
-                            fft2d5_detail::ScatterBoundariesFunctor{
-                                    rhoView, firstRealZ, lastRealZ});
-                    Kokkos::fence();
-                }
-                // Now scale by volume and time step to get the proper charge density.
-                const auto cellVolume = std::reduce(
-                        fieldStorage_m->spacing().begin(), fieldStorage_m->spacing().end(), 1.0,
-                        std::multiplies());
-                const auto scale = context.stepState().timeStep * cellVolume;
-                if (!std::isfinite(scale) || scale == 0.0) {
-                    throw OpalException(
-                            "FFT2D5Algorithm::scatterToGrid",
-                            "FFT2D5 deposition requires a finite nonzero time step and cell "
-                            "volume.");
-                }
-                Kokkos::parallel_for(
-                        "Solve2d5::scatterToGrid::scale",
-                        Policy3D_t(
-                                {0, 0, 0},
-                                {rhoView.extent(0), rhoView.extent(1), rhoView.extent(2)}),
-                        fft2d5_detail::ScaleChargeDensityFunctor{rhoView, scale});
-                Kokkos::fence();
-                if (ippl::Comm->size() > 1) {
-                    // Sum each rank's deposits before halo accumulation. This includes
-                    // transverse CIC spill for the original line-charge convention,
-                    // while the transverse free-space FFT uses physical x-y cells only.
-                    calculateLineDensity<DiagnosticPolicy>(diagnostic);
-                    accumulateDensityHalos();
-                }
-                diagnostic.scatterChargeDensity(rhoView);
-            }
+            bool usePreparedProjections) {
+        fft2d5_detail::timed("2D5 Scatter", [&] {
+            if (solveReferencePath_m.extent(0) < 2) return;
+            Kokkos::deep_copy(fieldStorage_m->chargeDensity().getView(), 0.);
+            for (size_t c = 0; c < particles_m.size(); ++c)
+                if (context.trackingActive()[c])
+                    scatterContainer(c, diagnostic, usePreparedProjections);
+            finishChargeDeposition(context, diagnostic);
         });
+    }
+
+    template <typename DiagnosticPolicy>
+    void FFT2D5Algorithm::scatterContainer(
+            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections) {
+        const auto ref      = solveReferencePath_m;
+        const auto invDr    = 1.0 / fieldStorage_m->spacing();
+        const int nGhost    = fieldStorage_m->chargeDensity().getNghost();
+        const auto lDom     = fieldStorage_m->chargeDensity().getLayout().getLocalNDIndex();
+        const auto rhoView  = fieldStorage_m->chargeDensity().getView();
+        const auto origin   = fieldStorage_m->origin();
+        auto* pc            = particles_m[container];
+        const auto geometry = usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
+        const auto projectedR =
+                usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
+        const auto projectedSegment =
+                usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
+        validateDepositionContainer(container, usePreparedProjections);
+        pc->scaleDtByCharge();
+        const auto r       = pc->R.getView();
+        const auto p       = pc->P.getView();
+        const auto meanPs  = pc->getMeanP().data_m[2];
+        const auto dt      = pc->dt.getView();
+        const auto invalid = pc->InvalidMask.getView();
+        if (config_m.scatterLongitudinally) {
+            Kokkos::parallel_for(
+                    "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
+                    fft2d5_detail::ScatterToGridFunctor<true, DiagnosticPolicy, decltype(invDr)>{
+                            r, p, ref, geometry, projectedR, projectedSegment, meanPs, dt, invalid,
+                            invDr, nGhost, lDom, rhoView, origin, diagnostic});
+        } else {
+            Kokkos::parallel_for(
+                    "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
+                    fft2d5_detail::ScatterToGridFunctor<false, DiagnosticPolicy, decltype(invDr)>{
+                            r, p, ref, geometry, projectedR, projectedSegment, meanPs, dt, invalid,
+                            invDr, nGhost, lDom, rhoView, origin, diagnostic});
+        }
+        Kokkos::fence();
+        diagnostic.scatterCharge(rhoView);
+        pc->unscaleDtByCharge();
+    }
+
+    template <typename DiagnosticPolicy>
+    void FFT2D5Algorithm::finishChargeDeposition(
+            const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
+        using Policy2D_t   = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+        using Policy3D_t   = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+        const auto rhoView = fieldStorage_m->chargeDensity().getView();
+        // Handle the closed ring periodic boundary condition
+        if (ippl::Comm->size() == 1 && config_m.closedRing) {
+            constexpr auto firstRealZ = LineDensityFirstRealCell;
+            const auto lastRealZ = fieldStorage_m->meshSize()[2] - 1 + LineDensityFirstRealCell;
+            Kokkos::parallel_for(
+                    "Solve2d5::scatterToGrid::boundaries",
+                    Policy2D_t({0, 0}, {rhoView.extent(0), rhoView.extent(1)}),
+                    fft2d5_detail::ScatterBoundariesFunctor{rhoView, firstRealZ, lastRealZ});
+            Kokkos::fence();
+        }
+        // Now scale by volume and time step to get the proper charge density.
+        const auto cellVolume = std::reduce(
+                fieldStorage_m->spacing().begin(), fieldStorage_m->spacing().end(), 1.0,
+                std::multiplies());
+        const auto scale = context.stepState().timeStep * cellVolume;
+        if (!std::isfinite(scale) || scale == 0.0) {
+            throw OpalException(
+                    "FFT2D5Algorithm::scatterToGrid",
+                    "FFT2D5 deposition requires a finite nonzero time step and cell "
+                    "volume.");
+        }
+        Kokkos::parallel_for(
+                "Solve2d5::scatterToGrid::scale",
+                Policy3D_t({0, 0, 0}, {rhoView.extent(0), rhoView.extent(1), rhoView.extent(2)}),
+                fft2d5_detail::ScaleChargeDensityFunctor{rhoView, scale});
+        Kokkos::fence();
+        if (ippl::Comm->size() > 1) {
+            // Sum each rank's deposits before halo accumulation. This includes
+            // transverse CIC spill for the original line-charge convention,
+            // while the transverse free-space FFT uses physical x-y cells only.
+            calculateLineDensity<DiagnosticPolicy>(diagnostic);
+            accumulateDensityHalos();
+        }
+        diagnostic.scatterChargeDensity(rhoView);
     }
 
     // This is a Kokkos kernel that deposits the charge for a single particle into the
@@ -483,13 +467,8 @@ namespace opalx::spacecharge {
             Vector3D_t& nUnit, Vector3D_t& tUnit, const SegmentGeometryView_t& geometry,
             const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment) {
         if (projectedR.extent(0) != 0) {
-            const auto segment = projectedSegment(n);
-            fsR                = projectedR(n);
-            tUnit = Vector3D_t(geometry(segment, 0), geometry(segment, 1), geometry(segment, 2))
-                    / geometry(segment, 4);
-            nUnit = {0, 1, 0};
-            bUnit = ippl::cross(nUnit, tUnit);
-            fsP   = Vector3D_t(p(n).dot(bUnit), p(n).dot(nUnit), p(n).dot(tUnit));
+            loadPreparedCoordinates(
+                    n, p, geometry, projectedR, projectedSegment, fsR, fsP, bUnit, nUnit, tUnit);
             return;
         }
         // Find the segment with the shortest normal to the point
@@ -584,99 +563,54 @@ namespace opalx::spacecharge {
 
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::calculateLineDensity(DiagnosticPolicy diagnostic) {
-        opalx::spacecharge::fft2d5_detail::timed("2D5 Line density", [&] {
-            if (config_m.longitudinalFieldMode != LongitudinalFieldMode::None) {
-                const auto rho3d             = fieldStorage_m->chargeDensity().getView();
-                const auto deviceLineDensity = lineDensity_m;
-                const auto hostLineDensity   = Kokkos::create_mirror_view(lineDensity_m);
-                const auto numSlices         = fieldStorage_m->meshSize()[2];
-                const auto localDomain       = fieldStorage_m->layout().getLocalNDIndex();
-                const bool distributed       = ippl::Comm->size() > 1;
-                const size_t begin           = distributed ? 0 : LineDensityFirstRealCell;
-                const size_t end = size_t(localDomain[2].length()) + (distributed ? 2 : 1);
-                // Reuse the profile as device scratch until the final global profile is
-                // assembled. One batched reduction and one small copy replace a synchronized
-                // scalar reduction/copy for every slice. Always allocate an independent host
-                // mirror: create_mirror_view may alias on HostSpace, and clearing the global
-                // profile below must not erase the local slice sums.
-                const auto hostSliceSums = Kokkos::create_mirror(deviceLineDensity);
-#ifdef KOKKOS_ENABLE_CUDA
-                constexpr int vectorLength = 32;
-#else
-                constexpr int vectorLength = 1;
-#endif
-                Kokkos::parallel_for(
-                        "FFT2D5::batchedSliceDensity",
-                        Kokkos::TeamPolicy<>(end - begin, Kokkos::AUTO, vectorLength),
-                        fft2d5_detail::SliceDensitySumFunctor{rho3d, begin, deviceLineDensity});
-                Kokkos::deep_copy(hostSliceSums, deviceLineDensity);
-                Kokkos::deep_copy(hostLineDensity, 0.);
-                for (size_t k = begin; k < end; ++k) {
-                    const T sum = hostSliceSums(k);
-                    int global  = int(k) + localDomain[2].first() - LineDensityFirstRealCell;
-                    if (config_m.closedRing) global = (global + int(numSlices)) % int(numSlices);
-                    if (global >= 0 && global < int(numSlices))
-                        hostLineDensity(global + LineDensityFirstRealCell) += sum;
-                }
-                // Only the small 1D profile is replicated; no 3D field all-reduction.
-                if (ippl::Comm->size() > 1)
-                    ippl::Comm->allreduce(
-                            hostLineDensity.data(), numSlices + LineDensityGhostCells,
-                            std::plus<T>());
-                // Set the ghost cells to the boundary conditions
-                if (config_m.closedRing) {
-                    hostLineDensity(0) = hostLineDensity(numSlices + LineDensityGhostCells - 2);
-                    hostLineDensity(numSlices + LineDensityGhostCells - 1) =
-                            hostLineDensity(LineDensityFirstRealCell);
-                } else {
-                    hostLineDensity(0)                                     = 0.0;
-                    hostLineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
-                }
-                Kokkos::deep_copy(deviceLineDensity, hostLineDensity);
-                diagnostic.totalDensity(lineDensity_m);
-                // Convert this to line density
-                const auto dx = fieldStorage_m->spacing()[0];
-                const auto dy = fieldStorage_m->spacing()[1];
-                Kokkos::parallel_for(
-                        "Solve2d5::calculateLineDensity::convert",
-                        numSlices + LineDensityGhostCells,
-                        fft2d5_detail::ScaleLineDensityFunctor{deviceLineDensity, dx, dy});
-                Kokkos::fence();
-                diagnostic.lineDensity(lineDensity_m);
-                // Find the gradient
-                const auto lineDensityGradient = lineDensityGradient_m;
-                const auto dz =
-                        fieldStorage_m->chargeDensity().get_mesh().getMeshSpacing().data_m[2];
-                Kokkos::parallel_for(
-                        "Solve2d5::calculateLineDensity::gradient", numSlices,
-                        fft2d5_detail::LineDensityGradientFunctor{
-                                deviceLineDensity, lineDensityGradient, LineDensityFirstRealCell,
-                                dz});
-                Kokkos::fence();
-                diagnostic.lineDensityGradient(lineDensityGradient_m);
-            } else {
+        fft2d5_detail::timed("2D5 Line density", [&] {
+            if (config_m.longitudinalFieldMode == LongitudinalFieldMode::None) {
                 Kokkos::deep_copy(lineDensity_m, 0);
                 diagnostic.totalDensity(lineDensity_m);
                 diagnostic.lineDensity(lineDensity_m);
                 Kokkos::deep_copy(lineDensityGradient_m, 0);
                 diagnostic.lineDensityGradient(lineDensityGradient_m);
+                return;
             }
+            sumLineDensityProfile();
+            diagnostic.totalDensity(lineDensity_m);
+            scaleLineDensityAndGradient(diagnostic);
         });
     }
 
     template <typename DiagnosticPolicy>
+    void FFT2D5Algorithm::scaleLineDensityAndGradient(DiagnosticPolicy diagnostic) {
+        const auto deviceLineDensity = lineDensity_m;
+        const auto numSlices         = fieldStorage_m->meshSize()[2];
+        // Convert this to line density
+        const auto dx = fieldStorage_m->spacing()[0];
+        const auto dy = fieldStorage_m->spacing()[1];
+        Kokkos::parallel_for(
+                "Solve2d5::calculateLineDensity::convert", numSlices + LineDensityGhostCells,
+                fft2d5_detail::ScaleLineDensityFunctor{deviceLineDensity, dx, dy});
+        Kokkos::fence();
+        diagnostic.lineDensity(lineDensity_m);
+        // Find the gradient
+        const auto lineDensityGradient = lineDensityGradient_m;
+        const auto dz = fieldStorage_m->chargeDensity().get_mesh().getMeshSpacing().data_m[2];
+        Kokkos::parallel_for(
+                "Solve2d5::calculateLineDensity::gradient", numSlices,
+                fft2d5_detail::LineDensityGradientFunctor{
+                        deviceLineDensity, lineDensityGradient, LineDensityFirstRealCell, dz});
+        Kokkos::fence();
+        diagnostic.lineDensityGradient(lineDensityGradient_m);
+    }
+
+    template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::solvePoissons(DiagnosticPolicy diagnostic) {
-        opalx::spacecharge::fft2d5_detail::timed("2D5 Poisson", [&] {
+        fft2d5_detail::timed("2D5 Poisson", [&] {
             using Policy         = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
             auto e3d             = fieldStorage_m->electricField().getView();
             const auto rho3d     = fieldStorage_m->chargeDensity().getView();
             const auto nGhost    = fieldStorage_m->electricField().getNghost();
             const auto numSlices = fieldStorage_m->layout().getLocalNDIndex()[2].length();
             fieldStorage_m->resetBackendSolves();
-            // Empty slices have exactly zero transverse field. Clear the staging grid first,
-            // including slices that were occupied on the preceding step, so skipping them cannot
-            // retain a field.
-            Kokkos::deep_copy(e3d, Vector3D_t(0.0));
+            Kokkos::deep_copy(e3d, Vector3D_t(0.));
             Kokkos::View<int*> occupiedSlices("FFT2D5OccupiedSlices", numSlices);
             Kokkos::deep_copy(occupiedSlices, 0);
             Kokkos::parallel_for(
@@ -685,190 +619,147 @@ namespace opalx::spacecharge {
                     fft2d5_detail::OccupiedSlicesFunctor{rho3d, occupiedSlices, nGhost});
             auto occupiedHost =
                     Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), occupiedSlices);
-            // Each rank independently solves only its owned planes.
             bool batched = false;
             if constexpr (std::is_same_v<DiagnosticPolicy, NullDiagnostic>) {
                 if (fieldStorage_m->batchSize() > 0) {
                     std::vector<size_t> occupied;
-                    for (size_t z = 0; z < numSlices; ++z)
-                        if (occupiedHost(z) != 0) occupied.push_back(z);
+                    for (size_t z = 0; z < size_t(numSlices); ++z)
+                        if (occupiedHost(z)) occupied.push_back(z);
                     fieldStorage_m->solveBatchedSlices(occupied);
                     batched = true;
                 }
             }
-            if (ippl::Comm->size() > 1 && !batched) {
-                std::vector<size_t> occupied;
-                for (size_t z = 0; z < size_t(numSlices); ++z)
-                    if (occupiedHost(z)) occupied.push_back(z);
-                FFT2D5FieldStorage::ScalarField3 potential(
-                        fieldStorage_m->mesh(), fieldStorage_m->layout());
-                fieldStorage_m->solveBatchedSlices(occupied, &potential);
-                const auto phi   = potential.getView();
-                const auto first = fieldStorage_m->layout().getLocalNDIndex()[2].first();
-                for (size_t z = 0; z < size_t(numSlices); ++z) {
-                    const auto slice =
-                            Kokkos::subview(phi, Kokkos::ALL(), Kokkos::ALL(), z + nGhost);
-                    diagnostic.potential(slice, z + first + nGhost);
-                }
+            if (!batched && ippl::Comm->size() > 1) {
+                solveDiagnosticSlabs(occupiedHost, diagnostic);
                 batched = true;
             }
-            // Diagnostic policies retain the serial path and per-slice potential callbacks.
-            if (!batched) {
-                // Copy each source into the same 2D workspace, solve, and copy the resulting field
-                // back. Independent slices need neither separate FFT plans nor separate solver
-                // buffers.
-                const auto& s = fieldStorage_m->workspace();
-                auto rho2d    = s.chargeDensity->getView();
-                for (size_t z = 0; z < numSlices; ++z) {
-                    // Do the 2D solve to get Ex and Ey
-                    Kokkos::deep_copy(
-                            rho2d,
-                            Kokkos::subview(rho3d, Kokkos::ALL(), Kokkos::ALL(), z + nGhost));
-                    if (occupiedHost(z) == 0) {
-                        diagnostic.potential(rho2d, z + nGhost);
-                        continue;
-                    }
-                    // Scale by the coupling constant then solve
-                    Kokkos::parallel_for(
-                            "Solve2d5::solvePoissons::coupling",
-                            Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
-                            fft2d5_detail::PoissonCouplingFunctor{rho2d});
-                    fieldStorage_m->solveSlice();
-                    Kokkos::fence();
-                    diagnostic.potential(rho2d, z + nGhost);
-                    auto e2d = s.electricField->getView();
-                    // Copy the 2D E field into the 3D E field grid
-                    Kokkos::parallel_for(
-                            "Solve2d5::solvePoissons::copy",
-                            Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
-                            fft2d5_detail::CopySliceFieldFunctor{e2d, e3d, z + nGhost});
-                    Kokkos::fence();
-                }
-            }
-            // Set the ghost slices
-            constexpr auto leftGhost = 0;
-            const auto rightGhost    = e3d.extent(2) - 1;
-            if (ippl::Comm->size() > 1) {
-                fillFieldHalos();
-            } else if (config_m.closedRing) {
-                Kokkos::parallel_for(
-                        "Solve2d5::solvePoissons::ghostClosed",
-                        Policy({0, 0}, {e3d.extent(0), e3d.extent(1)}),
-                        fft2d5_detail::FieldGhostsFunctor<true>{e3d, leftGhost, rightGhost});
-                Kokkos::fence();
-            } else {
-                Kokkos::parallel_for(
-                        "Solve2d5::solvePoissons::ghostOpen",
-                        Policy({0, 0}, {e3d.extent(0), e3d.extent(1)}),
-                        fft2d5_detail::FieldGhostsFunctor<false>{e3d, leftGhost, rightGhost});
-                Kokkos::fence();
-            }
+            if (!batched) solveSerialSlices(occupiedHost, diagnostic);
+            setTransverseFieldGhosts();
             diagnostic.eField(e3d);
         });
+    }
+
+    template <typename OccupiedView, typename DiagnosticPolicy>
+    void FFT2D5Algorithm::solveDiagnosticSlabs(
+            OccupiedView occupiedHost, DiagnosticPolicy diagnostic) {
+        const auto nGhost    = fieldStorage_m->electricField().getNghost();
+        const auto numSlices = fieldStorage_m->layout().getLocalNDIndex()[2].length();
+        std::vector<size_t> occupied;
+        for (size_t z = 0; z < size_t(numSlices); ++z)
+            if (occupiedHost(z)) occupied.push_back(z);
+        FFT2D5FieldStorage::ScalarField3 potential(
+                fieldStorage_m->mesh(), fieldStorage_m->layout());
+        fieldStorage_m->solveBatchedSlices(occupied, &potential);
+        const auto phi   = potential.getView();
+        const auto first = fieldStorage_m->layout().getLocalNDIndex()[2].first();
+        for (size_t z = 0; z < size_t(numSlices); ++z) {
+            const auto slice = Kokkos::subview(phi, Kokkos::ALL(), Kokkos::ALL(), z + nGhost);
+            diagnostic.potential(slice, z + first + nGhost);
+        }
+    }
+
+    template <typename OccupiedView, typename DiagnosticPolicy>
+    void FFT2D5Algorithm::solveSerialSlices(
+            OccupiedView occupiedHost, DiagnosticPolicy diagnostic) {
+        using Policy         = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+        auto e3d             = fieldStorage_m->electricField().getView();
+        const auto rho3d     = fieldStorage_m->chargeDensity().getView();
+        const auto nGhost    = fieldStorage_m->electricField().getNghost();
+        const auto numSlices = fieldStorage_m->layout().getLocalNDIndex()[2].length();
+        const auto& s        = fieldStorage_m->workspace();
+        auto rho2d           = s.chargeDensity->getView();
+        for (size_t z = 0; z < numSlices; ++z) {
+            // Do the 2D solve to get Ex and Ey
+            Kokkos::deep_copy(
+                    rho2d, Kokkos::subview(rho3d, Kokkos::ALL(), Kokkos::ALL(), z + nGhost));
+            if (occupiedHost(z) == 0) {
+                diagnostic.potential(rho2d, z + nGhost);
+                continue;
+            }
+            // Scale by the coupling constant then solve
+            Kokkos::parallel_for(
+                    "Solve2d5::solvePoissons::coupling",
+                    Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
+                    fft2d5_detail::PoissonCouplingFunctor{rho2d});
+            fieldStorage_m->solveSlice();
+            Kokkos::fence();
+            diagnostic.potential(rho2d, z + nGhost);
+            auto e2d = s.electricField->getView();
+            // Copy the 2D E field into the 3D E field grid
+            Kokkos::parallel_for(
+                    "Solve2d5::solvePoissons::copy", Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
+                    fft2d5_detail::CopySliceFieldFunctor{e2d, e3d, z + nGhost});
+            Kokkos::fence();
+        }
     }
 
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::gatherFromGrid(
             const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic,
-            const bool usePreparedProjections) {
-        opalx::spacecharge::fft2d5_detail::timed("2D5 Gather", [&] {
-            if (solveReferencePath_m.extent(0) > 1) {
-                for (std::size_t container = 0; container < particles_m.size(); ++container) {
-                    if (context.trackingActive()[container] == 0) {
-                        continue;
-                    }
-                    auto* pc = particles_m[container];
-                    const auto geometry =
-                            usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
-                    const auto projectedR = usePreparedProjections ? projectedPositions_m[container]
-                                                                   : VectorView_t();
-                    const auto projectedSegment    = usePreparedProjections
-                                                             ? projectedSegments_m[container]
-                                                             : SegmentIndexView_t();
-                    const auto r                   = pc->R.getView();
-                    const auto p                   = pc->P.getView();
-                    const auto ref                 = solveReferencePath_m;
-                    const auto meanPs              = pc->getMeanP().data_m[2];
-                    const auto e                   = pc->E.getView();
-                    const auto b                   = pc->B.getView();
-                    const auto invalid             = pc->InvalidMask.getView();
-                    const auto dr                  = fieldStorage_m->spacing();
-                    const auto invDr               = 1.0 / dr;
-                    const int nGhost               = fieldStorage_m->chargeDensity().getNghost();
-                    const auto& layout             = fieldStorage_m->chargeDensity().getLayout();
-                    const auto lDom                = layout.getLocalNDIndex();
-                    const auto origin              = fieldStorage_m->origin();
-                    const auto gammaB              = Kokkos::sqrt(1.0 + meanPs * meanPs);
-                    const auto betaB               = meanPs / gammaB;
-                    const auto lineDensityGradient = lineDensityGradient_m;
-                    const auto eField              = fieldStorage_m->electricField().getView();
-                    const auto pipeRadius =
-                            std::min(fieldStorage_m->size()[0], fieldStorage_m->size()[1]);
-                    T g;
-                    if (config_m.longitudinalFieldMode == LongitudinalFieldMode::Cylindrical) {
-                        g = CircularPipeG0 + 2 * Kokkos::log(pipeRadius / config_m.beamRadius);
-                    } else if (config_m.longitudinalFieldMode == LongitudinalFieldMode::Plates) {
-                        g = ParallelPlatesG0
-                            + 2 * Kokkos::log(4 * pipeRadius / Physics::pi / config_m.beamRadius);
-                    } else {
-                        g = OpenG0;
-                    }
-                    const T gBy4PiEpsilon0 = g / (4 * Physics::pi * Physics::epsilon_0);
-                    if (config_m.scatterLongitudinally) {
-                        Kokkos::parallel_for(
-                                "Solver2d5::GatherFromGrid", pc->getLocalNum(),
-                                fft2d5_detail::GatherFromGridFunctor<
-                                        true, DiagnosticPolicy, decltype(invDr)>{
-                                        r,
-                                        p,
-                                        ref,
-                                        geometry,
-                                        projectedR,
-                                        projectedSegment,
-                                        gammaB,
-                                        betaB,
-                                        e,
-                                        b,
-                                        invalid,
-                                        invDr,
-                                        nGhost,
-                                        lDom,
-                                        eField,
-                                        origin,
-                                        gBy4PiEpsilon0,
-                                        lineDensityGradient,
-                                        config_m.closedRing,
-                                        diagnostic});
-                    } else {
-                        Kokkos::parallel_for(
-                                "Solver2d5::GatherFromGrid", pc->getLocalNum(),
-                                fft2d5_detail::GatherFromGridFunctor<
-                                        false, DiagnosticPolicy, decltype(invDr)>{
-                                        r,
-                                        p,
-                                        ref,
-                                        geometry,
-                                        projectedR,
-                                        projectedSegment,
-                                        gammaB,
-                                        betaB,
-                                        e,
-                                        b,
-                                        invalid,
-                                        invDr,
-                                        nGhost,
-                                        lDom,
-                                        eField,
-                                        origin,
-                                        gBy4PiEpsilon0,
-                                        lineDensityGradient,
-                                        config_m.closedRing,
-                                        diagnostic});
-                    }
-                    Kokkos::fence();
-                }
+            bool usePreparedProjections) {
+        fft2d5_detail::timed("2D5 Gather", [&] {
+            if (solveReferencePath_m.extent(0) < 2) return;
+            for (size_t c = 0; c < particles_m.size(); ++c) {
+                if (!context.trackingActive()[c]) continue;
+                if (config_m.scatterLongitudinally)
+                    gatherContainer<true>(c, diagnostic, usePreparedProjections);
+                else
+                    gatherContainer<false>(c, diagnostic, usePreparedProjections);
             }
         });
+    }
+
+    template <bool ScatterLongitudinally, typename DiagnosticPolicy>
+    void FFT2D5Algorithm::gatherContainer(
+            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections) {
+        auto* pc            = particles_m[container];
+        const auto geometry = usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
+        const auto projectedR =
+                usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
+        const auto projectedSegment =
+                usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
+        const auto r                   = pc->R.getView();
+        const auto p                   = pc->P.getView();
+        const auto ref                 = solveReferencePath_m;
+        const auto meanPs              = pc->getMeanP().data_m[2];
+        const auto e                   = pc->E.getView();
+        const auto b                   = pc->B.getView();
+        const auto invalid             = pc->InvalidMask.getView();
+        const auto dr                  = fieldStorage_m->spacing();
+        const auto invDr               = 1.0 / dr;
+        const int nGhost               = fieldStorage_m->chargeDensity().getNghost();
+        const auto& layout             = fieldStorage_m->chargeDensity().getLayout();
+        const auto lDom                = layout.getLocalNDIndex();
+        const auto origin              = fieldStorage_m->origin();
+        const auto gammaB              = Kokkos::sqrt(1.0 + meanPs * meanPs);
+        const auto betaB               = meanPs / gammaB;
+        const auto lineDensityGradient = lineDensityGradient_m;
+        const auto eField              = fieldStorage_m->electricField().getView();
+        const T gBy4PiEpsilon0         = longitudinalCoupling();
+        const auto kernel              = fft2d5_detail::GatherFromGridFunctor<
+                             ScatterLongitudinally, DiagnosticPolicy, decltype(invDr)>{
+                r,
+                p,
+                ref,
+                geometry,
+                projectedR,
+                projectedSegment,
+                gammaB,
+                betaB,
+                e,
+                b,
+                invalid,
+                invDr,
+                nGhost,
+                lDom,
+                eField,
+                origin,
+                gBy4PiEpsilon0,
+                lineDensityGradient,
+                config_m.closedRing,
+                diagnostic};
+        Kokkos::parallel_for("Solver2d5::GatherFromGrid", pc->getLocalNum(), kernel);
+        Kokkos::fence();
     }
 
     template <bool ScatterLongitudinally, typename DiagnosticPolicy>
@@ -1004,6 +895,139 @@ namespace opalx::spacecharge {
             const Vector3D_t& tUnit, const VectorView_t& e, const VectorView_t& b) {
         e(n) = e(n).data_m[0] * bUnit + e(n).data_m[1] * nUnit + e(n).data_m[2] * tUnit;
         b(n) = b(n).data_m[0] * bUnit + b(n).data_m[1] * nUnit + b(n).data_m[2] * tUnit;
+    }
+
+    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::evaluatePathSegment(
+            size_t i, const Vector3D_t& position, const ReferenceView_t& ref,
+            const SegmentGeometryView_t& geometry, T& bestDistance2, size_t& best, T& bestFraction,
+            Vector3D_t& closest) {
+        const T length2 = geometry(i, 3);
+        if (length2 <= 0.0) return;
+        const Vector3D_t direction(geometry(i, 0), geometry(i, 1), geometry(i, 2));
+        const Vector3D_t start = ref(i);
+        const T fraction       = Kokkos::clamp(direction.dot(position - start) / length2, 0.0, 1.0);
+        const Vector3D_t point = start + fraction * direction;
+        const Vector3D_t difference = position - point;
+        const T distance2           = difference.dot(difference);
+        if (distance2 < bestDistance2 || (distance2 == bestDistance2 && i < best)) {
+            best          = i;
+            bestFraction  = fraction;
+            closest       = point;
+            bestDistance2 = distance2;
+        }
+    }
+
+    KOKKOS_INLINE_FUNCTION FFT2D5Algorithm::T FFT2D5Algorithm::pathDistanceRoundoff(
+            const Vector3D_t& position, const SegmentGeometryView_t& bounds) {
+        T scale = 0.0;
+        for (unsigned d = 0; d < 3; ++d) {
+            scale = Kokkos::max(scale, Kokkos::abs(position[d]));
+            scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d)));
+            scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d + 3)));
+        }
+        constexpr T epsilon = std::numeric_limits<T>::epsilon();
+        return 256 * epsilon * scale * scale + 256 * std::numeric_limits<T>::min();
+    }
+
+    KOKKOS_INLINE_FUNCTION FFT2D5Algorithm::T FFT2D5Algorithm::pathNodeDistance2(
+            size_t node, const Vector3D_t& position, const SegmentGeometryView_t& bounds) {
+        T distance2 = 0.0;
+        for (unsigned d = 0; d < 3; ++d) {
+            const T gap = Kokkos::max(
+                    T(0),
+                    Kokkos::max(bounds(node, d) - position[d], position[d] - bounds(node, d + 3)));
+            distance2 += gap * gap;
+        }
+        return distance2;
+    }
+
+    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::findClosestPathSegment(
+            const Vector3D_t& position, size_t seed, const ReferenceView_t& ref,
+            const SegmentGeometryView_t& geometry, const SegmentGeometryView_t& bounds,
+            size_t leaves, size_t& best, T& bestFraction, Vector3D_t& closest) {
+        const size_t segments = ref.extent(0) - 1;
+        T bestDistance2       = Kokkos::Experimental::finite_max_v<T>;
+        const auto evaluate   = [&](size_t i) {
+            evaluatePathSegment(
+                    i, position, ref, geometry, bestDistance2, best, bestFraction, closest);
+        };
+        evaluate(seed < segments ? seed : 0);
+        const T roundoff      = pathDistanceRoundoff(position, bounds);
+        const auto lowerBound = [&](size_t node) {
+            return pathNodeDistance2(node, position, bounds);
+        };
+        size_t stack[64];
+        unsigned top  = 0;
+        stack[top++]  = 1;
+        bool fallback = false;
+        while (top != 0) {
+            const size_t node = stack[--top];
+            if (lowerBound(node) > bestDistance2 + roundoff) continue;
+            if (node >= leaves) {
+                const size_t i = node - leaves;
+                if (i < segments) evaluate(i);
+            } else {
+                if (top + 2 > 64) {
+                    fallback = true;
+                    break;
+                }
+                const size_t left = 2 * node, right = left + 1;
+                // Visit nearer child first to tighten the upper bound quickly.
+                const bool leftFirst = lowerBound(left) <= lowerBound(right);
+                stack[top++]         = leftFirst ? right : left;
+                stack[top++]         = leftFirst ? left : right;
+            }
+        }
+        if (fallback) {
+            for (size_t i = 0; i < segments; ++i)
+                evaluate(i);
+        }
+    }
+
+    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::projectPreparedParticle(
+            size_t n, const VectorView_t& positions, const BooleanView_t& invalid,
+            const ReferenceView_t& ref, const SegmentGeometryView_t& geometry,
+            const SegmentGeometryView_t& bounds, const VectorView_t& projected,
+            const SegmentIndexView_t& indices, size_t leaves, T periodicLength) {
+        const size_t segments = ref.extent(0) - 1;
+        if (invalid(n)) {
+            projected(n) = Vector3D_t(0.);
+            indices(n)   = segments;
+            return;
+        }
+        const Vector3D_t position = positions(n);
+        size_t best               = 0;
+        T bestFraction            = 0.;
+        Vector3D_t closest(0.);
+        findClosestPathSegment(
+                position, indices(n), ref, geometry, bounds, leaves, best, bestFraction, closest);
+        const Vector3D_t tangent =
+                Vector3D_t(geometry(best, 0), geometry(best, 1), geometry(best, 2))
+                / geometry(best, 4);
+        const Vector3D_t normal(0.0, 1.0, 0.0);
+        const Vector3D_t binormal = ippl::cross(normal, tangent);
+        const Vector3D_t offset   = position - closest;
+        projected(n)              = Vector3D_t(
+                offset.dot(binormal), offset.dot(normal),
+                geometry(best, 5) + bestFraction * geometry(best, 4));
+        // Ownership wraps the exact end point to the first slab.
+        // Keep the cached interpolation coordinate consistent with it.
+        if (periodicLength > 0. && projected(n)[2] >= periodicLength) projected(n)[2] = 0.;
+        indices(n) = best;
+    }
+
+    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::loadPreparedCoordinates(
+            size_t n, const VectorView_t& p, const SegmentGeometryView_t& geometry,
+            const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment,
+            Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit, Vector3D_t& nUnit,
+            Vector3D_t& tUnit) {
+        const auto segment = projectedSegment(n);
+        fsR                = projectedR(n);
+        tUnit = Vector3D_t(geometry(segment, 0), geometry(segment, 1), geometry(segment, 2))
+                / geometry(segment, 4);
+        nUnit = {0, 1, 0};
+        bUnit = ippl::cross(nUnit, tUnit);
+        fsP   = Vector3D_t(p(n).dot(bUnit), p(n).dot(nUnit), p(n).dot(tUnit));
     }
 
 }  // namespace opalx::spacecharge

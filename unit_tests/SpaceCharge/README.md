@@ -160,3 +160,21 @@ repeated global-bin mappings. This component test initializes storage directly:
 IPPL's full halo exchange does not support one-plane local slabs. The existing
 larger-grid distributed test separately checks all three fields against direct
 convolution. Numerical tolerances are unchanged.
+
+## Native solver cleanup and stage boundaries
+
+FFT2D5 now has one transverse backend: the native cell-integrated free-space
+solver. The compile-time IPPL comparison switch and its unused parameter wiring
+are removed. Row batching still uses the existing heFFTe executors; MPI Green
+initialization allocates one transform workspace, rather than one per batch slot.
+
+The batch orchestrator delegates validation, buffers, Green preparation, row
+plans, packing, transforms, multiplication and field extraction. Path preparation
+separates storage, segments, hierarchy and projection; projection keeps the same
+scoring, conservative bounds, fallback and tie order. Migration separates domain
+checks, registered-coordinate staging, ownership transfer and restoration.
+Deposition, line-density reduction and gathering have equivalent smaller stages.
+These internal helpers stay in the existing files/classes; CUDA-launching stages
+remain public for NVCC extended-lambda accessibility and carry internal Doxygen
+contracts. Existing exact component oracles and independent field checks cover
+these boundaries without changing tolerances.
