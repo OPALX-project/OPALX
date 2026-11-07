@@ -25,6 +25,12 @@
 
 class PeakFinder;
 
+/** @brief Legacy cyclotron segment configuration.
+ *
+ * ParallelTracker registers these configurations as passive global diagnostics
+ * through CyclotronProbeRecorder rather than the legacy PluginElement check path.
+ * Input endpoint Y names denote laboratory Z in the OPALX cyclotron X-Z plane.
+ */
 class Probe : public PluginElement {
 public:
     /// Constructor with given name.
