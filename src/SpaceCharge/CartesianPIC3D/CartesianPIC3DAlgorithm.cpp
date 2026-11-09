@@ -135,6 +135,12 @@ namespace opalx::spacecharge {
 
         auto fixedState = bunchState_m->fixedCartesianDomain();
         if (config_m.periodicBox > 0.0) {
+            if (fixedState.has_value()) {
+                throw OpalException(
+                        "CartesianPIC3DAlgorithm::solve",
+                        "PERIODICBOX cannot be combined with fixed Cartesian bounds set on the "
+                        "bunch.");
+            }
             // updateMeshGeometry() places the nodes half a cell inside the domain, so the period
             // N h is the requested box only with bounds half a cell inside its faces.
             std::array<double, 3> lower, upper;
