@@ -60,6 +60,8 @@ guide for Macs.
 
 [OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
+[Passive cyclotron and FFA probes](docs/probes.md) describes native laboratory output, crossing semantics and the general coordinate-frame adapter.
+
 ## Dependencies
 
 In order to compile OPALX, make sure you have the following dependencies installed on your system:

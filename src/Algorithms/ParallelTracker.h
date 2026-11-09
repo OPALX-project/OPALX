@@ -143,11 +143,11 @@ public:
 
     /// Register global diagnostics separately from field/placement elements.
     void visitProbe(const Probe& probe) override {
-        cyclotronProbes_m.push_back(CyclotronProbeRecorder::configuration(probe));
+        probeConfigs_m.push_back(CyclotronProbeRecorder::configuration(probe));
     }
 
 private:
-    std::vector<CyclotronProbeRecorder::Config> cyclotronProbes_m;
+    std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
     friend class TrackRun;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.

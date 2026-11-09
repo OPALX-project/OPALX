@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <array>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -65,6 +66,16 @@ namespace {
                 "test lab endpoints", pc->getLocalNum(), KOKKOS_LAMBDA(std::size_t i) {
                     r(i) = Vector(x, .2, z);
                     p(i) = Vector(px, 0, 0);
+                });
+    }
+    void populateEndpoint(
+            const std::shared_ptr<ParticleContainer_t>& pc, const Vector& position,
+            const Vector& momentum) {
+        const auto r = pc->R.getView(), p = pc->P.getView();
+        Kokkos::parallel_for(
+                "test circular endpoints", pc->getLocalNum(), KOKKOS_LAMBDA(std::size_t i) {
+                    r(i) = position;
+                    p(i) = momentum;
                 });
     }
     std::vector<std::vector<double>> rows(const std::string& path) {
@@ -230,6 +241,10 @@ TEST_F(CyclotronProbeTest, ConfigurationValidationAndLegacyMapping) {
     EXPECT_THROW(CyclotronProbeRecorder::validate(c), std::invalid_argument);
     c.step = 1e-30;
     EXPECT_THROW(CyclotronProbeRecorder::validate(c), std::invalid_argument);
+    c.radialSummaries = false;
+    EXPECT_NO_THROW(CyclotronProbeRecorder::validate(c));
+    probe.setStep(c.step);
+    EXPECT_NO_THROW(CyclotronProbeRecorder::configuration(probe));
     c             = config("invalid");
     c.segment.end = c.segment.start;
     EXPECT_THROW(CyclotronProbeRecorder::validate(c), std::invalid_argument);
@@ -327,6 +342,68 @@ TEST_F(CyclotronProbeTest, AsciiEmptyRanksMigrationFramesAndTurnGroups) {
         EXPECT_TRUE(rows(miss.output + ".peaks").empty());
         for (const auto& row : rows(miss.output + ".hist"))
             EXPECT_EQ(row[0], 0);
+    }
+}
+
+TEST_F(CyclotronProbeTest, FfaStationsPreserveNativeFrameAndHistoryWithoutRadialSummaries) {
+    Options::asciidump     = true;
+    constexpr int stations = 16, steps = 64;
+    const double pi = std::acos(-1.0), angleStep = 2 * pi / steps, dt = 2e-9;
+    // A translated ring exposes accidental lab-origin radial assumptions. Every
+    // station is explicitly declared; its opposite plane crossing lies outside
+    // the finite radial span and must not create a second hit.
+    std::vector<CyclotronProbeRecorder::Config> configs;
+    for (int j = 0; j < stations; ++j) {
+        const double phi = 2 * pi * j / stations;
+        auto c           = config("ffa-" + std::to_string(j));
+        c.segment        = {
+                Vector(-1 + std::cos(phi), 0, std::sin(phi)),
+                Vector(-1 + 3 * std::cos(phi), 0, 3 * std::sin(phi))};
+        c.radialSummaries = false;
+        configs.push_back(c);
+    }
+    auto pc  = container();
+    auto ids = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+    std::int64_t expectedId = ippl::Comm->rank() == 0 ? ids(0) : 0;
+    MPI_Bcast(&expectedId, 1, MPI_INT64_T, 0, ippl::Comm->getCommunicator());
+    CyclotronProbeRecorder recorder(configs);
+    recorder.initialize({pc});
+    recorder.save();  // A no-hit FFA flush must not invent radial products.
+    for (int i = 0; i <= steps; ++i) {
+        const double theta = (i - .5) * angleStep;
+        populateEndpoint(
+                pc, Vector(-1 + 2 * std::cos(theta), .2, 2 * std::sin(theta)),
+                Vector(-std::sin(theta), 0, std::cos(theta)));
+        // Real IPPL migration carries all 16 histories across the X partition.
+        // Initialize first, before migrating the initially root-owned particle.
+        if (i != 0) pc->update();
+        recorder.observe(pc, i * dt, 2, 7);
+    }
+    recorder.save();
+    recorder.save();  // Repeated flushing must not duplicate station hits.
+    if (ippl::Comm->rank() == 0) {
+        const double chordRadius = 2 * std::cos(.5 * angleStep);
+        for (int j = 0; j < stations; ++j) {
+            const auto& c    = configs[j];
+            const double phi = 2 * pi * j / stations;
+            const auto data  = rows(c.output + ".loss");
+            ASSERT_EQ(data.size(), 1u) << "station " << j;
+            ASSERT_EQ(data[0].size(), 10u);
+            // ASCII output has six significant digits. These bounds cover that
+            // rounding; the expected crossing is the analytic chord intersection.
+            EXPECT_NEAR(data[0][0], -1 + chordRadius * std::cos(phi), 5e-6);
+            EXPECT_NEAR(data[0][1], .2, 1e-14);
+            EXPECT_NEAR(data[0][2], chordRadius * std::sin(phi), 5e-6);
+            EXPECT_NEAR(data[0][3], -std::cos(.5 * angleStep) * std::sin(phi), 5e-7);
+            EXPECT_NEAR(data[0][4], 0, 1e-14);
+            EXPECT_NEAR(data[0][5], std::cos(.5 * angleStep) * std::cos(phi), 5e-7);
+            EXPECT_EQ(data[0][6], expectedId);
+            EXPECT_EQ(data[0][7], 7);  // Shared reference label, not passage one.
+            EXPECT_EQ(data[0][8], 2);
+            EXPECT_NEAR(data[0][9], (4 * j + .5) * dt, 1e-12);
+            EXPECT_FALSE(std::filesystem::exists(c.output + ".hist"));
+            EXPECT_FALSE(std::filesystem::exists(c.output + ".peaks"));
+        }
     }
 }
 

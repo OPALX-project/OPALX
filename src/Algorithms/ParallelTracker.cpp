@@ -269,19 +269,24 @@ void ParallelTracker::execute() {
         restoreCavityPhases();
     }
 
-    if (!cyclotronProbes_m.empty()) {
+    if (!probeConfigs_m.empty()) {
         if (restarting_m || OpalData::getInstance()->hasPriorTrack())
             throw OpalException(
-                    "PROBE",
-                    "Cyclotron PROBE does not yet support restart or tracking continuation.");
+                    "PROBE", "PROBE does not yet support restart or tracking continuation.");
         bool cyclotron = false;
         for (const auto& element : itsOpalBeamline_m.getElements())
             cyclotron |= element->getType() == ElementType::CYCLOTRONSECTOR;
-        if (!cyclotron || !tuneInitial_m.empty())
+        if ((!cyclotron && ringPeriod_m <= 0) || !tuneInitial_m.empty())
             throw OpalException(
                     "PROBE",
-                    "PROBE currently requires cyclotron-sector particle tracking; FFA probes are "
-                    "deferred.");
+                    "PROBE requires cyclotron-sector or RING particle tracking; "
+                    "spectral-tune trial tracking is unsupported.");
+        // Segments are explicit laboratory observers, not repeated magnetic
+        // elements. FFA reuses the same crossing/history/output path. Its ring
+        // centre need not be the lab origin, so only cyclotron tracking enables
+        // the legacy lab-origin radial summaries.
+        for (auto& config : probeConfigs_m)
+            config.radialSummaries = cyclotron;
     }
 
     // Select the minimal time step from the configuration
@@ -635,15 +640,15 @@ void ParallelTracker::execute() {
     // OrbitThreader and the other setup stages may cross diagnostic elements while constructing
     // the reference map. Only crossings produced by the real tracking loop may write output.
     preparationState.finish();
-    std::unique_ptr<CyclotronProbeRecorder> cyclotronRecorder;
+    std::unique_ptr<CyclotronProbeRecorder> probeRecorder;
     std::vector<std::unique_ptr<DirectedTurnCounter>> probeTurns(nContainers);
-    if (!cyclotronProbes_m.empty()) {
-        cyclotronRecorder = std::make_unique<CyclotronProbeRecorder>(cyclotronProbes_m);
-        cyclotronRecorder->initialize(particleContainers);
+    if (!probeConfigs_m.empty()) {
+        probeRecorder = std::make_unique<CyclotronProbeRecorder>(probeConfigs_m);
+        probeRecorder->initialize(particleContainers);
         for (std::size_t i = 0; i < nContainers; ++i) {
             probeTurns[i] = std::make_unique<DirectedTurnCounter>(
                     particleContainers[i]->getRefPartR(), particleContainers[i]->getRefPartP());
-            cyclotronRecorder->observe(
+            probeRecorder->observe(
                     particleContainers[i], itsBunch_m->getT(), static_cast<short>(i), 0);
         }
     }
@@ -667,14 +672,14 @@ void ParallelTracker::execute() {
         // A container can resume after being inactive while another container
         // advanced the global clock. Refresh its stationary accepted endpoint
         // before the first new interval, without resetting crossing hysteresis.
-        if (cyclotronRecorder)
+        if (probeRecorder)
             for (std::size_t i = 0; i < nContainers; ++i)
                 if (itsBunch_m->isPcActive(i)) {
                     const auto turns = probeTurns[i]->count();
                     if (turns > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
                         throw OpalException(
                                 "PROBE", "Reference turn exceeds output integer range.");
-                    cyclotronRecorder->observe(
+                    probeRecorder->observe(
                             particleContainers[i], itsBunch_m->getT(), static_cast<short>(i),
                             static_cast<int>(turns));
                 }
@@ -736,7 +741,7 @@ void ParallelTracker::execute() {
                                     itsBunch_m->getdT(), pc->getReference()->getM(), true);
                         },
                         [&] {
-                            if (cyclotronRecorder) cyclotronRecorder->save();
+                            if (probeRecorder) probeRecorder->save();
                         });
                 // All ranks use the same outgoing reference state, terminal
                 // decision and duration, including the one-particle host path.
@@ -849,7 +854,7 @@ void ParallelTracker::execute() {
                 // SINGLEGAP errors are raised collectively after the device
                 // reduction (or deterministically by the replicated reference).
                 // Flush accepted endpoints only; never record the failed step.
-                if (cyclotronRecorder && hasCyclotronGaps()) cyclotronRecorder->save();
+                if (probeRecorder && hasCyclotronGaps()) probeRecorder->save();
                 throw;
             }
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
@@ -932,7 +937,7 @@ void ParallelTracker::execute() {
             // records cannot feed back into fields, the pusher or its schedule.
             if (passiveProbes)
                 passiveProbes->observe(particleContainers.front(), itsBunch_m->getT());
-            if (cyclotronRecorder)
+            if (probeRecorder)
                 for (std::size_t i = 0; i < nContainers; ++i)
                     if (itsBunch_m->isPcActive(i)) {
                         const auto turns = probeTurns[i]->count();
@@ -940,7 +945,7 @@ void ParallelTracker::execute() {
                             > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
                             throw OpalException(
                                     "PROBE", "Reference turn exceeds output integer range.");
-                        cyclotronRecorder->observe(
+                        probeRecorder->observe(
                                 particleContainers[i], itsBunch_m->getT(), static_cast<short>(i),
                                 static_cast<int>(turns));
                         probeTurns[i]->update(
@@ -950,8 +955,7 @@ void ParallelTracker::execute() {
 
             // Bound buffered probe data and retain accepted crossings on disk
             // even if a later step aborts. Every rank reaches this common cadence.
-            if (cyclotronRecorder && itsBunch_m->getGlobalTrackStep() % 100 == 0)
-                cyclotronRecorder->save();
+            if (probeRecorder && itsBunch_m->getGlobalTrackStep() % 100 == 0) probeRecorder->save();
 
             // Dump phase space and statistics at configured intervals
             bool const psDump = Options::psDumpFreq > 0
@@ -1063,7 +1067,7 @@ void ParallelTracker::execute() {
             }
         }
     }
-    if (cyclotronRecorder) cyclotronRecorder->save();
+    if (probeRecorder) probeRecorder->save();
     bool const psDump = Options::psDumpFreq > 0
                         && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
                             != Options::psDumpFreq);
@@ -2182,7 +2186,7 @@ void ParallelTracker::prepareSections() {
     // OpalBeamline::visit([ElemName], bunch):
     // This initialises the ElementList elements_m object of OpalBeamline
     // with clones of all the elements
-    cyclotronProbes_m.clear();
+    probeConfigs_m.clear();
     itsBeamline_m.accept(*this);
 
     // Sorts the elements in OpalBeamline::elements_m by starting position

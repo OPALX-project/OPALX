@@ -15,6 +15,15 @@
 #include "Utilities/Options.h"
 
 namespace {
+    void validateGeometry(const CyclotronProbeRecorder::Config& config) {
+        cyclotron_probe::State state;
+        cyclotron_probe::Sample sample;
+        if (config.output.empty() || !std::isfinite(config.step) || config.step <= 0
+            || cyclotron_probe::update(config.segment, state, 0, {}, sample)
+                       != cyclotron_probe::Status::Initialized)
+            throw std::invalid_argument(
+                    "PROBE requires finite distinct endpoints, positive STEP and output name");
+    }
     std::pair<double, double> radialBounds(const cyclotron_probe::Segment& segment) {
         const cyclotron_probe::Vector d = segment.end - segment.start;
         const double u                  = std::clamp(-dot(segment.start, d) / dot(d, d), 0.0, 1.0);
@@ -28,13 +37,8 @@ namespace {
 }  // namespace
 
 void CyclotronProbeRecorder::validate(const Config& config) {
-    cyclotron_probe::State state;
-    cyclotron_probe::Sample sample;
-    if (config.output.empty() || !std::isfinite(config.step) || config.step <= 0
-        || cyclotron_probe::update(config.segment, state, 0, {}, sample)
-                   != cyclotron_probe::Status::Initialized)
-        throw std::invalid_argument(
-                "PROBE requires finite distinct endpoints, positive STEP and output name");
+    validateGeometry(config);
+    if (!config.radialSummaries) return;
     const auto [minimum, maximum] = radialBounds(config.segment);
     // Bound allocation and MPI counts before conversion. 10 million bins already
     // require 80 MB per rank per probe; smaller STEP is not a useful default.
@@ -49,7 +53,10 @@ CyclotronProbeRecorder::Config CyclotronProbeRecorder::configuration(const Probe
     config.segment.end   = cyclotron_probe::Vector(probe.getXEnd(), 0.0, probe.getYEnd());
     config.step          = probe.getStep();
     config.output        = probe.getOutputFN();
-    validate(config);
+    // Parsing precedes transport selection. Check the common segment/STEP
+    // contract here; the recorder validates radial allocation only after the
+    // tracker has selected cyclotron summaries or FFA phase-space-only output.
+    validateGeometry(config);
     return config;
 }
 
@@ -77,17 +84,20 @@ CyclotronProbeRecorder::CyclotronProbeRecorder(std::vector<Config> configs) {
                 "PROBE output already exists or cannot be inspected; use a fresh basename");
     for (auto& config : configs) {
         Diagnostic diagnostic;
-        diagnostic.config             = std::move(config);
-        const auto [minimum, maximum] = radialBounds(diagnostic.config.segment);
-        diagnostic.minimum            = minimum;
-        diagnostic.maximum            = maximum;
-        diagnostic.histogram.resize(
-                static_cast<std::size_t>(std::ceil((maximum - minimum) / diagnostic.config.step))
-                + 1);
+        diagnostic.config = std::move(config);
+        if (diagnostic.config.radialSummaries) {
+            const auto [minimum, maximum] = radialBounds(diagnostic.config.segment);
+            diagnostic.minimum            = minimum;
+            diagnostic.maximum            = maximum;
+            diagnostic.histogram.resize(
+                    static_cast<std::size_t>(
+                            std::ceil((maximum - minimum) / diagnostic.config.step))
+                    + 1);
+            OpalData::getInstance()->checkAndAddOutputFileName(diagnostic.config.output + ".hist");
+            OpalData::getInstance()->checkAndAddOutputFileName(diagnostic.config.output + ".peaks");
+        }
         diagnostic.sink =
                 std::make_unique<LossDataSink>(diagnostic.config.output, !Options::asciidump);
-        OpalData::getInstance()->checkAndAddOutputFileName(diagnostic.config.output + ".hist");
-        OpalData::getInstance()->checkAndAddOutputFileName(diagnostic.config.output + ".peaks");
         diagnostics_m.push_back(std::move(diagnostic));
     }
 }
@@ -158,6 +168,7 @@ void CyclotronProbeRecorder::observe(
             diagnostic.sink->addParticle(
                     OpalParticle(hit.id, e.position, e.momentum, e.time, hit.charge, hit.mass),
                     std::make_pair(turn, bunch));
+            if (!diagnostic.config.radialSummaries) continue;
             const double radius = std::hypot(e.position(0), e.position(2));
             const auto bin      = static_cast<std::size_t>(std::max(
                     0.0, std::floor((radius - diagnostic.minimum) / diagnostic.config.step)));
@@ -175,6 +186,7 @@ void CyclotronProbeRecorder::save() {
         // Basenames are verified fresh at construction. APPEND creates a new
         // file for the first nonempty batch and preserves earlier batches.
         diagnostic.sink->save(1, OpalData::OpenMode::APPEND);
+        if (!diagnostic.config.radialSummaries) continue;
         std::vector<double> histogram(diagnostic.histogram.size());
         MPI_Reduce(
                 diagnostic.histogram.data(), histogram.data(), static_cast<int>(histogram.size()),

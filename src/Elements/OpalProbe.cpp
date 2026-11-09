@@ -24,12 +24,14 @@
 #include "Physics/Units.h"
 
 OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defines a Probe.") {
-    itsAttr[XSTART] = Attributes::makeReal("XSTART", " Start of x coordinate [mm]");
-    itsAttr[XEND]   = Attributes::makeReal("XEND", " End of x coordinate [mm]");
-    itsAttr[YSTART] = Attributes::makeReal("YSTART", "Start of y coordinate [mm]");
-    itsAttr[YEND]   = Attributes::makeReal("YEND", "End of y coordinate [mm]");
-    itsAttr[WIDTH]  = Attributes::makeReal("WIDTH", "Width of the probe, not used.");
-    itsAttr[STEP]   = Attributes::makeReal("STEP", "Step size of the probe [mm]", 1.0);
+    itsAttr[XSTART] = Attributes::makeReal("XSTART", "Start of laboratory X coordinate [mm]");
+    itsAttr[XEND]   = Attributes::makeReal("XEND", "End of laboratory X coordinate [mm]");
+    itsAttr[YSTART] =
+            Attributes::makeReal("YSTART", "Start of laboratory Z coordinate (legacy Y name) [mm]");
+    itsAttr[YEND] =
+            Attributes::makeReal("YEND", "End of laboratory Z coordinate (legacy Y name) [mm]");
+    itsAttr[WIDTH] = Attributes::makeReal("WIDTH", "Width of the probe, not used.");
+    itsAttr[STEP]  = Attributes::makeReal("STEP", "Cyclotron radial histogram bin width [mm]", 1.0);
 
     registerOwnership();
 
