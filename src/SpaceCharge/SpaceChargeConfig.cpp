@@ -125,14 +125,10 @@ namespace opalx::spacecharge {
 
         void validateFFT2D5(const FFT2D5Config& config) {
             validateGrid(config.grid);
-            if (std::any_of(
-                        config.grid.decomposition.begin(), config.grid.decomposition.end(),
-                        [](bool parallel) {
-                            return parallel;
-                        })) {
+            if (config.grid.decomposition[0] || config.grid.decomposition[1]) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "FFT2D5 uses serial slices; set PARFFTX/PARFFTY/PARFFTZ to FALSE.");
+                        "FFT2D5 supports only longitudinal decomposition (PARFFTZ).");
             }
             if (!std::isfinite(config.pipeSizeX) || !std::isfinite(config.pipeSizeY)
                 || !std::isfinite(config.beamRadius) || !(config.pipeSizeX > 0.0)

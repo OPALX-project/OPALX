@@ -15,7 +15,7 @@
 //
 /**
  * @file FFT2D5FieldStorage.h
- * @brief Owns persistent 3D staging fields and the FFT2D5 slice solver array.
+ * @brief Owns persistent 3D staging fields and one reusable FFT2D5 slice solver.
  */
 
 #ifndef OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
@@ -27,25 +27,19 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
-
-// Set the switch to true to select the IPPL 2D Poisson solver, false to select the
-// FFT2D5's 2D Poisson solver.
-// FFT2D5 has its own version which does not contain all the baggage the IPPL version
-// has and was thus easier to reason about during development.  It may also provide
-// the basis for the sine transform solver for the grounded boundary conditions in due
-// course.  The two versions produce results that are different by a few percent, most
-// likely due to the E field calculation (Fourier domain for IPPL, central differences
-// for FFT2D5).  The FFT2D5 version does have an extensive test case.
-#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER true
+#include <span>
 
 namespace opalx::spacecharge {
 
     /**
-     * @brief Persistent fields and per-slice Poisson solvers for one FFT2D5 run.
+     * @brief Persistent fields and a reusable Poisson workspace for one FFT2D5 run.
      *
-     * The 3D fields stage deposition and gathering. Every transverse slice owns separate 2D IPPL
-     * fields because the Field API cannot use a Kokkos subview as its storage.
+     * The 3D fields stage deposition and gathering. The default serial path shares one pair
+     * of 2D IPPL fields and one FFT plan. MPI always uses local native batches; on one rank,
+     * explicit --2D5BatchSize enables bounded native
+     * heFFTe batches owned by the same OPALX solver; no longitudinal transform is performed.
+     * The Field API cannot borrow a Kokkos subview, so the serial path copies each slice;
+     * batching instead packs physical cells directly into contiguous FFT buffers.
      */
     class FFT2D5FieldStorage final {
     public:
@@ -59,20 +53,21 @@ namespace opalx::spacecharge {
         using ScalarField3 = Field_t<3>;
         using VectorField2 = VField_t<double, 2>;
         using VectorField3 = VField_t<double, 3>;
-        using OpenSolver2  = ippl::FFTOpenPoissonSolver<VectorField2, ScalarField2>;
 
         struct Slice final {
             std::unique_ptr<VectorField2> electricField;
             std::unique_ptr<ScalarField2> chargeDensity;
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            std::unique_ptr<OpenSolver2> solver;
-#else
-            std::unique_ptr<FFT2D5Poisson> solver2;
-#endif
+            std::unique_ptr<FFT2D5Poisson> solver;
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
+        /// Destroy native solver fields/plans in the same library translation unit that constructs
+        /// them.
         ~FFT2D5FieldStorage();
+        /** Prepare plans, Green spectra and FFT execution on a zero source, without
+         * touching particles or counting a physical solve. Runtime FFT-phase samples
+         * exclude this work without resetting measurements from other instances. */
+        void warmup();
 
         FFT2D5FieldStorage(const FFT2D5FieldStorage&)            = delete;
         FFT2D5FieldStorage& operator=(const FFT2D5FieldStorage&) = delete;
@@ -83,20 +78,32 @@ namespace opalx::spacecharge {
         [[nodiscard]] const Vector3& origin() const { return origin_m; }
         [[nodiscard]] const Vector3& size() const { return size_m; }
         [[nodiscard]] const std::array<std::size_t, 3>& meshSize() const { return meshSize_m; }
+        /// Return the path-coordinate deposition mesh shared by all local z planes.
+        [[nodiscard]] Mesh3& mesh() { return mesh_m; }
         [[nodiscard]] Mesh2& sliceMesh() { return sliceMesh_m; }
         [[nodiscard]] Layout2& sliceLayout() { return sliceLayout_m; }
         [[nodiscard]] Layout3& layout() { return layout_m; }
         [[nodiscard]] ScalarField3& chargeDensity() { return chargeDensity_m; }
         [[nodiscard]] VectorField3& electricField() { return electricField_m; }
-        [[nodiscard]] std::vector<Slice>& slices() { return slices_m; }
+        /// Return the single reusable native transverse solver workspace.
+        [[nodiscard]] Slice& workspace() { return workspace_m; }
+        /// Return mathematical occupied-slice solves since the last reset, not FFT launch count.
+        [[nodiscard]] std::size_t backendSolves() const { return backendSolves_m; }
+        /// Reset the per-physical-solve occupied-slice counter.
+        void resetBackendSolves() { backendSolves_m = 0; }
 
         /**
          * @brief Solve a physical slice using its already scaled charge density.
-         * @param sliceIndex Zero-based slice index, excluding the 3D field's ghost cells.
          * @note Native solver construction, execution, and destruction are compiled together
          * to keep CUDA kernel stubs and their device registration in the same translation unit.
          */
-        void solveSlice(std::size_t sliceIndex) const;
+        void solveSlice();
+        /// Effective batch capacity: zero keeps serial slices on one rank; MPI promotes zero to
+        /// one.
+        [[nodiscard]] int batchSize() const { return batchSize_m; }
+        /// Solve the occupied physical slices together; counts mathematical slice solves.
+        void solveBatchedSlices(
+                std::span<const size_t> occupied, ScalarField3* potential = nullptr);
 
     private:
         std::array<std::size_t, 3> meshSize_m;
@@ -111,8 +118,9 @@ namespace opalx::spacecharge {
         ippl::NDIndex<2> sliceDomain_m;
         Mesh2 sliceMesh_m;
         Layout2 sliceLayout_m;
-        ippl::ParameterList solverParameters_m;
-        std::vector<Slice> slices_m;
+        Slice workspace_m;
+        std::size_t backendSolves_m = 0;
+        int batchSize_m             = 0;
     };
 
 }  // namespace opalx::spacecharge
