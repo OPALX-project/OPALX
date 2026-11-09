@@ -3,6 +3,7 @@
 ## Continuous Integration
 
 [![CPU Serial](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml)
+[![CPU Serial Smoke Tests](https://github.com/OPALX-project/OPALX/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/smoke-tests.yml)
 [![CPU OpenMP](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml)
 [![GPU CUDA](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml)
 [![GPU HIP](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml)
@@ -11,7 +12,12 @@
     <img alt="CI/CD CSCS" height="20" src="https://my.cdash.org/img/cdash.svg">
 </a>
 
-OPALX uses GitHub Actions for required and non-required pull request checks. The compile CI workflows run on non-draft pull requests to `master` when the `compile-ci` label is selected. Required checks have to pass before a PR can be merged; non-required checks provide additional feedback but are not part of the required branch protection status checks.
+OPALX uses GitHub Actions to check pull requests to `master`. Checks run only on non-draft pull requests and only for the newest commit: a new push, or converting the pull request to draft, cancels checks that are still running.
+
+- `Check clang-format` and `CPU Serial` run on every non-draft pull request.
+- `CPU Serial Smoke Tests`, `CPU OpenMP`, `GPU CUDA`, `GPU HIP`, and `GPU SYCL` run only while the `smoke-compile-checks` label is set. Add the label when the change is ready for these checks; removing it cancels the running checks.
+
+The `Build & Unit Tests` job of `CPU Serial` is the only required check and has to pass before a PR can be merged. The other checks provide additional feedback.
 
 ### Formatting Checks
 
@@ -22,16 +28,18 @@ See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/se
 ### Compilation
 
 - `CPU Serial`: compiles debug OPALX and the unit tests with `PLATFORMS=SERIAL`. This check is **required**.
-- `CPU OpenMP`: compiles debug OPALX and the unit tests with `PLATFORMS=OPENMP`. This check is **required**.
-- `GPU CUDA`: compiles debug OPALX and the unit tests with CUDA for NVIDIA `AMPERE80`. This check is **required**.
-- `GPU HIP`: compiles debug OPALX and the unit tests with HIP for AMD `AMD_GFX90A`. This check is **required**.
-- `GPU SYCL`: compiles release OPALX and the unit tests with SYCL for Intel `INTEL_PVC`. This check is **not required**, because the CI runner can compile this configuration but cannot test it.
+- `CPU OpenMP`: compiles debug OPALX and the unit tests with `PLATFORMS=OPENMP`. This check needs the label and is **not required**.
+- `GPU CUDA`: compiles debug OPALX and the unit tests with CUDA for NVIDIA `AMPERE80`. This check needs the label and is **not required**.
+- `GPU HIP`: compiles debug OPALX and the unit tests with HIP for AMD `AMD_GFX90A`. This check needs the label and is **not required**.
+- `GPU SYCL`: compiles release OPALX and the unit tests with SYCL for Intel `INTEL_PVC`. This check needs the label and is **not required**.
+
+The GPU workflows only compile, because the CI runner cannot execute GPU code.
 
 ### Running Tests
 
 - Unit tests run with the `CPU Serial` build.
 - Unit tests run with the `CPU OpenMP` build.
-- A subset of fast regression tests from [OPALX-project/regression-tests-x](https://github.com/OPALX-project/regression-tests-x) runs with the `CPU Serial` binary and checks results against the tests' `.rt` metrics. The current regression subset is:
+- A subset of fast regression tests from [OPALX-project/regression-tests-x](https://github.com/OPALX-project/regression-tests-x) runs in `CPU Serial Smoke Tests` and checks results against the tests' `.rt` metrics. This workflow builds its own debug `PLATFORMS=SERIAL` binary without the unit tests, needs the label, and is **not required**. The current regression subset is:
   - `Drift-1-fromfile`
   - `Drift-4-multi-emit-open`
   - `FodoCell-fromfile`
