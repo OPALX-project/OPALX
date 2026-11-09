@@ -160,6 +160,14 @@ private:
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
+    /// Fixed-size first-failure payload, allocated once when device RF transport is prepared.
+    Kokkos::View<rf_event::ParticleFailure> cyclotronFailure_m;
+    /// Validate fixed bunch requirements once; leave physical stepping order unchanged.
+    void prepareCyclotronTransport();
+    /// Upload immutable magnetic/gap descriptors only for the device path.
+    void prepareCyclotronBunchLattice();
+    bool usesHostCyclotronTransport() const;
+    void advanceCyclotronParticle();
     /** Host-only event integration for the reference and a bare single proton.
      * R/P are in the laboratory frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field

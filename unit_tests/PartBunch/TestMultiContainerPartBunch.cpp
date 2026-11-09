@@ -11,7 +11,8 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdio>
+#include "../TemporaryDirectory.h"
+
 #include <memory>
 #include <random>
 #include <stdexcept>
@@ -43,7 +44,6 @@ namespace {
             char** argv = nullptr;
             ippl::initialize(argc, argv);
 
-            OpalData::getInstance()->storeInputFn("unit_test.opal");
             gmsg                = new Inform(nullptr, -1);
             Options::enableHDF5 = false;
         }
@@ -55,6 +55,11 @@ namespace {
         }
 
         void SetUp() override {
+            auto* opal           = OpalData::getInstance();
+            savedInput_m         = opal->getInputFn();
+            const auto directory = outputDirectory_m.create(
+                    "opalx-multi-container", ippl::Comm->getCommunicator());
+            opal->storeInputFn((directory / "unit_test.opal").string());
             storageConfig.periodicParticleBoundary = true;
 
             dataSink = std::make_shared<DataSink>();
@@ -83,6 +88,11 @@ namespace {
             bunch.reset();
             dataSink.reset();
             beam.reset();
+            // Close every writer before deleting only this fixture's diagnostic files.
+            ippl::Comm->barrier();
+            OpalData::getInstance()->storeInputFn(savedInput_m);
+            outputDirectory_m.reset();
+            ippl::Comm->barrier();
         }
 
         void createParticlesInContainer(
@@ -143,6 +153,8 @@ namespace {
             return fd;
         }
 
+        opalx::test::TemporaryDirectory outputDirectory_m;
+        std::string savedInput_m;
         opalx::spacecharge::CartesianDomainConfig3D storageConfig;
         std::shared_ptr<DataSink> dataSink;
         std::shared_ptr<Beam> beam;
@@ -296,7 +308,6 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, DataSink_MultiContainerInit_DoesNotThrow) {
         EXPECT_NO_THROW(DataSink(std::vector<H5PartWrapper*>{}, false, 2));
-        std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_ThrowsWhenFdextTooSmall) {
@@ -309,10 +320,6 @@ namespace {
 
         const double azimuth = 0.0;
         EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, 1, azimuth), OpalException);
-
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
-        std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_NoThrowWithMatchingFdextAndHdf5Off) {
@@ -326,10 +333,6 @@ namespace {
 
         const double azimuth = 0.0;
         EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, 1, azimuth));
-
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
-        std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
     }
 
     // When HDF5 is disabled, dumpH5 returns before validating fdext size.
@@ -343,10 +346,6 @@ namespace {
         fdTooSmall.push_back(zeroFdPair());
 
         EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall));
-
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
-        std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHdf5On) {
@@ -355,10 +354,8 @@ namespace {
         const bool savedH5  = Options::enableHDF5;
         Options::enableHDF5 = true;
 
-        static int h5FileCounter = 0;
-        const int tag            = ++h5FileCounter;
-        const std::string f0     = std::string("test_mc_h5_c0_") + std::to_string(tag) + ".h5";
-        const std::string f1     = std::string("test_mc_h5_c1_") + std::to_string(tag) + ".h5";
+        const std::string f0 = (outputDirectory_m.path() / "test_mc_h5_c0.h5").string();
+        const std::string f1 = (outputDirectory_m.path() / "test_mc_h5_c1.h5").string();
 
         std::vector<H5PartWrapper*> wrappers;
         wrappers.push_back(new H5PartWrapperForPT(f0, H5_O_WRONLY));
@@ -375,12 +372,6 @@ namespace {
             delete w;
         }
 
-        std::remove(f0.c_str());
-        std::remove(f1.c_str());
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
-        std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
-        std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
-
         Options::enableHDF5 = savedH5;
     }
 
@@ -395,11 +386,12 @@ namespace {
             ~RestoreH5Option() { Options::enableHDF5 = value; }
         } restoreH5{savedH5};
 
-        const std::string base = "test_diagnostic_checkpoint_rewind";
-        const std::string f0   = base + "_c0.h5";
-        const std::string f1   = base + "_c1.h5";
-        auto w0                = std::make_unique<H5PartWrapperForPT>(f0, H5_O_WRONLY);
-        auto w1                = std::make_unique<H5PartWrapperForPT>(f1, H5_O_WRONLY);
+        const std::string base =
+                (outputDirectory_m.path() / "test_diagnostic_checkpoint_rewind").string();
+        const std::string f0 = base + "_c0.h5";
+        const std::string f1 = base + "_c1.h5";
+        auto w0              = std::make_unique<H5PartWrapperForPT>(f0, H5_O_WRONLY);
+        auto w1              = std::make_unique<H5PartWrapperForPT>(f1, H5_O_WRONLY);
         std::vector<H5PartWrapper*> wrappers{w0.get(), w1.get()};
 
         {
@@ -438,14 +430,6 @@ namespace {
         ASSERT_EQ(H5ReadStepAttribFloat64(file, "TIME", &time), H5_SUCCESS);
         EXPECT_DOUBLE_EQ(time, 2.0e-12);
         ASSERT_EQ(H5CloseFile(file), H5_SUCCESS);
-
-        ippl::Comm->barrier();
-        if (ippl::Comm->rank() == 0) {
-            std::remove(f0.c_str());
-            std::remove(f1.c_str());
-            std::remove((base + ".lbal").c_str());
-        }
-        ippl::Comm->barrier();
     }
 
 }  // namespace

@@ -16,6 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "../TemporaryDirectory.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -186,13 +188,13 @@ namespace {
     }
 
     TEST(TestDumpEMFields, writeFieldsCartTest) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg               = new Inform(nullptr, -1);
-        std::string fname1 = "test5";
-        std::string fname2 = "test6";
-        std::string fname3 = "test7";
-        std::string fname4 = "test8";
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
+        std::string fname1             = (directory.path() / "test5").string();
+        std::string fname2             = (directory.path() / "test6").string();
+        std::string fname3             = (directory.path() / "test7").string();
+        std::string fname4             = (directory.path() / "test8").string();
 
         clear_files({fname1, fname2, fname3, fname4});
         DumpEMFields dump1;
@@ -259,11 +261,11 @@ namespace {
     }
 
     TEST(TestDumpEMFields, writeFieldsCylTest) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg = new Inform(nullptr, -1);
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
 
-        std::string fnameCyl = "testCyl";
+        std::string fnameCyl = (directory.path() / "testCyl").string();
 
         clear_files({fnameCyl});
         DumpEMFields dump;
@@ -322,12 +324,12 @@ namespace {
     }
 
     TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg = new Inform(nullptr, -1);
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
 
-        std::string fnameCyl1 = "testCyl1";
-        std::string fnameCyl2 = "testCyl2";
+        std::string fnameCyl1 = (directory.path() / "testCyl1").string();
+        std::string fnameCyl2 = (directory.path() / "testCyl2").string();
 
         clear_files({fnameCyl1, fnameCyl2});
         DumpEMFields dump1;
@@ -390,11 +392,11 @@ namespace {
     }
 
     TEST(TestDumpEMFields, BadGrid) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg = new Inform(nullptr, -1);
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
 
-        std::string fnameCyl = "testCyl";
+        std::string fnameCyl = (directory.path() / "testCyl").string();
 
         clear_files({fnameCyl});
         DumpEMFields dump;
@@ -410,10 +412,10 @@ namespace {
     }
 
     TEST(TestDumpEMFields, CouldNotOpenFile) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg                 = new Inform(nullptr, -1);
-        std::string fnameCyl = ".";  // Opening for write to a directory always fails
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
+        std::string fnameCyl = directory.path().string();  // Opening a directory for write fails
         DumpEMFields dump;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
@@ -426,10 +428,10 @@ namespace {
     }
 
     TEST(TestDumpEMFields, WriteFailure) {
-        std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
-        std::filesystem::create_directory(auxDirectory);
-        gmsg                 = new Inform(nullptr, -1);
-        std::string fnameCyl = "testCyl";
+        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
+        const std::string auxDirectory = directory.path().string();
+        gmsg                           = new Inform(nullptr, -1);
+        std::string fnameCyl           = (directory.path() / "testCyl").string();
         DumpEMFields dump;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,

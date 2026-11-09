@@ -23,6 +23,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -54,6 +56,7 @@ public:
     }
 
     void SetUp() {
+        directory_m.create("opalx-scaling-ffa");
         sector_m = new ScalingFFAMagnet("test");
         // characteristic length is R*dphi => 0.6545 m
         std::shared_ptr<endfieldmodel::Tanh> tanh =
@@ -75,10 +78,12 @@ public:
     void TearDown() {
         delete sector_m;
         sector_m = nullptr;
+        directory_m.reset();
     }
 
     ~ScalingFFAMagnetTest() {}
 
+    opalx::test::TemporaryDirectory directory_m;
     ScalingFFAMagnet* sector_m;
     std::ofstream fout_m;
     double r0_m           = 24;                                       // m
@@ -379,7 +384,7 @@ TEST_F(ScalingFFAMagnetTest, RejectsExpansionBeyondDeviceStorage) {
 }
 
 TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
-    std::ofstream fout("/tmp/b_twod.out");
+    std::ofstream fout(directory_m.path() / "b_twod.out");
     bool passtest = true;
     for (double y = 0.; y < 0.025; y += 0.015) {
         for (double r = r0_m; r < r0_m + 1; r += 0.2) {
@@ -392,7 +397,7 @@ TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceYTest) {
-    std::ofstream fout("/tmp/convergence_y.out");
+    std::ofstream fout(directory_m.path() / "convergence_y.out");
     bool passtest = true;
     for (double y = 0.00001; y < 0.02; y *= 2.) {
         passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
@@ -490,7 +495,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceEndLengthTest) {
-    std::ofstream fout("/tmp/convergence_endlength.out");
+    std::ofstream fout(directory_m.path() / "convergence_endlength.out");
     bool passtest = true;
     for (double endLength = 1.; endLength < 10.1; endLength += 1.) {
         std::shared_ptr<endfieldmodel::Tanh> tanh =

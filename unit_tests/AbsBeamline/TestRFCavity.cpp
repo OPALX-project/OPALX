@@ -54,6 +54,8 @@
  *      scale = 1, frequency = 1, phase = 0
  *   Individual tests override only what they need.
  */
+#include "../TemporaryDirectory.h"
+
 #include <gtest/gtest.h>
 #include <limits>
 #include "AbsBeamline/VariableRFCavity.h"
@@ -501,6 +503,9 @@ protected:
         ippl::finalize();
     }
     void SetUp() override {
+        directory_m.create("opalx-ideal-rf", ippl::Comm->getCommunicator());
+        // Autophaser diagnostics use the cavity name, rather than the input basename.
+        cavity.setName((directory_m.path() / "ideal").string());
         cavity.setCavityType("IDEAL");
         cavity.getGeometry().setElementLength(0.2);
         cavity.setAmplitudem(5.0);
@@ -509,6 +514,11 @@ protected:
         cavity.setAperture(ApertureType::RECTANGULAR, {0.1, 0.05});
         cavity.initialise(nullptr);
     }
+    void TearDown() override {
+        ippl::Comm->barrier();
+        directory_m.reset();
+    }
+
     std::shared_ptr<PartBunch_t> makeBunch(size_t count) {
         beam       = std::make_shared<Beam>();
         auto bunch = std::make_shared<PartBunch_t>(
@@ -518,6 +528,7 @@ protected:
         bunch->getParticleContainer()->createParticles(count);
         return bunch;
     }
+    opalx::test::TemporaryDirectory directory_m;
     RFCavityRep cavity{"ideal"};
     std::shared_ptr<Beam> beam;
 };

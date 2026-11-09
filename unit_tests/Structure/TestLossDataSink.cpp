@@ -269,11 +269,9 @@ namespace {
 
             ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
-                std::filesystem::remove("test_monitor_checkpoint_rewind.h5");
-                std::filesystem::remove("test_monitor_checkpoint_keep_all.h5");
-                std::filesystem::remove("test_monitor_checkpoint_missing_step.h5");
-                std::filesystem::remove("test_monitor_checkpoint_compaction.h5");
-                std::filesystem::remove("test_monitor_checkpoint_compaction.h5.opalx-rewind.tmp");
+                // CTest runs this fixture's single- and two-rank executables concurrently.
+                // Remove only directories created by this instance; fixed filenames in the
+                // shared working directory could belong to the other executable.
                 for (const auto& directory : temporaryDirectories_m) {
                     std::filesystem::remove_all(directory);
                 }
@@ -610,7 +608,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5RemovesCheckpointAndLaterStepsBeforeAppend) {
-        const std::string fileName = "test_monitor_checkpoint_rewind.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-rewind") + "/monitor.h5";
         writeGlobalTrackSteps(fileName, {4, 8, 12});
 
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
@@ -622,12 +620,13 @@ namespace {
         // Restarting from the same checkpoint again removes the abandoned replacement
         // before appending it once more, so repeated restart cannot accumulate duplicates.
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4}));
         appendGlobalTrackStep(fileName, 8);
         EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4, 8}));
     }
 
     TEST_F(LossDataSinkTest, RewindH5KeepsEveryStepBeforeCheckpoint) {
-        const std::string fileName = "test_monitor_checkpoint_keep_all.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-keep-all") + "/monitor.h5";
         writeGlobalTrackSteps(fileName, {2, 5});
 
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
@@ -636,7 +635,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5RejectsStepWithoutGlobalTrackStep) {
-        const std::string fileName = "test_monitor_checkpoint_missing_step.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-missing-step") + "/monitor.h5";
         h5_file_t file             = openCollectiveH5(fileName, H5_O_WRONLY);
         h5_float64_t time          = 1.0e-12;
         ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
@@ -647,7 +646,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5CompactsPhysicalStorageAcrossRestartCycles) {
-        const std::string fileName        = "test_monitor_checkpoint_compaction.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-compaction") + "/monitor.h5";
         constexpr std::size_t payloadSize = 32768;
         writeGlobalTrackSteps(fileName, {4, 8, 12}, payloadSize);
         const auto originalSize = std::filesystem::file_size(fileName);

@@ -309,6 +309,9 @@ void ParallelTracker::execute() {
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
+    // Validate immutable RF transport requirements once, before reference trials
+    // or particle stepping. The actual host/device choice may still follow N(t).
+    prepareCyclotronTransport();
     if (!restarting_m) {
         if (initialOrbit_m) itsBunch_m->setT(initialOrbit_m->time);
         CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
@@ -1243,94 +1246,100 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
     m << level4 << "Push particles done for all containers." << endl;
 }
 
+bool ParallelTracker::usesHostCyclotronTransport() const {
+    return bareTracking_m && ippl::Comm->size() == 1 && itsBunch_m->getTotalNumAllContainers() == 1;
+}
+
+void ParallelTracker::prepareCyclotronTransport() {
+    if (!hasCyclotronGaps()) return;
+    if (itsBunch_m->getNumParticleContainers() != 1)
+        throw OpalException("ParallelTracker", "SINGLEGAP currently requires one container.");
+    const auto pc = itsBunch_m->getParticleContainer();
+    if (!pc || !pc->getReference())
+        throw OpalException("ParallelTracker", "SINGLEGAP requires a particle reference.");
+    if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
+        || std::abs(pc->getReference()->getM() / (Physics::m_p * 1e9) - 1) > 1e-12)
+        throw OpalException(
+                "ParallelTracker",
+                "SINGLEGAP requires an unpolarized positive proton and does not support restart.");
+    // Preserve the unrestricted host gap count. Only device transport needs
+    // uploaded descriptors and the 64-gap visit mask.
+    if (!usesHostCyclotronTransport()) prepareCyclotronBunchLattice();
+}
+
+void ParallelTracker::prepareCyclotronBunchLattice() {
+    std::vector<device_external::MappedCyclotronSector> sectors;
+    std::vector<std::pair<std::string, device_external::CyclotronGap>> gaps;
+    for (const auto& element : itsOpalBeamline_m.getElements()) {
+        const auto frame =
+                element->getMisalignment() * itsOpalBeamline_m.getCSTrafoLab2Local(element);
+        const device_external::Rigid rigid{frame.getOrigin(), frame.getRotationMatrix()};
+        if (auto* sector = dynamic_cast<CyclotronSector*>(element.get()))
+            sectors.push_back({rigid, sector->deviceField()});
+        else if (auto* gap = dynamic_cast<RFCavity*>(element.get()); gap && gap->isCyclotronGap())
+            gaps.push_back({gap->getName(), {rigid, gap->deviceGap()}});
+    }
+    std::sort(gaps.begin(), gaps.end(), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+    });
+    if (sectors.empty() || gaps.size() > 64)
+        throw OpalException(
+                "ParallelTracker", "SINGLEGAP requires magnetic sectors and at most 64 gaps.");
+    device_external::CyclotronLattice lattice;
+    lattice.sectors = decltype(lattice.sectors)("cyclotron_sectors", sectors.size());
+    lattice.gaps    = decltype(lattice.gaps)("cyclotron_gaps", gaps.size());
+    auto hs         = Kokkos::create_mirror_view(lattice.sectors);
+    auto hg         = Kokkos::create_mirror_view(lattice.gaps);
+    for (size_t j = 0; j < sectors.size(); ++j)
+        hs(j) = sectors[j];
+    for (size_t j = 0; j < gaps.size(); ++j)
+        hg(j) = gaps[j].second;
+    Kokkos::deep_copy(lattice.sectors, hs);
+    Kokkos::deep_copy(lattice.gaps, hg);
+    cyclotronBunchLattice_m = lattice;
+    cyclotronFailure_m      = decltype(cyclotronFailure_m)("cyclotron_failure");
+}
+
+void ParallelTracker::advanceCyclotronParticle() {
+    auto pc           = itsBunch_m->getParticleContainer();
+    auto r            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    const auto& toLab = pc->getToLabTrafo();
+    Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
+    const double requestedDt = itsBunch_m->getdT();
+    // The preliminary reference trial has already selected the common
+    // duration. Include its terminal endpoint even if a coordinate round trip
+    // places this otherwise coincident particle a few ulps before the plane.
+    advanceCyclotronGaps(
+            position, momentum, itsBunch_m->getT(), requestedDt, pc->getReference()->getM(), false,
+            energyTargetReached_m,
+            static_cast<unsigned long long>(itsBunch_m->getGlobalTrackStep()) + 1);
+    r(0) = toLab.transformFrom(position);
+    p(0) = toLab.rotateFrom(momentum);
+    Kokkos::deep_copy(pc->R.getView(), r);
+    Kokkos::deep_copy(pc->P.getView(), p);
+    pc->markMomentsDirty();
+}
+
 /**
  * @copybrief ParallelTracker::timeIntegration2
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
-    // Retain host transport for a bare single particle. EKINSTOP duration and
-    // the inclusive terminal RF endpoint are shared with the device bunch path.
-    if (hasCyclotronGaps() && bareTracking_m && ippl::Comm->size() == 1
-        && itsBunch_m->getNumParticleContainers() == 1
-        && itsBunch_m->getTotalNumAllContainers() == 1) {
-        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1
-            || itsBunch_m->getTotalNumAllContainers() != 1)
-            throw OpalException(
-                    "ParallelTracker",
-                    "SINGLEGAP requires one particle, one container, one rank and TYPE=NONE field "
-                    "solver.");
-        auto pc = itsBunch_m->getParticleContainer();
-        if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
-            || std::abs(pc->getReference()->getM() / (Physics::m_p * 1e9) - 1) > 1e-12)
-            throw OpalException(
-                    "ParallelTracker",
-                    "SINGLEGAP requires an unpolarized positive proton and does not support "
-                    "restart.");
-        auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
-        auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
-        const auto& toLab            = pc->getToLabTrafo();
-        Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
-        const double requestedDt = itsBunch_m->getdT();
-        // The preliminary reference trial has already selected the common
-        // duration. Include its terminal endpoint even if a coordinate round trip
-        // places this otherwise coincident particle a few ulps before the plane.
-        advanceCyclotronGaps(
-                position, momentum, itsBunch_m->getT(), requestedDt, pc->getReference()->getM(),
-                false, energyTargetReached_m,
-                static_cast<unsigned long long>(itsBunch_m->getGlobalTrackStep()) + 1);
-        r(0) = toLab.transformFrom(position);
-        p(0) = toLab.rotateFrom(momentum);
-        Kokkos::deep_copy(pc->R.getView(), r);
-        Kokkos::deep_copy(pc->P.getView(), p);
-        pc->markMomentsDirty();
-        return;
-    }
     if (hasCyclotronGaps()) {
-        if (itsBunch_m->getNumParticleContainers() != 1)
-            throw OpalException("ParallelTracker", "SINGLEGAP currently requires one container.");
-        auto pc = itsBunch_m->getParticleContainer();
-        if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
-            || std::abs(pc->getReference()->getM() / (Physics::m_p * 1e9) - 1) > 1e-12)
-            throw OpalException(
-                    "ParallelTracker",
-                    "SINGLEGAP requires an unpolarized positive proton and does not support "
-                    "restart.");
+        if (usesHostCyclotronTransport()) {
+            advanceCyclotronParticle();
+            return;
+        }
+        // Keep the device lambda in this existing public entry point: NVCC's
+        // extended-lambda wrapper must be able to name the enclosing function.
+        // Emission or loss may change the single-particle fast-path eligibility.
+        // Keep the immutable setup lazy for that transition as well as preparation.
+        if (!cyclotronBunchLattice_m) prepareCyclotronBunchLattice();
+        auto pc                  = itsBunch_m->getParticleContainer();
         const auto& toLab        = pc->getToLabTrafo();
         const double requestedDt = itsBunch_m->getdT();
         double actualDt          = requestedDt;
-        if (!cyclotronBunchLattice_m) {
-            std::vector<device_external::MappedCyclotronSector> sectors;
-            std::vector<std::pair<std::string, device_external::CyclotronGap>> gaps;
-            for (const auto& element : itsOpalBeamline_m.getElements()) {
-                const auto frame =
-                        element->getMisalignment() * itsOpalBeamline_m.getCSTrafoLab2Local(element);
-                const device_external::Rigid rigid{frame.getOrigin(), frame.getRotationMatrix()};
-                if (auto* sector = dynamic_cast<CyclotronSector*>(element.get()))
-                    sectors.push_back({rigid, sector->deviceField()});
-                else if (auto* gap = dynamic_cast<RFCavity*>(element.get());
-                         gap && gap->isCyclotronGap())
-                    gaps.push_back({gap->getName(), {rigid, gap->deviceGap()}});
-            }
-            std::sort(gaps.begin(), gaps.end(), [](const auto& a, const auto& b) {
-                return a.first < b.first;
-            });
-            if (sectors.empty() || gaps.size() > 64)
-                throw OpalException(
-                        "ParallelTracker",
-                        "SINGLEGAP requires magnetic sectors and at most 64 gaps.");
-            device_external::CyclotronLattice lattice;
-            lattice.sectors = decltype(lattice.sectors)("cyclotron_sectors", sectors.size());
-            lattice.gaps    = decltype(lattice.gaps)("cyclotron_gaps", gaps.size());
-            auto hs         = Kokkos::create_mirror_view(lattice.sectors);
-            auto hg         = Kokkos::create_mirror_view(lattice.gaps);
-            for (size_t j = 0; j < sectors.size(); ++j)
-                hs(j) = sectors[j];
-            for (size_t j = 0; j < gaps.size(); ++j)
-                hg(j) = gaps[j].second;
-            Kokkos::deep_copy(lattice.sectors, hs);
-            Kokkos::deep_copy(lattice.gaps, hg);
-            cyclotronBunchLattice_m = lattice;
-        }
-        const auto lattice = *cyclotronBunchLattice_m;
+        const auto lattice       = *cyclotronBunchLattice_m;
         const auto r = pc->R.getView(), p = pc->P.getView(), e = pc->E.getView(),
                    b = pc->B.getView();
         const device_external::Rigid frame{toLab.getOrigin(), toLab.getRotationMatrix()};
@@ -1343,8 +1352,12 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                 static_cast<unsigned long long>(itsBunch_m->getGlobalTrackStep()) + 1;
         const bool predicted =
                 charged && spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT;
-        Kokkos::View<rf_event::Diagnostic*> diagnostics("cyclotron_failures", pc->getLocalNum());
-        int failures = 0;
+        // Fixed-size storage is allocated with the device lattice, not per particle
+        // or per step. Successful particles never write a global diagnostic record.
+        const auto failure = cyclotronFailure_m;
+        Kokkos::deep_copy(failure, rf_event::ParticleFailure{});
+        const auto ids = pc->ID.getView();
+        int failures   = 0;
         Kokkos::parallel_reduce(
                 "Cyclotron::bunchStep", pc->getLocalNum(),
                 KOKKOS_LAMBDA(size_t i, int& failed) {
@@ -1356,16 +1369,16 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                                   * localP;
                     auto position = frame.pointTo(localR), momentum = frame.vectorTo(localP);
                     rf_event::Diagnostic diagnostic;
-                    const bool ok  = charged ? lattice.advanceWithSelfFields(
+                    const bool ok = charged ? lattice.advanceWithSelfFields(
                                                       position, momentum, frame.vectorTo(e(i)),
                                                       frame.vectorTo(b(i)), time, actualDt, mass,
                                                       &diagnostic, terminalEndpoint, frameSteps)
-                                             : lattice.advance(
+                                            : lattice.advance(
                                                       position, momentum, time, actualDt, mass,
                                                       &diagnostic, terminalEndpoint, frameSteps);
-                    diagnostics(i) = diagnostic;
                     if (!ok) {
                         ++failed;
+                        failure().capture(ids(i), diagnostic);
                         return;
                     }
                     r(i) = frame.pointFrom(position);
@@ -1376,22 +1389,18 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         MPI_Allreduce(
                 &failures, &globalFailures, 1, MPI_INT, MPI_SUM, ippl::Comm->getCommunicator());
         if (globalFailures) {
-            const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), diagnostics);
-            const auto ids =
-                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
-            for (size_t i = 0; i < pc->getLocalNum(); ++i)
-                if (host(i).failure != rf_event::Failure::None) {
-                    const auto& d = host(i);
-                    *gmsg << level1 << "SINGLEGAP failure rank=" << ippl::Comm->rank()
-                          << " id=" << ids(i) << " cause="
-                          << (d.failure == rf_event::Failure::FieldSupport ? "field-support"
-                              : d.failure == rf_event::Failure::GapKick    ? "RF-kick"
-                                                                           : "invalid-step")
-                          << " gap-index=" << d.gap << " t[s]=" << d.time
-                          << " Rlab[m]=" << d.position << " Plab[beta*gamma]=" << d.momentum
-                          << endl;
-                    break;
-                }
+            const auto captured =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), failure)();
+            if (captured.claimed) {
+                const auto& d = captured.diagnostic;
+                *gmsg << level1 << "SINGLEGAP failure rank=" << ippl::Comm->rank()
+                      << " id=" << captured.id << " cause="
+                      << (d.failure == rf_event::Failure::FieldSupport ? "field-support"
+                          : d.failure == rf_event::Failure::GapKick    ? "RF-kick"
+                                                                       : "invalid-step")
+                      << " gap-index=" << d.gap << " t[s]=" << d.time << " Rlab[m]=" << d.position
+                      << " Plab[beta*gamma]=" << d.momentum << endl;
+            }
             throw OpalException(
                     "ParallelTracker",
                     "SINGLEGAP particle transport failed; see cause, ID and laboratory state "

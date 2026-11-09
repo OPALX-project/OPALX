@@ -3,9 +3,11 @@
 #define OPALX_TRACK_REFERENCE_STEP_H
 
 #include <mpi.h>
+#include <Kokkos_Atomic.hpp>
 #include <Kokkos_NumericTraits.hpp>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include "OPALTypes.h"
@@ -37,6 +39,26 @@ namespace rf_event {
             gap      = g;
         }
     };
+    /** One particle failure per rank, independent of local particle count.
+     * Reset the persistent device record before a step; call capture() only for
+     * failed transport. The first atomic claimant owns the complete payload,
+     * which is read only after the containing kernel has completed. Selection
+     * follows device execution order, not the lowest local index. This changes
+     * diagnostic selection only; particle transport and the failure count remain
+     * independent. No thread spins or reads another thread's in-flight payload.
+     */
+    struct ParticleFailure {
+        Diagnostic diagnostic;
+        std::int64_t id = -1;
+        int claimed     = 0;
+        KOKKOS_INLINE_FUNCTION void capture(std::int64_t particleId, const Diagnostic& failure) {
+            if (Kokkos::atomic_compare_exchange(&claimed, 0, 1) == 0) {
+                diagnostic = failure;
+                id         = particleId;
+            }
+        }
+    };
+
     struct Result {
         bool success;
         double duration;

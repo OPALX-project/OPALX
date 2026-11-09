@@ -28,6 +28,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -144,22 +146,23 @@ protected:
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
-        std::filesystem::create_directories("data");
     }
 
     static void TearDownTestSuite() { ippl::finalize(); }
 
     void SetUp() override {
         const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
-        stem_            = std::string("data/g4bl3d_") + info->name();
+        stem_            = (temporaryDirectory_.create("opalx-g4bl3d-grid")
+                 / (std::string("g4bl3d_") + info->name()))
+                        .string();
     }
 
     void TearDown() override {
         for (const auto& file : files_) {
             Fieldmap::freeMap(file);
-            std::filesystem::remove(file);
         }
         files_.clear();
+        temporaryDirectory_.reset();
     }
 
     std::string path(const std::string& suffix = ".g4blmap") {
@@ -176,6 +179,7 @@ protected:
 
     std::string stem_;
     std::vector<std::string> files_;
+    opalx::test::TemporaryDirectory temporaryDirectory_;
 };
 
 TEST_F(G4BL3DGridTest, DetectedAsAGridMapAndReportsItsBox) {

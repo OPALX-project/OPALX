@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 #include <unistd.h>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
+#include <vector>
 #include "AbsBeamline/CyclotronSector.h"
 #include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/DirectedTurnCounter.h"
@@ -95,7 +98,36 @@ TEST_F(CyclotronTest, EightRotatedSectorsOwnEverySeamExactlyOnce) {
             EXPECT_NEAR(total, 1.25, 1e-13);
         }
 }
+namespace {
+    // Keep the extended lambda outside GoogleTest's private generated TestBody.
+    template <class Positions>
+    void evaluateSectorDescriptor(
+            CyclotronSector::DeviceField field, Positions positions,
+            Kokkos::View<Vector_t<double, 3>*> magnetic, Kokkos::View<int*> supported,
+            const Vector_t<double, 3>& initial) {
+        Kokkos::parallel_for(
+                "sector descriptor support", positions.extent(0), KOKKOS_LAMBDA(size_t i) {
+                    auto b       = initial;
+                    supported(i) = field.add(positions(i), b);
+                    magnetic(i)  = b;
+                });
+    }
+}  // namespace
+
 TEST_F(CyclotronTest, DeviceParticleFieldMatchesHostIncludingTrim) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    // Check the entrance and all inclusive support faces, the excluded exit
+    // seam, points outside each face, and every nonfinite position component.
+    const std::vector<Vector_t<double, 3>> points{
+            {0, .01, .1},      {0, 0, -.1},        {-0.2, 0, 0},      {.2, 0, 0},
+            {0, -.05, 0},      {0, .05, 0},        {0, 0, 1.2},       {-.20000001, 0, 0},
+            {.20000001, 0, 0}, {0, -.05000001, 0}, {0, .05000001, 0}, {nan, 0, 0},
+            {0, nan, 0},       {0, 0, nan},        {inf, 0, 0},       {-inf, 0, 0},
+            {0, inf, 0},       {0, -inf, 0},       {0, 0, inf},       {0, 0, -inf}};
+    const std::vector<int> expectedSupport{1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+                                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    const Vector_t<double, 3> initial(1.25, -.5, .75);
     ippl::NDIndex<3> domain;
     for (int d = 0; d < 3; ++d)
         domain[d] = ippl::Index(8);
@@ -105,25 +137,42 @@ TEST_F(CyclotronTest, DeviceParticleFieldMatchesHostIncludingTrim) {
     ippl::FieldLayout<3> layout(MPI_COMM_WORLD, domain, decomp, false);
     auto pc = std::make_shared<ParticleContainer_t>(mesh, layout);
     pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
-    pc->allocateParticles(2);
-    pc->createParticles(2);
+    pc->allocateParticles(points.size());
+    pc->createParticles(points.size());
     auto r = Kokkos::create_mirror_view(pc->R.getView());
-    r(0)   = Vector_t<double, 3>(0, 0.01, 0.1);
-    r(1)   = Vector_t<double, 3>(0, 0, -0.1);
+    for (std::size_t i = 0; i < points.size(); ++i)
+        r(i) = points[i];
     Kokkos::deep_copy(pc->R.getView(), r);
-    Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>(0));
+    Kokkos::deep_copy(pc->B.getView(), initial);
     CyclotronSector sector("test");
     sector.configure(
             CyclotronSectorFieldMap::read(filename), 8, -0.05, 0.05, 1, {{1.1, 1.3, 0.0014, 600}});
     sector.apply(pc);
-    auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
-    for (int i = 0; i < 2; ++i) {
-        Vector_t<double, 3> expected(0), e(0), p(0);
+    const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+    Kokkos::View<Vector_t<double, 3>*> descriptorB("descriptor fields", points.size());
+    Kokkos::View<int*> descriptorSupport("descriptor support", points.size());
+    evaluateSectorDescriptor(
+            sector.deviceField(), pc->R.getView(), descriptorB, descriptorSupport, initial);
+    const auto direct = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), descriptorB);
+    const auto supported =
+            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), descriptorSupport);
+    for (std::size_t i = 0; i < points.size(); ++i) {
+        Vector_t<double, 3> expected = initial, e(0), p(0);
+        EXPECT_EQ(sector.isInside(r(i)), bool(expectedSupport[i])) << "point " << i;
         sector.apply(r(i), p, 0, e, expected);
-        for (int d = 0; d < 3; ++d)
-            EXPECT_NEAR(b(i)[d], expected[d], 1e-14);
+        EXPECT_EQ(supported(i), expectedSupport[i]) << "point " << i;
+        for (int d = 0; d < 3; ++d) {
+            EXPECT_NEAR(b(i)[d], expected[d], 1e-14) << "point " << i;
+            EXPECT_NEAR(direct(i)[d], expected[d], 1e-14) << "point " << i;
+            if (!expectedSupport[i]) {
+                EXPECT_DOUBLE_EQ(expected[d], initial[d]);
+                EXPECT_DOUBLE_EQ(b(i)[d], initial[d]);
+                EXPECT_DOUBLE_EQ(direct(i)[d], initial[d]);
+            }
+        }
     }
 }
+
 TEST_F(CyclotronTest, MirroredCoilHasTailsAndZeroStrengthIsIdentity) {
     CyclotronTrimCoil coil{4.35, 4.47, 0.0014, 600};
     double br = 0, by = 0;

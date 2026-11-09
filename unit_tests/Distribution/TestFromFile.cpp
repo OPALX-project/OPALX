@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <fstream>
 #include <memory>
+#include "../TemporaryDirectory.h"
 
 #include "Distribution/Distribution.h"
 #include "Distribution/FromFile.h"
@@ -41,14 +42,10 @@ protected:
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
         pc->setBunchStateHandler(bunchStateHandler);
-        tempFilename = "fromfile_test_input.dat";
+        tempFilename = (directory_m.create("opalx-fromfile") / "input.dat").string();
     }
 
-    void TearDown() override {
-        if (!tempFilename.empty()) {
-            std::remove(tempFilename.c_str());
-        }
-    }
+    void TearDown() override { directory_m.reset(); }
 
     void writeSampleFile() {
         // Strict format: N, then header, then data (comments/blanks skipped in data section)
@@ -91,6 +88,7 @@ protected:
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
+    opalx::test::TemporaryDirectory directory_m;
     std::string tempFilename;
 };
 

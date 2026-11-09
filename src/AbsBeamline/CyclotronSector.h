@@ -49,18 +49,22 @@ namespace cyclotron_field {
      * grid contains F, dF/dr, dF/dtheta in SI units. Here dt is angular grid
      * spacing [rad], not a time step, and p is a position [m], not momentum.
      * Bounds are checked before interpolation. Contributions are added to b [T].
+     * Returns whether p is supported, retaining the half-open angular seam and
+     * inclusive radial/vertical bounds. Nonfinite positions are rejected without
+     * changing b. This result also supplies the mapped tracker's support decision,
+     * so the descriptor does not repeat coordinates or maintain a second predicate.
      * The legacy (x,y,z)->(x,-z,y) rotation makes By positive for positive map F.
      */
     template <class V, class C>
-    KOKKOS_INLINE_FUNCTION void field(
+    KOKKOS_INLINE_FUNCTION bool field(
             const V& grid, const C& coils, double rmin, double dr, double dt, int nr, int nt,
             double radius, double angle, double vmin, double vmax, double scale,
             const Vector_t<double, 3>& p, Vector_t<double, 3>& b) {
         const double x = p[0] + radius, z = p[2], r = Kokkos::sqrt(x * x + z * z);
         const double theta = Kokkos::atan2(z, x);
-        if (theta < 0 || theta >= angle || r < rmin || r > rmin + (nr - 1) * dr || p[1] < vmin
-            || p[1] > vmax)
-            return;
+        if (!(r >= rmin && r <= rmin + (nr - 1) * dr && theta >= 0 && theta < angle && p[1] >= vmin
+              && p[1] <= vmax))
+            return false;
         const double u = (r - rmin) / dr, v = theta / dt;
         double by = scale * CyclotronSectorFieldMap::interpolate(grid, 0, u, v, nr, nt);
         double br = scale * p[1] * CyclotronSectorFieldMap::interpolate(grid, 1, u, v, nr, nt);
@@ -70,6 +74,7 @@ namespace cyclotron_field {
         b[0] += br * x / r - bt * z / r;
         b[1] += by;
         b[2] += br * z / r + bt * x / r;
+        return true;
     }
 }  // namespace cyclotron_field
 
@@ -165,14 +170,8 @@ public:
         int nr, nt;
         KOKKOS_INLINE_FUNCTION bool add(
                 const Vector_t<double, 3>& r, Vector_t<double, 3>& b) const {
-            const double radial = Kokkos::sqrt((r(0) + radius) * (r(0) + radius) + r(2) * r(2));
-            const double theta  = Kokkos::atan2(r(2), r(0) + radius);
-            if (!(radial >= rmin && radial <= rmin + (nr - 1) * dr && theta >= 0 && theta < angle
-                  && r(1) >= vmin && r(1) <= vmax))
-                return false;
-            cyclotron_field::field(
+            return cyclotron_field::field(
                     grid, trim, rmin, dr, dtheta, nr, nt, radius, angle, vmin, vmax, scale, r, b);
-            return true;
         }
     };
     /// Configure before use; no allocations or field-data copies.

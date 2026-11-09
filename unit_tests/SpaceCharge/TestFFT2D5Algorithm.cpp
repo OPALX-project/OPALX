@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
@@ -29,12 +31,16 @@ namespace opalx::spacecharge {
             static void TearDownTestSuite() { ippl::finalize(); }
 
             void SetUp() override {
-                pathFile_m = std::filesystem::current_path() / "fft2d5-design-path.dat";
-                std::ofstream path(pathFile_m);
-                path << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
-                path << "0 0 0 0 0 0 1 0 0 0 0 0 0 0 0\n";
-                path << "1 0 0 1 0 0 1 0 0 0 0 0 0 0 0\n";
-                path.close();
+                pathFile_m = outputDirectory_m.create(
+                                     "opalx-fft2d5-algorithm", ippl::Comm->getCommunicator())
+                             / "fft2d5-design-path.dat";
+                if (ippl::Comm->rank() == 0) {
+                    std::ofstream path(pathFile_m);
+                    path << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
+                    path << "0 0 0 0 0 0 1 0 0 0 0 0 0 0 0\n";
+                    path << "1 0 0 1 0 0 1 0 0 0 0 0 0 0 0\n";
+                }
+                ippl::Comm->barrier();
 
                 ippl::NDIndex<3> domain;
                 for (unsigned dimension = 0; dimension < 3; ++dimension) {
@@ -53,7 +59,9 @@ namespace opalx::spacecharge {
                 particles_m.reset();
                 layout_m.reset();
                 mesh_m.reset();
-                std::filesystem::remove(pathFile_m);
+                ippl::Comm->barrier();
+                outputDirectory_m.reset();
+                ippl::Comm->barrier();
             }
 
             FFT2D5Config config(FFT2D5LongitudinalFieldMode mode) const {
@@ -67,6 +75,7 @@ namespace opalx::spacecharge {
                 return values;
             }
 
+            opalx::test::TemporaryDirectory outputDirectory_m;
             std::filesystem::path pathFile_m;
             std::unique_ptr<Mesh_t<3>> mesh_m;
             std::unique_ptr<FieldLayout_t<3>> layout_m;

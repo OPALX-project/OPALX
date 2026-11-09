@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "../TemporaryDirectory.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -33,28 +34,21 @@ namespace {
             int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
-            gmsg = new Inform(nullptr, -1);
-            OpalData::getInstance()->storeInputFn("checkpoint_unit.in");
+            gmsg                = new Inform(nullptr, -1);
             Options::enableHDF5 = false;
         }
 
         static void TearDownTestSuite() {
-            ippl::Comm->barrier();
-            if (ippl::Comm->rank() == 0) {
-                std::remove("checkpoint_unit.stat");
-                std::remove("checkpoint_unit.lbal");
-                std::remove("checkpoint_unit_checkpoint.h5");
-                std::remove("checkpoint_unit_checkpoint.h5.tmp");
-                std::remove("checkpoint_unit_attributes.h5");
-                std::remove("checkpoint_unit_attributes.h5.tmp");
-            }
-            ippl::Comm->barrier();
             delete gmsg;
             gmsg = nullptr;
             ippl::finalize();
         }
 
         void SetUp() override {
+            savedInput_m = OpalData::getInstance()->getInputFn();
+            directory_m.create("opalx-checkpoint", ippl::Comm->getCommunicator());
+            OpalData::getInstance()->storeInputFn(
+                    (directory_m.path() / "checkpoint_unit.in").string());
             Options::useQMAttributes               = false;
             storageConfig.periodicParticleBoundary = true;
 
@@ -68,6 +62,10 @@ namespace {
             if (beam) {
                 Attributes::setRealArray(*beam->findAttribute("POLARIZATION"), {});
             }
+            beamObject.reset();
+            OpalData::getInstance()->storeInputFn(savedInput_m);
+            ippl::Comm->barrier();
+            directory_m.reset();
         }
 
         std::unique_ptr<Bunch> makeBunch(DataSink& sink) {
@@ -116,6 +114,8 @@ namespace {
         opalx::spacecharge::CartesianDomainConfig3D storageConfig;
         std::unique_ptr<Beam> beamObject;
         Beam* beam = nullptr;
+        opalx::test::TemporaryDirectory directory_m;
+        std::string savedInput_m;
     };
 
     TEST_F(CheckpointFileTest, RoundTripRestoresMultiContainerStateWithHdf5DiagnosticsDisabled) {
@@ -152,7 +152,8 @@ namespace {
             }
         }
 
-        const std::string path = CheckpointFile::defaultPath("checkpoint_unit");
+        const std::string path =
+                CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
         OpalData::getInstance()->setMaxPhase("TEST_CAVITY", 0.375);
         const int phasesBeforeRead = OpalData::getInstance()->getNumberOfMaxPhases();
         ASSERT_NO_THROW(CheckpointFile::write(path, *source, 2, 7));
@@ -237,7 +238,7 @@ namespace {
             Kokkos::deep_copy(pc->Pol.getView(), polHost);
         }
 
-        const std::string path = "checkpoint_unit_attributes.h5";
+        const std::string path = (directory_m.path() / "checkpoint_unit_attributes.h5").string();
         ASSERT_NO_THROW(CheckpointFile::write(path, *source, 0, 5));
 
         DataSink targetSink;

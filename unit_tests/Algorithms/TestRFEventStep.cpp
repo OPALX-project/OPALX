@@ -100,6 +100,23 @@ namespace {
         }
     };
 
+    // Namespace scope keeps the launch operator accessible to NVCC. Diverse
+    // payloads expose races between the winning identity and its diagnostic.
+    struct FailureCaptureKernel {
+        Kokkos::View<rf_event::ParticleFailure> output;
+        std::int64_t firstId;
+        int failureStride;
+        KOKKOS_INLINE_FUNCTION void operator()(int i, int& failures) const {
+            if (failureStride == 0 || i % failureStride != 0) return;
+            rf_event::Diagnostic diagnostic;
+            diagnostic.set(
+                    i % 2 ? rf_event::Failure::GapKick : rf_event::Failure::FieldSupport,
+                    Vector(i, -i, 2 * i), Vector(3 * i + 1, 4 * i + 2, -5 * i - 3), .25 * i, i);
+            output().capture(firstId + i, diagnostic);
+            ++failures;
+        }
+    };
+
     struct Snapshot {
         Vector r = Vector(0), p = Vector(1, 0, 1);
         DevicePolicy policy;
@@ -189,6 +206,65 @@ protected:
     }
     static void TearDownTestSuite() { ippl::finalize(); }
 };
+
+TEST_F(RFEventStepTest, ConcurrentFailuresKeepOneCoherentRecordAndAllowResetAndReuse) {
+    constexpr int count = 1024, stride = 3;
+    constexpr std::int64_t firstId = 9007199254740993LL;
+    Kokkos::View<rf_event::ParticleFailure> captured("one RF particle failure");
+    Kokkos::deep_copy(captured, rf_event::ParticleFailure{});
+    int failures = 0;
+    Kokkos::parallel_reduce(
+            "concurrent RF failure capture", count, FailureCaptureKernel{captured, firstId, stride},
+            failures);
+    EXPECT_EQ(failures, (count + stride - 1) / stride);
+    const auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), captured)();
+    ASSERT_EQ(result.claimed, 1);
+    const auto selected = result.id - firstId;
+    ASSERT_GE(selected, 0);
+    ASSERT_LT(selected, count);
+    ASSERT_EQ(selected % stride, 0);
+    EXPECT_EQ(
+            result.diagnostic.failure,
+            selected % 2 ? rf_event::Failure::GapKick : rf_event::Failure::FieldSupport);
+    EXPECT_EQ(result.diagnostic.gap, selected);
+    EXPECT_DOUBLE_EQ(result.diagnostic.time, .25 * selected);
+    EXPECT_DOUBLE_EQ(result.diagnostic.position(0), selected);
+    EXPECT_DOUBLE_EQ(result.diagnostic.position(1), -selected);
+    EXPECT_DOUBLE_EQ(result.diagnostic.position(2), 2 * selected);
+    EXPECT_DOUBLE_EQ(result.diagnostic.momentum(0), 3 * selected + 1);
+    EXPECT_DOUBLE_EQ(result.diagnostic.momentum(1), 4 * selected + 2);
+    EXPECT_DOUBLE_EQ(result.diagnostic.momentum(2), -5 * selected - 3);
+
+    // Empty ranks and successful-only steps must leave the reset record empty.
+    // Each MPI process executes this check, including the two-rank test target.
+    for (int localCount : {0, count}) {
+        Kokkos::deep_copy(captured, rf_event::ParticleFailure{});
+        failures = -1;
+        Kokkos::parallel_reduce(
+                "successful RF step has no diagnostic writes", localCount,
+                FailureCaptureKernel{captured, firstId, 0}, failures);
+        EXPECT_EQ(failures, 0);
+        const auto empty = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), captured)();
+        EXPECT_EQ(empty.claimed, 0);
+        EXPECT_EQ(empty.id, -1);
+        EXPECT_EQ(empty.diagnostic.failure, rf_event::Failure::None);
+        EXPECT_EQ(empty.diagnostic.gap, -1);
+    }
+
+    // Reuse the same scalar allocation with a distinct identity and payload.
+    failures = 0;
+    Kokkos::parallel_reduce(
+            "reuse RF failure storage", 1, FailureCaptureKernel{captured, firstId + count, 1},
+            failures);
+    EXPECT_EQ(failures, 1);
+    const auto reused = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), captured)();
+    EXPECT_EQ(reused.claimed, 1);
+    EXPECT_EQ(reused.id, firstId + count);
+    EXPECT_EQ(reused.diagnostic.gap, 0);
+    EXPECT_EQ(reused.diagnostic.failure, rf_event::Failure::FieldSupport);
+    EXPECT_DOUBLE_EQ(reused.diagnostic.time, 0);
+    EXPECT_DOUBLE_EQ(reused.diagnostic.momentum(0), 1);
+}
 
 TEST_F(RFEventStepTest, OrdersDistinctGapImpulsesByArrivalRatherThanDescriptorIndex) {
     const DevicePolicy policy;
