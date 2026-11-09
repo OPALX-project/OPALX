@@ -227,12 +227,11 @@ namespace opalx::spacecharge {
                                 });
                         if (!std::isfinite(selected.periodicBox) || selected.periodicBox < 0.0
                             || (selected.periodicBox > 0.0
-                                && (!allPeriodic || selected.binning.has_value()
-                                    || selected.repartitionFrequency != 0))) {
+                                && (!allPeriodic || selected.binning.has_value()))) {
                             throw OpalException(
                                     "validateSpaceChargeConfig",
                                     "PERIODICBOX must be non-negative and needs PERIODIC "
-                                    "boundaries on all faces, no BINS and no ORB redistribution.");
+                                    "boundaries on all faces and no BINS.");
                         }
                         validateCartesian(selected);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {

@@ -164,11 +164,11 @@ namespace opalx::spacecharge {
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain does not support Dirichlet planes.");
             }
-            if (config_m.repartitionFrequency != 0) {
+            if (config_m.repartitionFrequency != 0 && config_m.periodicBox <= 0.0) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
-                        "ORB redistribution must be disabled while a fixed Cartesian domain is "
-                        "active.");
+                        "ORB redistribution must be disabled while fixed Cartesian bounds set on "
+                        "the bunch are active.");
             }
         }
         clearSelfFields(*primary_m);
