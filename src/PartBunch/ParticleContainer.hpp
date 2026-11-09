@@ -309,6 +309,17 @@ public:
         }
     }
 
+    /** Scratch Cartesian positions registered lazily so OPEN-style spatial migration
+     * carries them with every other particle attribute. No allocation for other solvers. */
+    ippl::ParticleAttrib<ippl::Vector<T, Dim>>& migrationPositions() {
+        if (!migrationPositions_m) {
+            migrationPositions_m = std::make_unique<ippl::ParticleAttrib<ippl::Vector<T, Dim>>>();
+            this->addAttribute(*migrationPositions_m);
+            migrationPositions_m->create(0);
+        }
+        return *migrationPositions_m;
+    }
+
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
     /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
@@ -1095,6 +1106,7 @@ public:
     }
 
 private:
+    std::unique_ptr<ippl::ParticleAttrib<ippl::Vector<T, Dim>>> migrationPositions_m;
     std::unique_ptr<SpatialLayout_t> spatialLayout_m;
     std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
