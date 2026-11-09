@@ -70,6 +70,17 @@ namespace opalx::spacecharge {
             return config;
         }
 
+        TEST(SpaceChargeConfigTest, ExplicitOriginalModelPreservesDefaultAndRejectsOtherTypes) {
+            TestableFieldSolverCmd parsed;
+            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
+            EXPECT_FALSE(parsed.hasFFT2D5Model());
+            parsed.setFFT2D5Model("ORIGINAL");
+            EXPECT_TRUE(parsed.hasFFT2D5Model());
+            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
+            parsed.setType("FFT");
+            EXPECT_THROW((void)buildSpaceChargeConfig(parsed, {}), OpalException);
+        }
+
         TEST(SpaceChargeConfigTest, DerivesP3MParticleLayoutAndBoundaryMode) {
             SpaceChargeConfig open = p3mConfig(FieldBoundaryCondition::Open);
             validateSpaceChargeConfig(open);

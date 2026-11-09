@@ -58,10 +58,11 @@ class ElementBase;
  * position/path updates use compensation, but momentum and field evaluations
  * remain doubles. DOP853 coefficients are documented in RungeKuttaTableau.h.
  * Both RK methods use fixed nominal DT, NOT adaptive error control. DOP853's
- * embedded 5/3 estimators and dense output are not used. An independent h/2 solve
- * supplies a same-order diagnostic midpoint; it does not change the full-h result.
- * Including its field sample, a smooth trial costs 9 evaluations for RK4 and 25
- * for DOP853 (versus 1 for Boris). These methods are not symplectic and do not
+ * embedded 5/3 estimators are not used. RK4 uses an independent h/2 solve for its
+ * diagnostic midpoint. DOP853 reuses its endpoint stages with the standard
+ * seventh-order dense-output extension. Neither midpoint changes the full-h result.
+ * Including the midpoint field sample, a smooth trial costs 9 evaluations for RK4
+ * and 17 for DOP853 (versus 1 for Boris). These methods are not symplectic and do not
  * preserve magnetic energy exactly; their smooth global orders are 4 and 8.
  *
  * advance() resolves field-support transitions independently for each ray. A trial
@@ -107,7 +108,8 @@ public:
     using FieldEvaluator =
             std::function<bool(const State&, Vector_t<double, 3>&, Vector_t<double, 3>&)>;
     struct Step {
-        /// Boris: pre-kick drift midpoint. RK: independently integrated half-duration state.
+        /// Boris: pre-kick drift midpoint. RK4: half-duration solve. DOP853: seventh-order dense
+        /// output.
         State midpoint;
         State end;
         Vector_t<double, 3> electric = Vector_t<double, 3>(0.0);
@@ -119,6 +121,9 @@ public:
     ExternalFieldRayTracker(
             OpalBeamline& beamline, const PartData& reference,
             IntegrationMethod method = IntegrationMethod::BORIS);
+
+    /// Conservative geometry-based time-step cap [s]. Support events may refine further.
+    double maximumTimeStep() const { return maximumStep_m; }
 
     /// One numerical step with an explicit field evaluator (also supplies path-log data).
     Step step(const State& initial, double dt, const FieldEvaluator& fields) const;

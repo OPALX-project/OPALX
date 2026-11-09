@@ -1,4 +1,6 @@
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Algorithms/DefaultVisitor.h"
+#include "Elements/PlacementResolver.h"
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -495,4 +497,133 @@ TEST_F(OpalBeamlinePlacementTest, AcceptsUniform6DPoseAcrossMultipleElements) {
     beamline.visit(*d2, visitor, *bunch);
 
     EXPECT_NO_THROW(beamline.prepareSections());
+}
+
+// The school F/D cell has overlapping spiral fringe supports. Test placement
+// independently of tracking, against the median-plane scaling law in metres.
+TEST_F(OpalBeamlinePlacementTest, SchoolScalingFFACellEntrancePosesAndSignedRadii) {
+    const double radius = 4.42, pi = std::acos(-1.);
+    const double starts[]    = {(13.5 + 0.73) * pi / 180, (2.25 - 0.73) * pi / 180};
+    const double lengths[]   = {4.5 * pi / 180 * radius, 2.25 * pi / 180 * radius};
+    const double strengths[] = {-0.6532097983351404, 0.502765236428169};
+    const std::vector<double> coefficients{-1.3, 3.42, -1.20, 0.23};
+    const auto edge = [](double u) {
+        return 1 / (1 + std::exp(-1.3 + u * (3.42 + u * (-1.20 + 0.23 * u))));
+    };
+    for (double sign : {1., -1.})
+        for (double spiral : {pi / 4, 55 * pi / 180})
+            for (bool pose : {false, true}) {
+                ElementList cell;
+                for (unsigned i = 0; i < 2; ++i) {
+                    const std::string name = "school_fringe_" + std::to_string(i);
+                    endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(
+                            name, std::make_shared<endfieldmodel::AsymmetricEnge>(
+                                          coefficients, lengths[i] / 2, 0.12, coefficients,
+                                          lengths[i] / 2, 0.12));
+                    auto magnet = std::make_shared<ScalingFFAMagnet>(name);
+                    magnet->setR0(sign * radius);
+                    magnet->setEndFieldName(name);
+                    magnet->setDipoleConstant(strengths[i]);
+                    magnet->setFieldIndex(7.717022064259446);
+                    magnet->setTanDelta(std::tan(spiral));
+                    magnet->setMaxOrder(4);
+                    magnet->setRMin(radius - 0.8);
+                    magnet->setRMax(radius + 1.2);
+                    magnet->setVerticalExtent(0.5);
+                    magnet->setAzimuthalExtent(2 * pi / 16);
+                    magnet->initialise();
+                    if (pose) {
+                        magnet->setCSTrafoGlobal2Local(CoordinateSystemTrafo(
+                                Vector3(sign * radius * (std::cos(starts[i]) - 1), 0,
+                                        radius * std::sin(starts[i])),
+                                rotationAroundY(sign * starts[i])));
+                    } else {
+                        magnet->setElementPosition(radius * starts[i]);
+                    }
+                    cell.push_back(magnet);
+                }
+                const CoordinateSystemTrafo labFrame(
+                        Vector3(0.3, -0.2, 0.1), rotationAroundY(0.17));
+                PlacementResolver::resolve(cell, labFrame);
+                unsigned i = 0;
+                for (const auto& element : cell) {
+                    auto& magnet = dynamic_cast<ScalingFFAMagnet&>(*element);
+                    EXPECT_NEAR(magnet.getGeometry().getArcLength(), lengths[i], tol);
+                    EXPECT_NEAR(magnet.getPhiStart(), lengths[i] / (2 * radius), tol);
+                    for (double r : {radius - 0.1, radius, radius + 0.1})
+                        for (double offset : {-0.03, 0., 0.03}) {
+                            const double phi = starts[i] + lengths[i] / (2 * radius)
+                                               + std::tan(spiral) * std::log(r / radius) + offset;
+                            Vector3 lab(sign * (r * std::cos(phi) - radius), 0, r * std::sin(phi));
+                            const auto local = element->getCSTrafoGlobal2Local().transformTo(
+                                    labFrame.transformFrom(lab));
+                            Vector3 b;
+                            magnet.getFieldValue(local, b);
+                            const double s = radius * offset, half = lengths[i] / 2;
+                            const double expected =
+                                    strengths[i] * std::pow(r / radius, 7.717022064259446)
+                                    * (-1 + edge((-s - half) / 0.12) + edge((s - half) / 0.12));
+                            EXPECT_NEAR(b(1), expected, 2e-12);
+                            EXPECT_NEAR(b(0), 0, tol);
+                            EXPECT_NEAR(b(2), 0, tol);
+                        }
+                    // Maxwell's curl relation at the median plane supplies an
+                    // independent first-order off-plane check for this profile.
+                    const double centrePhi = starts[i] + lengths[i] / (2 * radius);
+                    const Vector3 centre(
+                            sign * radius * (std::cos(centrePhi) - 1), 0,
+                            radius * std::sin(centrePhi));
+                    const auto point = element->getCSTrafoGlobal2Local().transformTo(
+                            labFrame.transformFrom(centre));
+                    const double h = 1e-6;
+                    Vector3 off    = point, offField;
+                    off(1)         = h;
+                    magnet.getFieldValue(off, offField);
+                    for (unsigned d : {0u, 2u}) {
+                        Vector3 plus = point, minus = point, bp, bm;
+                        plus(d) += h;
+                        minus(d) -= h;
+                        magnet.getFieldValue(plus, bp);
+                        magnet.getFieldValue(minus, bm);
+                        EXPECT_NEAR(offField(d) / h, (bp(1) - bm(1)) / (2 * h), 2e-7);
+                    }
+                    if (i == 1) {
+                        magnet.setDipoleConstant(0.);
+                        magnet.getFieldValue(off, offField);
+                        expectVectorNear(offField, Vector3(0));
+                    }
+                    ++i;
+                }
+            }
+    endfieldmodel::EndFieldModelManager::clearEFMManager();
+}
+
+TEST_F(OpalBeamlinePlacementTest, ScalingFFAExitFramesPlaceFollowingDrift) {
+    const std::string name = "exit_frame_fringe";
+    endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(
+            name, std::make_shared<endfieldmodel::Tanh>(0.2, 0.02, 4));
+    const CoordinateSystemTrafo labFrame(Vector3(0.3, -0.2, 0.1), rotationAroundY(0.17));
+    for (double sign : {1., -1.}) {
+        auto magnet = std::make_shared<ScalingFFAMagnet>("ffa");
+        magnet->setR0(sign * 4.42);
+        magnet->setEndFieldName(name);
+        magnet->setupEndField();
+        magnet->setElementPosition(0.7);
+        auto drift = std::make_shared<DriftRep>("following");
+        drift->getGeometry().setElementLength(0.1);
+        drift->setElementPosition(0.7 + 0.4 + 0.2);
+        ElementList elements{magnet, drift};
+        PlacementResolver::resolve(elements, labFrame);
+        const double angle = 1.1 / 4.42;
+        const Vector3 exit(sign * 4.42 * (std::cos(angle) - 1), 0, 4.42 * std::sin(angle));
+        const Vector3 tangent(-sign * std::sin(angle), 0, std::cos(angle));
+        expectVectorNear(
+                drift->getCSTrafoGlobal2Local().transformTo(
+                        labFrame.transformFrom(Vector3(exit + 0.2 * tangent))),
+                Vector3(0));
+        expectVectorNear(
+                drift->getCSTrafoGlobal2Local().rotateTo(labFrame.rotateFrom(tangent)),
+                Vector3(0, 0, 1));
+    }
+    endfieldmodel::EndFieldModelManager::clearEFMManager();
 }

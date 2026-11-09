@@ -50,6 +50,7 @@ extern "C" {
 
 #include "Utilities/GSLCompat.h"
 
+#include <charconv>
 #include <cstdint>
 #include <filesystem>
 #include <system_error>
@@ -160,6 +161,7 @@ namespace OPALXMAIN {
     }
 
     void printHelp() {
+        ippl::Info->setOutputLevel(1);
         OPALXMAIN::printStdoutHeader();
 
         *ippl::Info << "\n";
@@ -171,6 +173,8 @@ namespace OPALXMAIN {
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
         *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
+        *ippl::Info << "   --2D5BatchSize <n>       : Batch n transverse FFT2D5 slices (positive "
+                       "integer; default: serial).\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -179,6 +183,11 @@ namespace OPALXMAIN {
 }  // namespace OPALXMAIN
 
 int main(int argc, char* argv[]) {
+    // Keep OPALX help (including OPALX-only options) from being intercepted by IPPL.
+    char opalxHelp[] = "-help";
+    for (int i = 1; i < argc; ++i)
+        if (std::strcmp(argv[i], "--help") == 0 || std::strcmp(argv[i], "-h") == 0)
+            argv[i] = opalxHelp;
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
@@ -257,13 +266,17 @@ int main(int argc, char* argv[]) {
             }
             const auto optionConsumesArgument = [](const std::string& option) {
                 return option == "--help-command" || option == "--input" || option == "--info"
-                       || option == "--overallocate";
+                       || option == "--overallocate" || option == "--2D5BatchSize";
             };
 
             const auto hasLaterInputArgument = [&](int first) {
                 for (int jj = first; jj < argc; ++jj) {
                     const std::string arg(argv[jj]);
-                    if (optionConsumesArgument(arg)) {
+                    if (arg == "--input") {
+                        if (jj + 1 >= argc) return false;
+                        const std::string next(argv[jj + 1]);
+                        return !next.empty() && next.front() != '-';
+                    } else if (optionConsumesArgument(arg)) {
                         ++jj;
                     } else if (arg == "--restart") {
                         continue;
@@ -370,6 +383,23 @@ int main(int argc, char* argv[]) {
                             ++ii;
                         }
                     }
+                    continue;
+                } else if (argStr == "--2D5BatchSize") {
+                    int value  = 0;
+                    bool valid = ii + 1 < argc;
+                    if (valid) {
+                        const std::string argument(argv[++ii]);
+                        const auto result = std::from_chars(
+                                argument.data(), argument.data() + argument.size(), value);
+                        valid = result.ec == std::errc{}
+                                && result.ptr == argument.data() + argument.size() && value > 0;
+                    }
+                    if (!valid) {
+                        if (ippl::Comm->rank() == 0)
+                            std::cerr << "--2D5BatchSize requires a positive integer" << std::endl;
+                        exit(1);
+                    }
+                    Options::fft2d5BatchSize = value;
                     continue;
                 } else if (argStr == std::string("--info")) {
                     ++ii;

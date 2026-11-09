@@ -36,6 +36,9 @@ namespace Options {
     extern bool info;
     extern int infoLevel;
 
+    /// Requested FFT2D5 batch size; zero uses serial slices on one rank and batch one with MPI.
+    extern int fft2d5BatchSize;
+
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;

@@ -33,6 +33,7 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/ScalingFFASupport.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
@@ -51,20 +52,13 @@
  *  lookup.
  */
 
-struct ScalingFFAMagnetConfig {
+struct ScalingFFAMagnetConfig : ScalingFFASupport {
     static constexpr size_t MaxOrder         = 20;
     static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
 
     size_t maxOrder_m         = 0;
-    double tanDelta_m         = 0.;
     double k_m                = 0.;
     double Bz_m               = 0.;
-    double r0_m               = 1.;
-    double rMin_m             = 0.;  // minimum radius
-    double rMax_m             = 0.;  // maximum radius
-    double phiStart_m         = 0.;  // offsets this element
-    double azimuthalExtent_m  = 0.;  // maximum distance used for field calculation
-    double verticalExtent_m   = 0.;  // maximum allowed distance from the midplane
     const double fp_tolerance = 1e-18;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
@@ -101,11 +95,22 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /** Native scalar loss check, including zero-field elements. Angular ownership
+     * is independent of radial/vertical aperture containment, so an excluded
+     * field candidate cannot silently turn an aperture loss into free drift.
+     */
     bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
-        apply(R, P, t, E, B);
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
+            Vector_t<double, 3>&, Vector_t<double, 3>& B) override {
+        Vector_t<double, 5> cylindrical;
+        config_m.getCylindricalCoordinates(R, cylindrical);
+        if (config_m.outsideAperture(cylindrical)) return true;
+        if (config_m.contains(cylindrical)) getFieldValueFromChart(cylindrical, B);
         return false;
+    }
+    bool isReferenceParticleLost(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, double) override {
+        return config_m.outsideAperture(R);
     }
     /** Calculate the field for particles in the container
      *
@@ -380,6 +385,9 @@ private:
     mutable ScalingFFAMagnetConfig config_m;
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
     mutable std::string endFieldName_m;
+    void getFieldValueFromChart(
+            const Vector_t<double, 5>& cylindrical, Vector_t<double, 3>& B) const;
+
     mutable bool efmInitialised_m = false;
 };
 
@@ -390,7 +398,7 @@ inline void ScalingFFAMagnet::getFieldValue(
     const size_t count = R.size();
     Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getCylindricalCoordinates()", count,
             KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
@@ -399,7 +407,8 @@ inline void ScalingFFAMagnet::getFieldValue(
             "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
                 phiSpiral(i) = Rcyl(i)[4];  // must be a way to get a subview
             });
-    endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
+    // The highest index read below is maxOrder, including odd transverse terms.
+    endField->function(phiSpiral, config.maxOrder_m, derivatives);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
@@ -415,18 +424,7 @@ KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getCylindricalCoordinates(
         const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
         Vector_t<double, 5>& Rcyli) {
-    Vector_t<double, 3> Rstart = Ri;
-    double r          = Kokkos::sqrt((Ri[0] + config.r0_m) * (Ri[0] + config.r0_m) + Ri[2] * Ri[2]);
-    double normRadius = Kokkos::abs(r / config.r0_m);
-    double g          = config.tanDelta_m * Kokkos::log(normRadius);
-    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) * Kokkos::copysign(1.0, config.r0_m));
-    double phiSpiral = phi - g - config.phiStart_m;
-    Rcyli[0]         = r;
-    // angle between y-axis and position vector in anticlockwise direction
-    Rcyli[1] = Ri[1];
-    Rcyli[2] = phi;
-    Rcyli[3] = normRadius;
-    Rcyli[4] = phiSpiral;
+    config.getCylindricalCoordinates(Ri, Rcyli);
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -459,6 +457,12 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
     if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
         return;
     }
+    if (z == 0) {
+        B[1] = (config.dfCoefficients_m[0] * derivatives(0)) * h;
+        return;
+    }
+    const double verticalRatio = z / r;
+    double verticalPower       = 1;
     for (size_t n = 0; n <= config.maxOrder_m; n += 2) {
         double f2n = 0;
         Vector_t<double, 3> deltaB({0., 0., 0.});
@@ -466,7 +470,7 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
             f2n += config.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
                    * derivatives(i);
         }
-        deltaB[1] = f2n * h * Kokkos::pow(z / r, static_cast<int>(n));
+        deltaB[1] = f2n * h * verticalPower;
         if (config.maxOrder_m >= n + 1) {
             double f2nplus1 = 0;
             for (size_t i = 0; i <= n + 1; ++i) {
@@ -475,10 +479,11 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
                             * derivatives(i);
             }
             deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
-                        * Kokkos::pow(z / r, static_cast<int>(n + 1));  // Br
-            deltaB[2] = f2nplus1 * h * Kokkos::pow(z / r, static_cast<int>(n + 1));
+                        * (verticalPower * verticalRatio);  // Br
+            deltaB[2] = f2nplus1 * h * (verticalPower * verticalRatio);
         }
         B += deltaB;
+        verticalPower *= verticalRatio * verticalRatio;
     }
 }
 

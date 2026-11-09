@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include "AbsBeamline/CyclotronSector.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/DeviceExternalField.h"
@@ -512,5 +513,74 @@ TEST_F(DeviceExternalFieldTest, EligibilityRejectsHigherBendComponentsButAllowsZ
             EXPECT_FALSE(device_external::Builder::supports(lattice));
             EXPECT_THROW(device_external::Builder::build(lattice), OpalException);
         }
+    }
+}
+
+TEST_F(DeviceExternalFieldTest, ScalingFFASpiralSupportMatchesElementAndAccumulatesFringes) {
+    Beam beam;
+    FlaggedBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    const double pi = std::acos(-1.), radius = 4.42;
+    for (double sign : {1., -1.}) {
+        PartBunch_t bunch(
+                {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+        OpalBeamline lattice;
+        for (unsigned i = 0; i < 2; ++i) {
+            ScalingFFAMagnet magnet("ffa" + std::to_string(i));
+            magnet.setR0(sign * radius);
+            magnet.setFieldIndex(7.717022064259446);
+            magnet.setTanDelta(1.);
+            magnet.setMaxOrder(4);
+            magnet.setRMin(radius - 0.8);
+            magnet.setRMax(radius + 1.2);
+            magnet.setVerticalExtent(0.5);
+            magnet.setAzimuthalExtent(2 * pi / 16);
+            magnet.setPhiStart(0.04);
+            magnet.setDipoleConstant(i == 0 ? -0.6532097983351404 : 0.502765236428169);
+            magnet.setEndField(
+                    std::make_shared<endfieldmodel::AsymmetricEnge>(
+                            std::vector<double>{-1.3, 3.42, -1.2, 0.23}, 0.04, 0.12 / radius,
+                            std::vector<double>{-1.3, 3.42, -1.2, 0.23}, 0.04, 0.12 / radius));
+            magnet.initialise();
+            magnet.setCSTrafoGlobal2Local(CoordinateSystemTrafo());
+            magnet.fixPosition();
+            lattice.visit(magnet, visitor, bunch);
+        }
+        lattice.prepareSections();
+        ASSERT_TRUE(device_external::Builder::supports(lattice));
+        auto device = device_external::Builder::build(lattice);
+        EXPECT_FALSE(device.fieldOracleSupported);
+        device_external::State state;
+        EXPECT_FALSE(device.advance(state, 1e-12, 938e6, 1.));
+        const auto source = lattice.getElements();
+        auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), device.elements);
+        for (const auto& element : source) {
+            const auto& magnet = dynamic_cast<const ScalingFFAMagnet&>(*element);
+            for (double r : {radius - 0.81, radius - 0.79, radius, radius + 1.19, radius + 1.21})
+                for (double y : {-0.501, -0.499, 0., 0.499, 0.501})
+                    for (double offset : {-0.394, -0.391, 0., 0.391, 0.394}) {
+                        const double phi = 0.04 + std::log(r / radius) + offset;
+                        const Vector point(
+                                sign * (r * std::cos(phi) - radius), y, r * std::sin(phi));
+                        EXPECT_EQ(host(0).contains(point), magnet.isInside(point));
+                    }
+        }
+        const auto particles = bunch.getParticleContainer();
+        particles->createParticles(1);
+        const Vector point(sign * radius * (std::cos(0.04) - 1), 0.001, radius * std::sin(0.04));
+        Vector expected(0);
+        for (const auto& element : source) {
+            Vector field(0);
+            dynamic_cast<ScalingFFAMagnet&>(*element).getFieldValue(point, field);
+            expected += field;
+        }
+        Kokkos::deep_copy(particles->R.getView(), point);
+        Kokkos::deep_copy(particles->B.getView(), Vector(0));
+        for (const auto& element : device_external::orderedCandidates(lattice, source))
+            element->apply(particles);
+        const auto fields =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->B.getView());
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(fields(0)(d), expected(d), 1e-12);
     }
 }
