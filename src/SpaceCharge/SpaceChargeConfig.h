@@ -87,6 +87,12 @@ namespace opalx::spacecharge {
          * update; exclusive with a nonzero p3mCutoff.
          */
         double p3mCutoffCells = 0.0;
+        /**
+         * @brief Edge length in metres of a fixed cube with all faces periodic, centered on the
+         * solve-frame origin. Zero derives the box from the particle extents at every solve, which
+         * lets the period follow the particles, so a homogeneous plasma cannot keep its density.
+         */
+        double periodicBox = 0.0;
         std::optional<BinningConfig> binning;
         std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
         /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */

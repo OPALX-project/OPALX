@@ -87,6 +87,12 @@ FieldSolverCmd::FieldSolverCmd()
             "2/cutoff); used unless RCUT is given.",
             2.0);
 
+    itsAttr[FIELDSOLVER::PERIODICBOX] = Attributes::makeReal(
+            "PERIODICBOX",
+            "Edge length in m of a fixed all-periodic cube centered on the solve-frame origin; "
+            "zero derives the box from the particle extents at every solve.",
+            0.0);
+
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
@@ -155,6 +161,10 @@ double FieldSolverCmd::getP3MCutoff() const {
 
 double FieldSolverCmd::getP3MCutoffCells() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
+}
+
+double FieldSolverCmd::getPeriodicBox() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PERIODICBOX]);
 }
 
 bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
