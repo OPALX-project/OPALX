@@ -26,6 +26,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -41,7 +43,6 @@ protected:
         ippl::initialize(argc, argv);
         gmsg                = new Inform(nullptr, -1);
         Options::enableHDF5 = false;
-        std::filesystem::create_directories("data");
     }
 
     static void TearDownTestSuite() {
@@ -51,18 +52,23 @@ protected:
     }
 
     void SetUp() override {
+        oldInputFn_                       = OpalData::getInstance()->getInputFn();
         Options::enableLinearTransferMaps = false;
-        const auto* info                  = ::testing::UnitTest::GetInstance()->current_test_info();
-        testStem_                         = std::string("solenoid_") + info->name();
+        directory_.create("opalx-solenoid");
+        const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
+        // Give diagnostic writers an absolute stem so their files stay in this directory.
+        testStem_ = (directory_.path() / (std::string("solenoid_") + info->name())).string();
         OpalData::getInstance()->storeInputFn(testStem_ + ".opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
-        cleanupOutputs();
     }
 
     void TearDown() override {
         Options::enableLinearTransferMaps = false;
         Fieldmap::freeMap(fieldmapFile_.string());
-        cleanupOutputs();
+        dataSink_m.reset();
+        fsCmdBase_m.reset();
+        OpalData::getInstance()->storeInputFn(oldInputFn_);
+        directory_.reset();
     }
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
@@ -113,7 +119,7 @@ protected:
     std::filesystem::path writeXZFieldmap(
             const std::string& filename, double zBeginCm, double zEndCm, int nz, double rBeginCm,
             double rEndCm, int nr, double bzValue = 1.0, double brValue = 0.0) {
-        fieldmapFile_ = std::filesystem::path("data") / filename;
+        fieldmapFile_ = directory_.path() / filename;
         std::ofstream out(fieldmapFile_);
         out << "2DMagnetoStatic XZ\n";
         out << zBeginCm << " " << zEndCm << " " << nz - 1 << "\n";
@@ -126,21 +132,7 @@ protected:
         return fieldmapFile_;
     }
 
-    std::filesystem::path outputPath(const std::string& suffix) const {
-        return std::filesystem::path("data") / (testStem_ + suffix);
-    }
-
-    void cleanupOutputs() const {
-        std::filesystem::remove(outputPath("_ElementPositions.txt"));
-        std::filesystem::remove(outputPath("_ElementPositions.py"));
-        std::filesystem::remove(outputPath("_ElementPositions.sdds"));
-        std::filesystem::remove(outputPath("_ElementPositions.vtk"));
-        std::filesystem::remove(outputPath("_ElementPositions.html"));
-        std::filesystem::remove(outputPath("_ElementPositions.gpl"));
-        if (!fieldmapFile_.empty()) {
-            std::filesystem::remove(fieldmapFile_);
-        }
-    }
+    std::filesystem::path outputPath(const std::string& suffix) const { return testStem_ + suffix; }
 
     static std::tuple<double, double, double> parsePositionLine(const std::string& line) {
         const auto quote = line.rfind('"');
@@ -161,6 +153,8 @@ protected:
         return tokens;
     }
 
+    opalx::test::TemporaryDirectory directory_;
+    std::string oldInputFn_;
     std::string testStem_;
     std::filesystem::path fieldmapFile_;
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;

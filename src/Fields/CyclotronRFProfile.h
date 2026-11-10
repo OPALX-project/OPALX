@@ -76,7 +76,7 @@ public:
     }
 };
 
-/** @brief Device-copyable, static-frequency SINGLEGAP kick for median-plane protons.
+/** @brief Device-copyable, static-frequency SINGLEGAP kick for forward protons.
  * Local x runs along the gap; local z is the positive crossing direction and y
  * is vertical. Parameters use SI: voltage [V], omega [rad/s], phase [rad], width
  * and profileLength [m]. Momentum is mechanical beta*gamma, mass is rest energy
@@ -88,7 +88,10 @@ public:
  * factor from this rotation deliberately reproduce OPAL 2022.1, not a rederived
  * focusing model. Radial momentum is preserved before the rotation.
  *
- * This first contract is restricted to positive, forward, median-plane protons;
+ * The thin-gap extension preserves vertical momentum and rotates only the radial/
+ * longitudinal components. Its transit factor uses total speed; no vertical RF
+ * focusing or vertical variation of the voltage profile is modeled.
+ * This contract is restricted to positive, forward protons;
  * invalid states return false without modifying momentum. It neither detects
  * crossings nor advances time, and must be called once per accepted gap event.
  */
@@ -117,18 +120,18 @@ struct CyclotronRFKick {
             const V& grid, double u, double time, double mass, Vector_t<double, 3>& p) const {
         double f, derivative;
         if (!(mass > 0) || !Kokkos::isfinite(mass) || !Kokkos::isfinite(time)
-            || !Kokkos::isfinite(p[0]) || !Kokkos::isfinite(p[2]) || p[1] != 0 || !(p[2] > 0)
-            || !CyclotronRFProfile::evaluate(grid, u, f, derivative))
+            || !Kokkos::isfinite(p[0]) || !Kokkos::isfinite(p[1]) || !Kokkos::isfinite(p[2])
+            || !(p[2] > 0) || !CyclotronRFProfile::evaluate(grid, u, f, derivative))
             return false;
         if (voltage == 0) return true;
-        const double p2 = p[0] * p[0] + p[2] * p[2];
+        const double p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
         const double bg = Kokkos::sqrt(p2), gamma = Kokkos::sqrt(1 + p2);
         const double beta          = bg / gamma;
         const double a             = omega * width / (2 * Physics::c * beta);
         const double transit       = Kokkos::abs(a) < 1e-8 ? 1 - a * a / 6 : Kokkos::sin(a) / a;
         const double phi           = omega * time - phase;
         const double finalGamma    = gamma + voltage * f * transit * Kokkos::cos(phi) / mass;
-        const double longitudinal2 = finalGamma * finalGamma - 1 - p[0] * p[0];
+        const double longitudinal2 = finalGamma * finalGamma - 1 - p[0] * p[0] - p[1] * p[1];
         if (!(finalGamma >= 1) || !(longitudinal2 > 0) || !Kokkos::isfinite(longitudinal2))
             return false;
         const double longitudinal = Kokkos::sqrt(longitudinal2);

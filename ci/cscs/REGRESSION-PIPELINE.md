@@ -1,7 +1,7 @@
 # OPALX Regression Test Pipeline
 
 This document describes the CSCS CI/CD regression test pipeline for OPALX: the file layout,
-every step of the job, how a run is published to the results site, and how to debug failures. 
+every step of the job, how a run is published to the results site, and how to debug failures.
 
 ## Overview
 

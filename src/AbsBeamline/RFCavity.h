@@ -67,11 +67,32 @@ public:
      * @param t Absolute RF time [s].
      * @param mass Proton rest energy [eV].
      * @param[in,out] p Local mechanical momentum [beta*gamma].
-     * @return False for out-of-support, non-median-plane or unphysical states.
+     * @return False for out-of-support, backward or unphysical states.
      */
     bool applyGapKick(double x, double t, double mass, Vector_t<double, 3>& p) const {
         return cyclotronKick_m.apply(
                 cyclotronProfile_m->host, (x - gapMin_m) / (gapMax_m - gapMin_m), t, mass, p);
+    }
+
+    /// Read-only device kick descriptor; the configured cavity owns the profile.
+    struct DeviceGap {
+        Kokkos::View<double**, Kokkos::MemoryTraits<Kokkos::Unmanaged>> profile;
+        CyclotronRFKick kick;
+        double minimum = 0, maximum = 0;
+        KOKKOS_INLINE_FUNCTION bool supports(double x) const {
+            return x >= minimum && x <= maximum;
+        }
+        KOKKOS_INLINE_FUNCTION bool apply(
+                double x, double t, double mass, Vector_t<double, 3>& p) const {
+            return supports(x)
+                   && kick.apply(profile, (x - minimum) / (maximum - minimum), t, mass, p);
+        }
+    };
+    /// SINGLEGAP must be configured before obtaining this descriptor.
+    DeviceGap deviceGap() const {
+        return {decltype(DeviceGap::profile)(
+                        cyclotronProfile_m->data.data(), cyclotronProfile_m->data.extent(0), 3),
+                cyclotronKick_m, gapMin_m, gapMax_m};
     }
     /// Discrete gaps never contribute to continuous field lookup or apertures.
     bool isInsideBody(const Vector_t<double, 3>& r) const override {

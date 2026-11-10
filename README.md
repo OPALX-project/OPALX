@@ -68,6 +68,7 @@ guide for Macs.
 
 [OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
+
 ## Dependencies
 
 In order to compile OPALX, make sure you have the following dependencies installed on your system:

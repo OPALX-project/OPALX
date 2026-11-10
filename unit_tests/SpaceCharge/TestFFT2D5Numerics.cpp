@@ -15,6 +15,7 @@
 //
 
 #include <gtest/gtest.h>
+
 #include <algorithm>
 #include <cmath>
 #include <csignal>
@@ -25,6 +26,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "../TemporaryDirectory.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
@@ -323,9 +325,6 @@ namespace {
             char** argv = nullptr;
             ippl::initialize(argc, argv);
 
-            // DataSink requires a basename to create *.stat / *.lbal writers.
-            OpalData::getInstance()->storeInputFn("unit_test.opal");
-
             // Many OPAL writers assume `gmsg` is initialized (see SDDSWriter/StatWriter).
             // Unit tests normally don't set this up via Main().
             gmsg = new Inform(nullptr, -1);
@@ -347,10 +346,15 @@ namespace {
         static constexpr size_t kDefaultNParticles = 64;
 
         void SetUp() override {
-            // Remove any reference path file
-            if (std::filesystem::exists("data/unit_test_DesignPath.dat")) {
-                std::filesystem::remove("data/unit_test_DesignPath.dat");
-            }
+            auto* opal           = OpalData::getInstance();
+            savedInput_m         = opal->getInputFn();
+            const auto directory = outputDirectory_m.create(
+                    "opalx-fft2d5-numerics", ippl::Comm->getCommunicator());
+            opal->storeInputFn((directory / "unit_test.opal").string());
+            // The default resolver uses the input basename; an absolute stem keeps both
+            // default-path and explicitly selected reference files inside this test's directory.
+            referencePath_m = directory / "unit_test_DesignPath.dat";
+            specifiedPath_m = directory / "Specified_DesignPath.dat";
             // Keep mesh small so scatter/solve/gather are quick.
             fsCmd_m = std::make_shared<TestableFieldSolverCmd>();
             fsCmd_m->setType("NONE");
@@ -384,11 +388,11 @@ namespace {
             bunch_m.reset();
             dataSink_m.reset();
             fsCmd_m.reset();
-            pc_m.reset();
-            // Remove reference path file
-            if (std::filesystem::exists("data/unit_test_DesignPath.dat")) {
-                std::filesystem::remove("data/unit_test_DesignPath.dat");
-            }
+            beam_m.reset();
+            ippl::Comm->barrier();
+            OpalData::getInstance()->storeInputFn(savedInput_m);
+            outputDirectory_m.reset();
+            ippl::Comm->barrier();
         }
 
         void createParticles(
@@ -729,6 +733,10 @@ namespace {
             }
         }
 
+        opalx::test::TemporaryDirectory outputDirectory_m;
+        std::filesystem::path referencePath_m;
+        std::filesystem::path specifiedPath_m;
+        std::string savedInput_m;
         std::array<std::uint8_t, 1> activity_m{1};
         std::unique_ptr<FFT2D5Algorithm> solver_m;
         std::shared_ptr<TestableFieldSolverCmd> fsCmd_m;
@@ -782,16 +790,13 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}},
-                true);
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}}, true);
         fsCmd_m->setType("FFT2D5");
         EXPECT_ANY_THROW(rebuildBunch());
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Success) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
         auto* solver     = solver_m.get();
@@ -813,10 +818,9 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_SpecifiedFile) {
-        makeReferencePathFile(
-                "Specified_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        makeReferencePathFile(specifiedPath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setRefPathFileName("Specified_DesignPath.dat");
+        fsCmd_m->setRefPathFileName(specifiedPath_m.string());
         ASSERT_NO_THROW(rebuildBunch());
         auto* solver     = solver_m.get();
         auto hostRefPath = Kokkos::create_mirror_view(solver->getReferencePath());
@@ -837,8 +841,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, SliceSolverSetup) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
         const auto* solver = solver_m.get();
@@ -856,8 +859,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_NoParticles) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
         auto* solver = solver_m.get();
@@ -865,14 +867,14 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_ShortReferencePath) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setClosedRing(false);
         EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_TrivialReferencePath) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -888,7 +890,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -902,8 +904,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_AtRefCorner) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -917,8 +918,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_DegenerateRefPath) {
-        makeReferencePathFile(
-                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -932,7 +932,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, BoostToBeamFrame_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -945,7 +945,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, BoostToBeamFrame_SimpleInvalid) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         auto* solver = solver_m.get();
@@ -961,7 +961,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_SimpleCharge) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -986,7 +986,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeLo) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1012,7 +1012,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeHi) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1038,7 +1038,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_SimpleChargeDensity) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1063,7 +1063,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeDensityLo) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1089,7 +1089,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeDensityHi) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1115,7 +1115,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, TotalDensity_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1132,7 +1132,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1149,7 +1149,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensityGradient_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1167,7 +1167,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_RingNotClosed) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1185,7 +1185,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_RingClosed) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1203,7 +1203,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, SolvePoissons_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1241,7 +1241,7 @@ namespace {
 
     TEST_F(TestSolve2d5, SliceWorkspaceKeepsNeutralSourcesAndClearsVacatedSlices) {
         for (int batch : {0, 8}) {
-            makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+            makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
             fsCmd_m->setType("FFT2D5");
             fsCmd_m->setNX(12);
             fsCmd_m->setNY(12);
@@ -1311,7 +1311,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerretGather_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1332,7 +1332,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, GatherEField_OneParticle) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1353,7 +1353,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, GatherEField_TwoParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1382,7 +1382,7 @@ namespace {
     // Fixed laboratory charge and geometry must give the same transverse E at
     // every beam speed. The self magnetic force must cancel beta^2 of E.
     TEST_F(TestSolve2d5, TransverseLabDensityAndMagneticCancellation) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1417,7 +1417,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, UniformCylinderMatchesGaussLaw) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(128);
         fsCmd_m->setNY(128);
@@ -1502,8 +1502,7 @@ namespace {
                 // The path is in laboratory coordinates; keep the midpoint
                 // tangent along +z so this benchmark isolates the local slice.
                 {
-                    std::filesystem::create_directories("data");
-                    std::ofstream path("data/unit_test_DesignPath.dat");
+                    std::ofstream path(referencePath_m);
                     path << std::setprecision(17) << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
                     const int segments = radius == 0 ? 2 : 2000;
                     for (int j = 0; j <= segments; ++j) {
@@ -1593,7 +1592,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, OpenReferencePathRejectsEndpointPileup) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setClosedRing(false);
         for (const double z : {-0.1, 6.1}) {
@@ -1605,7 +1604,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoStationaryParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1632,7 +1631,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoRelativisticParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1667,7 +1666,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ParabolicLineDensityHasCenteredLongitudinalForce) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(4);
         fsCmd_m->setNY(4);
@@ -1718,7 +1717,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ClosedLongitudinalGatherWrapsCellCenters) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNZ(12);
         fsCmd_m->setClosedRing(true);
@@ -1739,7 +1738,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LongitudinalField_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1777,7 +1776,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1813,7 +1812,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleInvalid) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1853,7 +1852,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsX) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1876,7 +1875,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsY) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1899,7 +1898,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsZ) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
         createParticles({{0, 0, -1}, {0, 0, 7}}, {{0, 0, 1}, {0, 0, 1}});
@@ -1907,7 +1906,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_ClosedRing) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1952,7 +1951,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_OpenRing) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -1995,7 +1994,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Pipe) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -2033,7 +2032,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Plates) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -2071,21 +2070,21 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Empty) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {});
+        makeReferencePathFile(referencePath_m, {});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setClosedRing(false);
         EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_EmptyClosedRing) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {});
+        makeReferencePathFile(referencePath_m, {});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setClosedRing(true);
         EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_NoParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -2105,7 +2104,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_MainApi) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -2169,7 +2168,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, MainApiMatchesDirectStagesForScatterAndBoundaryModes) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(12);
         fsCmd_m->setNY(12);
@@ -2425,7 +2424,7 @@ namespace {
             {0.000105, -0.000078, 0.4}};
 
     TEST_F(TestSolve2d5, KvBeam_Charge) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0.03}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 0.03}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
@@ -2443,7 +2442,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, KvBeam_ChargeDensity) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0.03}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 0.03}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
@@ -2462,7 +2461,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, KvBeam_Potential) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0.03}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 0.03}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
@@ -2501,7 +2500,7 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, KvBeam_ElectricField) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0.03}});
+        makeReferencePathFile(referencePath_m, {{0, 0, 0}, {0, 0, 0.03}});
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
