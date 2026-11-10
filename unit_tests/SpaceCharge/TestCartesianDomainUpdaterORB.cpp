@@ -13,7 +13,6 @@
 #include "Utility/Inform.h"
 
 #include <array>
-#include <cstdio>
 #include <memory>
 #include <vector>
 
@@ -45,8 +44,6 @@ namespace opalx::spacecharge {
             static void TearDownTestSuite() {
                 delete gmsg;
                 gmsg = nullptr;
-                std::remove("cartesian_domain_updater_orb.stat");
-                std::remove("cartesian_domain_updater_orb.lbal");
                 ippl::finalize();
             }
 
