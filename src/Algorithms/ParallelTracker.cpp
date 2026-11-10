@@ -41,6 +41,7 @@
 #include "Algorithms/PassiveRingProbe.h"
 #include "Algorithms/TrackReferenceStep.h"
 #include "BasicActions/DumpEMFields.h"
+#include "Structure/MeshGenerator.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
@@ -2205,7 +2206,13 @@ void ParallelTracker::prepareSections() {
     itsOpalBeamline_m.compute3DLattice();
 
     // Write 3D Lattice
-    itsOpalBeamline_m.save3DLattice();
+    // Passive PROBEs are not lattice elements. Add their already-global display
+    // planes only to the export mesh, never to field selection or placement.
+    MeshGenerator displayMesh;
+    if (ippl::Comm->rank() == 0)
+        for (const auto& probe : probeConfigs_m)
+            displayMesh.addProbe(probe.segment.start, probe.segment.end);
+    itsOpalBeamline_m.save3DLattice(displayMesh);
     itsOpalBeamline_m.save3DInput();
 }
 
