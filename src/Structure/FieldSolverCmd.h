@@ -49,6 +49,8 @@ namespace FIELDSOLVER {
         GREENSF,       // Green function for OPEN; P3M selects its kernel internally
         P3MRCUT,       // P3M particle-particle cutoff radius [m]
         P3MRCUTCELLS,  // P3M cutoff in units of the largest mesh spacing
+        REPEATS,       // shifted kernel copies on each side along z [OPEN, P3M]
+        REPEATSPACING, // lab-frame spacing of the copies in metres [OPEN, P3M]
         BBOXINCR,      // how much the boundingbox is increased
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
         BEAMR,         // Beam radius in metres [FFT2D5 only]
@@ -85,6 +87,9 @@ public:
     /// Whether RCUT or RCUT_CELLS was set in the input, rather than left at its default.
     bool hasP3MCutoff() const;
     bool hasP3MCutoffCells() const;
+    /// Copies of the bunch field on each side along z (REPEATS) and their spacing [m].
+    int getRepeatCount() const;
+    double getRepeatSpacing() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;
