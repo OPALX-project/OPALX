@@ -452,8 +452,8 @@ TEST_F(RFEventStepTest, TerminalEndpointIncludesAccumulatedFrameArithmeticOnlyWi
 
 TEST_F(RFEventStepTest, ShortTerminalStepAcceptsAnApproachEntirelyInsideTheRoundoffBand) {
     DevicePolicy policy;
-    policy.number   = 1;
-    policy.plane[0] = 0;
+    policy.number         = 1;
+    policy.plane[0]       = 0;
     const double roundoff = 64 * Kokkos::epsilon_v<double>;
     const double duration = roundoff / (4 * policy.speed);
     // Exercise both the inclusive upstream boundary and a start strictly inside
@@ -475,8 +475,8 @@ TEST_F(RFEventStepTest, ShortTerminalStepAcceptsAnApproachEntirelyInsideTheRound
         expectSameExecution(onHost(policy, duration, true, start), terminal);
 
         // The scheduler's visited mask is authoritative even inside the band.
-        auto visited = policy;
-        visited.mask = 1;
+        auto visited       = policy;
+        visited.mask       = 1;
         const auto skipped = onDevice(visited, duration, true, start);
         EXPECT_TRUE(skipped.result.success);
         EXPECT_EQ(skipped.policy.acceptedCount, 0);

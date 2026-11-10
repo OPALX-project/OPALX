@@ -122,7 +122,7 @@ namespace rf_event {
                     for (unsigned d = 0; d < 3; ++d)
                         scale = Kokkos::fmax(
                                 scale, Kokkos::fmax(Kokkos::abs(r(d)), Kokkos::abs(endR(d))));
-                const double roundoff      = terminalEndpoint ? accumulatedRoundoff * scale : 0;
+                const double roundoff = terminalEndpoint ? accumulatedRoundoff * scale : 0;
                 // A short terminal interval may start inside the allowance too.
                 // Keep the strict upstream/approach guards; visited gaps above
                 // cannot receive another kick during this call. The caller stops
