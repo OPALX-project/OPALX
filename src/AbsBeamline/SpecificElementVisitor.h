@@ -38,6 +38,7 @@
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/Probe.h"
+#include "AbsBeamline/OutputPlane.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
@@ -142,6 +143,9 @@ public:
 
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe& prob);
+
+    /// Apply the algorithm to an OutputPlane.
+    virtual void visitOutputPlane(const OutputPlane&);
 
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend&);
@@ -320,6 +324,11 @@ void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitProbe(const Probe& element) {
     CastsTrait<ELEM, Probe>::apply(allElementsOfTypeE, element);
+}
+
+template <class ELEM>
+void SpecificElementVisitor<ELEM>::visitOutputPlane(const OutputPlane& element) {
+    CastsTrait<ELEM, OutputPlane>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>

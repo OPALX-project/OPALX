@@ -111,6 +111,9 @@ public:
     /// Apply the algorithm to a Probe
     void visitProbe(const Probe& prob) override;
 
+    /// Apply the algorithm to an OutputPlane.
+    void visitOutputPlane(const OutputPlane&) override;
+
 protected:
     // The top level beamline.
     const Beamline& itsLine;

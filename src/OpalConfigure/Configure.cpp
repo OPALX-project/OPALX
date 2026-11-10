@@ -78,6 +78,7 @@
 #include "Elements/OpalMultipoleT.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
 #include "Elements/OpalProbe.h"
+#include "Elements/OpalOutputPlane.h"
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
@@ -158,6 +159,7 @@ namespace {
         opal->create(new OpalMonitor());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());
+        opal->create(new OpalOutputPlane());
         opal->create(new OpalMultipole());
         opal->create(new OpalQuadrupole());
         opal->create(new OpalRBend());

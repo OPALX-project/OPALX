@@ -41,6 +41,9 @@
 #include "Algorithms/PassiveRingProbe.h"
 #include "Algorithms/TrackReferenceStep.h"
 #include "BasicActions/DumpEMFields.h"
+#include "BeamSequence.h"
+#include "OutputPlane.h"
+#include "Track.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
@@ -936,8 +939,10 @@ void ParallelTracker::execute() {
                   << "next configuration." << endl;
                 break;
             }
-        }
 
+            // Temporary:  Output plane handling
+            OutputPlane::observe(itsBunch_m);
+        }
         // globalEOL_m is reset at the start of each step, so if it is still true
         // here the last step genuinely ended with an out-of-bounds or reference
         // particle hitting an element. Synchronize across ranks before deciding.
@@ -948,6 +953,9 @@ void ParallelTracker::execute() {
         ++segmentIndex;
         stepsCompletedInSegment = 0;
     }
+    // Temporary:  Output plane handling
+    OutputPlane::store();
+
     if (kineticEnergyStop_m > 0 && !energyTargetReached_m)
         throw OpalException(
                 "ParallelTracker::execute",

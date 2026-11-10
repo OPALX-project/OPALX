@@ -62,6 +62,7 @@ class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
 class Probe;
+class OutputPlane;
 
 namespace endfieldmodel {
     class Enge;
@@ -155,6 +156,8 @@ public:
     /// Apply the algorithm to a Probe.
     virtual void visitProbe(const Probe&) = 0;
 
+    /// Apply the algorithm to an OutputPlane.
+    virtual void visitOutputPlane(const OutputPlane&) = 0;
 private:
     // Not implemented.
     BeamlineVisitor(const BeamlineVisitor&);

@@ -59,7 +59,8 @@ enum class ElementType : unsigned short {
     SOURCE,
     CONSTANTEFIELDCAVITY,
     CONSTANTFOCUSING,
-    CYCLOTRONSECTOR
+    CYCLOTRONSECTOR,
+    OUTPUTPLANE,
 };
 
 /// Logical sequence topology, independent of ElementType and field-support overlap.
