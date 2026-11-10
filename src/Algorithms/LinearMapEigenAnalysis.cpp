@@ -169,7 +169,7 @@ void LinearMapEigenAnalysis::writeReport(std::ostream& output, const Result& res
             report << "off unit circle; no stable tune reported";
         report << '\n';
     }
-    report << "Modes may be coupled; no x/y assignment. Integer tune and oriented branch are "
-              "undetermined.\n";
+    report << "Matrix eigenanalysis alone: modes may be coupled; no x/y assignment. "
+              "Integer tune and oriented branch require additional trajectory analysis.\n";
     output << report.str();
 }

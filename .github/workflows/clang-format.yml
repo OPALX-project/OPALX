@@ -2,21 +2,20 @@ name: Check clang-format
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     branches: ["master"]
 
+# Runs on every non-draft PR. Every event on the PR replaces its previous run, so only
+# the newest commit is checked.
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false && (github.event.action != 'labeled' || github.event.label.name == 'compile-ci') && 'ci' || github.run_id }}
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   clang-format:
     name: Check
     runs-on: ubuntu-latest
-    if: |
-      contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
-      github.event.pull_request.draft == false &&
-      (github.event.action != 'labeled' || github.event.label.name == 'compile-ci')
+    if: github.event.pull_request.draft == false
 
     steps:
       - name: Checkout repository

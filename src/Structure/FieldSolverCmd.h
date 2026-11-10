@@ -52,6 +52,7 @@ namespace FIELDSOLVER {
         REPEATS,       // shifted kernel copies on each side along z [OPEN, P3M]
         REPEATSPACING, // lab-frame spacing of the copies in metres [OPEN, P3M]
         BBOXINCR,      // how much the boundingbox is increased
+        FFT2D5MODEL,   // Explicit FFT2D5 model identity; ORIGINAL is currently supported
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
         BEAMR,         // Beam radius in metres [FFT2D5 only]
         CLOSEDRING,    // TRUE if the ring is closed [FFT2D5 only]
@@ -125,6 +126,13 @@ public:
 
     Inform& printInfo(Inform& os) const;
 
+    /// Return the configured FFT2D5 identity; ORIGINAL is the default and only supported model.
+    std::string getFFT2D5Model() const;
+    /// Whether FFT2D5MODEL was explicitly supplied rather than inherited from its default.
+    bool hasFFT2D5Model() const;
+    /** @brief Set a predefined FFT2D5 model identity.
+     * @param model ORIGINAL; invalid predefined values are rejected by attribute validation. */
+    void setFFT2D5Model(const std::string& model);
     std::string getPipeMode() const;
     double getBeamRadius() const;
     bool getClosedRing() const;

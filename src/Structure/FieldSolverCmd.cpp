@@ -104,6 +104,11 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
     // Attributes for FFT2D5 mode
+    itsAttr[FIELDSOLVER::FFT2D5MODEL] = Attributes::makePredefinedString(
+            "FFT2D5MODEL",
+            "FFT2D5 model identity. ORIGINAL retains independent transverse 2D slices "
+            "and the PIPEMODE longitudinal closure; numerical behavior is unchanged.",
+            {"ORIGINAL"}, "ORIGINAL");
     itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
             "PIPEMODE",
             "Longitudinal-field geometry model; transverse Poisson slices remain open [FFT2D5].",
@@ -213,6 +218,15 @@ double FieldSolverCmd::getBoxIncr() const {
 
 void FieldSolverCmd::update() {}
 
+std::string FieldSolverCmd::getFFT2D5Model() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::FFT2D5MODEL]);
+}
+bool FieldSolverCmd::hasFFT2D5Model() const {
+    return !itsAttr[FIELDSOLVER::FFT2D5MODEL].defaultUsed();
+}
+void FieldSolverCmd::setFFT2D5Model(const std::string& model) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::FFT2D5MODEL], model);
+}
 std::string FieldSolverCmd::getPipeMode() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
 }
@@ -294,6 +308,10 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+
+    if (getType() == "FFT2D5") {
+        os << "* FFT2D5MODEL  " << getFFT2D5Model() << endl;
+    }
 
     if (getType() == "P3M") {
         if (hasP3MCutoff()) {

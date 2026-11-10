@@ -3,6 +3,7 @@
 ## Continuous Integration
 
 [![CPU Serial](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml)
+[![CPU Serial Smoke Tests](https://github.com/OPALX-project/OPALX/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/smoke-tests.yml)
 [![CPU OpenMP](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml)
 [![GPU CUDA](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml)
 [![GPU HIP](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml)
@@ -11,7 +12,12 @@
     <img alt="CI/CD CSCS" height="20" src="https://my.cdash.org/img/cdash.svg">
 </a>
 
-OPALX uses GitHub Actions for required and non-required pull request checks. The compile CI workflows run on non-draft pull requests to `master` when the `compile-ci` label is selected. Required checks have to pass before a PR can be merged; non-required checks provide additional feedback but are not part of the required branch protection status checks.
+OPALX uses GitHub Actions to check pull requests to `master`. Checks run only on non-draft pull requests and only for the newest commit: a new push, or converting the pull request to draft, cancels checks that are still running.
+
+- `Check clang-format` and `CPU Serial` run on every non-draft pull request.
+- `CPU Serial Smoke Tests`, `CPU OpenMP`, `GPU CUDA`, `GPU HIP`, and `GPU SYCL` run only while the `smoke-compile-checks` label is set. Add the label when the change is ready for these checks; removing it cancels the running checks.
+
+The `Build & Unit Tests` job of `CPU Serial` is the only required check and has to pass before a PR can be merged. The other checks provide additional feedback.
 
 ### Formatting Checks
 
@@ -22,19 +28,40 @@ See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/se
 ### Compilation
 
 - `CPU Serial`: compiles debug OPALX and the unit tests with `PLATFORMS=SERIAL`. This check is **required**.
-- `CPU OpenMP`: compiles debug OPALX and the unit tests with `PLATFORMS=OPENMP`. This check is **required**.
-- `GPU CUDA`: compiles debug OPALX and the unit tests with CUDA for NVIDIA `AMPERE80`. This check is **required**.
-- `GPU HIP`: compiles debug OPALX and the unit tests with HIP for AMD `AMD_GFX90A`. This check is **required**.
-- `GPU SYCL`: compiles release OPALX and the unit tests with SYCL for Intel `INTEL_PVC`. This check is **not required**, because the CI runner can compile this configuration but cannot test it.
+- `CPU OpenMP`: compiles debug OPALX and the unit tests with `PLATFORMS=OPENMP`. This check needs the label and is **not required**.
+- `GPU CUDA`: compiles debug OPALX and the unit tests with CUDA for NVIDIA `AMPERE80`. This check needs the label and is **not required**.
+- `GPU HIP`: compiles debug OPALX and the unit tests with HIP for AMD `AMD_GFX90A`. This check needs the label and is **not required**.
+- `GPU SYCL`: compiles release OPALX and the unit tests with SYCL for Intel `INTEL_PVC`. This check needs the label and is **not required**.
+
+The GPU workflows only compile, because the CI runner cannot execute GPU code.
 
 ### Running Tests
 
 - Unit tests run with the `CPU Serial` build.
 - Unit tests run with the `CPU OpenMP` build.
-- A subset of fast regression tests from [OPALX-project/regression-tests-x](https://github.com/OPALX-project/regression-tests-x) runs with the `CPU Serial` binary and checks results against the tests' `.rt` metrics. The current regression subset is:
+- A subset of fast regression tests from [OPALX-project/regression-tests-x](https://github.com/OPALX-project/regression-tests-x) runs in `CPU Serial Smoke Tests` and checks results against the tests' `.rt` metrics. This workflow builds its own debug `PLATFORMS=SERIAL` binary without the unit tests, needs the label, and is **not required**. The current regression subset is:
   - `Drift-1-fromfile`
   - `Drift-4-multi-emit-open`
   - `FodoCell-fromfile`
+
+### Quick start with Docker
+
+A CPU (OpenMP) build of OPALX is published as a Docker image for x86-64 and
+ARM64. It runs on Linux, on Windows with WSL 2, and on Intel and Apple Silicon
+Macs, with nothing to compile. With [Docker](https://docs.docker.com/get-started/get-docker/)
+installed, this runs one of the [regression tests](https://github.com/OPALX-project/regression-tests-x):
+
+```bash
+git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
+cd regression-tests-x/RegressionTests/Drift-1-fromfile
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" ghcr.io/opalx-project/opalx:cpu Drift-1-fromfile.in --info 2
+```
+
+The results, such as `Drift-1-fromfile.stat`, are written next to the input
+file. To run your own input file, use the same command in its directory with
+its name. [docker/README.md](docker/README.md) covers MPI and OpenMP settings,
+image tags, building the image, a development container and a step-by-step
+guide for Macs.
 
 
 ## Manual and Documentation
@@ -130,6 +157,24 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 - Distributed GPU space-charge solves require GPU-aware MPI. FFT communication and field
   mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
+
+#### FFT2D5 transverse fields and reference paths
+
+`FFT2D5` deposits charge on a reference-path mesh using laboratory positions and
+line charge. The slice Poisson field is therefore the laboratory transverse
+electric field. The magnetic field follows `B = beta * t_hat cross E / c`, so a
+comoving particle's transverse self-force is reduced by `1/gamma^2`. The
+longitudinal `PIPEMODE` approximation is separate from this transverse solve. The
+longitudinal density derivative is sampled at cell centers with the same shape
+as charge deposition: linear interpolation for `SCATTERLONGITUDINALLY=TRUE`,
+otherwise one cell. Closed-ring interpolation wraps across the path boundary.
+
+For an open path, `REFPATHFNAME` must cover the full finite bunch throughout
+tracking, including particles behind the first reference-particle position.
+Particles beyond either path endpoint now cause an error before deposition;
+clamping them into an endpoint slice would concentrate charge artificially.
+If the generated design path is too short, provide an extended path explicitly.
+This coverage check does not change closed-ring wrapping.
 
 #### Further Options
 | Flag | Default | Description |
