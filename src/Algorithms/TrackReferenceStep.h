@@ -75,7 +75,7 @@ namespace rf_event {
      *
      * terminalEndpoint opts into a right-closed final RF event after the reference
      * has met EKINSTOP. Independent host/device/frame arithmetic can leave a
-     * coincident particle just before that plane. Only a clearly upstream,
+     * coincident particle just before that plane. Only an upstream,
      * approaching particle whose final signed distance is within 64*N*epsilon*L
      * receives the full endpoint kick. Here N=max(1,frameSteps) counts accepted
      * frame updates including this final step, and L=max(1 m, |r_d|, |endR_d|)
@@ -123,7 +123,11 @@ namespace rf_event {
                         scale = Kokkos::fmax(
                                 scale, Kokkos::fmax(Kokkos::abs(r(d)), Kokkos::abs(endR(d))));
                 const double roundoff      = terminalEndpoint ? accumulatedRoundoff * scale : 0;
-                const bool roundedEndpoint = terminalEndpoint && startDistance < -roundoff
+                // A short terminal interval may start inside the allowance too.
+                // Keep the strict upstream/approach guards; visited gaps above
+                // cannot receive another kick during this call. The caller stops
+                // tracking after this terminal step, so no later call replays it.
+                const bool roundedEndpoint = terminalEndpoint && startDistance < 0
                                              && endDistance < 0 && endDistance >= -roundoff
                                              && endDistance > startDistance;
                 if (!(startDistance < 0) || (endDistance < 0 && !roundedEndpoint)) continue;

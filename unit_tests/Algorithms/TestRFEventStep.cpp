@@ -450,6 +450,41 @@ TEST_F(RFEventStepTest, TerminalEndpointIncludesAccumulatedFrameArithmeticOnlyWi
     expectSameExecution(onHost(policy, nominalStep, true, later, frameSteps), miss);
 }
 
+TEST_F(RFEventStepTest, ShortTerminalStepAcceptsAnApproachEntirelyInsideTheRoundoffBand) {
+    DevicePolicy policy;
+    policy.number   = 1;
+    policy.plane[0] = 0;
+    const double roundoff = 64 * Kokkos::epsilon_v<double>;
+    const double duration = roundoff / (4 * policy.speed);
+    // Exercise both the inclusive upstream boundary and a start strictly inside
+    // the band. Both endpoints remain negative: ordinary crossing logic misses it.
+    for (double distance : {-roundoff, -.5 * roundoff}) {
+        const Vector start(0, 0, distance);
+        const auto strict = onDevice(policy, duration, false, start);
+        ASSERT_TRUE(strict.result.success);
+        ASSERT_LT(strict.r(2), 0);
+        ASSERT_GT(strict.r(2), distance);
+        EXPECT_EQ(strict.policy.acceptedCount, 0);
+        const auto terminal = onDevice(policy, duration, true, start);
+        ASSERT_TRUE(terminal.result.success);
+        EXPECT_EQ(terminal.policy.acceptedCount, 1);
+        EXPECT_EQ(terminal.policy.mask, 1);
+        EXPECT_DOUBLE_EQ(terminal.p(0), 3);
+        EXPECT_DOUBLE_EQ(terminal.r(2), strict.r(2));
+        EXPECT_DOUBLE_EQ(terminal.result.duration, duration);
+        expectSameExecution(onHost(policy, duration, true, start), terminal);
+
+        // The scheduler's visited mask is authoritative even inside the band.
+        auto visited = policy;
+        visited.mask = 1;
+        const auto skipped = onDevice(visited, duration, true, start);
+        EXPECT_TRUE(skipped.result.success);
+        EXPECT_EQ(skipped.policy.acceptedCount, 0);
+        EXPECT_DOUBLE_EQ(skipped.p(0), 1);
+        expectSameExecution(onHost(visited, duration, true, start), skipped);
+    }
+}
+
 TEST_F(RFEventStepTest, RejectsUnrepresentableTerminalAccumulationWithoutChangingOrdinarySteps) {
     DevicePolicy policy;
     policy.number            = 1;
