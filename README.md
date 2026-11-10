@@ -68,7 +68,6 @@ guide for Macs.
 
 [OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
-[Passive cyclotron and FFA probes](docs/probes.md) describes native laboratory output, crossing semantics and the general coordinate-frame adapter.
 
 ## Dependencies
 
