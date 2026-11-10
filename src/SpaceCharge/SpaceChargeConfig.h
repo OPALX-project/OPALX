@@ -35,6 +35,12 @@ namespace opalx::spacecharge {
                 FieldBoundaryCondition::Open};
         /** @brief P3M cutoff in largest mesh spacings; exclusive with a nonzero p3mCutoff. */
         double p3mCutoffCells = 0.0;
+        /**
+         * @brief Kernel copies on each side along the solve-frame z axis, so one solve gives the
+         * field of a train of identical bunches (OPEN or open P3M only).
+         */
+        int repeatCount      = 0;
+        double repeatSpacing = 0.0;  ///< Lab-frame spacing of the copies in metres.
     };
 
     /** @brief Cartesian mesh extents, MPI decomposition, and particle-bound margin. */
@@ -87,6 +93,9 @@ namespace opalx::spacecharge {
          * update; exclusive with a nonzero p3mCutoff.
          */
         double p3mCutoffCells = 0.0;
+        /** @brief Bunch copies on each side along z and their lab-frame spacing in metres. */
+        int repeatCount      = 0;
+        double repeatSpacing = 0.0;
         std::optional<BinningConfig> binning;
         std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
         /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */
