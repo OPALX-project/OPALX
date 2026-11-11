@@ -1,6 +1,7 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -107,11 +108,27 @@ void MeshGenerator::setDriftReference(const double minor, const double major) {
     driftMajor_m        = major;
 }
 
+void MeshGenerator::addProbe(const Vector_t<double, 3>& start, const Vector_t<double, 3>& end) {
+    MeshData mesh;
+    mesh.type_m                        = PROBE;
+    constexpr double displayHalfHeight = .5;
+    mesh.vertices_m                    = {
+            {start(0), -displayHalfHeight, start(2)},
+            {end(0), -displayHalfHeight, end(2)},
+            {end(0), displayHalfHeight, end(2)},
+            {start(0), displayHalfHeight, start(2)}};
+    mesh.triangles_m = {{0, 1, 2}, {0, 2, 3}};
+    elements_m.push_back(std::move(mesh));
+}
+
 void MeshGenerator::add(const ElementBase& element) {
     double start = 0.0;
 
     MeshData mesh;
-    if (element.getType() == ElementType::SBEND) {
+    if (element.getType() == ElementType::SCALINGFFAMAGNET) {
+        mesh        = getScalingFFA(static_cast<const ScalingFFAMagnet&>(element));
+        mesh.type_m = mesh.triangles_m.empty() ? OTHER : SCALINGFFA;
+    } else if (element.getType() == ElementType::SBEND) {
         const auto aperture      = element.getAperture();
         const Geometry& geometry = element.getGeometry();
         // Unbounded tracking apertures do not describe a drawable magnet body.
@@ -468,7 +485,17 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << "exportVTK()\n\n";
 
     out << indent << "mesh = pv.read(vtk_file)\n";
+    // Unsupported element families can produce a valid but empty VTK dataset.
+    // Reject it before color reduction or add_mesh(), both of which need geometry.
+    out << indent << "if mesh.n_points == 0 or mesh.n_cells == 0:\n";
+    out << indent << indent
+        << "sys.stderr.write(\"No renderable element geometry in this file. \"\n";
+    out << indent << indent
+        << "                 \"Some element types do not yet provide a display mesh.\\n\")\n";
+    out << indent << indent << "return 1\n";
     out << indent << "plotter = pv.Plotter()\n";
+    // Correctly composite translucent detector planes against opaque bodies.
+    out << indent << "plotter.enable_depth_peeling()\n";
     out << indent << "add_mesh_kwargs = {}\n";
     out << indent << "active_scalars_name = mesh.active_scalars_name\n";
     out << indent << "if active_scalars_name is not None:\n";
@@ -492,6 +519,8 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
+    out << indent << indent << indent << indent << "('ScalingFFA', (0.0, 0.65, 0.65)),\n";
+    out << indent << indent << indent << indent << "('Probe', (0.65, 0.65, 0.65)),\n";
     out << indent << indent << indent << "]\n";
     out << indent << indent << indent << "present = []\n";
     out << indent << indent << indent << "for label, color in legend:\n";
@@ -612,7 +641,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
-    out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.65, 0.65, 1.0])\n";
+    out << indent << "lookup_table.append([0.65, 0.65, 0.65, 0.3])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
@@ -634,6 +665,16 @@ void MeshGenerator::write(const std::string& fname) {
            "tmp_color[3]))\n";
     out << indent << indent << indent << "cellCounter += 1\n";
 
+    // Vertex-only meshes represent zero-field design arcs; preserve them as
+    // VTK_LINE cells instead of drawing a solid fictitious magnet.
+    out << indent << indent << "if not triangles[i]:\n";
+    out << indent << indent << indent << "for j in range(1, len(vertices[i]) // 3):\n";
+    out << indent << indent << indent << indent
+        << "triangles_str += '2 %d %d\\n' % (startIdx+j-1, startIdx+j)\n";
+    out << indent << indent << indent << indent << "cellTypes_str += '3\\n'\n";
+    out << indent << indent << indent << indent << "color_str += '0.5 0.5 0.5 1\\n'\n";
+    out << indent << indent << indent << indent << "cellCounter += 1\n";
+
     out << indent << indent << "startIdx = vertexCounter\n\n";
 
     out << indent << "fh = open('" << fname << "_ElementPositions.vtk','w')\n";
@@ -643,7 +684,8 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "fh.write(\"POINTS \" + str(vertexCounter) + \" float\\n\")\n";
     out << indent << "fh.write(vertices_str)\n";
     out << indent
-        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cellCounter * 4) + \"\\n\")\n";
+        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(sum(len(line.split()) for line in "
+           "triangles_str.splitlines())) + \"\\n\")\n";
     out << indent << "fh.write(triangles_str)\n";
     out << indent << "fh.write(\"CELL_TYPES \" + str(cellCounter) + \"\\n\")\n";
     out << indent << "fh.write(cellTypes_str)\n";
@@ -676,7 +718,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0])\n";
     out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
-    out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.65, 0.65])\n";
+    out << indent << "lookup_table.append([0.65, 0.65, 0.65])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
@@ -1372,6 +1416,81 @@ MeshData MeshGenerator::getSBend(
                         std::sin(curvature * s1) / curvature));
     }
 
+    return mesh;
+}
+
+MeshData MeshGenerator::getScalingFFA(const ScalingFFAMagnet& magnet) {
+    const auto c        = magnet.getConfig();
+    const double radius = std::abs(c.r0_m);
+    const double length = magnet.getGeometry().getArcLength();
+    MeshData mesh;
+    // Placement has already resolved the fringe model and nominal arc. Do not
+    // infer geometry from field strengths, arbitrary apertures or fringe tails.
+    if (!std::isfinite(radius) || !(radius > 0) || !std::isfinite(length) || !(length > 0)
+        || !std::isfinite(c.rMin_m) || !(c.rMin_m > 0) || !std::isfinite(c.rMax_m)
+        || !(c.rMax_m > c.rMin_m) || !std::isfinite(c.verticalExtent_m) || !(c.verticalExtent_m > 0)
+        || !std::isfinite(c.tanDelta_m) || !std::isfinite(c.phiStart_m))
+        return mesh;
+    const double span = length / radius;
+    if (!std::isfinite(span)) return mesh;
+    const double sign = std::copysign(1., c.r0_m);
+    // Bounded display tessellation, independent of tracking steps/particle count.
+    const unsigned angular = static_cast<unsigned>(
+            std::clamp(std::ceil(std::max(span / (Physics::pi / 36.), length / .25)), 4., 512.));
+    auto point = [&](double r, double phi, double y) {
+        // Exact inverse of ScalingFFASupport's chart, also for negative R0.
+        // The historical element helper does not implement that signed inverse.
+        return Vector_t<double, 3>(sign * r * std::cos(phi) - c.r0_m, y, r * std::sin(phi));
+    };
+    if (magnet.getDipoleConstant() == 0) {
+        for (unsigned a = 0; a <= angular; ++a)
+            mesh.vertices_m.push_back(
+                    point(radius, c.phiStart_m + span * (double(a) / angular - .5), 0));
+        return mesh;
+    }
+    const double twist = std::abs(c.tanDelta_m * (std::log(c.rMax_m) - std::log(c.rMin_m)));
+    if (!std::isfinite(twist)
+        || !std::isfinite(
+                c.phiStart_m + span + c.tanDelta_m * (std::log(c.rMin_m) - std::log(radius)))
+        || !std::isfinite(
+                c.phiStart_m + span + c.tanDelta_m * (std::log(c.rMax_m) - std::log(radius))))
+        return mesh;
+    const unsigned radial = static_cast<unsigned>(std::clamp(
+            std::ceil(std::max((c.rMax_m - c.rMin_m) / .05, twist / (Physics::pi / 36.))), 2.,
+            128.));
+    auto index            = [=](unsigned r, unsigned a, unsigned top) {
+        return 2 * (r * (angular + 1) + a) + top;
+    };
+    for (unsigned r = 0; r <= radial; ++r) {
+        const double rho   = c.rMin_m + (c.rMax_m - c.rMin_m) * double(r) / radial;
+        const double shift = c.tanDelta_m * (std::log(rho) - std::log(radius));
+        for (unsigned a = 0; a <= angular; ++a) {
+            const double phi = c.phiStart_m + shift + span * (double(a) / angular - .5);
+            mesh.vertices_m.push_back(point(rho, phi, -c.verticalExtent_m));
+            mesh.vertices_m.push_back(point(rho, phi, c.verticalExtent_m));
+        }
+    }
+    auto quad = [&](unsigned a, unsigned b, unsigned c0, unsigned d) {
+        // The (radius, azimuth, height) chart has determinant -sign(R0).
+        // Reverse winding once so both bend directions have outward normals.
+        if (sign > 0) std::swap(b, d);
+        mesh.triangles_m.emplace_back(a, b, c0);
+        mesh.triangles_m.emplace_back(a, c0, d);
+    };
+    for (unsigned r = 0; r < radial; ++r) {
+        for (unsigned a = 0; a < angular; ++a) {
+            quad(index(r, a, 1), index(r + 1, a, 1), index(r + 1, a + 1, 1), index(r, a + 1, 1));
+            quad(index(r, a, 0), index(r, a + 1, 0), index(r + 1, a + 1, 0), index(r + 1, a, 0));
+        }
+        quad(index(r, 0, 0), index(r + 1, 0, 0), index(r + 1, 0, 1), index(r, 0, 1));
+        quad(index(r, angular, 0), index(r, angular, 1), index(r + 1, angular, 1),
+             index(r + 1, angular, 0));
+    }
+    for (unsigned a = 0; a < angular; ++a) {
+        quad(index(0, a, 0), index(0, a, 1), index(0, a + 1, 1), index(0, a + 1, 0));
+        quad(index(radial, a, 0), index(radial, a + 1, 0), index(radial, a + 1, 1),
+             index(radial, a, 1));
+    }
     return mesh;
 }
 

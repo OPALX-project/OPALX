@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "../TemporaryDirectory.h"
 
 #include <algorithm>
 #include <array>
@@ -26,7 +27,7 @@ protected:
 
     void SetUp() override {
         pc           = makeContainer(false);
-        tempFilename = "emittedfromfile_test_input.dat";
+        tempFilename = (directory_m.create("opalx-emitted-fromfile") / "input.dat").string();
     }
 
     /// Container on the test mesh; @p spin turns on the per-particle polarization Pol.
@@ -52,11 +53,7 @@ protected:
         return container;
     }
 
-    void TearDown() override {
-        if (!tempFilename.empty()) {
-            std::remove(tempFilename.c_str());
-        }
-    }
+    void TearDown() override { directory_m.reset(); }
 
     void allocate(size_t globalCapacity) {
         const int nranks           = std::max(1, ippl::Comm->size());
@@ -104,6 +101,7 @@ protected:
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
+    opalx::test::TemporaryDirectory directory_m;
     std::string tempFilename;
 };
 

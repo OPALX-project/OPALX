@@ -34,7 +34,7 @@
  *    muon energy spectrum is uniform on @f$[E_-, E_+]@f$ from the rest-frame
  *    isotropy plus the longitudinal Lorentz boost.
  *
- * CSVs (consumed by tools/spectrum_plots/plot_spectrum.py):
+ * Diagnostic CSVs are written in owned temporary directories and removed after use:
  *   - pion_rest_costheta.csv
  *   - pion_boosted_energy_box.csv
  */
@@ -49,6 +49,7 @@
 #include <memory>
 #include <vector>
 
+#include "../TemporaryDirectory.h"
 #include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/ParticleProperties.h"
@@ -178,7 +179,8 @@ namespace {
         EXPECT_NEAR(mean, 0.0, 0.02);
         EXPECT_NEAR(area, 1.0, 0.01);
 
-        const std::string csvPath = "pion_rest_costheta.csv";
+        opalx::test::TemporaryDirectory directory("opalx-pion-spectrum");
+        const std::string csvPath = (directory.path() / "pion_rest_costheta.csv").string();
         opalx::test::writeSpectrumCsv(csvPath, hist, uniform, "cos(theta) (rest frame)");
         std::cout << "[PionDecayRestFrame] CSV written: " << csvPath << '\n';
     }
@@ -247,7 +249,8 @@ namespace {
         EXPECT_NEAR(mean, meanRef, 0.005 * (ePlus - eMinus));
         EXPECT_NEAR(area, 1.0, 0.01);
 
-        const std::string csvPath = "pion_boosted_energy_box.csv";
+        opalx::test::TemporaryDirectory directory("opalx-pion-spectrum");
+        const std::string csvPath = (directory.path() / "pion_boosted_energy_box.csv").string();
         opalx::test::writeSpectrumCsv(csvPath, hist, analyticPdf, "E_mu^lab [GeV]");
         std::cout << "[PionDecayBoosted] CSV written: " << csvPath << '\n';
     }

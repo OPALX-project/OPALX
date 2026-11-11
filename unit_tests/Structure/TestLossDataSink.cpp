@@ -48,6 +48,15 @@
  *    - rewind physically compacts discarded steps
  *    - repeated rewind and append cycles do not grow the file
  *
+ * 9. Rank-local idle-sink cleanup (also run by TestLossDataSinkMPI)
+ *    - normal destruction and exception unwinding require no peer participation
+ *    - ASCII and HDF5-configured sinks that have not opened files are covered
+ *
+ * 10. Collective output creation (also run by TestLossDataSinkMPI)
+ *    - asymmetric metadata views cannot change collective header ordering
+ *    - append preserves the existing header across repeated flushes
+ *    - rank 0 filesystem inspection errors reach all ranks before output opens
+ *
  * ---------------------------------------------------------------------------
  * Notes
  * ---------------------------------------------------------------------------
@@ -64,12 +73,15 @@
  */
 
 #include <gtest/gtest.h>
+#include <unistd.h>
 
 #include "Ippl.h"
 
 #include <cmath>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -81,6 +93,8 @@
 
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Options.h"
+
+extern Inform* gmsg;
 
 namespace {
 
@@ -217,9 +231,33 @@ namespace {
             int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
+            savedMessage_m = gmsg;
+            message_m      = std::make_unique<Inform>("LossDataSinkTest");
+            gmsg           = message_m.get();
         }
 
-        static void TearDownTestSuite() { ippl::finalize(); }
+        static void TearDownTestSuite() {
+            gmsg = savedMessage_m;
+            message_m.reset();
+            ippl::finalize();
+        }
+
+        std::string temporaryDirectory(const std::string& suffix) {
+            std::string path;
+            if (ippl::Comm->rank() == 0) {
+                path = (std::filesystem::temp_directory_path()
+                        / ("opalx-loss-sink-" + std::to_string(getpid()) + '-' + suffix))
+                               .string();
+                std::filesystem::create_directories(path);
+            }
+            const MPI_Comm comm = ippl::Comm->getCommunicator();
+            int length          = static_cast<int>(path.size());
+            MPI_Bcast(&length, 1, MPI_INT, 0, comm);
+            path.resize(length);
+            MPI_Bcast(path.data(), length, MPI_CHAR, 0, comm);
+            temporaryDirectories_m.push_back(path);
+            return path;
+        }
 
         void SetUp() override {
             oldComputePercentiles_m     = Options::computePercentiles;
@@ -231,18 +269,153 @@ namespace {
 
             ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
-                std::filesystem::remove("test_monitor_checkpoint_rewind.h5");
-                std::filesystem::remove("test_monitor_checkpoint_keep_all.h5");
-                std::filesystem::remove("test_monitor_checkpoint_missing_step.h5");
-                std::filesystem::remove("test_monitor_checkpoint_compaction.h5");
-                std::filesystem::remove("test_monitor_checkpoint_compaction.h5.opalx-rewind.tmp");
+                // CTest runs this fixture's single- and two-rank executables concurrently.
+                // Remove only directories created by this instance; fixed filenames in the
+                // shared working directory could belong to the other executable.
+                for (const auto& directory : temporaryDirectories_m) {
+                    std::filesystem::remove_all(directory);
+                }
             }
             ippl::Comm->barrier();
         }
 
     private:
+        inline static std::unique_ptr<Inform> message_m;
+        inline static Inform* savedMessage_m = nullptr;
+        std::vector<std::string> temporaryDirectories_m;
         bool oldComputePercentiles_m = false;
     };
+
+    TEST_F(LossDataSinkTest, EmptySinkDestructionIsRankLocal) {
+        const MPI_Comm comm = ippl::Comm->getCommunicator();
+        const int rank      = ippl::Comm->rank();
+        // Rank 1 waits for a message, not a collective. A destructor barrier
+        // would deadlock before rank 0 can send the completion token.
+        for (const bool hdf5 : {false, true}) {
+            int completed = 0;
+            if (rank == 0) {
+                {
+                    LossDataSink sink(hdf5 ? "test_idle_h5_sink" : "test_idle_ascii_sink", hdf5);
+                }
+                completed = 1;
+                if (ippl::Comm->size() > 1) {
+                    MPI_Send(&completed, 1, MPI_INT, 1, 817, comm);
+                }
+            } else if (rank == 1) {
+                MPI_Recv(&completed, 1, MPI_INT, 0, 817, comm, MPI_STATUS_IGNORE);
+            }
+            if (rank < 2) EXPECT_EQ(completed, 1);
+        }
+    }
+
+    TEST_F(LossDataSinkTest, EmptySinkUnwindingIsRankLocal) {
+        const MPI_Comm comm = ippl::Comm->getCommunicator();
+        const int rank      = ippl::Comm->rank();
+        for (const bool hdf5 : {false, true}) {
+            int caught = 0;
+            if (rank == 0) {
+                try {
+                    LossDataSink sink(
+                            hdf5 ? "test_unwind_h5_sink" : "test_unwind_ascii_sink", hdf5);
+                    throw std::runtime_error("rank-local probe failure");
+                } catch (const std::runtime_error& error) {
+                    caught = std::string(error.what()) == "rank-local probe failure";
+                }
+                if (ippl::Comm->size() > 1) {
+                    MPI_Send(&caught, 1, MPI_INT, 1, 818, comm);
+                }
+            } else if (rank == 1) {
+                // The peer must receive the original exception's completion
+                // token without entering a destructor or cleanup collective.
+                MPI_Recv(&caught, 1, MPI_INT, 0, 818, comm, MPI_STATUS_IGNORE);
+            }
+            if (rank < 2) EXPECT_EQ(caught, 1);
+        }
+    }
+
+    TEST_F(LossDataSinkTest, AsciiCreationDecisionIsCollectiveAcrossFileViews) {
+        const int rank       = ippl::Comm->rank();
+        const int owner      = ippl::Comm->size() > 1 ? 1 : 0;
+        const auto directory = temporaryDirectory("creation-decision");
+        for (const bool rootHasFile : {false, true}) {
+            const auto base = directory + (rootHasFile ? "/append" : "/create");
+            const auto peer = base + "-peer-view";
+            if (rank == 0) {
+                std::ofstream existing((rootHasFile ? base : peer) + ".loss");
+                existing << "# existing header\n";
+            }
+            ippl::Comm->barrier();
+
+            LossDataSink sink(base, false);
+            // Only rank 0 writes ASCII. Give peers the opposite file-existence
+            // view to model metadata becoming visible between rank-local stat()
+            // calls. This deterministically exercises the creation race without
+            // sleeps, external fixtures, or changing the public sink interface.
+            if (rank != 0) sink.outputName_m = peer;
+            for (int batch = 0; batch < 2; ++batch) {
+                if (rank == owner) {
+                    sink.addParticle(
+                            makeParticle(batch + 1, makeVector(batch, 0, 0), makeVector(0, 0, 1)),
+                            std::make_pair(batch, static_cast<short>(0)));
+                }
+                sink.save(1, OpalData::OpenMode::APPEND);
+            }
+
+            if (rank == 0) {
+                std::ifstream output(base + ".loss");
+                EXPECT_TRUE(output.is_open());
+                std::string line;
+                std::size_t headers = 0, records = 0;
+                while (std::getline(output, line)) {
+                    if (line.empty()) continue;
+                    if (line.front() == '#') {
+                        ++headers;
+                        EXPECT_EQ(line == "# existing header", rootHasFile);
+                    } else {
+                        ++records;
+                    }
+                }
+                EXPECT_EQ(headers, 1u);
+                EXPECT_EQ(records, 2u);
+                if (!rootHasFile) {
+                    std::ifstream sentinel(peer + ".loss");
+                    EXPECT_TRUE(std::getline(sentinel, line));
+                    EXPECT_EQ(line, "# existing header");
+                    EXPECT_FALSE(std::getline(sentinel, line));
+                } else {
+                    EXPECT_FALSE(std::filesystem::exists(peer + ".loss"));
+                }
+            }
+        }
+    }
+
+    TEST_F(LossDataSinkTest, OutputInspectionFailureIsCollective) {
+        const int rank       = ippl::Comm->rank();
+        const int owner      = ippl::Comm->size() > 1 ? 1 : 0;
+        const auto directory = temporaryDirectory("inspection-failure");
+        if (rank == 0) {
+            // ELOOP is a deterministic stat() error on both Linux and macOS.
+            // A missing parent or a regular-file parent can instead be reported
+            // as an ordinary absent file by std::filesystem::exists().
+            std::filesystem::create_symlink("loop", directory + "/loop");
+        }
+        ippl::Comm->barrier();
+        for (const bool hdf5 : {false, true}) {
+            const auto suffix = hdf5 ? "-h5" : "-ascii";
+            LossDataSink sink(directory + "/loop/output" + suffix, hdf5);
+            if (rank != 0) sink.outputName_m = directory + "/peer-view" + suffix;
+            if (rank == owner) {
+                sink.addParticle(makeParticle(1, makeVector(0, 0, 0), makeVector(0, 0, 1)));
+            }
+            // Even ranks whose local metadata inspection would succeed must
+            // receive rank 0's failure before opening a file or entering I/O.
+            EXPECT_THROW(sink.save(1, OpalData::OpenMode::APPEND), GeneralOpalException);
+        }
+        if (rank == 0) {
+            EXPECT_FALSE(std::filesystem::exists(directory + "/peer-view-ascii.loss"));
+            EXPECT_FALSE(std::filesystem::exists(directory + "/peer-view-h5.h5"));
+        }
+    }
 
     TEST_F(LossDataSinkTest, AddParticleRejectsTurnInformationAfterPlainParticle) {
         LossDataSink sink;
@@ -435,7 +608,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5RemovesCheckpointAndLaterStepsBeforeAppend) {
-        const std::string fileName = "test_monitor_checkpoint_rewind.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-rewind") + "/monitor.h5";
         writeGlobalTrackSteps(fileName, {4, 8, 12});
 
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
@@ -447,12 +620,13 @@ namespace {
         // Restarting from the same checkpoint again removes the abandoned replacement
         // before appending it once more, so repeated restart cannot accumulate duplicates.
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4}));
         appendGlobalTrackStep(fileName, 8);
         EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4, 8}));
     }
 
     TEST_F(LossDataSinkTest, RewindH5KeepsEveryStepBeforeCheckpoint) {
-        const std::string fileName = "test_monitor_checkpoint_keep_all.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-keep-all") + "/monitor.h5";
         writeGlobalTrackSteps(fileName, {2, 5});
 
         LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
@@ -461,7 +635,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5RejectsStepWithoutGlobalTrackStep) {
-        const std::string fileName = "test_monitor_checkpoint_missing_step.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-missing-step") + "/monitor.h5";
         h5_file_t file             = openCollectiveH5(fileName, H5_O_WRONLY);
         h5_float64_t time          = 1.0e-12;
         ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
@@ -472,7 +646,7 @@ namespace {
     }
 
     TEST_F(LossDataSinkTest, RewindH5CompactsPhysicalStorageAcrossRestartCycles) {
-        const std::string fileName        = "test_monitor_checkpoint_compaction.h5";
+        const std::string fileName = temporaryDirectory("checkpoint-compaction") + "/monitor.h5";
         constexpr std::size_t payloadSize = 32768;
         writeGlobalTrackSteps(fileName, {4, 8, 12}, payloadSize);
         const auto originalSize = std::filesystem::file_size(fileName);

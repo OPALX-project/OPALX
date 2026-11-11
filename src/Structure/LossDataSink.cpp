@@ -606,10 +606,11 @@ LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
         closeFile();
     }
-
-    if (ippl::Comm != nullptr) {
-        ippl::Comm->barrier();
-    }
+    // save() owns normal file close and synchronization. Do not add a barrier
+    // here: a rank can unwind after a probe kernel/serialization exception while
+    // its peers wait for migration data. A destructor collective would hide the
+    // original exception behind a deadlock. The fallback close above still needs
+    // coordinated ranks if a failed save left a parallel HDF5 file open.
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
@@ -750,10 +751,28 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     ippl::Comm->allreduce(localHas, globalHas, 1, std::plus<int>());
     hasPolData_m = (globalHas > 0);
 
-    namespace fs = std::filesystem;
+    fileName_m = outputName_m + (h5hut_mode_m ? ".h5" : ".loss");
+    // Header output contains collectives, including hasTurnInformations(). A
+    // rank-local exists() check can observe the file another rank just created
+    // and skip that header, shifting every subsequent collective. Let rank 0
+    // decide before any file is opened, for both ASCII and parallel HDF5.
+    int createOutput = 0;
+    if (ippl::Comm->rank() == 0) {
+        if (openMode == OpalData::OpenMode::WRITE) {
+            createOutput = 1;
+        } else {
+            std::error_code error;
+            const bool exists = std::filesystem::exists(fileName_m, error);
+            createOutput      = error ? -1 : static_cast<int>(!exists);
+        }
+    }
+    MPI_Bcast(&createOutput, 1, MPI_INT, 0, ippl::Comm->getCommunicator());
+    if (createOutput < 0) {
+        throw GeneralOpalException(
+                "LossDataSink::save", "Rank 0 cannot inspect output file '" + fileName_m + "'.");
+    }
     if (h5hut_mode_m) {
-        fileName_m = outputName_m + std::string(".h5");
-        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fileName_m)) {
+        if (createOutput) {
             openH5();
             writeHeaderH5();
         } else {
@@ -769,8 +788,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
         closeFile();
 
     } else {
-        fileName_m = outputName_m + std::string(".loss");
-        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fileName_m)) {
+        if (createOutput) {
             openASCII();
             writeHeaderASCII();
         } else {

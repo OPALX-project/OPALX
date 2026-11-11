@@ -38,6 +38,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/Fieldmap.h"
 #include "Ippl.h"
@@ -118,20 +120,17 @@ protected:
         ippl::finalize();
     }
 
-    void SetUp() override {
-        tmpDir_ = std::filesystem::temp_directory_path() / "opalx_astra1dmagnetostatic_test";
-
-        std::filesystem::create_directories(tmpDir_);
-    }
+    void SetUp() override { tmpDir_ = temporaryDirectory_.create("opalx-astra1d-magnetostatic"); }
 
     void TearDown() override {
         Fieldmap::clearDictionary();
-        std::filesystem::remove_all(tmpDir_);
+        temporaryDirectory_.reset();
     }
 
     std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
+    opalx::test::TemporaryDirectory temporaryDirectory_;
 };
 
 // ===========================================================================
