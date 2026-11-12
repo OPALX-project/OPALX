@@ -271,6 +271,8 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
         using namespace opalx::spacecharge;
+        // Reconfiguration to a different solver must clear a previous FFT2D5 selection.
+        for (const auto& pc : bunch->getParticleContainers()) pc->setCompactSymmetricMoments(true);
         CartesianPIC3DConfig values;
         values.backend                         = PoissonSolverType::PeriodicFFT;
         values.grid.meshSize                   = storageConfig.meshSize;
@@ -284,6 +286,8 @@ namespace {
         auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
         EXPECT_NE(solver, nullptr);
         EXPECT_FALSE(solver->usesFFT2D5());
+        for (const auto& pc : bunch->getParticleContainers())
+            EXPECT_FALSE(pc->usesCompactSymmetricMoments());
     }
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
@@ -294,6 +298,8 @@ namespace {
 
         ASSERT_NE(solver, nullptr);
         EXPECT_TRUE(solver->usesFFT2D5());
+        for (const auto& pc : bunch->getParticleContainers())
+            EXPECT_TRUE(pc->usesCompactSymmetricMoments());
         EXPECT_EQ(solver->backendSolveCount(), 0u);
         EXPECT_EQ(solver->redistributionCount(), 0u);
     }

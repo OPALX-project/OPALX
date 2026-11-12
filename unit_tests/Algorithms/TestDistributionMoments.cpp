@@ -131,6 +131,85 @@ protected:
     void TearDown() override { bunchStateHandler.reset(); }
 };
 
+TEST_F(DistributionMomentsTest, CompactSymmetricMatchesDenseAcrossMPIAndMassModes) {
+    const size_t rank = ippl::Comm->rank();
+    // Empty globally, rank-zero-only ownership, then uneven ownership and a larger reduction.
+    for (int ownership = 0; ownership < 4; ++ownership) {
+        const size_t local = ownership == 0   ? 0
+                             : ownership == 1 ? (rank == 0 ? 17 : 0)
+                                              : (ownership == 2 ? 31 : 4097) + 7 * rank;
+        size_t total       = local;
+        ippl::Comm->allreduce(total, 1, std::plus<size_t>());
+        for (bool attributes : {false, true}) {
+            for (bool referenceMass : {false, true}) {
+                Kokkos::View<Vec3*> r("compact-test-r", local), p("compact-test-p", local);
+                Kokkos::View<double*> mass("compact-test-m", attributes ? local : 1);
+                auto rh = Kokkos::create_mirror_view(r);
+                auto ph = Kokkos::create_mirror_view(p);
+                auto mh = Kokkos::create_mirror_view(mass);
+                for (size_t i = 0; i < local; ++i) {
+                    const double t = static_cast<double>(i + 19 * rank);
+                    // Off-center, nonuniform data with cross correlations in all six coordinates.
+                    rh(i) =
+                            Vec3(3. + .02 * std::sin(t), -2. + .03 * std::cos(.7 * t),
+                                 7. + .04 * std::sin(.3 * t));
+                    ph(i) =
+                            Vec3(.02 + .004 * std::cos(.4 * t), -.03 + .006 * std::sin(.9 * t),
+                                 .4 + .01 * std::cos(.2 * t));
+                    if (attributes) mh(i) = Physics::m_e * (1. + .05 * (i % 3));
+                }
+                if (!attributes) mh(0) = Physics::m_e;
+                Kokkos::deep_copy(r, rh);
+                Kokkos::deep_copy(p, ph);
+                Kokkos::deep_copy(mass, mh);
+                DistributionMoments dense, compact;
+                auto denseState   = bunchStateHandler->registerContainer();
+                auto compactState = bunchStateHandler->registerContainer();
+                dense.setContainerState(denseState);
+                compact.setContainerState(compactState);
+                ASSERT_FALSE(dense.usesCompactSymmetricReduction());
+                compact.setCompactSymmetricReduction(true);
+                dense.setEnergyReferenceMass(Physics::m_p, referenceMass);
+                compact.setEnergyReferenceMass(Physics::m_p, referenceMass);
+                dense.computeMoments(r, p, mass, total, local);
+                compact.computeMoments(r, p, mass, total, local);
+                const auto check = [](double a, double b) {
+                    if (std::isnan(a))
+                        EXPECT_TRUE(std::isnan(b));
+                    else
+                        EXPECT_NEAR(a, b, 2.e-13 + 2.e-12 * std::abs(a));
+                };
+                const auto cm = compact.getMoments6x6();
+                const auto dm = dense.getMoments6x6();
+                for (int i = 0; i < 6; ++i) {
+                    EXPECT_DOUBLE_EQ(compact.getMeans()[i], dense.getMeans()[i]);
+                    for (int j = 0; j < 6; ++j) {
+                        check(dm(i, j), cm(i, j));
+                        EXPECT_DOUBLE_EQ(cm(i, j), cm(j, i));
+                    }
+                }
+                for (int d = 0; d < 3; ++d) {
+                    check(dense.getStandardDeviationPosition()[d],
+                          compact.getStandardDeviationPosition()[d]);
+                    check(dense.getStandardDeviationMomentum()[d],
+                          compact.getStandardDeviationMomentum()[d]);
+                    check(dense.getNormalizedEmittance()[d], compact.getNormalizedEmittance()[d]);
+                    check(dense.getGeometricEmittance()[d], compact.getGeometricEmittance()[d]);
+                    check(dense.getStandardDeviationRP()[d], compact.getStandardDeviationRP()[d]);
+                    check(dense.getHalo()[d], compact.getHalo()[d]);
+                }
+                EXPECT_DOUBLE_EQ(dense.getMeanKineticEnergy(), compact.getMeanKineticEnergy());
+                check(dense.getStdKineticEnergy(), compact.getStdKineticEnergy());
+                check(dense.getDx(), compact.getDx());
+                check(dense.getDDx(), compact.getDDx());
+                check(dense.getDy(), compact.getDy());
+                check(dense.getDDy(), compact.getDDy());
+                EXPECT_FALSE(compactState->momentsDirty);
+            }
+        }
+    }
+}
+
 TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion) {
     // Deterministic small data set (units: R in m, P in beta*gamma, M in GeV/c^2).
     const std::vector<Vec3> R = {

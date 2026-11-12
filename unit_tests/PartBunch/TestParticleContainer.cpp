@@ -405,6 +405,8 @@ namespace {
         for (double offset : {-1.e-10, 1.e-10}) {
             auto eager = makeContainer();
             auto deferred = makeContainer();
+            // Compare dense/eager with FFT2D5 compact/deferred, including an empty MPI rank.
+            deferred->setCompactSymmetricMoments(true);
             const std::vector<std::array<double, 3>> positions = ippl::Comm->rank() == 0
                     ? std::vector<std::array<double, 3>>{
                               {-0.1, 0., 0.}, {0.1, 0., 0.}, {-0.05, 0., 0.},

@@ -163,44 +163,82 @@ void DistributionMoments::computeMoments(
     SumMatrix6x6 loc_ncent;
     double loc_std_ekin = 0.0;
 
-    Kokkos::parallel_reduce(
-            "computeMoments", Nlocal,
-            KOKKOS_LAMBDA(
-                    const size_t k, SumMatrix6x6& cent_upd, SumMatrix6x6& ncent_upd,
-                    double& ekin_upd) {
-                double cent[6];
-                cent[0] = Rview(k)[0] - meanR_loc[0];
-                cent[1] = Pview(k)[0] - meanP_loc[0];
-                cent[2] = Rview(k)[1] - meanR_loc[1];
-                cent[3] = Pview(k)[1] - meanP_loc[1];
-                cent[4] = Rview(k)[2] - meanR_loc[2];
-                cent[5] = Pview(k)[2] - meanP_loc[2];
-
-                double raw[6];
-                raw[0] = Rview(k)[0];
-                raw[1] = Pview(k)[0];
-                raw[2] = Rview(k)[1];
-                raw[3] = Pview(k)[1];
-                raw[4] = Rview(k)[2];
-                raw[5] = Pview(k)[2];
-
-                for (size_t i = 0; i < 6; ++i) {
-                    for (size_t j = 0; j < 6; ++j) {
-                        cent_upd.data[i][j] += cent[i] * cent[j];
-                        ncent_upd.data[i][j] += raw[i] * raw[j];
+    if (compactSymmetricReduction_m) {
+        // 21 centered + 21 raw entries + kinetic-energy variance, instead of 73 doubles.
+        // Retain centered products about the global means: no raw-sum subtraction.
+        SumArray<43> compact;
+        Kokkos::parallel_reduce(
+                "computeMomentsCompactSymmetric", Nlocal,
+                KOKKOS_LAMBDA(const size_t k, SumArray<43>& upd) {
+                    const double raw[6]  = {Rview(k)[0], Pview(k)[0], Rview(k)[1],
+                                            Pview(k)[1], Rview(k)[2], Pview(k)[2]};
+                    const double cent[6] = {raw[0] - meanR_loc[0], raw[1] - meanP_loc[0],
+                                            raw[2] - meanR_loc[1], raw[3] - meanP_loc[1],
+                                            raw[4] - meanR_loc[2], raw[5] - meanP_loc[2]};
+                    size_t index         = 0;
+                    for (size_t i = 0; i < 6; ++i) {
+                        for (size_t j = i; j < 6; ++j, ++index) {
+                            upd.data[index] += cent[i] * cent[j];
+                            upd.data[21 + index] += raw[i] * raw[j];
+                        }
                     }
-                }
+                    const double gamma0  = Kokkos::sqrt(dot(Pview(k)) + 1.0);
+                    const double massGeV = rescaleToReferenceStd
+                                                   ? referenceMassGeVStd
+                                                   : (massIsScalarView ? Mview(0) : Mview(k));
+                    const double ekin0   = (gamma0 - 1.0) * massGeV * Units::GeV2MeV;
+                    upd.data[42] += (ekin0 - mekin) * (ekin0 - mekin);
+                },
+                Kokkos::Sum<SumArray<43>>(compact));
+        Kokkos::fence();
+        size_t index = 0;
+        for (size_t i = 0; i < 6; ++i) {
+            for (size_t j = i; j < 6; ++j, ++index) {
+                loc_cent.data[i][j] = loc_cent.data[j][i] = compact.data[index];
+                loc_ncent.data[i][j] = loc_ncent.data[j][i] = compact.data[21 + index];
+            }
+        }
+        loc_std_ekin = compact.data[42];
+    } else {
+        Kokkos::parallel_reduce(
+                "computeMoments", Nlocal,
+                KOKKOS_LAMBDA(
+                        const size_t k, SumMatrix6x6& cent_upd, SumMatrix6x6& ncent_upd,
+                        double& ekin_upd) {
+                    double cent[6];
+                    cent[0] = Rview(k)[0] - meanR_loc[0];
+                    cent[1] = Pview(k)[0] - meanP_loc[0];
+                    cent[2] = Rview(k)[1] - meanR_loc[1];
+                    cent[3] = Pview(k)[1] - meanP_loc[1];
+                    cent[4] = Rview(k)[2] - meanR_loc[2];
+                    cent[5] = Pview(k)[2] - meanP_loc[2];
 
-                double gamma0        = Kokkos::sqrt(dot(Pview(k)) + 1.0);
-                const double massGeV = rescaleToReferenceStd
-                                               ? referenceMassGeVStd
-                                               : (massIsScalarView ? Mview(0) : Mview(k));
-                double ekin0         = (gamma0 - 1.0) * massGeV * Units::GeV2MeV;
-                ekin_upd += (ekin0 - mekin) * (ekin0 - mekin);
-            },
-            Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
-            Kokkos::Sum<double>(loc_std_ekin));
-    Kokkos::fence();
+                    double raw[6];
+                    raw[0] = Rview(k)[0];
+                    raw[1] = Pview(k)[0];
+                    raw[2] = Rview(k)[1];
+                    raw[3] = Pview(k)[1];
+                    raw[4] = Rview(k)[2];
+                    raw[5] = Pview(k)[2];
+
+                    for (size_t i = 0; i < 6; ++i) {
+                        for (size_t j = 0; j < 6; ++j) {
+                            cent_upd.data[i][j] += cent[i] * cent[j];
+                            ncent_upd.data[i][j] += raw[i] * raw[j];
+                        }
+                    }
+
+                    double gamma0        = Kokkos::sqrt(dot(Pview(k)) + 1.0);
+                    const double massGeV = rescaleToReferenceStd
+                                                   ? referenceMassGeVStd
+                                                   : (massIsScalarView ? Mview(0) : Mview(k));
+                    double ekin0         = (gamma0 - 1.0) * massGeV * Units::GeV2MeV;
+                    ekin_upd += (ekin0 - mekin) * (ekin0 - mekin);
+                },
+                Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
+                Kokkos::Sum<double>(loc_std_ekin));
+        Kokkos::fence();
+    }
 
     SumMatrix6x6 glob_cent, glob_ncent;
     ippl::Comm->allreduce(&loc_cent.data[0][0], &glob_cent.data[0][0], 36, std::plus<double>());
