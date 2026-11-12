@@ -15,6 +15,23 @@
 
 #undef doDEBUG
 
+// This existing libopalx translation unit owns the probe attribute lifecycle.
+// Keep these definitions non-template and out of line: moving new, resize/reset
+// or delete back into ParticleContainer.hpp can reintroduce executable-side
+// attribute vtables and CUDA helpers (see HistoryDeleter's ownership contract).
+namespace cyclotron_probe::detail {
+    void HistoryDeleter::operator()(History* history) const { delete history; }
+
+    HistoryPtr makeHistory() { return HistoryPtr(new History()); }
+
+    void initializeHistory(History& history, size_type capacity) {
+        history.resize(capacity);
+        // Registration supplies getView()'s live count; spare capacity is not a
+        // set of active histories. Reset only the newly registered live entries.
+        Kokkos::deep_copy(history.getView(), State{});
+    }
+}  // namespace cyclotron_probe::detail
+
 /**
  * @copybrief PartBunch::PartBunch
  */

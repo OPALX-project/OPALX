@@ -16,6 +16,8 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 namespace {
     using Vec                     = Vector_t<double, 3>;
     constexpr double electronMass = 510998.95;
@@ -45,14 +47,14 @@ namespace {
             gmsg = nullptr;
             ippl::finalize();
         }
+        opalx::test::TemporaryDirectory directory;
         std::string filename;
         void SetUp() override {
-            filename = "rbend-settings-"
-                       + std::string(testing::UnitTest::GetInstance()->current_test_info()->name())
-                       + ".map";
+            directory.create("opalx-rbend-settings");
+            filename = (directory.path() / "profile.map").string();
             std::ofstream(filename) << "1DProfile1 1 1 5\n-25 0 15 0\n-15 0 25 0\n0\n2\n0\n2\n";
         }
-        void TearDown() override { std::filesystem::remove(filename); }
+        void TearDown() override { directory.reset(); }
         std::unique_ptr<OpalRBend> element(double theta = angle, double e1 = 0.0) {
             auto el = std::make_unique<OpalRBend>();
             for (const auto& [name, value] : std::vector<std::pair<std::string, double>>{

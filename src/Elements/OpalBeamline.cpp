@@ -193,6 +193,11 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
 void OpalBeamline::save3DLattice() {
+    MeshGenerator mesh;
+    save3DLattice(mesh);
+}
+
+void OpalBeamline::save3DLattice(MeshGenerator& mesh) {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     // Write elements in s-sorted order (the order prepareSections established). This is stable
@@ -213,7 +218,6 @@ void OpalBeamline::save3DLattice() {
         pos.open(fileName);
     }
 
-    MeshGenerator mesh;
     for (auto scan = it; scan != end; ++scan) {
         const std::shared_ptr<ElementBase> scanElement = (*scan);
         if (scanElement->getType() == ElementType::DRIFT) {

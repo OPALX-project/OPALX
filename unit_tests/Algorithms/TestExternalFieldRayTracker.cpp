@@ -1,3 +1,4 @@
+#include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
 #include "AbsBeamline/CyclotronSector.h"
@@ -205,10 +206,21 @@ protected:
     }
 
     void SetUp() override {
-        OpalData::getInstance()->storeInputFn("TestExternalFieldRayTracker.opal");
+        savedInput_m = OpalData::getInstance()->getInputFn();
+        directory_m.create("opalx-external-field-ray-tracker", ippl::Comm->getCommunicator());
+        OpalData::getInstance()->storeInputFn(
+                (directory_m.path() / "TestExternalFieldRayTracker.opal").string());
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
-        std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
+
+    void TearDown() override {
+        OpalData::getInstance()->storeInputFn(savedInput_m);
+        ippl::Comm->barrier();
+        directory_m.reset();
+    }
+
+    opalx::test::TemporaryDirectory directory_m;
+    std::string savedInput_m;
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
     public:

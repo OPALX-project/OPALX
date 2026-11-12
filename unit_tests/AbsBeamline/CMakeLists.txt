@@ -3,6 +3,7 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestApertureHelper USE_GTEST_MAIN)
 add_opalx_test(TestCyclotronSector USE_GTEST_MAIN)
+add_opalx_test(TestCyclotronSectorMPI SOURCES TestCyclotronSector.cpp NUM_PROCS 2 USE_GTEST_MAIN)
 add_opalx_test(TestCyclotronRF USE_GTEST_MAIN)
 add_opalx_test(TestBendFieldModel USE_GTEST_MAIN)
 add_opalx_test(TestBox USE_GTEST_MAIN)

@@ -17,7 +17,12 @@
 #include "OPALTypes.h"
 
 class ElementBase;
+class ScalingFFAMagnet;
 
+/** Display-only geometry in the element frame, transformed once when added.
+ * Empty triangles with nonempty vertices represent a consecutive polyline in
+ * VTK exports (used for zero-field design arcs).
+ */
 class MeshData {
 public:
     std::vector<Vector_t<double, 3>> vertices_m;
@@ -65,6 +70,13 @@ public:
      */
     void add(const ElementBase& element);
 
+    /** Add a grey detector plane at global laboratory X-Z endpoints [m].
+     * PROBE is vertically unbounded for tracking. The 1 m display height only
+     * makes its orientation visible; it imposes no detector acceptance limit.
+     * These vertices are already global and must not undergo element placement.
+     */
+    void addProbe(const Vector_t<double, 3>& start, const Vector_t<double, 3>& end);
+
     void write(const std::string& fname);
 
 private:
@@ -78,7 +90,9 @@ private:
         SOLENOID,
         RFCAVITY,
         TRAVELINGWAVE,
-        DRIFT
+        DRIFT,
+        SCALINGFFA,
+        PROBE
     };
 
     static MeshData getCylinder(
@@ -118,6 +132,18 @@ private:
      */
     static MeshData getSBend(
             double arcLength, double curvature, double horizontalHalfSize, double verticalHalfSize);
+
+    /** Nominal ScalingFFA display volume, not a mechanical yoke or fringe envelope.
+     * Uses the resolved field chart and nominal length; spiral faces are sampled
+     * radially. The nominal spiral interval is centred on the resolved phiStart;
+     * its width is arcLength/abs(R0). Height and radial limits are the configured
+     * support dimensions, not inferred mechanical dimensions. Both signs of R0
+     * use the inverse of the field-support chart. Sampling is bounded and purely
+     * for display; it does not set tracking accuracy or an iso-field threshold.
+     * Zero-field geometry arcs produce only a design-orbit polyline.
+     * No aperture, field or tracking configuration is changed.
+     */
+    static MeshData getScalingFFA(const ScalingFFAMagnet& magnet);
 
     /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.

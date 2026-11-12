@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
@@ -37,8 +39,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdio>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace opalx::spacecharge {
@@ -50,7 +52,6 @@ namespace opalx::spacecharge {
                 int argc    = 0;
                 char** argv = nullptr;
                 ippl::initialize(argc, argv);
-                OpalData::getInstance()->storeInputFn("cartesian_pic3d_components.opal");
                 gmsg                = new Inform(nullptr, -1);
                 Options::enableHDF5 = false;
             }
@@ -58,10 +59,27 @@ namespace opalx::spacecharge {
             static void TearDownTestSuite() {
                 delete gmsg;
                 gmsg = nullptr;
-                std::remove("cartesian_pic3d_components.stat");
-                std::remove("cartesian_pic3d_components.lbal");
                 ippl::finalize();
             }
+
+            void SetUp() override {
+                auto* opal           = OpalData::getInstance();
+                savedInput_m         = opal->getInputFn();
+                const auto directory = outputDirectory_m.create(
+                        "opalx-cartesian_pic3d_components", ippl::Comm->getCommunicator());
+                opal->storeInputFn((directory / "cartesian_pic3d_components.opal").string());
+            }
+
+            void TearDown() override {
+                // Diagnostic writers created in the test body have closed before cleanup.
+                ippl::Comm->barrier();
+                OpalData::getInstance()->storeInputFn(savedInput_m);
+                outputDirectory_m.reset();
+                ippl::Comm->barrier();
+            }
+
+            opalx::test::TemporaryDirectory outputDirectory_m;
+            std::string savedInput_m;
 
             [[nodiscard]] CartesianDomainConfig3D storage(bool periodic = false) const {
                 CartesianDomainConfig3D result;
