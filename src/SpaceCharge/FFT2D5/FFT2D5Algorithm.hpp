@@ -344,14 +344,16 @@ namespace opalx::spacecharge {
             Kokkos::deep_copy(fieldStorage_m->chargeDensity().getView(), 0.);
             for (size_t c = 0; c < particles_m.size(); ++c)
                 if (context.trackingActive()[c])
-                    scatterContainer(c, diagnostic, usePreparedProjections);
+                    scatterContainer(c, diagnostic, usePreparedProjections,
+                                     context.stepState().deferTrackerMoments);
             finishChargeDeposition(context, diagnostic);
         });
     }
 
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::scatterContainer(
-            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections) {
+            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
+            bool meansOnly) {
         const auto ref      = solveReferencePath_m;
         const auto invDr    = 1.0 / fieldStorage_m->spacing();
         const int nGhost    = fieldStorage_m->chargeDensity().getNghost();
@@ -364,11 +366,12 @@ namespace opalx::spacecharge {
                 usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
         const auto projectedSegment =
                 usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
-        validateDepositionContainer(container, usePreparedProjections);
+        validateDepositionContainer(container, usePreparedProjections, meansOnly);
         pc->scaleDtByCharge();
         const auto r       = pc->R.getView();
         const auto p       = pc->P.getView();
-        const auto meanPs  = pc->getMeanP().data_m[2];
+        const auto meanPs  = meansOnly ? meanLongitudinalMomentum(container) : pc->getMeanP()[2];
+        if (usePreparedProjections) preparedMeanPs_m[container] = meanPs;
         const auto dt      = pc->dt.getView();
         const auto invalid = pc->InvalidMask.getView();
         if (config_m.scatterLongitudinally) {
@@ -702,16 +705,19 @@ namespace opalx::spacecharge {
             for (size_t c = 0; c < particles_m.size(); ++c) {
                 if (!context.trackingActive()[c]) continue;
                 if (config_m.scatterLongitudinally)
-                    gatherContainer<true>(c, diagnostic, usePreparedProjections);
+                    gatherContainer<true>(c, diagnostic, usePreparedProjections,
+                                          context.stepState().deferTrackerMoments);
                 else
-                    gatherContainer<false>(c, diagnostic, usePreparedProjections);
+                    gatherContainer<false>(c, diagnostic, usePreparedProjections,
+                                           context.stepState().deferTrackerMoments);
             }
         });
     }
 
     template <bool ScatterLongitudinally, typename DiagnosticPolicy>
     void FFT2D5Algorithm::gatherContainer(
-            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections) {
+            size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
+            bool meansOnly) {
         auto* pc            = particles_m[container];
         const auto geometry = usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
         const auto projectedR =
@@ -721,7 +727,10 @@ namespace opalx::spacecharge {
         const auto r                   = pc->R.getView();
         const auto p                   = pc->P.getView();
         const auto ref                 = solveReferencePath_m;
-        const auto meanPs              = pc->getMeanP().data_m[2];
+        const auto meanPs = meansOnly
+                ? (usePreparedProjections ? preparedMeanPs_m[container]
+                                          : meanLongitudinalMomentum(container))
+                : pc->getMeanP()[2];
         const auto e                   = pc->E.getView();
         const auto b                   = pc->B.getView();
         const auto invalid             = pc->InvalidMask.getView();

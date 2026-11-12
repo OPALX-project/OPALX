@@ -29,7 +29,7 @@ namespace opalx::spacecharge {
         double emittedFraction = 1.0;  ///< Least-complete active source fraction in [0, 1].
         int mpiSize            = 1;    ///< Active communicator size.
         CoordinateFrameTransforms frames;
-        /// Eligible FFT2D5 tracker calls may leave full moments dirty after frame restoration.
+        /// Eligible FFT2D5 tracker calls use only mean pz inside the solve and defer full moments.
         /// Standalone calls default to a refreshed cache. Exception restoration always refreshes.
         bool deferTrackerMoments = false;
     };

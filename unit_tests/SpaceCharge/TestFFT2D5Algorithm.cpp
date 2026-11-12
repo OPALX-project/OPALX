@@ -627,6 +627,42 @@ namespace opalx::spacecharge {
             }
         }
 
+        TEST_F(FFT2D5AlgorithmTest, DirectMeanKeepsNumberWeightingIncludingMaskedMomentum) {
+            setPhysicalSource(sourcePositions(), Vector(0., 0., .4), CoordinateSystemTrafo());
+            auto momentum = particles_m->P.getHostMirror();
+            Kokkos::deep_copy(momentum, particles_m->P.getView());
+            momentum(0)[2] = 1.5;
+            Kokkos::deep_copy(particles_m->P.getView(), momentum);
+            auto mask = particles_m->InvalidMask.getHostMirror();
+            Kokkos::deep_copy(mask, particles_m->InvalidMask.getView());
+            mask(0) = true;
+            Kokkos::deep_copy(particles_m->InvalidMask.getView(), mask);
+            particles_m->markMomentsDirty();
+            particles_m->updateMoments();
+            EXPECT_NEAR(particles_m->getMeanP()[2], (1.5 + 7. * .4) / 8., 1.e-15);
+            std::array particles{particles_m.get()};
+            FFT2D5Algorithm solver(
+                    config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
+            const std::array<std::uint8_t, 1> activity{1};
+            auto step = alignedStep(0.);
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
+            const auto expectedE = physicalFields(true);
+            const auto expectedB = physicalFields(false);
+            step.deferTrackerMoments = true;
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
+            EXPECT_TRUE(particles_m->isMomentsDirty());
+            const auto actualE = physicalFields(true);
+            const auto actualB = physicalFields(false);
+            for (size_t i = 0; i < sourceSize; ++i) {
+                for (size_t d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(actualE[i][d], expectedE[i][d], 1.e-11);
+                    EXPECT_NEAR(actualB[i][d], expectedB[i][d], 1.e-11);
+                }
+            }
+            particles_m->updateMoments();
+            EXPECT_FALSE(particles_m->isMomentsDirty());
+        }
+
         TEST_F(FFT2D5AlgorithmTest, CoverageFailureRestoresReferenceCoordinatesAndTimeSteps) {
             Vectors positions = sourcePositions();
             positions[0][2]   = 1.2;

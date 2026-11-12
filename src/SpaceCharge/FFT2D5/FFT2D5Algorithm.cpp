@@ -20,6 +20,16 @@
 
 namespace opalx::spacecharge {
 
+    namespace fft2d5_detail {
+        // Named functor keeps the reduction callable from this private host helper on CUDA.
+        struct MeanLongitudinalMomentumFunctor {
+            FFT2D5Algorithm::VectorView_t momentum;
+            KOKKOS_INLINE_FUNCTION void operator()(size_t i, FFT2D5Algorithm::T& value) const {
+                value += momentum(i)[2];
+            }
+        };
+    }
+
     FFT2D5Algorithm::FFT2D5Algorithm(
             FFT2D5Config config, std::span<ParticleContainer* const> particles,
             std::shared_ptr<const BunchStateHandler> bunchState)
@@ -40,6 +50,7 @@ namespace opalx::spacecharge {
                     "FFT2D5Algorithm::FFT2D5Algorithm",
                     "FFT2D5 requires at least one particle container.");
         }
+        preparedMeanPs_m.resize(particles_m.size());
         if (bunchState_m == nullptr) {
             throw OpalException(
                     "FFT2D5Algorithm::FFT2D5Algorithm", "The bunch state handler is null.");
@@ -385,7 +396,7 @@ namespace opalx::spacecharge {
     }
 
     void FFT2D5Algorithm::validateDepositionContainer(
-            size_t container, bool usePreparedProjections) {
+            size_t container, bool usePreparedProjections, bool meansOnly) {
         auto* pc            = particles_m[container];
         const auto ref      = solveReferencePath_m;
         const auto geometry = usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
@@ -393,7 +404,7 @@ namespace opalx::spacecharge {
                 usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
         const auto projectedSegment =
                 usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
-        pc->updateMoments();
+        if (!meansOnly) pc->updateMoments();
         if (pc->getTotalNum() > 0 && pc->getChargePerParticle() == 0.0) {
             throw OpalException(
                     "FFT2D5Algorithm::scatterToGrid",
@@ -420,6 +431,18 @@ namespace opalx::spacecharge {
                                   "bunch throughout tracking; endpoint clamping would pile up charge.");
             }
         }
+    }
+
+    FFT2D5Algorithm::T FFT2D5Algorithm::meanLongitudinalMomentum(size_t container) const {
+        const auto* pc = particles_m[container];
+        const auto momentum = pc->P.getView();
+        T sum = 0.;
+        Kokkos::parallel_reduce(
+                "FFT2D5::meanLongitudinalMomentum", pc->getLocalNum(),
+                fft2d5_detail::MeanLongitudinalMomentumFunctor{momentum}, sum);
+        ippl::Comm->allreduce(sum, 1, std::plus<T>());
+        // Match DistributionMoments: number weighting, no InvalidMask filter, empty mean zero.
+        return sum / static_cast<T>(std::max(size_t(1), pc->getTotalNum()));
     }
 
     void FFT2D5Algorithm::sumLineDensityProfile() {

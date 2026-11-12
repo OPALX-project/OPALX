@@ -779,18 +779,22 @@ namespace opalx::spacecharge {
          * throws. */
         void migrateContainer(size_t container);
 
-        /** @internal @brief Refresh moments, check charge and validate open-path coverage before
+        /** @internal @brief Check charge and open-path coverage before
          * deposition.
          * @param container Active source index. @param usePreparedProjections Use the per-solve
-         * caches. */
-        void validateDepositionContainer(size_t container, bool usePreparedProjections);
+         * caches. @param meansOnly Leave full moments dirty; scatter computes mean pz directly. */
+        void validateDepositionContainer(size_t container, bool usePreparedProjections, bool meansOnly);
+        /// Number-weighted global mean pz in the current solve frame; includes all stored particles.
+        T meanLongitudinalMomentum(size_t container) const;
         /** @internal @brief Deposit one container and restore its charge-scaled time steps.
          * @tparam DiagnosticPolicy Stage observer. @param container Active source index.
          * @param diagnostic Observer. @param usePreparedProjections Use current projection caches.
+         * @param meansOnly Use the direct global mean pz instead of full distribution moments.
          */
         template <typename DiagnosticPolicy>
         void scatterContainer(
-                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
+                bool meansOnly);
         /** @internal @brief Fold serial periodic ghosts, scale charge and accumulate MPI source
          * halos.
          * @tparam DiagnosticPolicy Stage observer. @param context Current dt/activity.
@@ -830,10 +834,12 @@ namespace opalx::spacecharge {
          * @tparam ScatterLongitudinally Select linear z interpolation. @tparam DiagnosticPolicy
          * Observer.
          * @param container Source index. @param diagnostic Field observer.
-         * @param usePreparedProjections Use current per-solve path caches. */
+         * @param usePreparedProjections Use current per-solve path caches.
+         * @param meansOnly Reuse the prepared scalar mean, or compute it for a standalone gather. */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy>
         void gatherContainer(
-                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
+                bool meansOnly);
 
         /** @internal @brief Recover the unchanged path basis and momentum components from a cached
          * winner.
@@ -853,6 +859,8 @@ namespace opalx::spacecharge {
         bool firstPhysicalSolve_m = true;
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
+        /// Prepared with the projection cache; reused by scatter/gather in one complete solve.
+        std::vector<T> preparedMeanPs_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
         ReferenceView_t solveReferencePath_m;
