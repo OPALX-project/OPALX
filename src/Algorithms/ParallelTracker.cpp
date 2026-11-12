@@ -1542,7 +1542,7 @@ void ParallelTracker::computeSpaceChargeFields() {
         return;
     }
 
-    itsBunch_m->calcBeamParameters();
+    itsBunch_m->calcBeamParameters(spaceChargeSolver_m->usesFFT2D5());
     const auto frames   = makeSpaceChargeFrameTransforms();
     const auto emission = spaceChargeEmissionProgress();
 

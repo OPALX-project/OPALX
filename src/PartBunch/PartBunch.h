@@ -233,8 +233,10 @@ public:
     /**
      * @brief Update moments and set @c rmin_m / @c rmax_m from the primary (first) container.
      * @note Space-charge and mesh updates currently use container 0 only.
+     * @param fft2d5 Skip unused legacy centroid/matrix reductions for FFT2D5 only.
+     * Full cached moments and the original bounds reductions are retained.
      */
-    void calcBeamParameters();
+    void calcBeamParameters(bool fft2d5 = false);
 
     /**
      * @brief Set the per-particle charge for each particle container.

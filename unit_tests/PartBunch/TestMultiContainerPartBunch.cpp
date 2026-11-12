@@ -283,6 +283,7 @@ namespace {
 
         auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
         EXPECT_NE(solver, nullptr);
+        EXPECT_FALSE(solver->usesFFT2D5());
     }
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
@@ -292,8 +293,52 @@ namespace {
         auto solver = makeSpaceChargeSolver(SpaceChargeConfig(values), *bunch, nullptr);
 
         ASSERT_NE(solver, nullptr);
+        EXPECT_TRUE(solver->usesFFT2D5());
         EXPECT_EQ(solver->backendSolveCount(), 0u);
         EXPECT_EQ(solver->redistributionCount(), 0u);
+    }
+
+    TEST_F(MultiContainerPartBunchTest, FFT2D5BeamParametersMatchLegacyWithEmptyAndUnevenRanks) {
+        auto pc = bunch->getParticleContainer();
+        const size_t rank = ippl::Comm->rank();
+        // Exercise an empty bunch, ownership on rank zero only, then uneven ownership.
+        for (size_t added : {size_t(0), rank == 0 ? size_t(3) : size_t(0), rank + 1}) {
+            pc->createParticles(added);
+            auto r = pc->R.getHostMirror();
+            auto p = pc->P.getHostMirror();
+            for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+                r(i) = Vector_t<double, 3>(-0.3 + 0.01 * i, 0.2 + rank, -1.0 - i - rank);
+                p(i) = Vector_t<double, 3>(0.001 * i, -0.002 * rank, 0.1 + 0.01 * i);
+            }
+            Kokkos::deep_copy(pc->R.getView(), r);
+            Kokkos::deep_copy(pc->P.getView(), p);
+            pc->markMomentsDirty();
+            bunch->calcBeamParameters();
+            const auto minimum = bunch->rmin_m;
+            const auto maximum = bunch->rmax_m;
+            const auto means = pc->getMeans();
+            const auto covariance = pc->getCovMatrix();
+            const auto rmsR = pc->getRmsR();
+            const auto rmsP = pc->getRmsP();
+
+            pc->markMomentsDirty();
+            bunch->rmin_m = 123.0;
+            bunch->rmax_m = -123.0;
+            bunch->calcBeamParameters(true);
+            EXPECT_FALSE(pc->isMomentsDirty());
+            for (size_t d = 0; d < 3; ++d) {
+                EXPECT_EQ(bunch->rmin_m[d], minimum[d]);
+                EXPECT_EQ(bunch->rmax_m[d], maximum[d]);
+                EXPECT_EQ(pc->getRmsR()[d], rmsR[d]);
+                EXPECT_EQ(pc->getRmsP()[d], rmsP[d]);
+            }
+            for (size_t i = 0; i < 6; ++i) {
+                EXPECT_EQ(pc->getMeans()[i], means[i]);
+                for (size_t j = 0; j < 6; ++j) {
+                    EXPECT_EQ(pc->getCovMatrix()(i, j), covariance(i, j));
+                }
+            }
+        }
     }
 
     // --- DataSink stems and writers ---
