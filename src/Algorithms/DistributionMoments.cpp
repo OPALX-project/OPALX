@@ -111,9 +111,9 @@ void DistributionMoments::computeMeans(
 }
 
 // ---------------------------------------------------------------------------
-// computeMoments -- three Kokkos reducers in a single parallel_reduce:
-//   SumMatrix6x6  central moments,  SumMatrix6x6  non-central moments,
-//   double        std kinetic energy
+// computeMoments -- centered/raw matrices plus energy variance and rest-frame temperatures.
+// The dense second pass reduces 36 + 36 + 4 doubles; FFT2D5 retains only each symmetric
+// matrix's 21 independent entries, reducing 21 + 21 + 4 doubles instead.
 // ---------------------------------------------------------------------------
 void DistributionMoments::computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
@@ -159,17 +159,31 @@ void DistributionMoments::computeMoments(
     const double referenceMassGeVStd = referenceMassGeV_m;
     const bool massIsScalarView      = (Mview.extent(0) == 1);
 
+    // Boost into the centre-of-momentum frame, beta_c = <u> / <gamma>. Boosting the mean
+    // 4-vector gives zero, so the boost acts on du = u - <u> and dgamma = gamma - <gamma>:
+    //   u' = du + [gamma_c^2 / (gamma_c + 1) (beta_c . du) - gamma_c dgamma] beta_c.
+    // gamma_c^2 / (gamma_c + 1) = (gamma_c - 1) / beta_c^2 avoids dividing by |beta_c|.
+    const double meanGammaLoc = meanGamma_m;
+    double betaC[Dim];
+    for (size_t i = 0; i < Dim; ++i) {
+        betaC[i] = meanGammaLoc > 0.0 ? meanP_loc[i] / meanGammaLoc : 0.0;
+    }
+    const double betaC2        = betaC[0] * betaC[0] + betaC[1] * betaC[1] + betaC[2] * betaC[2];
+    const double gammaC        = 1.0 / std::sqrt(1.0 - betaC2);
+    const double boostParallel = gammaC * gammaC / (gammaC + 1.0);
+
     SumMatrix6x6 loc_cent;
     SumMatrix6x6 loc_ncent;
-    double loc_std_ekin = 0.0;
+    // [0] kinetic energy variance sum, [1..3] sum of m u'_i^2 / gamma' in GeV.
+    SumArray<4> loc_energy;
 
     if (compactSymmetricReduction_m) {
-        // 21 centered + 21 raw entries + kinetic-energy variance, instead of 73 doubles.
+        // 21 centered + 21 raw entries + 4 energy/temperature sums, instead of 76 doubles.
         // Retain centered products about the global means: no raw-sum subtraction.
-        SumArray<43> compact;
+        SumArray<46> compact;
         Kokkos::parallel_reduce(
                 "computeMomentsCompactSymmetric", Nlocal,
-                KOKKOS_LAMBDA(const size_t k, SumArray<43>& upd) {
+                KOKKOS_LAMBDA(const size_t k, SumArray<46>& upd) {
                     const double raw[6]  = {Rview(k)[0], Pview(k)[0], Rview(k)[1],
                                             Pview(k)[1], Rview(k)[2], Pview(k)[2]};
                     const double cent[6] = {raw[0] - meanR_loc[0], raw[1] - meanP_loc[0],
@@ -188,8 +202,21 @@ void DistributionMoments::computeMoments(
                                                    : (massIsScalarView ? Mview(0) : Mview(k));
                     const double ekin0   = (gamma0 - 1.0) * massGeV * Units::GeV2MeV;
                     upd.data[42] += (ekin0 - mekin) * (ekin0 - mekin);
+
+                    const double dgamma = gamma0 - meanGammaLoc;
+                    const double betaDotDu =
+                            betaC[0] * cent[1] + betaC[1] * cent[3] + betaC[2] * cent[5];
+                    const double shift    = boostParallel * betaDotDu - gammaC * dgamma;
+                    const double uRest[3] = {
+                            cent[1] + shift * betaC[0], cent[3] + shift * betaC[1],
+                            cent[5] + shift * betaC[2]};
+                    const double gammaRest = Kokkos::sqrt(
+                            1.0 + uRest[0] * uRest[0] + uRest[1] * uRest[1] + uRest[2] * uRest[2]);
+                    for (int i = 0; i < 3; ++i) {
+                        upd.data[43 + i] += massGeV * uRest[i] * uRest[i] / gammaRest;
+                    }
                 },
-                Kokkos::Sum<SumArray<43>>(compact));
+                Kokkos::Sum<SumArray<46>>(compact));
         Kokkos::fence();
         size_t index = 0;
         for (size_t i = 0; i < 6; ++i) {
@@ -198,13 +225,14 @@ void DistributionMoments::computeMoments(
                 loc_ncent.data[i][j] = loc_ncent.data[j][i] = compact.data[21 + index];
             }
         }
-        loc_std_ekin = compact.data[42];
+        for (size_t i = 0; i < 4; ++i)
+            loc_energy.data[i] = compact.data[42 + i];
     } else {
         Kokkos::parallel_reduce(
                 "computeMoments", Nlocal,
                 KOKKOS_LAMBDA(
                         const size_t k, SumMatrix6x6& cent_upd, SumMatrix6x6& ncent_upd,
-                        double& ekin_upd) {
+                        SumArray<4>& energy_upd) {
                     double cent[6];
                     cent[0] = Rview(k)[0] - meanR_loc[0];
                     cent[1] = Pview(k)[0] - meanP_loc[0];
@@ -233,10 +261,23 @@ void DistributionMoments::computeMoments(
                                                    ? referenceMassGeVStd
                                                    : (massIsScalarView ? Mview(0) : Mview(k));
                     double ekin0         = (gamma0 - 1.0) * massGeV * Units::GeV2MeV;
-                    ekin_upd += (ekin0 - mekin) * (ekin0 - mekin);
+                    energy_upd.data[0] += (ekin0 - mekin) * (ekin0 - mekin);
+
+                    const double dgamma = gamma0 - meanGammaLoc;
+                    const double betaDotDu =
+                            betaC[0] * cent[1] + betaC[1] * cent[3] + betaC[2] * cent[5];
+                    const double shift    = boostParallel * betaDotDu - gammaC * dgamma;
+                    const double uRest[3] = {
+                            cent[1] + shift * betaC[0], cent[3] + shift * betaC[1],
+                            cent[5] + shift * betaC[2]};
+                    const double gammaRest = Kokkos::sqrt(
+                            1.0 + uRest[0] * uRest[0] + uRest[1] * uRest[1] + uRest[2] * uRest[2]);
+                    for (int i = 0; i < 3; ++i) {
+                        energy_upd.data[1 + i] += massGeV * uRest[i] * uRest[i] / gammaRest;
+                    }
                 },
                 Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
-                Kokkos::Sum<double>(loc_std_ekin));
+                Kokkos::Sum<SumArray<4>>(loc_energy));
         Kokkos::fence();
     }
 
@@ -244,8 +285,12 @@ void DistributionMoments::computeMoments(
     ippl::Comm->allreduce(&loc_cent.data[0][0], &glob_cent.data[0][0], 36, std::plus<double>());
     ippl::Comm->allreduce(&loc_ncent.data[0][0], &glob_ncent.data[0][0], 36, std::plus<double>());
 
-    double glob_std_ekin;
-    ippl::Comm->allreduce(&loc_std_ekin, &glob_std_ekin, 1, std::plus<double>());
+    double glob_energy[4];
+    ippl::Comm->allreduce(&loc_energy.data[0], &glob_energy[0], 4, std::plus<double>());
+    const double glob_std_ekin = glob_energy[0];
+    for (size_t i = 0; i < Dim; ++i) {
+        restFrameTemperature_m(i) = glob_energy[1 + i] * Units::GeV2eV / Np / Physics::kB;
+    }
 
     for (size_t i = 0; i < 2 * Dim; ++i) {
         for (size_t j = 0; j < 2 * Dim; ++j) {
@@ -693,6 +738,8 @@ void DistributionMoments::reset() {
     normalizedEps_m = 0.0;
     geometricEps_m  = 0.0;
     halo_m          = 0.0;
+
+    restFrameTemperature_m = 0.0;
 
     meanKineticEnergy_m = 0.0;
     stdKineticEnergy_m  = 0.0;

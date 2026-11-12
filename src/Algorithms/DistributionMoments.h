@@ -85,6 +85,17 @@ public:
     Vector_t<double, 3> getStandardDeviationPosition() const;
     Vector_t<double, 3> getMeanMomentum() const;
     Vector_t<double, 3> getStandardDeviationMomentum() const;
+    /**
+     * @brief Temperature per direction in the centre-of-momentum frame, in K.
+     *
+     * Each particle momentum u = beta*gamma is Lorentz-boosted with beta_c = <u>/<gamma> into
+     * the frame where the mean momentum vanishes, and k_B T_i = m c^2 <u'_i^2 / gamma'>. This
+     * is the diagonal of the kinetic pressure tensor per particle, which equals k_B T for a
+     * Maxwell-Juettner distribution and m c^2 rms_p_i^2 in the non-relativistic limit. The
+     * mass is the one used for the kinetic energy (see setEnergyReferenceMass()).
+     * @note Particles are sampled at equal lab time, not at equal rest-frame time.
+     */
+    Vector_t<double, 3> getRestFrameTemperature() const;
     Vector_t<double, 3> getMeanPolarization() const;
     Vector_t<double, 3> getStandardDeviationPolarization() const;
     Vector_t<double, 3> getNormalizedEmittance() const;
@@ -158,6 +169,7 @@ private:
     Vector_t<double, 3> meanP_m;
     Vector_t<double, 3> stdR_m;
     Vector_t<double, 3> stdP_m;
+    Vector_t<double, 3> restFrameTemperature_m;
     Vector_t<double, 3> meanPol_m;
     Vector_t<double, 3> stdPol_m;
     Vector_t<double, 3> stdRP_m;
@@ -215,6 +227,10 @@ inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const { return
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getRestFrameTemperature() const {
+    return restFrameTemperature_m;
 }
 
 inline Vector_t<double, 3> DistributionMoments::getMeanPolarization() const { return meanPol_m; }

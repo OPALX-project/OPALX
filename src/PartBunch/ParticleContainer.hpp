@@ -447,6 +447,10 @@ public:
 
     Vector_t<double, 3> getRmsP() const { return distMoments_m.getStandardDeviationMomentum(); }
 
+    Vector_t<double, 3> getRestFrameTemperature() const {
+        return distMoments_m.getRestFrameTemperature();
+    }
+
     Vector_t<double, 3> getMeanR() const { return distMoments_m.getMeanPosition(); }
 
     Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }

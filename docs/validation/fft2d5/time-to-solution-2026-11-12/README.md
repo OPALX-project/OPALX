@@ -10,6 +10,9 @@ JSON files record the window, executable hashes and temporal activity.
 These historical measurements include transform fusion, which was subsequently
 removed from PR #682 after its whole-tracking gain was below 1%. The unfused
 branch was correctness-tested locally; these are not new measurements of it.
+They also predate master's rest-frame temperature diagnostics. The merged
+implementation retains those three sums: its compact/dense accumulators now
+contain 46/76 doubles rather than the measured 43/73.
 
 | Figure | LUMI profile job | Trace PID |
 |---|---:|---:|

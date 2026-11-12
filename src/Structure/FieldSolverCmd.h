@@ -49,6 +49,7 @@ namespace FIELDSOLVER {
         GREENSF,       // Green function for OPEN; P3M selects its kernel internally
         P3MRCUT,       // P3M particle-particle cutoff radius [m]
         P3MRCUTCELLS,  // P3M cutoff in units of the largest mesh spacing
+        PERIODICBOX,   // edge length of a fixed all-periodic cube [m]; zero follows the particles
         BBOXINCR,      // how much the boundingbox is increased
         FFT2D5MODEL,   // Explicit FFT2D5 model identity; ORIGINAL is currently supported
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
@@ -83,6 +84,7 @@ public:
     double getP3MCutoff() const;
     /// P3M cutoff in units of the largest mesh spacing (default 2 when RCUT is not given).
     double getP3MCutoffCells() const;
+    double getPeriodicBox() const;
     /// Whether RCUT or RCUT_CELLS was set in the input, rather than left at its default.
     bool hasP3MCutoff() const;
     bool hasP3MCutoffCells() const;
