@@ -80,7 +80,7 @@ namespace opalx::spacecharge {
                 restoreParticleSolveFrames(context, labToSolve);
                 throw;
             }
-            restoreParticleSolveFrames(context, labToSolve);
+            restoreParticleSolveFrames(context, labToSolve, !context.stepState().deferTrackerMoments);
             result.backendSolves = fieldStorage_m->backendSolves();
             if (ippl::Comm->size() > 1) {
                 const auto local = result.backendSolves;
@@ -104,7 +104,8 @@ namespace opalx::spacecharge {
     }
 
     void FFT2D5Algorithm::restoreParticleSolveFrames(
-            const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve) {
+            const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve,
+            bool refreshMoments) {
         for (std::size_t index = 0; index < particles_m.size(); ++index) {
             if (context.trackingActive()[index] == 0) {
                 continue;
@@ -113,7 +114,7 @@ namespace opalx::spacecharge {
             const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
             leaveSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
             particles.markMomentsDirty();
-            particles.updateMoments();
+            if (refreshMoments) particles.updateMoments();
         }
     }
 

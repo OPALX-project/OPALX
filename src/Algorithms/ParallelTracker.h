@@ -380,7 +380,9 @@ public:
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */
-    void computeSpaceChargeFields();
+    void computeSpaceChargeFields(bool deferTrackerMoments = false);
+    /// Collective eligibility for the coasting FFT2D5 6-to-3 full-moment schedule.
+    [[nodiscard]] bool deferFFT2D5Moments() const;
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species

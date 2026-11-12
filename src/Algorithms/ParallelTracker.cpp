@@ -19,6 +19,7 @@
  */
 #include "Algorithms/ParallelTracker.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "SpaceCharge/FFT2D5/MomentUpdatePolicy.h"
 
 #include <algorithm>
 #include <array>
@@ -803,6 +804,7 @@ void ParallelTracker::execute() {
                 }
             }
 
+            const bool deferTrackerMoments = deferFFT2D5Moments();
             if (boundaryControlled_m) {
                 prepareBoundaryStep(pusher, oths, *boundarySchedule);
             } else {
@@ -827,7 +829,7 @@ void ParallelTracker::execute() {
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
                     resetFields();
                     m << level4 << "E and B fields reset at step " << step << "." << endl;
-                    computeSpaceChargeFields();
+                    computeSpaceChargeFields(deferTrackerMoments);
                     m << level4 << "Midpoint space charge field computation done at step " << step
                       << "." << endl;
                 }
@@ -837,8 +839,10 @@ void ParallelTracker::execute() {
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after emission." << endl;
+                if (!deferTrackerMoments) {
+                    itsBunch_m->updateAllParticleMoments();
+                    m << level5 << "Particle moments updated after emission." << endl;
+                }
 
                 // External field computation
                 computeExternalFields(oths);
@@ -862,8 +866,10 @@ void ParallelTracker::execute() {
                 throw;
             }
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after timeIntegration2." << endl;
+            if (!deferTrackerMoments) {
+                itsBunch_m->updateAllParticleMoments();
+                m << level5 << "Particle moments updated after timeIntegration2." << endl;
+            }
 
             // Apply global processes (e.g. decay) and mark afftected particles for deletion
             const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
@@ -1516,16 +1522,39 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
     return progress;
 }
 
+bool ParallelTracker::deferFFT2D5Moments() const {
+    if (spaceChargeSolver_m == nullptr || !spaceChargeSolver_m->usesFFT2D5()) return false;
+
+    bool emissionActive = false;
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (sampler && !sampler->isEmissionDone(itsBunch_m->getT())) emissionActive = true;
+        }
+    }
+    const auto pc = itsBunch_m->getParticleContainer();
+    const opalx::spacecharge::fft2d5_detail::MomentUpdateEligibility eligibility{
+            .fft2d5 = true,
+            .midpoint = spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT,
+            .boundaryControlled = boundaryControlled_m,
+            .emissionActive = emissionActive,
+            .globalProcesses = !pc->getGlobalProcesses().empty(),
+            .spinEnabled = pc->hasSpin(),
+            .solveActive = itsBunch_m->getTotalNumAllContainers()
+                           > static_cast<size_t>(Options::minBinEmitted),
+            .containerCount = itsBunch_m->getNumParticleContainers()};
+    bool eligible = eligibility.mayDefer();
+    // A rank with no local particles must follow the same collective sequence as its peers.
+    ippl::Comm->allreduce(eligible, 1, std::logical_and<bool>());
+    return eligible;
+}
+
 /**
  * @copybrief ParallelTracker::computeSpaceChargeFields
  *
- * @par Frame of reference
- * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
- * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside the selected algorithm: temporary solver-specific frames are restored on success.
- * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
+ * Particle arrays enter and return in tracker axes. FFT2D5 may leave moments dirty
+ * for its eligible coasting tracker; all field and particle frame operations are retained.
  */
-void ParallelTracker::computeSpaceChargeFields() {
+void ParallelTracker::computeSpaceChargeFields(bool deferTrackerMoments) {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
@@ -1561,7 +1590,8 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.active,
             emission.fraction,
             ippl::Comm->size(),
-            frames};
+            frames,
+            deferTrackerMoments};
     SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
     spaceChargeSolver_m->solve(context);
     m << level3 << "Compute space-charge fields done." << endl;
