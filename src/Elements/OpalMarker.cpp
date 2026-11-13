@@ -17,6 +17,8 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalMarker.h"
+
+#include <memory>
 #include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/MarkerRep.h"
 #include "Utilities/Options.h"
@@ -53,8 +55,8 @@ OpalMarker* OpalMarker::clone(const std::string& name) { return new OpalMarker(n
 
 void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 
-void OpalMarker::update() {
-    // Transmit "unknown" attributes.
-    MarkerRep* mark = static_cast<MarkerRep*>(getElement());
-    OpalElement::updateUnknown(mark);
+std::shared_ptr<ElementBase> OpalMarker::build(const ElementValues& values) {
+    return std::make_shared<MarkerRep>(values.getName());
 }
+
+void OpalMarker::update() {}

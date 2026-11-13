@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalSolenoid.h"
+
+#include <memory>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SolenoidRep.h"
@@ -47,22 +49,27 @@ OpalSolenoid::~OpalSolenoid() {}
 
 OpalSolenoid* OpalSolenoid::clone(const std::string& name) { return new OpalSolenoid(name, this); }
 
-void OpalSolenoid::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalSolenoid::build(const ElementValues& values) {
+    auto element = std::make_shared<SolenoidRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-    SolenoidRep* sol = dynamic_cast<SolenoidRep*>(getElement());
-    double length    = Attributes::getReal(itsAttr[LENGTH]);
-    double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
-    bool fast = Attributes::getBool(itsAttr[FAST]);
+void OpalSolenoid::update() { fill(*getElement(), getValues()); }
+
+void OpalSolenoid::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+
+    SolenoidRep* sol = dynamic_cast<SolenoidRep*>(&element);
+    double length    = values.getReal("L");
+    double Bz        = values.getReal("KS") * OpalData::getInstance()->getP0() / Physics::c;
+    bool fast        = values.getBool("FAST");
 
     sol->getGeometry().setElementLength(length);
-    sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
+    sol->setFieldMapFN(values.getString("FMAPFN"));
     sol->setFast(fast);
-    sol->setIsZReversed(Attributes::getBool(itsAttr[ZREVERSE]));
+    sol->setIsZReversed(values.getBool("ZREVERSE"));
     sol->setBz(Bz);
-    sol->setKS(Attributes::getReal(itsAttr[KS]));
-    sol->setDKS(Attributes::getReal(itsAttr[DKS]));
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(sol);
+    sol->setKS(values.getReal("KS"));
+    sol->setDKS(values.getReal("DKS"));
 }

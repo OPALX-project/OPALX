@@ -18,6 +18,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 // Class OpalMarker
@@ -40,6 +42,9 @@ public:
 
     /// Update the embedded OPALX marker.
     virtual void update();
+
+    /// Build the runtime element of one occurrence: a marker has no settings.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
 private:
     // Not implemented.

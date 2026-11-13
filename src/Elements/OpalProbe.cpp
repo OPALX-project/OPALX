@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalProbe.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Algorithms/CyclotronProbeRecorder.h"
 #include "Attributes/Attributes.h"
@@ -46,26 +48,33 @@ OpalProbe::~OpalProbe() {}
 
 OpalProbe* OpalProbe::clone(const std::string& name) { return new OpalProbe(name, this); }
 
+std::shared_ptr<ElementBase> OpalProbe::build(const ElementValues& values) {
+    auto element = std::make_shared<ProbeRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
 void OpalProbe::update() {
     // A global detector segment contributes no path length to its sequence.
     Attributes::setReal(itsAttr[LENGTH], 0.0);
+    fill(*getElement(), getValues());
+}
+
+void OpalProbe::fill(ElementBase& element, const ElementValues& values) {
     // Endpoint coordinates are already global. Ordinary element placement
     // validation would incorrectly require ELEMEDGE or a separate 6D pose.
 
-    ProbeRep* prob = dynamic_cast<ProbeRep*>(getElement());
+    ProbeRep* prob = dynamic_cast<ProbeRep*>(&element);
 
-    double xstart = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
-    double xend   = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
-    double ystart = Units::mm2m * Attributes::getReal(itsAttr[YSTART]);
-    double yend   = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
-    double step   = Units::mm2m * Attributes::getReal(itsAttr[STEP]);
+    double xstart = Units::mm2m * values.getReal("XSTART");
+    double xend   = Units::mm2m * values.getReal("XEND");
+    double ystart = Units::mm2m * values.getReal("YSTART");
+    double yend   = Units::mm2m * values.getReal("YEND");
+    double step   = Units::mm2m * values.getReal("STEP");
 
     prob->getGeometry().setElementLength(0.0);
     prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
-    prob->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
+    prob->setOutputFN(values.getString("OUTFN"));
     CyclotronProbeRecorder::configuration(*prob);
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(prob);
 }

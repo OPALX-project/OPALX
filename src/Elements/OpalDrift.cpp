@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalDrift.h"
+
+#include <memory>
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 
@@ -41,20 +43,15 @@ OpalDrift* OpalDrift::clone(const std::string& name) { return new OpalDrift(name
 
 bool OpalDrift::isDrift() const { return true; }
 
-void OpalDrift::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalDrift::build(const ElementValues& values) {
+    auto element = std::make_shared<DriftRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-    //    DriftRep* drf = static_cast<DriftRep*>(getElement());
+void OpalDrift::update() { fill(*getElement(), getValues()); }
 
-    // drf->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
-
-    auto drf = getElement();
-    if (drf) {
-        auto L = Attributes::getReal(itsAttr[LENGTH]);
-        drf->getGeometry().setElementLength(L);
-    } else
-        std::cout << "error drf->setElementLength " << std::endl;
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(drf);
+void OpalDrift::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+    element.getGeometry().setElementLength(values.getReal("L"));
 }

@@ -27,6 +27,11 @@
 #include "Attributes/UpperCaseString.h"
 #include "Attributes/UpperCaseStringArray.h"
 #include "Elements/ElementValues.h"
+#include "Elements/OpalDrift.h"
+#include "Elements/OpalMarker.h"
+#include "Elements/OpalMonitor.h"
+#include "Elements/OpalProbe.h"
+#include "Elements/OpalSolenoid.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
@@ -48,20 +53,20 @@ namespace opalx::run {
                     {"CONSTANTEFIELDCAVITY", {ElementType::CONSTANTEFIELDCAVITY, nullptr}},
                     {"CONSTANTFOCUSING", {ElementType::CONSTANTFOCUSING, nullptr}},
                     {"CYCLOTRONSECTOR", {ElementType::CYCLOTRONSECTOR, nullptr}},
-                    {"DRIFT", {ElementType::DRIFT, nullptr}},
+                    {"DRIFT", {ElementType::DRIFT, &OpalDrift::build}},
                     {"FIELDMAP", {ElementType::FIELDMAP, nullptr}},
                     {"LASER", {ElementType::LASER, nullptr}},
-                    {"MARKER", {ElementType::MARKER, nullptr}},
-                    {"MONITOR", {ElementType::MONITOR, nullptr}},
+                    {"MARKER", {ElementType::MARKER, &OpalMarker::build}},
+                    {"MONITOR", {ElementType::MONITOR, &OpalMonitor::build}},
                     {"MULTIPOLE", {ElementType::MULTIPOLE, nullptr}},
                     {"MULTIPOLET", {ElementType::MULTIPOLET, nullptr}},
-                    {"PROBE", {ElementType::PROBE, nullptr}},
+                    {"PROBE", {ElementType::PROBE, &OpalProbe::build}},
                     {"QUADRUPOLE", {ElementType::MULTIPOLE, nullptr}},
                     {"RBEND", {ElementType::RBEND, nullptr}},
                     {"RFCAVITY", {ElementType::RFCAVITY, nullptr}},
                     {"SBEND", {ElementType::SBEND, nullptr}},
                     {"SCALINGFFAMAGNET", {ElementType::SCALINGFFAMAGNET, nullptr}},
-                    {"SOLENOID", {ElementType::SOLENOID, nullptr}},
+                    {"SOLENOID", {ElementType::SOLENOID, &OpalSolenoid::build}},
                     {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, nullptr}},
                     {"VARIABLE_RF_CAVITY", {ElementType::ANY, nullptr}},
                     {"VERTICALFFAMAGNET", {ElementType::ANY, nullptr}},
