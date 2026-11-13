@@ -271,17 +271,10 @@ void ParallelTracker::execute() {
     }
 
     if (!probeConfigs_m.empty()) {
-        if (restarting_m || OpalData::getInstance()->hasPriorTrack())
-            throw OpalException(
-                    "PROBE", "PROBE does not yet support restart or tracking continuation.");
+        // validate() checked that PROBE runs without restart, in a cyclotron sector or RING.
         bool cyclotron = false;
         for (const auto& element : itsOpalBeamline_m.getElements())
             cyclotron |= element->getType() == ElementType::CYCLOTRONSECTOR;
-        if ((!cyclotron && ringPeriod_m <= 0) || !tuneInitial_m.empty())
-            throw OpalException(
-                    "PROBE",
-                    "PROBE requires cyclotron-sector or RING particle tracking; "
-                    "spectral-tune trial tracking is unsupported.");
         // Segments are explicit laboratory observers, not repeated magnetic
         // elements. FFA reuses the same crossing/history/output path. Its ring
         // centre need not be the lab origin, so only cyclotron tracking enables
@@ -447,9 +440,7 @@ void ParallelTracker::execute() {
     // through the lattice: autophasing, element-length and reach checks, design path output.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     if (requestedTurns_m) {
-        if (nContainers != 1)
-            throw OpalException(
-                    "ParallelTracker", "Localized TURNS requires one particle container.");
+        // validate() checked one container and the element types.
         m << level1 << "TURNS: directed return counting with ordinary device Boris tracking."
           << endl;
         for (const auto& samplers : emittingSamplers_m)
@@ -458,20 +449,6 @@ void ParallelTracker::execute() {
                     throw OpalException(
                             "ParallelTracker",
                             "Localized TURNS does not yet support ongoing emission.");
-        for (const auto& element : itsOpalBeamline_m.getElements()) {
-            const auto type = element->getType();
-            if (type != ElementType::DRIFT && type != ElementType::MARKER
-                && type != ElementType::MONITOR && type != ElementType::MULTIPOLE
-                && type != ElementType::MULTIPOLET && type != ElementType::SBEND
-                && type != ElementType::RBEND && type != ElementType::SOLENOID
-                && type != ElementType::CYCLOTRONSECTOR && type != ElementType::SCALINGFFAMAGNET
-                && dynamic_cast<const VariableRFCavity*>(element.get()) == nullptr)
-                throw OpalException(
-                        "ParallelTracker",
-                        "Localized TURNS requires supported magnetic elements or "
-                        "VARIABLE_RF_CAVITY; unsupported element "
-                                + element->getName());
-        }
     }
     // Placement, misalignment and field-map extents are final here: each element's aperture must
     // lie inside its reach before the grid is built from the reaches.
@@ -481,9 +458,6 @@ void ParallelTracker::execute() {
 
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
-    if (kineticEnergyStop_m > 0 && (!hasCyclotronGaps() || nContainers != 1))
-        throw OpalException(
-                "ParallelTracker", "EKINSTOP requires the single-container cyclotron gap path.");
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
@@ -1286,16 +1260,10 @@ bool ParallelTracker::usesHostCyclotronTransport() const {
 
 void ParallelTracker::prepareCyclotronTransport() {
     if (!hasCyclotronGaps()) return;
-    if (itsBunch_m->getNumParticleContainers() != 1)
-        throw OpalException("ParallelTracker", "SINGLEGAP currently requires one container.");
+    // validate() checked one unpolarized proton container and no restart.
     const auto pc = itsBunch_m->getParticleContainer();
     if (!pc || !pc->getReference())
         throw OpalException("ParallelTracker", "SINGLEGAP requires a particle reference.");
-    if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
-        || std::abs(pc->getReference()->getM() / (Physics::m_p * 1e9) - 1) > 1e-12)
-        throw OpalException(
-                "ParallelTracker",
-                "SINGLEGAP requires an unpolarized positive proton and does not support restart.");
     // Preserve the unrestricted host gap count. Only device transport needs
     // uploaded descriptors and the 64-gap visit mask.
     if (!usesHostCyclotronTransport()) prepareCyclotronBunchLattice();

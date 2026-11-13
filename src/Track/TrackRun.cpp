@@ -75,6 +75,7 @@
 
 #include "Track/FreezeRun.h"
 #include "Track/RunDescriptionWriter.h"
+#include "Track/ValidateRun.h"
 
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
@@ -291,6 +292,7 @@ void TrackRun::execute() {
     // as text and stop: nothing is tracked and no other output is written.
     const opalx::run::RunDescription description =
             opalx::run::freeze(*this, ++opal_m->numberOfRuns);
+    const std::vector<std::string> errors = opalx::run::validate(description);
     if (opal_m->checkOnly) {
         const std::string fileName = opalx::run::dumpFileName(description);
         if (ippl::Comm->rank() == 0) {
@@ -299,8 +301,12 @@ void TrackRun::execute() {
         }
         *gmsg << level1 << "* --check: wrote the run description to " << fileName
               << "; RUN does not track." << endl;
-        return;
     }
+    // All input errors of this RUN at once, before anything is allocated.
+    if (!errors.empty()) {
+        throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
+    }
+    if (opal_m->checkOnly) return;
 
     OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
@@ -339,10 +345,6 @@ void TrackRun::execute() {
     // Follow-up behavior is still based on whether a bunch was allocated already.
     // Emission sources are resolved from the selected BEAM later.
     isFollowupTrack_m = opal_m->hasBunchAllocated();
-    if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
-        throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
-    }
-
     // Field solver commands are registry-owned by OpalData; TrackRun only borrows it.
     fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
     *gmsg << level1 << *fs_m << endl;
@@ -352,28 +354,12 @@ void TrackRun::execute() {
 
     // Process BEAM object names
     std::vector<std::string> beamNames = Track::block->beamNames_m;
-    if (beamNames.empty()) {
-        throw OpalException(
-                "TrackRun::execute", "No beam specified: set TRACK::BEAM or TRACK::BEAMS.");
-    }
 
-    // Create vector of BEAMs
+    // Create vector of BEAMs (validate() checked that they exist).
     std::vector<Beam*> beams;
     beams.reserve(beamNames.size());
     for (const auto& name : beamNames) {
-        if (name.empty()) {
-            throw OpalException("TrackRun::execute", "Empty beam name in resolved beam list.");
-        }
-        beams.push_back(Beam::find(name));  // fail fast
-    }
-    for (const auto* b : beams) {
-        if (b->isPhoton()) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "TRACK does not support BEAM, PARTICLE=PHOTON yet. "
-                    "Photon beams may be defined for future OPALX features, but they are currently "
-                    "rejected during tracking.");
-        }
+        beams.push_back(Beam::find(name));
     }
     // Decay chains: a beam named as another beam's DAUGHTERBEAM uses the reference particle of
     // the first beam of its chain. It has no momentum and no emission sources of its own.
@@ -388,37 +374,6 @@ void TrackRun::execute() {
         }
         decayRoots_m = resolveDecayRoots(beamNames, daughterNames, hasDecay);
     }
-    // The tracker uses the first beam to find the start position, for autophasing, monitors
-    // and the space-charge frame.
-    if (decayRoots_m[0] != 0) {
-        throw OpalException(
-                "TrackRun::execute",
-                "The first beam in BEAMS (\"" + beamNames[0]
-                        + "\") receives decay daughters (DAUGHTERBEAM of another beam). List beam "
-                          "\""
-                        + beamNames[decayRoots_m[0]] + "\" first.");
-    }
-    for (size_t i = 0; i < beams.size(); ++i) {
-        if (decayRoots_m[i] == i) {
-            continue;
-        }
-        if (beams[i]->hasExplicitEnergy()) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "\"GAMMA\", \"ENERGY\" and \"PC\" are not allowed on beam \"" + beamNames[i]
-                            + "\": it receives decay daughters (DAUGHTERBEAM of another beam) and "
-                              "uses the reference particle of beam \""
-                            + beamNames[decayRoots_m[i]] + "\".");
-        }
-        if (beams[i]->hasEmissionSources()) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "\"SOURCES\" is not allowed on beam \"" + beamNames[i]
-                            + "\": it receives particles only from decays (DAUGHTERBEAM of "
-                              "another beam).");
-        }
-    }
-
     *gmsg << level1 << "* RUN resolved beams: ";
     for (size_t i = 0; i < beamNames.size(); ++i) {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
@@ -463,44 +418,16 @@ void TrackRun::execute() {
         } else {
             EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
             const auto& sources     = esl->fetchSources();
-            if (sources.empty()) {
-                throw OpalException(
-                        "TrackRun::execute",
-                        "Emission sources list for beam '" + beamNames[i]
-                                + "' must contain at least one EMISSIONSOURCE.");
-            }
             emissionSourcesLists.emplace_back(sources.begin(), sources.end());
         }
 
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
+    // validate() refused emitting or delayed sources and DECAY for a restart.
     const bool isRestart = opal_m->inRestartRun();
     if (isRestart) {
         opal_m->setOpenMode(OpalData::OpenMode::APPEND);
-        for (size_t i = 0; i < emissionSourcesLists.size(); ++i) {
-            for (const EmissionSource* source : emissionSourcesLists[i]) {
-                Distribution* distribution = Distribution::find(source->getDistributionName());
-                distribution->setDistType();
-                distribution->setDist();
-                if (distribution->emitting_m || source->getT0() > 0.0
-                    || distribution->getType() == DistributionType::EMITTEDFROMFILE) {
-                    throw OpalException(
-                            "TrackRun::execute",
-                            "Checkpoint restart does not yet support time-dependent or delayed "
-                            "emission sources (beam '"
-                                    + beamNames[i] + "', distribution '"
-                                    + source->getDistributionName() + "').");
-                }
-            }
-            if (!globalProcessesLists[i].empty()) {
-                throw OpalException(
-                        "TrackRun::execute",
-                        "Checkpoint restart does not yet support stochastic global processes "
-                        "such as DECAY (beam '"
-                                + beamNames[i] + "').");
-            }
-        }
     }
 
     // Parser-owned commands are consumed once. Runtime solver objects retain only this
@@ -664,64 +591,22 @@ void TrackRun::execute() {
     const bool isRing =
             Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
     const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
-    if (isRing && (!(ringPeriod > 0.0) || !std::isfinite(ringPeriod))) {
-        throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
-    }
+    // validate() checked the RING length and the EKINSTOP and TURNS settings.
     unsigned long long directedTurns = 0;
     const double kineticStop         = Track::block->kineticEnergyStopGeV;
     if (kineticStop > 0) {
-        if (!isRing || isRestart || !itsAttr[TRACKRUN::TURNS].defaultUsed()
-            || Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1
-            || !(Track::block->dT.front() > 0))
-            throw OpalException(
-                    "TrackRun::execute",
-                    "EKINSTOP requires a non-restarted RING, one positive DT segment and no "
-                    "explicit TURNS.");
         sStop.front() = std::numeric_limits<double>::max();
     }
     if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing
         && !Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
-        const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
-        const double roundedTurns   = std::round(requestedTurns);
-        if (!std::isfinite(requestedTurns)
-            || requestedTurns >= static_cast<double>(std::numeric_limits<unsigned long long>::max())
-            || requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
-            throw OpalException(
-                    "TrackRun::execute", "TURNS must be a positive integer for a RING.");
-        }
-        if (Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "RING tracking with explicit TURNS currently requires one DT/MAXSTEPS/ZSTOP "
-                    "segment.");
-        }
-
-        const auto turns = static_cast<unsigned long long>(roundedTurns);
-        if (beams.size() != 1)
-            throw OpalException("TrackRun::execute", "Localized TURNS requires one beam.");
-        if (isRestart) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "Explicit RING TURNS restart requires persisted return-plane counters and is "
-                    "not supported yet.");
-        }
+        const double roundedTurns    = std::round(Attributes::getReal(itsAttr[TRACKRUN::TURNS]));
+        const auto turns             = static_cast<unsigned long long>(roundedTurns);
         directedTurns                = turns;
         const double beta            = Track::block->reference.getBeta();
         const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
-        if (!(distancePerStep > 0.0)) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "A RING tracked with TURNS requires positive circumference, DT, and "
-                    "reference velocity.");
-        }
-
-        const double pathLength     = roundedTurns * ringPeriod;
-        const double estimatedSteps = std::ceil(pathLength / distancePerStep);
-        const double safetySteps    = 2.0 * estimatedSteps + 100.0;
-        if (!std::isfinite(safetySteps)
-            || safetySteps >= static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
-            throw OpalException("TrackRun::execute", "RING TURNS step budget overflows.");
-        }
+        const double pathLength      = roundedTurns * ringPeriod;
+        const double estimatedSteps  = std::ceil(pathLength / distancePerStep);
+        const double safetySteps     = 2.0 * estimatedSteps + 100.0;
 
         sStop.front()    = std::numeric_limits<double>::max();
         maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
@@ -741,9 +626,6 @@ void TrackRun::execute() {
     static_cast<ParallelTracker*>(itsTracker_m.get())
             ->setBeamReferenceMomenta(std::move(beamReferenceMomenta));
     if (Track::block->initialOrbit) {
-        if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
-            throw OpalException(
-                    "INITIALORBIT", "Requires one fresh beam and ordinary particle tracking.");
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),
                 beams.front()->getReference());
@@ -771,17 +653,7 @@ void TrackRun::execute() {
         const double turns  = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);
         const auto initial  = beams.front()->getTuneInitial();
-        if (!isRing || isRestart || kineticStop > 0 || beams.size() != 1
-            || fs_m->getType() != "NONE" || beams.front()->getParticleName() != "PROTON"
-            || Track::block->dT.size() != 1 || initial.empty() || initial.size() % 3
-            || !(turns >= 1 && turns <= 100000 && turns == std::floor(turns))
-            || !(sample >= 1 && sample <= 100000 && sample == std::floor(sample))
-            || Track::block->stepsPerTurn <= 0 || !(Track::block->dT.front() > 0)
-            || !beams.front()->getGlobalProcessNames().empty())
-            throw OpalException(
-                    "TrackRun",
-                    "SPECTRALTUNES requires non-restarted proton RING, one beam/DT, "
-                    "FIELDSOLVER=NONE, TUNEINITIAL triples and positive integer TURNS/TUNESAMPLE.");
+        // validate() checked the SPECTRALTUNES settings and the step budget.
         SpectralTunes::Settings settings;
         settings.turns        = static_cast<unsigned>(turns);
         settings.sampleEvery  = static_cast<unsigned>(sample);
@@ -790,8 +662,6 @@ void TrackRun::execute() {
         settings.sector       = Attributes::getString(itsAttr[TRACKRUN::TUNESECTOR]);
         settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
                 Attributes::getString(itsAttr[TRACKRUN::TUNEINTEGRATOR]));
-        if (size_t(settings.turns) * settings.stepsPerTurn > Track::block->localTimeSteps.front())
-            throw OpalException("TrackRun", "Spectral tune steps exceed TRACK MAXSTEPS.");
         static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial, settings);
     }
     itsTracker_m->execute();
@@ -902,52 +772,19 @@ void TrackRun::setupGlobalProcesses(
 std::vector<BeamStop> TrackRun::makeBeamStops(
         const std::vector<Beam*>& beams, const bool isRing,
         const std::vector<BeamStop>& restored) const {
-    const std::vector<std::string>& beamNames = Track::block->beamNames_m;
-    const auto name                           = [&](std::size_t i) {
-        return "\"" + (i < beamNames.size() ? beamNames[i] : std::to_string(i)) + "\"";
-    };
+    // validate() checked the combinations of TRACK ZSTOP, BEAM ZSTOP and UNTILMAXSTEPS.
     std::vector<BeamStop> stops(beams.size());
     for (std::size_t i = 0; i < beams.size(); ++i) {
-        const std::optional<double> zStop = beams[i]->getZStop();
-        const bool untilMaxSteps          = beams[i]->getUntilMaxSteps();
-        if ((zStop || untilMaxSteps) && isRing) {
-            throw OpalException(
-                    "TrackRun::makeBeamStops",
-                    "BEAM ZSTOP and UNTILMAXSTEPS apply to LINE tracking only (beam " + name(i)
-                            + ").");
-        }
-        if (zStop && i == 0) {
-            throw OpalException(
-                    "TrackRun::makeBeamStops",
-                    "Beam " + name(i)
-                            + " is the first beam of the TRACK; set its stop with TRACK ZSTOP, "
-                              "not BEAM ZSTOP.");
-        }
-        if (zStop && decayRoots_m[i] != i) {
-            throw OpalException(
-                    "TrackRun::makeBeamStops",
-                    "Beam " + name(i)
-                            + " receives decay daughters and does not start at the start of the "
-                              "line, so it cannot have a ZSTOP.");
-        }
-        stops[i].zStop         = zStop;
-        stops[i].untilMaxSteps = untilMaxSteps;
+        stops[i].zStop         = beams[i]->getZStop();
+        stops[i].untilMaxSteps = beams[i]->getUntilMaxSteps();
     }
     if (!isRing && Track::block->zStopGiven) stops[0].zStop = Track::block->zstop.back();
-    for (std::size_t i = 0; i < stops.size(); ++i) {
-        if (stops[i].zStop && stops[i].untilMaxSteps) {
-            throw OpalException(
-                    "TrackRun::makeBeamStops",
-                    "Beam " + name(i) + " has both a ZSTOP" + (i == 0 ? " (from TRACK)" : "")
-                            + " and UNTILMAXSTEPS; give only one of them.");
-        }
+    for (std::size_t i = 0; i < stops.size() && i < restored.size(); ++i) {
         // A restart continues with the planes and done flags of the checkpoint.
-        if (i < restored.size()) {
-            stops[i].planeSet    = restored[i].planeSet;
-            stops[i].planeOrigin = restored[i].planeOrigin;
-            stops[i].planeNormal = restored[i].planeNormal;
-            stops[i].done        = restored[i].done;
-        }
+        stops[i].planeSet    = restored[i].planeSet;
+        stops[i].planeOrigin = restored[i].planeOrigin;
+        stops[i].planeNormal = restored[i].planeNormal;
+        stops[i].done        = restored[i].done;
     }
     return stops;
 }

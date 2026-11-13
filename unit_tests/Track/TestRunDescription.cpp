@@ -37,11 +37,15 @@ namespace {
         D1: DRIFT, L = 0.5, ELEMEDGE = 0.2;
         SUB: LINE = (D1, Q3);
         L1: LINE = (Q1, SUB, -SUB, 2*Q2);
-        B1: BEAM, PARTICLE = PROTON, PC = 0.1, NALLOC = 10, BCHARGE = 1e-15;
+        DI: DISTRIBUTION, TYPE = GAUSS, SIGMAX = 1e-3, SIGMAY = 1e-3, SIGMAZ = 1e-3;
+        ES1: EMISSIONSOURCE, DISTRIBUTION = DI;
+        SRC: EMISSIONSOURCELIST = (ES1);
+        FS1: FIELDSOLVER, TYPE = NONE, NX = 8, NY = 8, NZ = 8;
+        B1: BEAM, PARTICLE = PROTON, PC = 0.1, NALLOC = 10, BCHARGE = 1e-15, SOURCES = SRC;
     )";
     const std::string trackAndRun = R"(
         TRACK, LINE = L1, BEAM = B1, MAXSTEPS = 5, DT = 1e-12, ZSTOP = 1;
-        RUN, METHOD = "PARALLEL";
+        RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
         ENDTRACK;
     )";
 
