@@ -308,6 +308,12 @@ void TrackRun::execute() {
     }
     if (opal_m->checkOnly) return;
 
+    itsTracker_m =
+            std::make_unique<ParallelTracker>(*Track::block->use->fetchLine(), buildTracking());
+    itsTracker_m->execute();
+}
+
+TrackingSetup TrackRun::buildTracking() {
     OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
@@ -615,16 +621,24 @@ void TrackRun::execute() {
               << " m." << endl;
     }
 
-    itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
-            false, maxSteps, Track::block->zstart, sStop, Track::block->dT, emittingSamplersList,
-            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
-            restartMetadata.dt,
-            StepSizeConfig::ResumePosition{
-                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
-            ringPeriod);
-    static_cast<ParallelTracker*>(itsTracker_m.get())
-            ->setBeamReferenceMomenta(std::move(beamReferenceMomenta));
+    // Everything the tracker reads, in one struct.
+    TrackingSetup setup;
+    setup.bunch                = bunch_m.get();
+    setup.spaceChargeSolver    = spaceChargeSolver_m.get();
+    setup.dirichletPlane       = dirichletPlane;
+    setup.dataSink             = ds_m;
+    setup.dt                   = Track::block->dT;
+    setup.sStop                = sStop;
+    setup.maxSteps             = maxSteps;
+    setup.sStart               = Track::block->zstart;
+    setup.emittingSamplers     = emittingSamplersList;
+    setup.beamReferenceMomenta = std::move(beamReferenceMomenta);
+    setup.restarting           = isRestart;
+    setup.restartGlobalStep    = static_cast<unsigned long long>(restartMetadata.globalTrackStep);
+    setup.restartDt            = restartMetadata.dt;
+    setup.restartPosition      = StepSizeConfig::ResumePosition{
+            restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
+    setup.ringPeriod = ringPeriod;
     if (Track::block->initialOrbit) {
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),
@@ -633,44 +647,33 @@ void TrackRun::execute() {
             for (const auto& sampler : samplers)
                 if (!sampler->isEmissionDone(Track::block->initialOrbit->time))
                     throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
-        static_cast<ParallelTracker*>(itsTracker_m.get())
-                ->setInitialOrbit(*Track::block->initialOrbit);
+        setup.initialOrbit = *Track::block->initialOrbit;
     }
     // Other solver configurations retain the ordinary unsplit integration sequence.
-    static_cast<ParallelTracker*>(itsTracker_m.get())->bareTracking_m = fs_m->getType() == "NONE";
-    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m =
-            retrySafeBareTracking;
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop * 1e9);
-    static_cast<ParallelTracker*>(itsTracker_m.get())
-            ->setSpaceChargeFieldUpdate(
-                    Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
-                            ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
-                            : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
-    static_cast<ParallelTracker*>(itsTracker_m.get())
-            ->setBeamStops(makeBeamStops(beams, isRing, restartMetadata.beamStops));
+    setup.bareTracking         = fs_m->getType() == "NONE";
+    setup.allowBoundaryControl = retrySafeBareTracking;
+    setup.requestedTurns       = directedTurns;
+    setup.kineticEnergyStop    = kineticStop * 1e9;
+    setup.spaceChargeFieldUpdate =
+            Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
+                    ? SpaceChargeFieldUpdate::PRESTEP
+                    : SpaceChargeFieldUpdate::MIDPOINT;
+    setup.beamStops = makeBeamStops(beams, isRing, restartMetadata.beamStops);
     if (Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
-        const double turns  = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
-        const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);
-        const auto initial  = beams.front()->getTuneInitial();
         // validate() checked the SPECTRALTUNES settings and the step budget.
         SpectralTunes::Settings settings;
-        settings.turns        = static_cast<unsigned>(turns);
-        settings.sampleEvery  = static_cast<unsigned>(sample);
+        settings.turns = static_cast<unsigned>(Attributes::getReal(itsAttr[TRACKRUN::TURNS]));
+        settings.sampleEvery =
+                static_cast<unsigned>(Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]));
         settings.stepsPerTurn = Track::block->stepsPerTurn;
         settings.dt           = Track::block->dT.front();
         settings.sector       = Attributes::getString(itsAttr[TRACKRUN::TUNESECTOR]);
         settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
                 Attributes::getString(itsAttr[TRACKRUN::TUNEINTEGRATOR]));
-        static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial, settings);
+        setup.tuneInitial  = beams.front()->getTuneInitial();
+        setup.tuneSettings = settings;
     }
-    itsTracker_m->execute();
-
-    /*
-    opal_m->setRestartRun(false);
-
-    opal_m->bunchIsAllocated();
-    */
+    return setup;
 }
 
 void TrackRun::setRunMethod() {

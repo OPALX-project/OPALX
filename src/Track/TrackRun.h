@@ -19,6 +19,7 @@
 #define OPAL_TrackRun_HH
 
 #include "Algorithms/BeamStop.h"
+#include "Algorithms/TrackingSetup.h"
 #include "OPALTypes.h"
 
 #include "AbstractObjects/Action.h"
@@ -62,6 +63,14 @@ public:
 
     /// Execute the command.
     virtual void execute();
+
+    /**
+     * @brief Build everything the tracker needs for this RUN: beams, particle containers,
+     *        output, samplers or the checkpoint, the space-charge solver, the step-size
+     *        schedule and the stop rules.
+     * @note Called by execute() after freeze() and validate().
+     */
+    TrackingSetup buildTracking();
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;

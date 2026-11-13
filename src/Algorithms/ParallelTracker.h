@@ -29,6 +29,7 @@
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
+#include "Algorithms/TrackingSetup.h"
 #include "Steppers/BorisPusher.h"
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
@@ -91,56 +92,21 @@ namespace opalx::spacecharge {
  */
 class ParallelTracker : public Tracker {
 public:
-    /// Position within drift-kick-drift at which the particle self-field is evaluated.
-    enum class SpaceChargeFieldUpdate {
-        MIDPOINT,  ///< Solve after the first half drift (default OPALX ordering).
-        PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
-    };
-
-    /// Place the generated bunch in the solved orbit frame, preserving local spread.
-    void setInitialOrbit(const ClosedOrbitInitialState& state) { initialOrbit_m = state; }
-
-    /// Reference momentum [beta*gamma] per container from BEAM for a file distribution;
-    /// an empty entry uses the bunch mean.
-    void setBeamReferenceMomenta(std::vector<std::optional<Vector_t<double, 3>>> momenta) {
-        beamReferenceMomenta_m = std::move(momenta);
-    }
-
-    /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
-    void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
-        tuneInitial_m  = std::move(initial);
-        tuneSettings_m = settings;
-    }
-    /// Stop at the localized Nth forward reference return (single container,
-    /// supported magnetic/RF elements, no ongoing emission). The complete bunch
-    /// advances to that reference event time; individual particles need not close.
-    /// Turn counting is independent of the ordinary device Boris/PIC integration.
-    /// Compatible bare analytic rings share boundary-controlled substeps so all
-    /// particles reach each midpoint together. COF/reference remain host-side.
-    /// This changes rounding and edge truncation errors from the legacy kernels,
-    /// while retaining the energy-conserving magnetic Boris rotation. Boundary
-    /// refinement excludes spin. Immutable field descriptors are uploaded once; particle data
-    /// stay in device views. Supports drifts, passive elements, analytic bends,
-    /// dipoles, quadrupoles and ideal VariableRFCavity elements. Shared boundary
-    /// retries are restricted to bare (NONE solver) tracking; PIC retains the
-    /// ordinary step sequence independently of any diagnostic probe selection.
-    /// Checkpoint/restart and solver configurations that cannot repeat midpoint
-    /// trials retain fixed Boris/PIC steps with spatial field selection.
-    void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
-    /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
-     * kick, never by clipping its energy gain. TRACK validates positive finite
-     * input and compatible RING controls; execute() checks launch and model.
-     */
-    void setKineticEnergyStop(double energy) { kineticEnergyStop_m = energy; }
-    /** Select the self-field evaluation point. This changes temporal discretization only;
-     * deposition, field solver, and Boris kick are unchanged.
-     */
-    void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
-        spaceChargeFieldUpdate_m = update;
-    }
-    /// Stop conditions of every beam, one per particle container; see BeamStop. On a restart
-    /// they include the planes and done flags restored from the checkpoint.
-    void setBeamStops(std::vector<BeamStop> stops) { beamStops_m = std::move(stops); }
+    // Localized TURNS (TrackingSetup::requestedTurns): stop at the Nth forward reference return
+    // (single container, supported magnetic/RF elements, no ongoing emission). The complete bunch
+    // advances to that reference event time; individual particles need not close.
+    // Turn counting is independent of the ordinary device Boris/PIC integration.
+    // Compatible bare analytic rings share boundary-controlled substeps so all
+    // particles reach each midpoint together. COF/reference remain host-side.
+    // This changes rounding and edge truncation errors from the legacy kernels,
+    // while retaining the energy-conserving magnetic Boris rotation. Boundary
+    // refinement excludes spin. Immutable field descriptors are uploaded once; particle data
+    // stay in device views. Supports drifts, passive elements, analytic bends,
+    // dipoles, quadrupoles and ideal VariableRFCavity elements. Shared boundary
+    // retries are restricted to bare (NONE solver) tracking; PIC retains the
+    // ordinary step sequence independently of any diagnostic probe selection.
+    // Checkpoint/restart and solver configurations that cannot repeat midpoint
+    // trials retain fixed Boris/PIC steps with spatial field selection.
     void visitCyclotronSector(const CyclotronSector& sector) override {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
@@ -152,7 +118,6 @@ public:
 
 private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
-    friend class TrackRun;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
     bool allowBoundaryControl_m =
@@ -252,34 +217,11 @@ public:
     explicit ParallelTracker(const Beamline& bl, bool revBeam);
 
     /**
-     * @brief Construct tracker with bunch, output sink, and step-size schedule.
-     * @param bl                Beamline definition.
-     * @param bunch             Borrowed particle bunch (multi-container).
-     * @param spaceChargeSolver   Borrowed solver owned by TrackRun.
-     * @param dirichletPlane      Dirichlet plane used by tracker-side loss handling.
-     * @param ds                Borrowed data sink for statistics and dumps.
-     * @param revBeam           Reversed beam flag (see single-argument constructor).
-     * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
-     * @param sStart            Starting path length (m).
-     * @param sStop             Stop path length per segment (m).
-     * @param dt                Time step per segment (s).
-     * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
-     * @param restarting        True when bunch state was restored from a checkpoint.
-     * @param restartGlobalStep Completed global integration steps restored from a checkpoint.
-     * @param restartDt         Time step stored in the checkpoint.
-     * @param restartPosition   Saved step-size segment and completed steps within that segment.
-     * @param ringPeriod        One-turn path length for periodic RING lookup; zero for LINE.
+     * @brief Construct the tracker for one RUN.
+     * @param bl    Beamline definition.
+     * @param setup Everything TrackRun built for this RUN; setup.bunch must be set.
      */
-    explicit ParallelTracker(
-            const Beamline& bl, PartBunch_t& bunch,
-            opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-            opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
-            const std::vector<unsigned long long>& maxSTEPS, double sStart,
-            const std::vector<double>& sStop, const std::vector<double>& dt,
-            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
-            bool restarting = false, unsigned long long restartGlobalStep = 0,
-            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0},
-            double ringPeriod = 0.0);
+    ParallelTracker(const Beamline& bl, TrackingSetup setup);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();

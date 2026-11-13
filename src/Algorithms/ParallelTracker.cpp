@@ -114,38 +114,40 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {}
 
 /**
- * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
+ * @brief Construct the tracker from what TrackRun built for one RUN.
  */
-ParallelTracker::ParallelTracker(
-        const Beamline& beamline, PartBunch_t& bunch,
-        opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-        opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
-        const std::vector<unsigned long long>& maxSteps, double sStart,
-        const std::vector<double>& sStop, const std::vector<double>& dt,
-        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
-        bool restarting, unsigned long long restartGlobalStep, double restartDt,
-        StepSizeConfig::ResumePosition restartPosition, double ringPeriod)
-    : Tracker(beamline, bunch, revBeam, false),
-      itsDataSink_m(ds),
-      spaceChargeSolver_m(&spaceChargeSolver),
-      dirichletPlane_m(std::move(dirichletPlane)),
+ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
+    : Tracker(beamline, *setup.bunch, false, false),
+      bareTracking_m(setup.bareTracking),
+      allowBoundaryControl_m(setup.allowBoundaryControl),
+      initialOrbit_m(std::move(setup.initialOrbit)),
+      beamReferenceMomenta_m(std::move(setup.beamReferenceMomenta)),
+      tuneInitial_m(std::move(setup.tuneInitial)),
+      tuneSettings_m(setup.tuneSettings),
+      kineticEnergyStop_m(setup.kineticEnergyStop),
+      requestedTurns_m(setup.requestedTurns),
+      spaceChargeFieldUpdate_m(setup.spaceChargeFieldUpdate),
+      itsDataSink_m(setup.dataSink),
+      spaceChargeSolver_m(setup.spaceChargeSolver),
+      dirichletPlane_m(std::move(setup.dirichletPlane)),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       referenceHitMaterial_m(false),
-      sStart_m(sStart),
-      ringPeriod_m(ringPeriod),
+      beamStops_m(std::move(setup.beamStops)),
+      sStart_m(setup.sStart),
+      ringPeriod_m(setup.ringPeriod),
       dtCurrentTrack_m(0.0),
-      emittingSamplers_m(emittingSamplers),
-      restarting_m(restarting),
-      restartGlobalStep_m(restartGlobalStep),
-      restartDt_m(restartDt),
-      restartPosition_m(restartPosition),
+      emittingSamplers_m(std::move(setup.emittingSamplers)),
+      restarting_m(setup.restarting),
+      restartGlobalStep_m(setup.restartGlobalStep),
+      restartDt_m(setup.restartDt),
+      restartPosition_m(setup.restartPosition),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {
-    for (unsigned int i = 0; i < sStop.size(); ++i) {
-        stepSizes_m.push_back(dt[i], sStop[i], maxSteps[i]);
+    for (unsigned int i = 0; i < setup.sStop.size(); ++i) {
+        stepSizes_m.push_back(setup.dt[i], setup.sStop[i], setup.maxSteps[i]);
     }
 
     stepSizes_m.sortAscendingSStop();
