@@ -1,9 +1,9 @@
 //
 // Class Line
 //   The LINE definition.
-//   A Line contains an OPALX TBeamline<FlaggedElmPtr> which represents the
-//   sequence of elements in the line.  The line is always flat in the sense
-//   that nested anonymous lines are flattened.
+//   A Line keeps its members by name, in order. Nested anonymous lines and
+//   line macro expansions are copied in; a nested named LINE stays one member
+//   and is looked up by name when the line is described.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -22,19 +22,15 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedElmPtr.h"
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SBinary.h"
 #include "Expressions/SRefExpr.h"
 #include "Expressions/TFunction2.h"
 #include "Lines/LineTemplate.h"
-#include "Lines/Replacer.h"
 #include "Lines/Ring.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
@@ -96,27 +92,21 @@ Line::Line(const char* keyword, const char* help) : BeamSequence(SIZE, keyword, 
     itsAttr[PSI] =
             Attributes::makeReal("PSI", "The rotation about the z-axis of the particle source", 0);
 
-    setElement(new FlaggedBeamline(keyword));
-
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 Line::Line(const std::string& name, Line* parent)
     :  // Do not copy list members; they will be filled at parse time.
-      BeamSequence(name, parent) {
-    setElement(new FlaggedBeamline(name));
-}
+      BeamSequence(name, parent) {}
 
 Line::~Line() {}
 
 Line* Line::clone(const std::string& name) { return new Line(name, this); }
 
 Line* Line::copy(const std::string& name) {
-    Line* clone              = new Line(name, this);
-    FlaggedBeamline* oldLine = fetchLine();
-    FlaggedBeamline* newLine = clone->fetchLine();
-    std::copy(oldLine->begin(), oldLine->end(), std::back_inserter(*newLine));
-    return &*clone;
+    Line* clone      = new Line(name, this);
+    clone->members_m = members_m;
+    return clone;
 }
 
 double Line::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }
@@ -143,39 +133,22 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
     parseDelimiter(stat, '=');
     parseDelimiter(stat, '(');
 
-    // Clear all reference counts.
-    OpalData::getInstance()->apply(OpalData::ClearReference());
-
     // Parse the line list.
     parseList(stat, allowModifiers);
 
     // Insert the begin and end markers.
-    FlaggedBeamline* line = fetchLine();
-    auto markS            = Element::find("#S")->getElementPtr();
-    FlaggedElmPtr first(ElmPtr(markS), false);
-    line->push_front(first);
+    members_m.insert(members_m.begin(), Member{"#S", false});
+    members_m.push_back(Member{"#E", false});
 
-    auto markE = Element::find("#E")->getElementPtr();
-    FlaggedElmPtr last(ElmPtr(markE), false);
-    line->push_back(last);
-
-    // Construct expression for length, and fill in occurrence counters.
+    // Construct expression for length.
     PtrToScalar<double> expr;
-    for (FlaggedBeamline::iterator i = line->begin(); i != line->end(); ++i) {
-        auto actname = i->getElement()->getName();
-        // Accumulate length.
-        PtrToScalar<double> temp = new SRefExpr<double>(actname, "L");
+    for (const Member& member : members_m) {
+        PtrToScalar<double> temp = new SRefExpr<double>(member.name, "L");
         if (expr.isValid() && temp.isValid()) {
             expr = SBinary<double, double>::make(plus, expr, temp);
         } else {
             expr = temp;
         }
-
-        // Do the required instantiations.
-        ElementBase* base = i->getElement();
-        i->setElement(base->copyStructure());
-        Element* elem = Element::find(actname);
-        i->setCounter(elem->increment());
     }
     if (expr.isValid()) itsAttr[LENGTH].set(new SAutomatic<double>(expr));
 
@@ -197,9 +170,9 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
     if (itsAttr[ORIGIN] || itsAttr[ORIENTATION]) {
         std::vector<double> origin = Attributes::getRealArray(itsAttr[ORIGIN]);
         if (origin.size() == 3) {
-            line->setOrigin3D(Vector_t<double, 3>(origin[0], origin[1], origin[2]));
+            origin_m = Vector_t<double, 3>(origin[0], origin[1], origin[2]);
         } else {
-            line->setOrigin3D(Vector_t<double, 3>(0.0));
+            origin_m = Vector_t<double, 3>(0.0);
             if (itsAttr[ORIGIN]) {
                 throw OpalException(
                         "Line::parse", "Parameter origin is array of 3 values (x, y, z);\n"
@@ -217,9 +190,9 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
             Quaternion rotTheta(cos(0.5 * theta), 0, -sin(0.5 * theta), 0);
             Quaternion rotPhi(cos(0.5 * phi), -sin(0.5 * phi), 0, 0);
             Quaternion rotPsi(cos(0.5 * psi), 0, 0, -sin(0.5 * psi));
-            line->setInitialDirection(rotPsi * rotPhi * rotTheta);
+            direction_m = rotPsi * rotPhi * rotTheta;
         } else {
-            line->setInitialDirection(Quaternion(1, 0, 0, 0));
+            direction_m = Quaternion(1, 0, 0, 0);
             if (itsAttr[ORIENTATION]) {
                 throw OpalException(
                         "Line::parse",
@@ -227,8 +200,6 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
                                 + std::to_string(direction.size()) + " values provided");
             }
         }
-
-        line->setRelativeFlag(true);
     } else {
         const Vector_t<double, 3> origin(
                 Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
@@ -242,27 +213,20 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
         Quaternion rotPhi(cos(0.5 * phi), -sin(0.5 * phi), 0, 0);
         Quaternion rotPsi(cos(0.5 * psi), 0, 0, -sin(0.5 * psi));
 
-        line->setOrigin3D(origin);
-        line->setInitialDirection(rotPsi * rotPhi * rotTheta);
-
-        line->setRelativeFlag(
-                !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed() || !itsAttr[Z].defaultUsed()
-                || !itsAttr[THETA].defaultUsed() || !itsAttr[PHI].defaultUsed()
-                || !itsAttr[PSI].defaultUsed());
+        origin_m    = origin;
+        direction_m = rotPsi * rotPhi * rotTheta;
     }
 }
 
 void Line::print(std::ostream& os) const {
     os << getOpalName() << ':' << getSequenceKeyword() << "=(";
-    const FlaggedBeamline* line = fetchLine();
-    bool seen                   = false;
+    bool seen = false;
 
-    for (FlaggedBeamline::const_iterator i = line->begin(); i != line->end(); ++i) {
-        const std::string name = i->getElement()->getName();
-        if (name[0] != '#') {
+    for (const Member& member : members_m) {
+        if (member.name[0] != '#') {
             if (seen) os << ',';
-            if (i->getReflectionFlag()) os << '-';
-            os << name;
+            if (member.reflected) os << '-';
+            os << member.name;
             seen = true;
         }
     }
@@ -272,13 +236,9 @@ void Line::print(std::ostream& os) const {
     os << std::endl;
 }
 
-FlaggedBeamline* Line::fetchLine() const { return dynamic_cast<FlaggedBeamline*>(getElement()); }
-
 const char* Line::getSequenceKeyword() const { return "LINE"; }
 
 void Line::parseList(Statement& stat, bool allowModifiers) {
-    FlaggedBeamline* line = fetchLine();
-
     do {
         // Reversed member ?
         bool rev = stat.delimiter('-');
@@ -297,53 +257,52 @@ void Line::parseList(Statement& stat, bool allowModifiers) {
 
         // List member.
         if (stat.delimiter('(')) {
-            // Anonymous sub-line is expanded immediately.
+            // Anonymous sub-line is expanded immediately. Reversing it reverses the order of
+            // its members and drops their own reflection.
             Line nestedLine;
             nestedLine.parseList(stat, allowModifiers);
-            FlaggedBeamline* subLine = nestedLine.fetchLine();
+            const std::vector<Member>& subLine = nestedLine.members_m;
 
             while (repeat-- > 0) {
                 if (rev) {
-                    for (FlaggedBeamline::reverse_iterator i = subLine->rbegin();
-                         i != subLine->rend(); ++i) {
-                        FlaggedElmPtr fep(*i);
-                        fep.setReflectionFlag(false);
-                        line->push_back(fep);
+                    for (auto i = subLine.rbegin(); i != subLine.rend(); ++i) {
+                        members_m.push_back(Member{i->name, false});
                     }
                 } else {
-                    for (FlaggedBeamline::iterator i = subLine->begin(); i != subLine->end(); ++i) {
-                        FlaggedElmPtr fep(*i);
-                        line->push_back(fep);
-                    }
+                    members_m.insert(members_m.end(), subLine.begin(), subLine.end());
                 }
             }
         } else {
             // Identifier.
             std::string name = parseString(stat, "Line member expected.");
-            auto obj         = OpalData::getInstance()->find(
-                    name);  // std::shared_ptr<Object>(OpalData::getInstance()->find(name));
+            Object* obj      = OpalData::getInstance()->find(name);
 
             if (!obj) {
                 throw ParseError("Line::parseList()", "Element \"" + name + "\" is undefined.");
-            } else
-
-                    if (stat.delimiter('(')) {
-                // Line or sequence macro.
-                // This instance will always be an anonymous object.
-                obj = obj->makeInstance(
-                        name, stat,
-                        0);  // std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
 
-            if (dynamic_cast<Ring*>(obj)) {
+            if (stat.delimiter('(')) {
+                // Line macro: its expansion is an anonymous LINE, whose members (its #S and #E
+                // included) are copied in, in order; -NAME reflects each of them.
+                std::unique_ptr<Object> instance(obj->makeInstance(name, stat, 0));
+                const auto* expanded = dynamic_cast<const Line*>(instance.get());
+                if (expanded == nullptr) {
+                    throw ParseError(
+                            "Line::parseList()",
+                            "Object \"" + name + "\" cannot be a line member.");
+                }
+                while (repeat-- > 0) {
+                    for (const Member& member : expanded->members_m) {
+                        members_m.push_back(Member{member.name, member.reflected != rev});
+                    }
+                }
+            } else if (dynamic_cast<Ring*>(obj)) {
                 throw ParseError(
                         "Line::parseList()", "A RING cannot be nested in a LINE or another RING.");
-            } else if (Element* elem = dynamic_cast<Element*>(obj)) {
+            } else if (dynamic_cast<Element*>(obj)) {
                 while (repeat-- > 0) {
-                    FlaggedElmPtr member(ElmPtr(elem->getElementPtr()), rev);
-                    line->push_back(member);
+                    members_m.push_back(Member{name, rev});
                 }
-
             } else {
                 throw ParseError(
                         "Line::parseList()", "Object \"" + name + "\" cannot be a line member.");
@@ -352,14 +311,4 @@ void Line::parseList(Statement& stat, bool allowModifiers) {
     } while (stat.delimiter(','));
 
     parseDelimiter(stat, ')');
-}
-
-void Line::replace(Object* oldObject, Object* newObject) {
-    Element* oldElement = dynamic_cast<Element*>(oldObject);
-    Element* newElement = dynamic_cast<Element*>(newObject);
-
-    if (oldElement != 0 && newElement != 0) {
-        Replacer rep(*fetchLine(), oldElement->getOpalName(), newElement->getElement());
-        rep.execute();
-    }
 }

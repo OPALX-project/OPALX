@@ -6,6 +6,7 @@
 //
 #include "Track/FreezeRun.h"
 
+#include <algorithm>
 #include <exception>
 #include <string>
 
@@ -15,13 +16,12 @@
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/Object.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedElmPtr.h"
 #include "Distribution/Distribution.h"
 #include "Lines/EmissionSourceList.h"
+#include "Lines/Line.h"
+#include "Lines/Ring.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
 #include "Structure/BoundaryGeometry.h"
@@ -81,42 +81,39 @@ namespace opalx::run {
         }
 
         /**
-         * Walks the tracked line in the order ParallelTracker visits it: nested lines are
-         * entered, and the reflection flag of a member (-NAME) does not change the order,
-         * because ParallelTracker::visitBeamline iterates every line left to right.
+         * Append the members of @p line to @p out, in order. A nested LINE is entered; its
+         * members are reflected when the nested LINE is, unless they are reflected themselves.
+         * Reflection does not change the order. @p path holds the lines being entered, to
+         * refuse a LINE that contains itself.
          */
-        class LineWalker : public DefaultVisitor {
-        public:
-            LineWalker(const Beamline& line, std::vector<ElementDescription>& out)
-                : DefaultVisitor(line, false, false), out_m(out) {}
-
-            void visitBeamline(const Beamline& line) override { line.iterate(*this, false); }
-
-            void visitFlaggedElmPtr(const FlaggedElmPtr& entry) override {
-                // A member of a reflected line is reflected unless it is reflected itself.
-                const bool outer = reflected_m;
-                reflected_m      = outer != entry.getReflectionFlag();
-                DefaultVisitor::visitFlaggedElmPtr(entry);
-                reflected_m = outer;
-            }
-
-        private:
-            void applyDefault(const ElementBase& element) override {
-                ElementDescription description;
-                description.elementType = element.getTypeString();
-                description.occurrence  = out_m.size();
-                description.reflected   = reflected_m;
-                if (const auto* input = findAs<Element>(element.getName())) {
-                    description.object = describeObject(*input);
-                } else {
-                    description.object.name = element.getName();
+        void addMembers(
+                const Line& line, bool reflected, std::vector<ElementDescription>& out,
+                std::vector<std::string>& path) {
+            for (const Line::Member& member : line.getMembers()) {
+                const bool memberReflected = reflected != member.reflected;
+                if (const auto* nested = findAs<Line>(member.name)) {
+                    if (std::find(path.begin(), path.end(), member.name) != path.end()) {
+                        throw OpalException(
+                                "opalx::run::describeLine",
+                                "LINE \"" + member.name + "\" contains itself.");
+                    }
+                    path.push_back(member.name);
+                    addMembers(*nested, memberReflected, out, path);
+                    path.pop_back();
+                    continue;
                 }
-                out_m.push_back(std::move(description));
+                ElementDescription description;
+                description.occurrence = out.size();
+                description.reflected  = memberReflected;
+                if (const auto* input = findAs<Element>(member.name)) {
+                    description.elementType = input->getElement()->getTypeString();
+                    description.object      = describeObject(*input);
+                } else {
+                    description.object.name = member.name;
+                }
+                out.push_back(std::move(description));
             }
-
-            std::vector<ElementDescription>& out_m;
-            bool reflected_m = false;
-        };
+        }
 
         OptionValues currentOptions() {
             OptionValues o;
@@ -352,15 +349,14 @@ namespace opalx::run {
     LineDescription describeLine(const BeamSequence& sequence) {
         LineDescription description;
         description.name = sequence.getOpalName();
-        if (const Beamline* line = sequence.fetchLine()) {
-            description.topology =
-                    line->getBeamlineTopology() == BeamlineTopology::RING ? "RING" : "LINE";
-            const auto origin     = line->getOrigin3D();
-            const auto direction  = line->getInitialDirection();
+        if (const auto* line = dynamic_cast<const Line*>(&sequence)) {
+            description.topology  = dynamic_cast<const Ring*>(line) ? "RING" : "LINE";
+            const auto& origin    = line->getOrigin();
+            const auto& direction = line->getDirection();
             description.origin    = {origin[0], origin[1], origin[2]};
             description.direction = {direction[0], direction[1], direction[2], direction[3]};
-            LineWalker walker(*line, description.elements);
-            line->accept(walker);
+            std::vector<std::string> path{line->getOpalName()};
+            addMembers(*line, false, description.elements, path);
         }
         return description;
     }

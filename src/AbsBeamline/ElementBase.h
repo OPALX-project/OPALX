@@ -74,7 +74,7 @@ enum class BeamlineTopology : unsigned short { LINE, RING };
  * @brief Logical RING membership carried by a sequence member or runtime occurrence.
  *
  * An occurrence is one use of an element in a sequence, rather than its reusable input
- * definition. Ring::prepareForTracking() clones occurrences recursively and assigns the
+ * definition. opalx::run::buildElements() builds one element per occurrence and assigns the
  * enclosing RING name to each, including members inside nested LINEs. For example, two
  * uses of a quadrupole in ring R1 have distinct element objects but both carry
  * {BeamlineTopology::RING, "R1"}; neither the quadrupole name nor an inner LINE name

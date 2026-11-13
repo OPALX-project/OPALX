@@ -31,7 +31,7 @@ namespace opalx::run {
     /**
      * @brief Build the runtime elements of every occurrence of @p line, in line order.
      * @note On a RING every element except the #S and #E markers gets the RING membership,
-     *       as Ring::prepareForTracking() gives the parsed occurrences.
+     *       with the RING name as owner, also inside nested LINEs.
      */
     std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line);
 

@@ -1,18 +1,31 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <memory>
 #include <sstream>
 #include <string>
 
 #include "../KeywordObjects.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
+#include "AbstractObjects/Element.h"
+#include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MarkerRep.h"
 #include "BeamlineCore/SBendRep.h"
-#include "Beamlines/FlaggedBeamline.h"
+#include "Ippl.h"
 #include "Lines/Ring.h"
+#include "OpalConfigure/Configure.h"
+#include "OpalParser/OpalParser.h"
 #include "OpalParser/SimpleStatement.h"
+#include "OpalParser/StringStream.h"
 #include "OpalParser/Token.h"
+#include "Track/BuildElements.h"
+#include "Track/FreezeRun.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
+#include "Utility/Inform.h"
+
+extern Inform* gmsg;
 
 namespace {
     constexpr char testFile[] = "TestRing.in";
@@ -24,28 +37,51 @@ namespace {
     SimpleStatement statement(Statement::TokenList& tokens) {
         return SimpleStatement(testFile, tokens);
     }
-
-    class TestableRing : public Ring {
-    public:
-        FlaggedBeamline* line() { return fetchLine(); }
-    };
 }  // namespace
 
 class RingTest : public ::testing::Test {
 protected:
+    void SetUp() override {
+        gmsg = new Inform("", output_m, INFORM_ALL_NODES);
+        Configure::configure();
+    }
+
+    void TearDown() override {
+        OpalData::deleteInstance();
+        delete gmsg;
+        gmsg = nullptr;
+    }
+
     Ring* makeRing(const std::string& name) {
         return opalx::test::makeKeywordObject<Ring>("RING", name).release();
     }
+
+    void run(const std::string& text) {
+        std::string line = text;
+        for (char& c : line) {
+            if (c == '\n') c = ' ';
+        }
+        OpalParser parser;
+        parser.run(new StringStream(line));
+    }
+
+    /// The elements built for the occurrences of the parsed LINE or RING @p name.
+    std::vector<std::shared_ptr<ElementBase>> build(const std::string& name) {
+        return opalx::run::buildElements(opalx::run::describeLine(*BeamSequence::find(name)));
+    }
+
+    std::ostringstream output_m;
 };
 
-TEST_F(RingTest, ClonesAndPrintsRingDefinition) {
+TEST_F(RingTest, PrintsRingDefinitionAndIsDescribedAsRing) {
     std::unique_ptr<Ring> ring(makeRing("TEST_RING"));
 
     std::ostringstream output;
     ring->print(output);
     EXPECT_EQ(output.str(), "TEST_RING:RING=();\n");
-    EXPECT_EQ(ring->getElement()->getBeamlineTopology(), BeamlineTopology::RING);
-    EXPECT_EQ(ring->getElement()->getBeamlineOwnerName(), "TEST_RING");
+    const opalx::run::LineDescription line = opalx::run::describeLine(*ring);
+    EXPECT_EQ(line.topology, "RING");
+    EXPECT_EQ(line.name, "TEST_RING");
 }
 
 TEST(RingMembershipTest, DefaultsValidatesAndSurvivesClone) {
@@ -68,65 +104,56 @@ TEST(RingMembershipTest, DefaultsValidatesAndSurvivesClone) {
     EXPECT_TRUE(drift.getBeamlineOwnerName().empty());
 }
 
-TEST(RingMembershipTest, ClonesAndTagsOccurrencesRecursively) {
-    auto prototype = std::make_shared<DriftRep>("D");
-    auto marker    = std::make_shared<MarkerRep>("#S");
-    auto nested    = std::make_shared<FlaggedBeamline>("SUBLINE");
-    nested->push_back(FlaggedElmPtr(ElmPtr(prototype)));
+TEST_F(RingTest, BuildsAndTagsOneElementPerOccurrenceRecursively) {
+    run(R"(
+        D: DRIFT, L = 0.5, ELEMEDGE = 0;
+        SUBLINE: LINE = (D);
+        R: RING = (D, D, SUBLINE);
+    )");
+    // #S, D, D, then SUBLINE with its own #S and #E, then #E.
+    const auto elements = build("R");
+    ASSERT_EQ(elements.size(), 7u);
+    const ElementBase* input = Element::find("D")->getElement();
 
-    TestableRing ring;
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(marker)));
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(prototype)));
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(prototype)));
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(nested)));
-    ring.prepareForTracking();
+    EXPECT_EQ(elements[0]->getName(), "#S");
+    EXPECT_EQ(elements[0]->getBeamlineTopology(), BeamlineTopology::LINE);
 
-    auto member = ring.line()->begin();
-    EXPECT_EQ(member->getElement(), marker.get());
-    EXPECT_EQ(member->getElement()->getBeamlineTopology(), BeamlineTopology::LINE);
-
-    ElementBase* first  = (++member)->getElement();
-    ElementBase* second = (++member)->getElement();
-    EXPECT_NE(first, prototype.get());
-    EXPECT_NE(second, prototype.get());
+    const ElementBase* first  = elements[1].get();
+    const ElementBase* second = elements[2].get();
+    EXPECT_NE(first, input);
+    EXPECT_NE(second, input);
     EXPECT_NE(first, second);
-    EXPECT_EQ(first->getBeamlineOwnerName(), "RING");
-    EXPECT_EQ(second->getBeamlineOwnerName(), "RING");
-    EXPECT_EQ(prototype->getBeamlineTopology(), BeamlineTopology::LINE);
+    EXPECT_EQ(first->getBeamlineOwnerName(), "R");
+    EXPECT_EQ(second->getBeamlineOwnerName(), "R");
+    EXPECT_EQ(input->getBeamlineTopology(), BeamlineTopology::LINE);
 
-    auto* nestedOccurrence = dynamic_cast<FlaggedBeamline*>((++member)->getElement());
-    ASSERT_NE(nestedOccurrence, nullptr);
-    EXPECT_NE(nestedOccurrence, nested.get());
-    EXPECT_EQ(nestedOccurrence->getBeamlineTopology(), BeamlineTopology::RING);
-    EXPECT_EQ(nestedOccurrence->getBeamlineOwnerName(), "RING");
-    ASSERT_EQ(nestedOccurrence->size(), 1);
-    EXPECT_NE(nestedOccurrence->front().getElement(), prototype.get());
-    EXPECT_EQ(
-            nestedOccurrence->front().getElement()->getBeamlineTopology(), BeamlineTopology::RING);
-    EXPECT_EQ(nestedOccurrence->front().getElement()->getBeamlineOwnerName(), "RING");
+    // The member of the nested LINE carries the RING name, not the LINE name.
+    const ElementBase* nested = elements[4].get();
+    EXPECT_EQ(nested->getName(), "D");
+    EXPECT_NE(nested, input);
+    EXPECT_EQ(nested->getBeamlineTopology(), BeamlineTopology::RING);
+    EXPECT_EQ(nested->getBeamlineOwnerName(), "R");
 }
 
-TEST(RingMembershipTest, KeepsSharedPrototypeIndependentAcrossRings) {
-    auto prototype = std::make_shared<DriftRep>("SHARED");
-    TestableRing first;
-    TestableRing second;
-    first.setOpalName("R1");
-    second.setOpalName("R2");
-    first.line()->push_back(FlaggedElmPtr(ElmPtr(prototype)));
-    second.line()->push_back(FlaggedElmPtr(ElmPtr(prototype)));
+TEST_F(RingTest, KeepsSharedElementIndependentAcrossRings) {
+    run(R"(
+        DS: DRIFT, L = 0.5, ELEMEDGE = 0;
+        R1: RING = (DS);
+        R2: RING = (DS);
+    )");
+    const auto first  = build("R1");
+    const auto second = build("R2");
+    ASSERT_EQ(first.size(), 3u);
+    ASSERT_EQ(second.size(), 3u);
+    const ElementBase* input = Element::find("DS")->getElement();
 
-    first.prepareForTracking();
-    second.prepareForTracking();
-
-    ElementBase* firstOccurrence  = first.line()->front().getElement();
-    ElementBase* secondOccurrence = second.line()->front().getElement();
-    EXPECT_NE(firstOccurrence, secondOccurrence);
-    EXPECT_NE(firstOccurrence, prototype.get());
-    EXPECT_NE(secondOccurrence, prototype.get());
-    EXPECT_EQ(firstOccurrence->getBeamlineOwnerName(), "R1");
-    EXPECT_EQ(secondOccurrence->getBeamlineOwnerName(), "R2");
-    EXPECT_EQ(prototype->getBeamlineTopology(), BeamlineTopology::LINE);
-    EXPECT_TRUE(prototype->getBeamlineOwnerName().empty());
+    EXPECT_NE(first[1].get(), second[1].get());
+    EXPECT_NE(first[1].get(), input);
+    EXPECT_NE(second[1].get(), input);
+    EXPECT_EQ(first[1]->getBeamlineOwnerName(), "R1");
+    EXPECT_EQ(second[1]->getBeamlineOwnerName(), "R2");
+    EXPECT_EQ(input->getBeamlineTopology(), BeamlineTopology::LINE);
+    EXPECT_TRUE(input->getBeamlineOwnerName().empty());
 }
 
 TEST(RingMembershipTest, CircumferenceCountsNominalArcsAndDriftsNotFringeSupports) {
@@ -135,16 +162,13 @@ TEST(RingMembershipTest, CircumferenceCountsNominalArcsAndDriftsNotFringeSupport
     bend->getGeometry().setCurvature(0.5);
     auto drift = std::make_shared<DriftRep>("D");
     drift->getGeometry().setElementLength(0.4);
-    auto nested = std::make_shared<FlaggedBeamline>("CELL");
-    nested->push_back(FlaggedElmPtr(ElmPtr(bend)));
-    nested->push_back(FlaggedElmPtr(ElmPtr(drift)));
-    TestableRing ring;
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(nested)));
-    ring.line()->push_back(FlaggedElmPtr(ElmPtr(nested)));
+    auto marker = std::make_shared<MarkerRep>("#S");
+    // Two occurrences of a cell (bend, drift); markers do not count.
+    const std::vector<std::shared_ptr<ElementBase>> ring{marker, bend, drift, bend, drift};
     for (const double gap : {0.0, 0.1, 0.2}) {
         bend->setFullGap(gap);
         bend->setFringeIntegral(0.1);
-        EXPECT_DOUBLE_EQ(ring.getLength(), 2.8);
+        EXPECT_DOUBLE_EQ(opalx::run::ringLength(ring), 2.8);
         double begin = 0.0, end = 0.0;
         bend->getFieldExtent(begin, end);
         EXPECT_DOUBLE_EQ(end - begin, 1.0 + 10.0 * gap);
@@ -152,7 +176,7 @@ TEST(RingMembershipTest, CircumferenceCountsNominalArcsAndDriftsNotFringeSupport
     }
     // Rectangular-bend geometry stores a chord, not a design arc.
     drift->getGeometry() = Geometry::makeRBend(0.4, 0.6);
-    EXPECT_NEAR(ring.getLength(), 2.0 * (1.0 + 0.4 * 0.3 / std::sin(0.3)), 1.e-14);
+    EXPECT_NEAR(opalx::run::ringLength(ring), 2.0 * (1.0 + 0.4 * 0.3 / std::sin(0.3)), 1.e-14);
 }
 
 TEST_F(RingTest, RejectsReflection) {
@@ -171,4 +195,41 @@ TEST_F(RingTest, RejectsRepetition) {
     std::unique_ptr<Ring> ring(makeRing("REPEATED_RING"));
 
     EXPECT_THROW(ring->parse(input), ParseError);
+}
+
+TEST_F(RingTest, LineMacroIsCopiedInWithItsMarkersAndReflection) {
+    run(R"(
+        D: DRIFT, L = 0.5, ELEMEDGE = 0;
+        Q: QUADRUPOLE, L = 0.1, ELEMEDGE = 0;
+        M(X): LINE = (X, -D);
+        L: LINE = (-M(Q));
+    )");
+    const opalx::run::LineDescription line = opalx::run::describeLine(*BeamSequence::find("L"));
+    // #S, then the expansion of M with its own #S and #E, in order, every member reflected
+    // unless it was reflected in M, then #E.
+    const std::vector<std::pair<std::string, bool>> expected{
+            {"#S", false}, {"#S", true}, {"Q", true}, {"D", false}, {"#E", true}, {"#E", false}};
+    ASSERT_EQ(line.elements.size(), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_EQ(line.elements[i].object.name, expected[i].first) << i;
+        EXPECT_EQ(line.elements[i].reflected, expected[i].second) << i;
+    }
+}
+
+TEST_F(RingTest, LineThatContainsItselfIsRefused) {
+    run(R"(
+        D: DRIFT, L = 0.5, ELEMEDGE = 0;
+        L: LINE = (D);
+        L: LINE = (D, L);
+    )");
+    EXPECT_THROW(opalx::run::describeLine(*BeamSequence::find("L")), OpalException);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    ippl::initialize(argc, argv);
+    const int result = RUN_ALL_TESTS();
+    endfieldmodel::EndFieldModelManager::clearEFMManager();
+    ippl::finalize();
+    return result;
 }
