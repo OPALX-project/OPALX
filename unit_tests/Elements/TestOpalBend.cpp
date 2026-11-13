@@ -29,6 +29,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 // The transverse aperture of a bend is bounded vertically by the pole gap (HGAP) and
 // horizontally by HAPERT or by APERTURE. HAPERT and APERTURE are mutually exclusive, and
@@ -49,9 +50,9 @@ namespace {
     std::unique_ptr<OpalElement> makeBend(BendKind kind, const BendSpec& spec) {
         std::unique_ptr<OpalElement> bend;
         if (kind == BendKind::SBend) {
-            bend = std::make_unique<OpalSBend>();
+            bend = opalx::test::makeKeywordObject<OpalSBend>("SBEND", "SBEND");
         } else {
-            bend = std::make_unique<OpalRBend>();
+            bend = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
         }
 
         Attributes::setReal(*bend->findAttribute("L"), 1.0);
@@ -99,7 +100,8 @@ namespace {
             // In a full run the RealVariable exemplar creates and registers the P0 variable;
             // without it getP0() dereferences a null pointer. Created once for the suite and
             // intentionally never deleted, since OpalData keeps referring to it.
-            [[maybe_unused]] static RealVariable* p0Owner = new RealVariable();
+            [[maybe_unused]] static RealVariable* p0Owner =
+                    &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
     };
 

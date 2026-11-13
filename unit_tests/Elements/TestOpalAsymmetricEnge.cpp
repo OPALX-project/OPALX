@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include "../KeywordObjects.h"
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
@@ -35,7 +36,9 @@ public:
 
 TEST_F(TestOpalAsymmetricEnge, TestSetup) {
     // Make the UI
-    OpalAsymmetricEnge ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalAsymmetricEnge>(
+            "ASYMMETRIC_ENGE", "ASYMMETRIC_ENGE");
+    OpalAsymmetricEnge& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::START_HALF_LENGTH], 7);
     Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::START_FRINGE_LENGTH], 8);

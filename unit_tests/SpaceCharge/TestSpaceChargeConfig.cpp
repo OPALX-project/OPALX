@@ -27,6 +27,7 @@
 #include <memory>
 #include <utility>
 
+#include "../KeywordObjects.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
@@ -196,7 +197,9 @@ namespace opalx::spacecharge {
         }
 
         TEST(SpaceChargeConfigBuilderTest, BuildsP3MShiftedSourcePlane) {
-            Distribution distribution;
+            auto distributionObject =
+                    opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
+            Distribution& distribution = *distributionObject;
             OpalData::getInstance()->define(distribution.clone("P3M_PLANE_TEST_DISTRIBUTION"));
             TestableFieldSolverCmd command;
             command.setType("P3M");

@@ -16,6 +16,7 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
 
+#include "../KeywordObjects.h"
 #include "../TemporaryDirectory.h"
 
 namespace {
@@ -40,7 +41,7 @@ namespace {
             char** argv = nullptr;
             ippl::initialize(argc, argv);
             gmsg                             = new Inform(nullptr, -1);
-            [[maybe_unused]] static auto* p0 = new RealVariable();
+            [[maybe_unused]] static auto* p0 = &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
         static void TearDownTestSuite() {
             delete gmsg;
@@ -56,7 +57,7 @@ namespace {
         }
         void TearDown() override { directory.reset(); }
         std::unique_ptr<OpalRBend> element(double theta = angle, double e1 = 0.0) {
-            auto el = std::make_unique<OpalRBend>();
+            auto el = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
             for (const auto& [name, value] : std::vector<std::pair<std::string, double>>{
                          {"L", 0.3},
                          {"ANGLE", theta},
@@ -349,7 +350,8 @@ TEST_F(RBendSettingsTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent)
 
 TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) {
     for (bool useExit : {false, true}) {
-        OpalRBend el;
+        auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+        OpalRBend& el = *elObject;
         Attributes::setReal(*el.findAttribute("L"), .3);
         Attributes::setReal(*el.findAttribute("ANGLE"), angle);
         Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
@@ -369,7 +371,8 @@ TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy
 }
 
 TEST_F(RBendSettingsTest, ZeroFintKeepsMaxwellFocusingWithoutAdditionalEdgeField) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("E1"), 0.0);
@@ -387,7 +390,8 @@ TEST_F(RBendSettingsTest, ZeroFintKeepsMaxwellFocusingWithoutAdditionalEdgeField
 }
 
 TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
@@ -409,7 +413,8 @@ TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
 }
 
 TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("E1"), 0.0);
@@ -432,7 +437,8 @@ TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
 }
 
 TEST_F(RBendSettingsTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);

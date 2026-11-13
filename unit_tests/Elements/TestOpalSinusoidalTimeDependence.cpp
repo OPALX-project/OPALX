@@ -14,6 +14,7 @@
 //
 
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/SinusoidalTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalSinusoidalTimeDependence.h"
@@ -21,7 +22,9 @@
 
 TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
     // Make the UI
-    OpalSinusoidalTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSinusoidalTimeDependence>(
+            "SINUSOIDAL_TIME_DEPENDENCE", "SINUSOIDAL_TIME_DEPENDENCE");
+    OpalSinusoidalTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::FREQUENCIES], {1, 2});
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::PHASE_OFFSETS], {3, 4});
@@ -40,13 +43,16 @@ TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
 }
 
 TEST(TestOpalSinusoidalTimeDependence, ConstructorTest) {
-    OpalSinusoidalTimeDependence dep;
+    auto depObject = opalx::test::makeKeywordObject<OpalSinusoidalTimeDependence>(
+            "SINUSOIDAL_TIME_DEPENDENCE", "SINUSOIDAL_TIME_DEPENDENCE");
+    OpalSinusoidalTimeDependence& dep             = *depObject;
     const OpalSinusoidalTimeDependence* dep_clone = dep.clone("new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 
 TEST(TestOpalSinusoidalTimeDependence, PrintTest) {
-    const OpalSinusoidalTimeDependence dep;
+    const OpalSinusoidalTimeDependence& dep =
+            opalx::test::keyword<OpalSinusoidalTimeDependence>("SINUSOIDAL_TIME_DEPENDENCE");
     std::stringstream _string;
     dep.print(_string);
     EXPECT_EQ(_string.str(), "SINUSOIDAL_TIME_DEPENDENCE;\n");

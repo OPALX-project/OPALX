@@ -14,19 +14,23 @@
 //
 
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalSplineTimeDependence.h"
 #include "gtest/gtest.h"
 
 TEST(TestOpalSplineTimeDependence, ConstructorTest) {
-    OpalSplineTimeDependence dep;
+    auto depObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& dep             = *depObject;
     const OpalSplineTimeDependence* dep_clone = dep.clone("new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 
 TEST(TestOpalSplineTimeDependence, PrintTest) {
-    const OpalSplineTimeDependence dep;
+    const OpalSplineTimeDependence& dep =
+            opalx::test::keyword<OpalSplineTimeDependence>("SPLINE_TIME_DEPENDENCE");
     std::stringstream _string;
     dep.print(_string);
     EXPECT_EQ(_string.str(), "SPLINE_TIME_DEPENDENCE;\n");
@@ -34,7 +38,9 @@ TEST(TestOpalSplineTimeDependence, PrintTest) {
 
 TEST(TestOpalSplineTimeDependence, UserInterface) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 3);
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});
@@ -52,7 +58,9 @@ TEST(TestOpalSplineTimeDependence, UserInterface) {
 
 TEST(TestOpalSplineTimeDependence, DefaultValues) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 1);
     // Update the object
@@ -68,7 +76,9 @@ TEST(TestOpalSplineTimeDependence, DefaultValues) {
 
 TEST(TestOpalSplineTimeDependence, UserInterfaceBadOrder) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 2);
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});

@@ -35,6 +35,7 @@
 
 #include <limits>
 #include <vector>
+#include "../KeywordObjects.h"
 
 extern Inform* gmsg;
 
@@ -322,8 +323,7 @@ TEST_F(GeneralElementMappingTest, StraightLatticeOnAxisPassesTheChecks) {
 }
 
 TEST_F(GeneralElementMappingTest, MappingOptionsAreValidatedAndPersist) {
-    Option exemplar;
-    std::unique_ptr<Option> command(exemplar.clone("MAPPING_OPTIONS"));
+    auto command = opalx::test::makeKeywordObject<Option>("OPTION", "MAPPING_OPTIONS");
     EXPECT_EQ(
             Attributes::getRealArray(*command->findAttribute("ELEMENTMAPPINGGRID")),
             (std::vector<double>{8, 8, 8}));
@@ -336,7 +336,7 @@ TEST_F(GeneralElementMappingTest, MappingOptionsAreValidatedAndPersist) {
     EXPECT_EQ(Options::elementMappingGrid, grid);
     EXPECT_DOUBLE_EQ(Options::elementMappingReach, 0.25);
 
-    std::unique_ptr<Option> next(exemplar.clone("NEXT_MAPPING_OPTIONS"));
+    auto next = opalx::test::makeKeywordObject<Option>("OPTION", "NEXT_MAPPING_OPTIONS");
     next->execute();  // A later OPTION without these attributes keeps the values.
     EXPECT_EQ(Options::elementMappingGrid, grid);
     EXPECT_DOUBLE_EQ(Options::elementMappingReach, 0.25);

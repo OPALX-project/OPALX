@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU General License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "../KeywordObjects.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalMultipoleT.h"
@@ -39,7 +40,8 @@ public:
 // Does the user interface affect the correct magnet configuration
 TEST_F(TestOpalMultipoleT, UserInterface) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -102,7 +104,8 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
 // Does the user interface clone have the correct magnet configuration
 TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -158,7 +161,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
 // Check the various configuration validation tests
 TEST_F(TestOpalMultipoleT, UserInterfaceSanityCheck) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -213,7 +217,7 @@ TEST_F(TestOpalMultipoleT, UserInterfaceSanityCheck) {
 // Does the print API work
 TEST_F(TestOpalMultipoleT, Print) {
     // Make the UI
-    const OpalMultipoleT ui;
+    const OpalMultipoleT& ui = opalx::test::keyword<OpalMultipoleT>("MULTIPOLET");
     // And print it
     std::stringstream ss;
     ui.print(ss);

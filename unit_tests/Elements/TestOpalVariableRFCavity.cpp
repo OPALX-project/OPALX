@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "../KeywordObjects.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
@@ -41,7 +42,9 @@ public:
 };
 
 TEST_F(TestOpalVariableRFCavity, ConstructorDestructor) {
-    OpalVariableRFCavity cav1;
+    auto cav1Object = opalx::test::makePlacedElement<OpalVariableRFCavity>(
+            "VARIABLE_RF_CAVITY", "VARIABLE_RF_CAVITY");
+    OpalVariableRFCavity& cav1 = *cav1Object;
     EXPECT_EQ(cav1.getOpalName(), "VARIABLE_RF_CAVITY");
     OpalVariableRFCavity cav2("name", &cav1);
     EXPECT_EQ(cav2.getOpalName(), "name");
@@ -60,7 +63,9 @@ TEST_F(TestOpalVariableRFCavity, UserInterface) {
     AbstractTimeDependence::setTimeDependence("PD2", pd2);
     AbstractTimeDependence::setTimeDependence("PD3", pd3);
     // Make the UI
-    OpalVariableRFCavity ui;
+    auto uiObject = opalx::test::makePlacedElement<OpalVariableRFCavity>(
+            "VARIABLE_RF_CAVITY", "VARIABLE_RF_CAVITY");
+    OpalVariableRFCavity& ui = *uiObject;
     // Set the attributes
     Attributes::setUpperCaseString(ui.itsAttr[OpalVariableRFCavity::PHASE_MODEL], "pd1");
     Attributes::setUpperCaseString(ui.itsAttr[OpalVariableRFCavity::AMPLITUDE_MODEL], "pd2");

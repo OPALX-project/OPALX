@@ -33,6 +33,7 @@
 
 #include <memory>
 #include <string>
+#include "../KeywordObjects.h"
 
 // Test-only helper exposing minimal setters for internal attributes.
 class TestableBinningCmd : public BinningCmd {
@@ -139,7 +140,8 @@ TEST_F(BinningCmdTest, InvalidTablePrintFrequencyThrowsWhenNegative) {
 // ConstructionDefaults:
 // Verify that a freshly constructed exemplar has the documented defaults.
 TEST_F(BinningCmdTest, ConstructionDefaults) {
-    BinningCmd cmd;
+    auto cmdObject  = opalx::test::makeKeywordObject<BinningCmd>("BINNING", "BINNING");
+    BinningCmd& cmd = *cmdObject;
 
     EXPECT_EQ(cmd.getMaxBins(), 128);
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.1);
@@ -247,7 +249,8 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
 // PrintInfoDoesNotThrow:
 // Smoke test that printInfo can be called without throwing.
 TEST_F(BinningCmdTest, PrintInfoDoesNotThrow) {
-    BinningCmd cmd;
+    auto cmdObject  = opalx::test::makeKeywordObject<BinningCmd>("BINNING", "BINNING");
+    BinningCmd& cmd = *cmdObject;
 
     // Inform is defined in Ippl; using a simple instance here is sufficient
     // to exercise the printing path.

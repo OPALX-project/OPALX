@@ -14,6 +14,7 @@
 #include "gtest/gtest.h"
 
 #include <cmath>
+#include "../KeywordObjects.h"
 
 namespace {
     void setValidLaserAttributes(OpalLaser& laser) {
@@ -43,7 +44,8 @@ namespace {
 }  // namespace
 
 TEST(TestLaser, UpdateStoresValidatedParameters) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], 0.01);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 0.0, 1.0});
@@ -65,7 +67,8 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
 }
 
 TEST(TestLaser, UpdateDefaultsStokesToZero) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
 
     EXPECT_NO_THROW(laser.update());
@@ -78,7 +81,8 @@ TEST(TestLaser, UpdateDefaultsStokesToZero) {
 }
 
 TEST(TestLaser, UpdateRequiresWavelength) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSEENERGY], 1.0);
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSELENGTH], 2.0e-12);
     Attributes::setReal(laser.itsAttr[OpalLaser::WAISTX], 5.0e-6);
@@ -89,7 +93,8 @@ TEST(TestLaser, UpdateRequiresWavelength) {
 }
 
 TEST(TestLaser, UpdateRejectsNonPositivePulseEnergy) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSEENERGY], 0.0);
 
@@ -97,7 +102,8 @@ TEST(TestLaser, UpdateRejectsNonPositivePulseEnergy) {
 }
 
 TEST(TestLaser, UpdateRejectsBadDirectionSize) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 1.0});
 
@@ -105,7 +111,8 @@ TEST(TestLaser, UpdateRejectsBadDirectionSize) {
 }
 
 TEST(TestLaser, UpdateRejectsZeroDirection) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, 0.0});
 
@@ -113,7 +120,8 @@ TEST(TestLaser, UpdateRejectsZeroDirection) {
 }
 
 TEST(TestLaser, UpdateRejectsBadStokesSize) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 1.0});
 
@@ -121,7 +129,8 @@ TEST(TestLaser, UpdateRejectsBadStokesSize) {
 }
 
 TEST(TestLaser, UpdateRejectsStokesNormAboveOne) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {1.0, 1.0, 0.0});
 
@@ -129,7 +138,8 @@ TEST(TestLaser, UpdateRejectsStokesNormAboveOne) {
 }
 
 TEST(TestLaser, UpdateRejectsNegativeLength) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], -1.0);
 
@@ -165,7 +175,8 @@ TEST(TestLaser, UpdateRejectsNegativeLength) {
  * \f$E_e - p_e + \omega_L\f$ for relativistic electrons.
  */
 TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinematics) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {1.0, 0.0, 0.0});
 

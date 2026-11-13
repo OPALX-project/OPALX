@@ -32,6 +32,7 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+#include "../KeywordObjects.h"
 
 class ScalingFFAMagnetTest : public ::testing::Test {
 public:
@@ -629,7 +630,8 @@ TEST_F(ScalingFFAMagnetTest, SuperposesParticleAndReferenceFieldsWithoutErasingO
         EXPECT_DOUBLE_EQ(firstField[3][d], 0.);
     }
 
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {positions.size()}, 1., "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{});
@@ -693,7 +695,8 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     sector_m->getFieldValue(inside, expected);
     ASSERT_GT(magnitude(expected), 0.1);
 
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {2}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     const auto pc = bunch.getParticleContainer();

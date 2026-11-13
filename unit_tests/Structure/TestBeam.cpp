@@ -7,6 +7,7 @@
 #include "Utilities/Options.h"
 
 #include <vector>
+#include "../KeywordObjects.h"
 
 namespace {
 
@@ -59,7 +60,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamAcceptsEnergyOnlyDefinition) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeValidPhotonBeam(beam);
 
         EXPECT_NO_THROW(beam.execute());
@@ -69,7 +71,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamRequiresEnergy) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "PHOTON");
         setNALLOC(beam, 1.0);
 
@@ -77,7 +80,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamRejectsGamma) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeValidPhotonBeam(beam);
         setGamma(beam, 10.0);
 
@@ -85,7 +89,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamRejectsMomentum) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeValidPhotonBeam(beam);
         setPC(beam, 1.0);
 
@@ -93,13 +98,15 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamRejectsExplicitMassAndCharge) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeValidPhotonBeam(beam);
         setMass(beam, 1.0);
 
         EXPECT_THROW(beam.execute(), OpalException);
 
-        Beam beam2;
+        auto beam2Object = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam2      = *beam2Object;
         makeValidPhotonBeam(beam2);
         setCharge(beam2, 1.0);
 
@@ -107,7 +114,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, PhotonBeamRejectsSources) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeValidPhotonBeam(beam);
         setSources(beam, "srcs");
 
@@ -117,7 +125,8 @@ namespace {
     // A DAUGHTERBEAM has no GAMMA/ENERGY/PC and no SOURCES. Beam::execute must accept it;
     // TrackRun requires SOURCES on every beam that is not a DAUGHTERBEAM.
     TEST_F(BeamPhotonTest, BeamWithoutEnergyOrSourcesParses) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "ELECTRON");
         setNALLOC(beam, 1.0);
 
@@ -143,7 +152,8 @@ namespace {
     };
 
     TEST_F(BeamPolarizationTest, MuonBeamDefaultPolarizationIsZero) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);  // POLARIZATION unset: getPolarization() defaults to {0,0,0}.
 
         EXPECT_NO_THROW(beam.execute());
@@ -156,7 +166,8 @@ namespace {
 
     TEST_F(BeamPolarizationTest, MuonNonzeroPolarizationAccepted) {
         // Setting POLARIZATION on a muon is accepted and enables spin tracking.
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setPolarization(beam, {0.0, 0.0, 1.0});
 
@@ -166,7 +177,8 @@ namespace {
 
     TEST_F(BeamPolarizationTest, MuonZeroPolarizationEnablesSpinTracking) {
         // An explicit {0,0,0} still counts as "set" and enables spin tracking.
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setPolarization(beam, {0.0, 0.0, 0.0});
 
@@ -176,7 +188,8 @@ namespace {
 
     TEST_F(BeamPolarizationTest, MuonWithoutPolarizationHasSpinOff) {
         // Leaving POLARIZATION unset is valid and disables spin tracking.
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
 
         EXPECT_NO_THROW(beam.execute());
@@ -184,7 +197,8 @@ namespace {
     }
 
     TEST_F(BeamPolarizationTest, PolarizationMagnitudeGreaterThanOneIsRejected) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setPolarization(beam, {0.8, 0.8, 0.8});  // |P| ~ 1.39
 
@@ -192,7 +206,8 @@ namespace {
     }
 
     TEST_F(BeamPolarizationTest, PolarizationWrongLengthIsRejected) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setPolarization(beam, {0.0, 1.0});  // length 2, not 3
 
@@ -200,7 +215,8 @@ namespace {
     }
 
     TEST_F(BeamPolarizationTest, NonMuonSpeciesRejectsNonzeroPolarization) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "PION");
         setEnergy(beam, 1.0);
         setNALLOC(beam, 1.0);
@@ -212,7 +228,8 @@ namespace {
 
     TEST_F(BeamPolarizationTest, NonMuonSpeciesRejectsZeroPolarization) {
         // POLARIZATION is not valid on non-muon species, even at magnitude 0.
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "PION");
         setEnergy(beam, 1.0);
         setNALLOC(beam, 1.0);
@@ -224,7 +241,8 @@ namespace {
 
     TEST_F(BeamPolarizationTest, NonMuonSpeciesAcceptedWhenPolarizationUnset) {
         // Leaving POLARIZATION unspecified is fine on any species.
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "PION");
         setEnergy(beam, 1.0);
         setNALLOC(beam, 1.0);
@@ -234,7 +252,8 @@ namespace {
     }
 
     TEST_F(BeamPhotonTest, ZStopAndUntilMaxStepsAreUnsetByDefault) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         EXPECT_FALSE(beam.getZStop().has_value());
         EXPECT_FALSE(beam.getUntilMaxSteps());
 
@@ -259,7 +278,8 @@ namespace {
     };
 
     TEST_F(BeamReferenceDirectionTest, DefaultIsZ) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
 
         EXPECT_NO_THROW(beam.execute());
@@ -268,7 +288,8 @@ namespace {
     }
 
     TEST_F(BeamReferenceDirectionTest, IsNormalised) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setReferenceDirection(beam, {3.0, 0.0, 4.0});
 
@@ -281,7 +302,8 @@ namespace {
     }
 
     TEST_F(BeamReferenceDirectionTest, WrongLengthIsRejected) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setReferenceDirection(beam, {0.0, 1.0});
 
@@ -289,7 +311,8 @@ namespace {
     }
 
     TEST_F(BeamReferenceDirectionTest, ZeroIsRejected) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         makeMuonBeam(beam);
         setReferenceDirection(beam, {0.0, 0.0, 0.0});
 
@@ -297,7 +320,8 @@ namespace {
     }
 
     TEST_F(BeamReferenceDirectionTest, NeedsEnergy) {
-        Beam beam;
+        auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        Beam& beam      = *beamObject;
         setParticle(beam, "MUON");
         setNALLOC(beam, 1.0);
         setReferenceDirection(beam, {0.0, 0.0, 1.0});

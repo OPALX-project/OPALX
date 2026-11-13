@@ -1,3 +1,4 @@
+#include "../KeywordObjects.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/DirectedTurnCounter.h"
 #include "Algorithms/PartData.h"
@@ -118,7 +119,8 @@ TEST_F(TrackReferenceStepTest, MagneticBorisAngleAndEnergyForBothCharges) {
 }
 
 TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
@@ -146,7 +148,8 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
 }
 
 TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConservesEnergy) {
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
@@ -185,7 +188,8 @@ TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConser
 }
 
 TEST_F(TrackReferenceStepTest, ResolvedTrialsDoNotRecordMonitors) {
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;

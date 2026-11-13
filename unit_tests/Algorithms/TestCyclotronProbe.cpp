@@ -5,6 +5,7 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/CyclotronProbeRecorder.h"
 #include "Algorithms/TrackReferenceStep.h"
 #include "Attributes/Attributes.h"
@@ -256,10 +257,13 @@ TEST_F(CyclotronProbeTest, ConfigurationValidationAndLegacyMapping) {
 }
 
 TEST_F(CyclotronProbeTest, InputConvertsMillimetresAndIgnoresPathLength) {
-    [[maybe_unused]] static RealVariable* p0Owner = new RealVariable();
-    OpalProbe prototype;
-    EXPECT_NO_THROW(prototype.update());
-    std::unique_ptr<OpalProbe> probe(prototype.clone("PARSER_PROBE"));
+    [[maybe_unused]] static RealVariable* p0Owner =
+            &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+    // The PROBE keyword has no segment; updating all input objects leaves it alone.
+    opalx::test::keyword<OpalProbe>("PROBE");
+    OpalData::getInstance()->makeDirty(nullptr);
+    EXPECT_NO_THROW(OpalData::getInstance()->update());
+    auto probe = opalx::test::makeKeywordObject<OpalProbe>("PROBE", "PARSER_PROBE");
     Attributes::setReal(*probe->findAttribute("XSTART"), 100);
     Attributes::setReal(*probe->findAttribute("XEND"), 200);
     Attributes::setReal(*probe->findAttribute("YSTART"), 300);

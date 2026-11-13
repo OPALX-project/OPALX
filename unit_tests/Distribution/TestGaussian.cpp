@@ -6,6 +6,7 @@
 #include <limits>
 #include <memory>
 
+#include "../KeywordObjects.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Gaussian.h"
 #include "Ippl.h"
@@ -524,7 +525,9 @@ TEST_F(GaussianTest, ZeroWidthAppendPreservesExistingParticlesAndCutoff) {
 }
 
 TEST_F(GaussianTest, OmittedSpatialWidthsCollapseWithoutSuppressingMomentumSpread) {
-    Distribution distribution;
+    auto distributionObject =
+            opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
+    Distribution& distribution = *distributionObject;
     Attributes::setPredefinedString(*distribution.findAttribute("TYPE"), "GAUSS");
     const Vector_t<double, 3> sigmaP(0.02, 0.03, 0.04);
     Attributes::setReal(*distribution.findAttribute("SIGMAPX"), sigmaP[0]);

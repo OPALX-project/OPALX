@@ -75,6 +75,7 @@
 
 #include <cmath>
 #include <memory>
+#include "../KeywordObjects.h"
 
 class FakeFieldmap : public Fieldmap {
 public:
@@ -614,8 +615,9 @@ TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
 }
 
 TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
-    OpalCavity input;
-    auto* rep = dynamic_cast<RFCavityRep*>(input.getElement());
+    auto inputObject  = opalx::test::makePlacedElement<OpalCavity>("RFCAVITY", "RFCAVITY");
+    OpalCavity& input = *inputObject;
+    auto* rep         = dynamic_cast<RFCavityRep*>(input.getElement());
     ASSERT_NE(rep, nullptr);
     EXPECT_NO_THROW(input.update());
     EXPECT_FALSE(rep->isIdeal());

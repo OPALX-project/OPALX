@@ -28,6 +28,7 @@
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
 
+#include "../KeywordObjects.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
@@ -130,10 +131,12 @@ namespace {
 
     TEST(TestDumpEMFields, ConstructorDestructor) {
         // neither in the set and grid is null
-        const auto* dump1 = new DumpEMFields();
+        const auto* dump1 =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMP1").release();
         delete dump1;
         // grid is not null and it is in the set
-        auto* dump2 = new DumpEMFields();
+        auto* dump2 =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMP2").release();
         setAttributesCart(dump2, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., "/dev/null");
         dump2->execute();
         delete dump2;
@@ -152,7 +155,9 @@ namespace {
     TEST(TestDumpEMFields, executeTest) {
         gmsg = new Inform(nullptr, -1);
         // dump the fields
-        DumpEMFields dump1;
+        auto dump1Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump1 = *dump1Object;
         execute_throws(&dump1, "should throw due to nsteps < 1");
         setAttributesCart(&dump1, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., "/dev/null");
         dump1.execute();  // should be okay (normal)
@@ -198,16 +203,24 @@ namespace {
         std::string fname4             = (directory.path() / "test8").string();
 
         clear_files({fname1, fname2, fname3, fname4});
-        DumpEMFields dump1;
+        auto dump1Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump1 = *dump1Object;
         setAttributesCart(&dump1, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., fname1);
         dump1.execute();
-        DumpEMFields dump2;
+        auto dump2Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump2 = *dump2Object;
         setAttributesCart(&dump2, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., fname2);
         dump2.execute();
-        DumpEMFields dump3;
+        auto dump3Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump3 = *dump3Object;
         setAttributesCart(&dump3, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., fname3);
         // note we don't execute dump3; so it should not be written
-        DumpEMFields dump4;
+        auto dump4Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump4 = *dump4Object;
         setAttributesCart(&dump4, 0.1, 0.1, 3., -0.1, 0.2, 2., 0.2, 0.3, 2., 1., 1., 2., fname4);
         dump4.execute();
         ElementSet elements;
@@ -269,7 +282,9 @@ namespace {
         std::string fnameCyl = (directory.path() / "testCyl").string();
 
         clear_files({fnameCyl});
-        DumpEMFields dump;
+        auto dumpObject =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump = *dumpObject;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);
@@ -333,12 +348,16 @@ namespace {
         std::string fnameCyl2 = (directory.path() / "testCyl2").string();
 
         clear_files({fnameCyl1, fnameCyl2});
-        DumpEMFields dump1;
+        auto dump1Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump1 = *dump1Object;
         setAttributesCyl(
                 &dump1, 0.1, 0., 1., 45. * Units::deg2rad, 0., 1, -0.1, 0., 1., 1., 0., 1.,
                 fnameCyl1);
         dump1.execute();
-        DumpEMFields dump2;
+        auto dump2Object =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump2 = *dump2Object;
         setAttributesCyl(
                 &dump2, 0.1, 0., 1., 45. * Units::deg2rad, 0., 1, -0.1, 0., 1., 1., 0., 1.,
                 fnameCyl2);
@@ -400,7 +419,9 @@ namespace {
         std::string fnameCyl = (directory.path() / "testCyl").string();
 
         clear_files({fnameCyl});
-        DumpEMFields dump;
+        auto dumpObject =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump = *dumpObject;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);
@@ -417,7 +438,9 @@ namespace {
         const std::string auxDirectory = directory.path().string();
         gmsg                           = new Inform(nullptr, -1);
         std::string fnameCyl = directory.path().string();  // Opening a directory for write fails
-        DumpEMFields dump;
+        auto dumpObject =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump = *dumpObject;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);
@@ -433,7 +456,9 @@ namespace {
         const std::string auxDirectory = directory.path().string();
         gmsg                           = new Inform(nullptr, -1);
         std::string fnameCyl           = (directory.path() / "testCyl").string();
-        DumpEMFields dump;
+        auto dumpObject =
+                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
+        DumpEMFields& dump = *dumpObject;
         setAttributesCyl(
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);

@@ -1,3 +1,4 @@
+#include "../KeywordObjects.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
 #include "Attributes/Attributes.h"
 #include "Track/CofCmd.h"
@@ -65,7 +66,8 @@ TEST(ClosedOrbitInitialState, CompatibilityAndIndependentSnapshots) {
 }
 
 TEST(ClosedOrbitInitialState, CofAttributesAreOnSingleCommand) {
-    CofCmd command;
+    auto commandObject = opalx::test::makeKeywordObject<CofCmd>("COF", "COF");
+    CofCmd& command    = *commandObject;
     for (const auto* name :
          {"LINE", "BEAM", "DT", "X", "PX", "Y", "PY", "XTOL", "PTOL", "OUTPUT", "FDSTEP", "SCALES"})
         EXPECT_NE(command.findAttribute(name), nullptr) << name;

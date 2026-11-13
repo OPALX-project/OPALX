@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "../KeywordObjects.h"
 #include "Attributes/Attributes.h"
 #include "Attributes/PredefinedString.h"
 #include "Distribution/Distribution.h"
@@ -9,7 +10,8 @@
 using namespace Attributes;
 
 TEST(PredefinedStringTest, TestDistributionType) {
-    Distribution dist;
+    auto distObject = opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
+    Distribution& dist = *distObject;
 
     auto* typeAttr = dist.findAttribute("TYPE");
     ASSERT_NE(typeAttr, nullptr);

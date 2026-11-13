@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 // MULTIPOLE is a straight element from quadrupole up to decapole: the first (dipole) entry of
 // KN, KS, DKN and DKS must be 0, and each array has at most 5 entries.
@@ -44,15 +45,16 @@ namespace {
 
         void SetUp() override {
             // update() reads OpalData::getP0(), which needs the P0 variable (see TestOpalBend).
-            [[maybe_unused]] static RealVariable* p0Owner = new RealVariable();
+            [[maybe_unused]] static RealVariable* p0Owner =
+                    &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
 
-        /// Update a clone of the exemplar (the checks skip the builtin prototype) with the given
-        /// arrays; an empty array is left unset. Returns the error text, or "" if none.
+        /// Update a MULTIPOLE made from the keyword table with the given arrays; an empty array
+        /// is left unset. Returns the error text, or "" if none.
         std::string updateError(
                 const std::vector<double>& kn, const std::vector<double>& ks = {},
                 const std::vector<double>& dkn = {}) {
-            std::unique_ptr<OpalMultipole> mult(exemplar_m.clone("M1"));
+            auto mult = opalx::test::makeKeywordObject<OpalMultipole>("MULTIPOLE", "M1");
             Attributes::setReal(*mult->findAttribute("L"), 0.3);
             Attributes::setReal(*mult->findAttribute("ELEMEDGE"), 0.5);
             Attributes::setRealArray(*mult->findAttribute("KN"), kn);
@@ -69,10 +71,6 @@ namespace {
             }
             return "";
         }
-
-    private:
-        /// Outlives every clone made from it.
-        OpalMultipole exemplar_m;
     };
 
 }  // namespace

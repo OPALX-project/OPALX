@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include <tuple>
+#include "../KeywordObjects.h"
 
 extern Inform* gmsg;
 
@@ -431,7 +432,8 @@ TEST_F(OpalBeamlinePlacementTest, RBendModeAMatchesModeB) {
 TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
     // E1/E2 pole-face rotations are not wired yet; specifying one must error instead of being
     // silently ignored.
-    OpalSBend sbend;
+    auto sbendObject = opalx::test::makeKeywordObject<OpalSBend>("SBEND", "SBEND");
+    OpalSBend& sbend = *sbendObject;
     Attributes::setReal(*sbend.findAttribute("L"), 0.5);
     Attributes::setReal(*sbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*sbend.findAttribute("ANGLE"), 0.3);
@@ -441,7 +443,8 @@ TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
 
 TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
     [[maybe_unused]] static auto* p0Owner = new RealVariable();
-    OpalRBend rbend;
+    auto rbendObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& rbend = *rbendObject;
     Attributes::setReal(*rbend.findAttribute("L"), 0.5);
     Attributes::setReal(*rbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*rbend.findAttribute("ANGLE"), 0.3);

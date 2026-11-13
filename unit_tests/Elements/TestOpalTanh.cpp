@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include "../KeywordObjects.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "Attributes/Attributes.h"
@@ -23,7 +24,8 @@
 TEST(TestOpalTanh, TestSetup) {
     Kokkos::initialize();
     // Make the UI
-    OpalTanh ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalTanh>("TANH", "TANH");
+    OpalTanh& ui  = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalTanh::LENGTH], 4);
     Attributes::setReal(ui.itsAttr[OpalTanh::FRINGE_LENGTH], 2);

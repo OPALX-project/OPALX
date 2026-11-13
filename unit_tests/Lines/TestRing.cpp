@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 
+#include "../KeywordObjects.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MarkerRep.h"
 #include "BeamlineCore/SBendRep.h"
@@ -32,10 +33,9 @@ namespace {
 
 class RingTest : public ::testing::Test {
 protected:
-    Ring* makeRing(const std::string& name) { return exemplar_m.clone(name); }
-
-private:
-    Ring exemplar_m;
+    Ring* makeRing(const std::string& name) {
+        return opalx::test::makeKeywordObject<Ring>("RING", name).release();
+    }
 };
 
 TEST_F(RingTest, ClonesAndPrintsRingDefinition) {

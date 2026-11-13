@@ -22,6 +22,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 namespace {
 
@@ -31,7 +32,7 @@ namespace {
     };
 
     std::unique_ptr<OpalDrift> makeDrift(const std::optional<std::string>& aperture) {
-        auto drift = std::make_unique<OpalDrift>();
+        auto drift = opalx::test::makeKeywordObject<OpalDrift>("DRIFT", "DRIFT");
         Attributes::setReal(*drift->findAttribute("L"), 2.0);
         Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
         if (aperture.has_value()) {
@@ -149,7 +150,7 @@ TEST_F(TestOpalDrift, ReachIsUnsetUnlessGiven) {
 }
 
 TEST_F(TestOpalDrift, ReachAttributeSetsTheElementReach) {
-    auto drift = std::make_unique<OpalDrift>();
+    auto drift = opalx::test::makeKeywordObject<OpalDrift>("DRIFT", "DRIFT");
     Attributes::setReal(*drift->findAttribute("L"), 2.0);
     Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*drift->findAttribute("REACH"), 0.2);
@@ -160,7 +161,7 @@ TEST_F(TestOpalDrift, ReachAttributeSetsTheElementReach) {
 }
 
 TEST_F(TestOpalDrift, NonPositiveReachIsRejected) {
-    auto drift = std::make_unique<OpalDrift>();
+    auto drift = opalx::test::makeKeywordObject<OpalDrift>("DRIFT", "DRIFT");
     Attributes::setReal(*drift->findAttribute("L"), 2.0);
     Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*drift->findAttribute("REACH"), 0.0);

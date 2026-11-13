@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include "../KeywordObjects.h"
 
 namespace {
     using Vector  = Vector_t<double, 3>;
@@ -278,7 +279,8 @@ TEST_F(FM3DDynamicTest, ParticleKernelAccumulatesWithIndependentRFScalesAndBound
     const auto path = writeMap();
     auto* map       = dynamic_cast<FM3DDynamic*>(load(path));
     ASSERT_NE(map, nullptr);
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     auto particles = bunch.getParticleContainer();
@@ -319,7 +321,8 @@ TEST_F(FM3DDynamicTest, ParticleKernelAccumulatesWithIndependentRFScalesAndBound
 
 TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     const auto path = writeMap();
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
             {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
     bunch.setT(1.3e-9);

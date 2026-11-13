@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 namespace {
     using Bunch = PartBunch<double, 3>;
@@ -52,7 +53,7 @@ namespace {
             Options::useQMAttributes               = false;
             storageConfig.periodicParticleBoundary = true;
 
-            beamObject = std::make_unique<Beam>();
+            beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
             beam       = Beam::find("UNNAMED_BEAM");
             ASSERT_NE(beam, nullptr);
         }

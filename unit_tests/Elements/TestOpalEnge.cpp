@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include "../KeywordObjects.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "Attributes/Attributes.h"
@@ -34,7 +35,8 @@ public:
 
 TEST_F(TestOpalEnge, TestSetup) {
     // Make the UI
-    OpalEnge ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalEnge>("ENGE", "ENGE");
+    OpalEnge& ui  = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalEnge::LENGTH], 4);
     Attributes::setReal(ui.itsAttr[OpalEnge::FRINGE_LENGTH], 2);

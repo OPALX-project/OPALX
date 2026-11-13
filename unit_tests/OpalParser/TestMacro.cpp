@@ -108,12 +108,12 @@ namespace {
             gmsg = new Inform("", output_m, INFORM_ALL_NODES);
             gmsg->setOutputLevel(5);
             auto* data = OpalData::getInstance();
-            data->create(new RealConstant());
-            data->create(new RealVariable());
-            data->create(new RealVector());
-            data->create(new StringConstant());
-            data->create(new MacroCmd());
-            data->create(new Value());
+            data->addKeyword(new RealConstant());
+            data->addKeyword(new RealVariable());
+            data->addKeyword(new RealVector());
+            data->addKeyword(new StringConstant());
+            data->addKeyword(new MacroCmd());
+            data->addKeyword(new Value());
         }
 
         void TearDown() override {
