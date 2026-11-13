@@ -17,11 +17,11 @@ using G4BLMapSyntax::keyValues;
 using G4BLMapSyntax::nextLine;
 
 /**
- * @brief Constructor. Parses and validates the whole file without storing it.
+ * @brief Constructor. Parses and validates the whole file and keeps the field values.
  *
  * The grid bounds have to be known this early because Solenoid::initialise()
- * calls getFieldDimensions() straight after the factory, before goOnline()
- * triggers readMap().
+ * calls getFieldDimensions() straight after the factory, before readMap()
+ * copies the kept values into the field arrays.
  */
 G4BL2DMagnetoStatic::G4BL2DMagnetoStatic(std::string aFilename, bool zReverse)
     : Fieldmap(aFilename),
@@ -38,12 +38,12 @@ G4BL2DMagnetoStatic::G4BL2DMagnetoStatic(std::string aFilename, bool zReverse)
     zReverse_m  = zReverse;
     normalize_m = false;  // absolute Tesla, so KS is a plain multiplier
 
-    parseFile(false);
+    parseFile();
 }
 
 G4BL2DMagnetoStatic::~G4BL2DMagnetoStatic() { freeMap(); }
 
-void G4BL2DMagnetoStatic::parseFile(bool loadData) {
+void G4BL2DMagnetoStatic::parseFile() {
     std::ifstream in(Filename_m.c_str());
     if (!in.good()) {
         noFieldmapWarning();
@@ -157,8 +157,9 @@ void G4BL2DMagnetoStatic::parseFile(bool loadData) {
     }
 
     // ---- field blocks ----------------------------------------------------
-    auto Bz = FieldstrengthBz_m.view_host();
-    auto Br = FieldstrengthBr_m.view_host();
+    // Bz in the first half of fileValues_m, Br in the second; a missing block stays zero.
+    const size_t size = static_cast<size_t>(num_gridpz_m) * num_gridpr_m;
+    fileValues_m.assign(2 * size, 0.0);
 
     bool haveBz = false;
     while (nextLine(in, line)) {
@@ -206,14 +207,8 @@ void G4BL2DMagnetoStatic::parseFile(bool loadData) {
                                     + Filename_m + "' has fewer than "
                                     + std::to_string(num_gridpr_m) + " values");
                 }
-                if (loadData) {
-                    const size_t index = static_cast<size_t>(i) * num_gridpz_m + jj;
-                    if (isBz) {
-                        Bz(index) = sign * fieldScale_m * value;
-                    } else {
-                        Br(index) = sign * fieldScale_m * value;
-                    }
-                }
+                const size_t index = static_cast<size_t>(i) * num_gridpz_m + jj;
+                fileValues_m[(isBz ? 0 : size) + index] = sign * fieldScale_m * value;
             }
 
             std::string extra;
@@ -235,11 +230,18 @@ void G4BL2DMagnetoStatic::parseFile(bool loadData) {
 
 void G4BL2DMagnetoStatic::readMap() {
     if (FieldstrengthBz_m.extent(0) == 0) {
-        const size_t size = static_cast<size_t>(num_gridpz_m) * num_gridpr_m;
-        FieldstrengthBz_m = Kokkos::DualView<double*>("FieldstrengthBz", size);
-        FieldstrengthBr_m = Kokkos::DualView<double*>("FieldstrengthBr", size);
+        // The constructor parsed the file and kept the values: Bz, then Br.
+        const size_t size                 = static_cast<size_t>(num_gridpz_m) * num_gridpr_m;
+        const std::vector<double>& values = getFileValues(2 * size);
+        FieldstrengthBz_m                 = Kokkos::DualView<double*>("FieldstrengthBz", size);
+        FieldstrengthBr_m                 = Kokkos::DualView<double*>("FieldstrengthBr", size);
 
-        parseFile(true);
+        auto Bz = FieldstrengthBz_m.view_host();
+        auto Br = FieldstrengthBr_m.view_host();
+        for (size_t index = 0; index < size; ++index) {
+            Bz(index) = values[index];
+            Br(index) = values[size + index];
+        }
 
         FieldstrengthBz_m.modify<typename decltype(FieldstrengthBz_m)::host_mirror_space>();
         FieldstrengthBz_m.sync<typename decltype(FieldstrengthBz_m)::t_dev::device_type>();

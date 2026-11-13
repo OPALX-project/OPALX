@@ -147,17 +147,12 @@ private:
     void freeMap() override;
 
     /**
-     * @brief Read the whole file, validating as it goes.
+     * @brief Parse and check the whole file once: header, grid, and the Bz and Br blocks.
      *
-     * Called twice: from the constructor with @p loadData false, to parse the
-     * header and check the file is well formed, and from readMap() with
-     * @p loadData true, to fill the views. One function so the two passes
-     * cannot drift apart.
-     *
-     * @param loadData If true, store the values into FieldstrengthB*_m, which
-     * must already be allocated.
+     * Keeps the field values (scaled, z mirrored for ZREVERSE) in fileValues_m, Bz first and
+     * Br after it, each in the order of FieldstrengthB*_m. readMap() copies them from there.
      */
-    void parseFile(bool loadData);
+    void parseFile();
 
     /// @brief Fieldstrengths [T], indexed indexz + indexr * num_gridpz_m
     Kokkos::DualView<double*> FieldstrengthBz_m;

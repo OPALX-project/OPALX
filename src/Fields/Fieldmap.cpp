@@ -408,6 +408,17 @@ void Fieldmap::readMap(std::string Filename) {
         }
 }
 
+const std::vector<double>& Fieldmap::getFileValues(std::size_t minimum) const {
+    if (fileValues_m.size() < minimum) {
+        throw GeneralOpalException(
+                "Fieldmap::getFileValues", "Field map '" + Filename_m + "': expected at least "
+                                                   + std::to_string(minimum)
+                                                   + " numbers from the data lines, have "
+                                                   + std::to_string(fileValues_m.size()) + ".");
+    }
+    return fileValues_m;
+}
+
 void Fieldmap::freeMap(std::string Filename) {
     std::map<std::string, FieldmapDescription>::iterator position =
             FieldmapDictionary.find(Filename);

@@ -12,7 +12,6 @@
 FM2DDynamic::FM2DDynamic(const std::string& filename) : Fieldmap(filename) {
     std::ifstream file;
     std::string tmpString;
-    double tmpDouble;
 
     Type = T2DDynamic;  // I can put ut also as Type(T2DDynamic) in the header file.
 
@@ -67,10 +66,14 @@ FM2DDynamic::FM2DDynamic(const std::string& filename) : Fieldmap(filename) {
             zend_m         = -1e-3;
         }
 
+        // Keep the numbers: readMap() takes them from fileValues_m instead of reading again.
         for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++i) {
+            double v1 = 0.0, v2 = 0.0, v3 = 0.0, v4 = 0.0;
             parsing_passed = parsing_passed
-                             && interpretLine<double, double, double, double>(
-                                     file, tmpDouble, tmpDouble, tmpDouble, tmpDouble);
+                             && interpretLine<double, double, double, double>(file, v1, v2, v3, v4);
+            if (parsing_passed) {
+                fileValues_m.insert(fileValues_m.end(), {v1, v2, v3, v4});
+            }
         }
 
         parsing_passed = parsing_passed && interpreteEOF(file);
@@ -112,45 +115,39 @@ FM2DDynamic::~FM2DDynamic() { freeMap(); }
 
 void FM2DDynamic::readMap() {
     if (FieldstrengthEz_m.extent(0) == 0) {
-        // declare variables and allocate memory
-        std::ifstream in;
-        std::string tmpString;
-        double tmpDouble, Ezmax = 0.0;
-
-        const size_t size = num_gridpz_m * num_gridpr_m;
-        FieldstrengthEz_m = Kokkos::DualView<double*>("FieldstrengthEz", size);
-        FieldstrengthEr_m = Kokkos::DualView<double*>("FieldstrengthEr", size);
-        FieldstrengthBt_m = Kokkos::DualView<double*>("FieldstrengthBt", size);
+        // The constructor read the data lines; take their numbers in file order.
+        double Ezmax                      = 0.0;
+        const size_t size                 = num_gridpz_m * num_gridpr_m;
+        const std::vector<double>& values = getFileValues(4 * size);
+        FieldstrengthEz_m                 = Kokkos::DualView<double*>("FieldstrengthEz", size);
+        FieldstrengthEr_m                 = Kokkos::DualView<double*>("FieldstrengthEr", size);
+        FieldstrengthBt_m                 = Kokkos::DualView<double*>("FieldstrengthBt", size);
 
         auto Ez = FieldstrengthEz_m.view_host();
         auto Er = FieldstrengthEr_m.view_host();
         auto Bt = FieldstrengthBt_m.view_host();
 
-        // read in field map and parse it
-        in.open(Filename_m.c_str());
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-
+        // Each data line holds four numbers; one of them is not used.
+        size_t next = 0;
         if (swap_m) {
             for (int i = 0; i < num_gridpz_m; i++) {
                 for (int j = 0; j < num_gridpr_m; j++) {
-                    interpretLine<double, double, double, double>(
-                            in, Er(j * num_gridpz_m + i), Ez(j * num_gridpz_m + i),
-                            Bt(j * num_gridpz_m + i), tmpDouble);
+                    Er(j * num_gridpz_m + i) = values[next];
+                    Ez(j * num_gridpz_m + i) = values[next + 1];
+                    Bt(j * num_gridpz_m + i) = values[next + 2];
+                    next += 4;
                 }
             }
         } else {
             for (int j = 0; j < num_gridpr_m; j++) {
                 for (int i = 0; i < num_gridpz_m; i++) {
-                    interpretLine<double, double, double, double>(
-                            in, Ez(j * num_gridpz_m + i), Er(j * num_gridpz_m + i), tmpDouble,
-                            Bt(j * num_gridpz_m + i));
+                    Ez(j * num_gridpz_m + i) = values[next];
+                    Er(j * num_gridpz_m + i) = values[next + 1];
+                    Bt(j * num_gridpz_m + i) = values[next + 3];
+                    next += 4;
                 }
             }
         }
-        in.close();
 
         if (normalize_m) {
             // find maximum field
