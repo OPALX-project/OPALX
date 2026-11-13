@@ -19,6 +19,7 @@
 #define OPAL_OpalElement_HH
 
 #include "AbstractObjects/Element.h"
+#include "Elements/ElementValues.h"
 
 #include <iosfwd>
 #include <string>
@@ -64,8 +65,15 @@ public:
     /// Return the element's type name.
     const std::string getTypeName() const;
 
-    // return the element aperture vector
-    std::pair<ApertureType, std::vector<double>> getApert() const;
+    /// The aperture the APERTURE string of @p values gives (half widths), or the 1e6 default.
+    static std::pair<ApertureType, std::vector<double>> getApert(const ElementValues& values);
+
+    /**
+     * @brief Set what every element shares from @p values: aperture, placement (ELEMEDGE or
+     *        X/Y/Z/THETA/PHI/PSI), misalignment, DELETEONTRANSVERSEEXIT and REACH.
+     * @note Final placement is resolved by PlacementResolver, not here.
+     */
+    static void setCommonFields(ElementBase& element, const ElementValues& values);
 
     /// Return the element's type name.
     const std::string getWakeF() const;
@@ -126,6 +134,9 @@ protected:
 
     void registerOwnership() const;
 
+    /// The attribute values of this object, evaluated now.
+    ElementValues getValues() const;
+
 private:
     // Not implemented.
     OpalElement();
@@ -135,9 +146,8 @@ private:
     //  @param hasElemEdge true if ELEMEDGE was set (placement along the reference path).
     //  @param has6DPose   true if any of X, Y, Z, THETA, PHI was set (6D lab-frame pose).
     //                     PSI is shared between both modes and is excluded from this test.
-    //  Throws OpalException if both or neither method is given. Skipped for the builtin
-    //  prototype, whose attributes are all unset.
-    void validatePlacement(bool hasElemEdge, bool has6DPose) const;
+    //  Throws OpalException if both or neither method is given.
+    static void validatePlacement(const std::string& name, bool hasElemEdge, bool has6DPose);
 
     // The original size of the attribute list.
     int itsSize;

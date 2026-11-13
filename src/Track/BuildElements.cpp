@@ -10,6 +10,8 @@
 #include <string>
 #include <variant>
 
+#include <map>
+
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Element.h"
@@ -24,11 +26,58 @@
 #include "Attributes/StringArray.h"
 #include "Attributes/UpperCaseString.h"
 #include "Attributes/UpperCaseStringArray.h"
+#include "Elements/ElementValues.h"
+#include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
 namespace opalx::run {
 
     namespace {
+
+        /// What an element keyword builds: the runtime element type and the build function.
+        struct ElementKind {
+            ElementType type;
+            BuildFunction build;  ///< nullptr: update() of a keyword object fills the element.
+        };
+
+        /// Every element keyword. One keyword, one runtime element type.
+        const std::map<std::string, ElementKind>& elementKinds() {
+            static const std::map<std::string, ElementKind> kinds{
+                    {"BOX", {ElementType::BOX, nullptr}},
+                    {"COLLIMATOR", {ElementType::COLLIMATOR, nullptr}},
+                    {"CONSTANTEFIELDCAVITY", {ElementType::CONSTANTEFIELDCAVITY, nullptr}},
+                    {"CONSTANTFOCUSING", {ElementType::CONSTANTFOCUSING, nullptr}},
+                    {"CYCLOTRONSECTOR", {ElementType::CYCLOTRONSECTOR, nullptr}},
+                    {"DRIFT", {ElementType::DRIFT, nullptr}},
+                    {"FIELDMAP", {ElementType::FIELDMAP, nullptr}},
+                    {"LASER", {ElementType::LASER, nullptr}},
+                    {"MARKER", {ElementType::MARKER, nullptr}},
+                    {"MONITOR", {ElementType::MONITOR, nullptr}},
+                    {"MULTIPOLE", {ElementType::MULTIPOLE, nullptr}},
+                    {"MULTIPOLET", {ElementType::MULTIPOLET, nullptr}},
+                    {"PROBE", {ElementType::PROBE, nullptr}},
+                    {"QUADRUPOLE", {ElementType::MULTIPOLE, nullptr}},
+                    {"RBEND", {ElementType::RBEND, nullptr}},
+                    {"RFCAVITY", {ElementType::RFCAVITY, nullptr}},
+                    {"SBEND", {ElementType::SBEND, nullptr}},
+                    {"SCALINGFFAMAGNET", {ElementType::SCALINGFFAMAGNET, nullptr}},
+                    {"SOLENOID", {ElementType::SOLENOID, nullptr}},
+                    {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, nullptr}},
+                    {"VARIABLE_RF_CAVITY", {ElementType::ANY, nullptr}},
+                    {"VERTICALFFAMAGNET", {ElementType::ANY, nullptr}},
+            };
+            return kinds;
+        }
+
+        const ElementKind& kindOf(const std::string& keyword, const std::string& name) {
+            const auto found = elementKinds().find(keyword);
+            if (found == elementKinds().end()) {
+                throw OpalException(
+                        "opalx::run::buildElement",
+                        "Element \"" + name + "\" has no element keyword (\"" + keyword + "\").");
+            }
+            return found->second;
+        }
 
         [[noreturn]] void cannotCopy(
                 const ElementDescription& element, const AttributeEntry& entry,
@@ -86,30 +135,44 @@ namespace opalx::run {
 
     }  // namespace
 
+    std::string elementTypeOf(const std::string& keyword) {
+        return ElementBase::getTypeString(kindOf(keyword, keyword).type);
+    }
+
     std::shared_ptr<ElementBase> buildElement(const ElementDescription& element) {
         const ObjectDescription& input = element.object;
-        std::unique_ptr<Object> object(
-                OpalData::getInstance()->makeObject(input.keyword, input.name));
-        auto* made = dynamic_cast<Element*>(object.get());
-        if (made == nullptr) {
-            throw OpalException(
-                    "opalx::run::buildElement", "Element \"" + input.name
-                                                        + "\" has no element keyword (\""
-                                                        + input.keyword + "\").");
-        }
-        // Only what the input set is copied; every other attribute keeps the keyword's default,
-        // so update() sees the same set and unset attributes as for the parsed object.
+        const ElementKind& kind        = kindOf(input.keyword, input.name);
         for (const AttributeEntry& entry : input.attributes) {
-            if (entry.defaultUsed || !entry.hasValue) continue;
-            if (!entry.error.empty()) {
-                cannotCopy(element, entry, "could not be evaluated: " + entry.error);
-            }
-            Attribute* attribute = made->findAttribute(entry.name);
-            if (attribute == nullptr) cannotCopy(element, entry, "is not an attribute.");
-            copyValue(*attribute, entry, element);
+            if (entry.defaultUsed || !entry.hasValue || entry.error.empty()) continue;
+            cannotCopy(element, entry, "could not be evaluated: " + entry.error);
         }
-        made->update();
-        return made->getElementPtr();
+
+        std::shared_ptr<ElementBase> built;
+        if (kind.build != nullptr) {
+            built = kind.build(ElementValues(input));
+        } else {
+            std::unique_ptr<Object> object(
+                    OpalData::getInstance()->makeObject(input.keyword, input.name));
+            auto* made = dynamic_cast<Element*>(object.get());
+            // Only what the input set is copied; every other attribute keeps the keyword's
+            // default, so update() sees the same set and unset attributes as for the parsed
+            // object.
+            for (const AttributeEntry& entry : input.attributes) {
+                if (entry.defaultUsed || !entry.hasValue) continue;
+                Attribute* attribute = made->findAttribute(entry.name);
+                if (attribute == nullptr) cannotCopy(element, entry, "is not an attribute.");
+                copyValue(*attribute, entry, element);
+            }
+            made->update();
+            built = made->getElementPtr();
+        }
+        if (built->getType() != kind.type) {
+            throw LogicalError(
+                    "opalx::run::buildElement",
+                    "The " + input.keyword + " keyword built a "
+                            + ElementBase::getTypeString(built->getType()) + " element.");
+        }
+        return built;
     }
 
     std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line) {

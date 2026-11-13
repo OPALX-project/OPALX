@@ -8,20 +8,33 @@
 #define OPALX_BUILD_ELEMENTS_H
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "Track/RunDescription.h"
 
 class ElementBase;
+class ElementValues;
 
 namespace opalx::run {
+
+    /// Builds the runtime element of one occurrence from its attribute values.
+    using BuildFunction = std::shared_ptr<ElementBase> (*)(const ElementValues& values);
+
+    /**
+     * @brief The runtime element type string of an element keyword, e.g. "Multipole" for
+     *        QUADRUPOLE.
+     * @throws OpalException if @p keyword is not an element keyword.
+     */
+    std::string elementTypeOf(const std::string& keyword);
 
     /**
      * @brief Build the runtime element of one line occurrence from its description.
      *
-     * A new object of the occurrence's keyword is made from the keyword table, the attribute
-     * values the input set are copied into it from @p element, and its update() fills its
-     * runtime element. The parsed input objects are not used.
+     * The build function of the occurrence's keyword makes the runtime element from the
+     * attribute values in @p element. Keywords without a build function yet make an object
+     * from the keyword table, copy the attribute values the input set into it, and let its
+     * update() fill its runtime element. The parsed input objects are not used.
      *
      * @throws OpalException if the keyword is unknown or an attribute the input set could not
      *         be evaluated or has a type that cannot be copied.

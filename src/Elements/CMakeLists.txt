@@ -10,6 +10,7 @@ set (_SRCS
     OpalBend.cpp
     OpalDrift.cpp
     OpalFieldmapElement.cpp
+    ElementValues.cpp
     OpalElement.cpp
     OpalEnge.cpp
     OpalLaser.cpp
@@ -46,6 +47,7 @@ set (HDRS
     OpalCyclotronSector.h
     OpalDrift.h
     OpalFieldmapElement.h
+    ElementValues.h
     OpalElement.h
     OpalEnge.h
     OpalMonitor.h

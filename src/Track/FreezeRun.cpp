@@ -27,6 +27,7 @@
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/BuildElements.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -106,8 +107,8 @@ namespace opalx::run {
                 description.occurrence = out.size();
                 description.reflected  = memberReflected;
                 if (const auto* input = findAs<Element>(member.name)) {
-                    description.elementType = input->getElement()->getTypeString();
                     description.object      = describeObject(*input);
+                    description.elementType = elementTypeOf(description.object.keyword);
                 } else {
                     description.object.name = member.name;
                 }

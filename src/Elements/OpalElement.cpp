@@ -16,6 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalElement.h"
+#include "Track/FreezeRun.h"
 
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
@@ -100,14 +101,14 @@ OpalElement::OpalElement(const std::string& name, OpalElement* parent)
 
 OpalElement::~OpalElement() {}
 
-std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
+std::pair<ApertureType, std::vector<double>> OpalElement::getApert(const ElementValues& values) {
     std::pair<ApertureType, std::vector<double>> retvalue(
             ApertureType::ELLIPTICAL, std::vector<double>({1e6, 1e6}));
-    if (!itsAttr[APERT]) {
+    if (!values.hasValue("APERTURE")) {
         return retvalue;
     }
 
-    std::string aperture = Attributes::getString(itsAttr[APERT]);
+    std::string aperture = values.getString("APERTURE");
 
     std::regex square("square *\\((.*)\\)", std::regex::icase);
     std::regex rectangle("rectangle *\\((.*)\\)", std::regex::icase);
@@ -383,11 +384,11 @@ void OpalElement::printMultipoleStrength(
     }
 }
 
-void OpalElement::validatePlacement(bool hasElemEdge, bool has6DPose) const {
+void OpalElement::validatePlacement(const std::string& name, bool hasElemEdge, bool has6DPose) {
     if (hasElemEdge && has6DPose) {
         throw OpalException(
                 "OpalElement::update",
-                getOpalName()
+                name
                         + ": placement is over-specified. Use EITHER ELEMEDGE (with an "
                           "optional PSI roll) OR a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
                           "PSI), not both.");
@@ -395,17 +396,23 @@ void OpalElement::validatePlacement(bool hasElemEdge, bool has6DPose) const {
     if (!hasElemEdge && !has6DPose) {
         throw OpalException(
                 "OpalElement::update",
-                getOpalName()
+                name
                         + ": placement is under-specified. Specify either ELEMEDGE (with an "
                           "optional PSI roll) or a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
                           "PSI). PSI alone is not a placement.");
     }
 }
 
-void OpalElement::update() {
-    ElementBase* base = getElement();
+ElementValues OpalElement::getValues() const {
+    return ElementValues(opalx::run::describeObject(*this));
+}
 
-    auto apert = getApert();
+void OpalElement::update() { setCommonFields(*getElement(), getValues()); }
+
+void OpalElement::setCommonFields(ElementBase& element, const ElementValues& values) {
+    ElementBase* base = &element;
+
+    auto apert = getApert(values);
     base->setAperture(apert.first, apert.second);
 
     // An element is placed by exactly one of two methods:
@@ -417,31 +424,30 @@ void OpalElement::update() {
     //           path once the full, s-sorted lattice is known.
     // PSI is shared between both modes (z-Euler angle in Mode A, roll in Mode B), so
     // it is excluded from the 6D-pose test below.
-    const bool hasElemEdge = bool(itsAttr[ELEMEDGE]);
-    const bool has6DPose   = !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed()
-                           || !itsAttr[Z].defaultUsed() || !itsAttr[THETA].defaultUsed()
-                           || !itsAttr[PHI].defaultUsed();
-    const bool hasPsi = !itsAttr[PSI].defaultUsed();
+    const bool hasElemEdge = values.hasValue("ELEMEDGE");
+    const bool has6DPose   = !values.defaultUsed("X") || !values.defaultUsed("Y")
+                           || !values.defaultUsed("Z") || !values.defaultUsed("THETA")
+                           || !values.defaultUsed("PHI");
+    const bool hasPsi = !values.defaultUsed("PSI");
 
-    validatePlacement(hasElemEdge, has6DPose);
+    validatePlacement(values.getName(), hasElemEdge, has6DPose);
 
     if (hasElemEdge) {
         // Mode B: leave unpositioned for deferred reference-path placement.
-        base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
+        base->setElementPosition(values.getReal("ELEMEDGE"));
         if (hasPsi) {
-            base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
+            base->setRotationAboutZ(values.getReal("PSI"));
         }
     } else {
         // Mode A: record the global-to-local pose. The element stays unpositioned; the single
         // PlacementResolver (OpalBeamline) composes it with the lab frame and fixes it once the
         // whole lattice is known, so both placement modes resolve in one place.
         const Vector_t<double, 3> origin(
-                Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
-                Attributes::getReal(itsAttr[Z]));
+                values.getReal("X"), values.getReal("Y"), values.getReal("Z"));
 
-        const double theta = Attributes::getReal(itsAttr[THETA]);
-        const double phi   = Attributes::getReal(itsAttr[PHI]);
-        const double psi   = Attributes::getReal(itsAttr[PSI]);
+        const double theta = values.getReal("THETA");
+        const double phi   = values.getReal("PHI");
+        const double psi   = values.getReal("PSI");
 
         Quaternion rotTheta(std::cos(0.5 * theta), 0, std::sin(0.5 * theta), 0);
         Quaternion rotPhi(std::cos(0.5 * phi), std::sin(0.5 * phi), 0, 0);
@@ -454,11 +460,10 @@ void OpalElement::update() {
     }
 
     Vector_t<double, 3> misalignmentShift(
-            Attributes::getReal(itsAttr[DX]), Attributes::getReal(itsAttr[DY]),
-            Attributes::getReal(itsAttr[DZ]));
-    double dtheta = Attributes::getReal(itsAttr[DTHETA]);
-    double dphi   = Attributes::getReal(itsAttr[DPHI]);
-    double dpsi   = Attributes::getReal(itsAttr[DPSI]);
+            values.getReal("DX"), values.getReal("DY"), values.getReal("DZ"));
+    double dtheta = values.getReal("DTHETA");
+    double dphi   = values.getReal("DPHI");
+    double dpsi   = values.getReal("DPSI");
     Quaternion rotationY(std::cos(0.5 * dtheta), 0, std::sin(0.5 * dtheta), 0);
     Quaternion rotationX(std::cos(0.5 * dphi), std::sin(0.5 * dphi), 0, 0);
     Quaternion rotationZ(std::cos(0.5 * dpsi), 0, 0, std::sin(0.5 * dpsi));
@@ -467,13 +472,13 @@ void OpalElement::update() {
 
     base->setMisalignment(misalignment);
 
-    base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
+    base->setFlagDeleteOnTransverseExit(values.getBool("DELETEONTRANSVERSEEXIT"));
 
-    if (itsAttr[REACH]) {
-        const double reach = Attributes::getReal(itsAttr[REACH]);
+    if (values.hasValue("REACH")) {
+        const double reach = values.getReal("REACH");
         if (!std::isfinite(reach) || reach <= 0.0) {
             throw OpalException(
-                    "OpalElement::update", getOpalName() + ": REACH must be a positive length.");
+                    "OpalElement::update", values.getName() + ": REACH must be a positive length.");
         }
         base->setReach(reach);
     }
