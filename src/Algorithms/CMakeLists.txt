@@ -3,7 +3,6 @@ set (_SRCS
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     DistributionMoments.cpp
-    Flagger.cpp
     GeneralElementMapping.cpp
     ExternalFieldRayTracker.cpp
     DeviceExternalField.cpp
@@ -33,7 +32,6 @@ set (HDRS
     RungeKuttaTableau.h
     DefaultVisitor.h
     DistributionMoments.h
-    Flagger.h
     GeneralElementMapping.h
     ExternalFieldRayTracker.h
     DeviceExternalField.h

@@ -20,8 +20,6 @@
 
 #include "AbstractObjects/Action.h"
 
-class Beamline;
-
 class Select : public Action {
 public:
     /// Exemplar constructor.
@@ -42,9 +40,6 @@ private:
 
     // Clone constructor.
     Select(const std::string& name, Select* parent);
-
-    // Do the selection.
-    void select(const Beamline&);
 };
 
 #endif  // OPAL_Select_H

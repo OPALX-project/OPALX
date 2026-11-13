@@ -16,14 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/Select.h"
-#include "AbstractObjects/BeamSequence.h"
-#include "AbstractObjects/OpalData.h"
-#include "AbstractObjects/Table.h"
-#include "Algorithms/Flagger.h"
 #include "Attributes/Attributes.h"
-#include "Tables/Selector.h"
-#include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
+#include "Utility/Inform.h"
 
 #include <iostream>
 
@@ -69,55 +63,6 @@ Select::~Select() {}
 Select* Select::clone(const std::string& name) { return new Select(name, this); }
 
 void Select::execute() {
-    // Find beam sequence or table definition.
-    const std::string name = Attributes::getString(itsAttr[LINE]);
-
-    if (Object* obj = OpalData::getInstance()->find(name)) {
-        if (BeamSequence* line = dynamic_cast<BeamSequence*>(obj)) {
-            select(*line->fetchLine());
-        } else if (Table* table = dynamic_cast<Table*>(obj)) {
-            select(*table->getLine());
-        } else {
-            throw OpalException(
-                    "Select::execute()", "You cannot do a \"SELECT\" on \"" + name
-                                                 + "\", it is neither a line nor a table.");
-        }
-    } else {
-        throw OpalException("Select::execute()", "Object \"" + name + "\" not found.");
-    }
-}
-
-void Select::select(const Beamline& bl) {
-    if (Attributes::getBool(itsAttr[FULL])) {
-        // Select all positions.
-        Flagger flagger(bl, true);
-        flagger.execute();
-        if (Options::info) {
-            *gmsg << level2 << "\nAll elements selected.\n" << endl;
-        }
-    } else if (Attributes::getBool(itsAttr[CLEAR])) {
-        // Deselect all selections.
-        Flagger flagger(bl, false);
-        flagger.execute();
-        if (Options::info) {
-            *gmsg << level2 << "\nAll elements de-selected.\n" << endl;
-        }
-    } else {
-        Selector sel(
-                bl, Attributes::getRange(itsAttr[RANGE]), Attributes::getString(itsAttr[CLASS]),
-                Attributes::getString(itsAttr[TYPE]), Attributes::getString(itsAttr[PATTERN]));
-        sel.execute();
-
-        if (Options::info) {
-            int count = sel.getCount();
-            if (count == 0) {
-                *gmsg << level2 << "No elements";
-            } else if (count == 1) {
-                *gmsg << level2 << "\n1 element";
-            } else {
-                *gmsg << level2 << '\n' << count << " elements";
-            }
-            *gmsg << level2 << " selected.\n" << endl;
-        }
-    }
+    // The selection flags SELECT set on line members were read by nothing.
+    *gmsg << level1 << "* SELECT has no effect in OPALX." << endl;
 }
