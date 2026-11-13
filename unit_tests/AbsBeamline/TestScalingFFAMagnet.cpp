@@ -19,12 +19,17 @@
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "Structure/Beam.h"
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <vector>
 
@@ -51,6 +56,7 @@ public:
     }
 
     void SetUp() {
+        directory_m.create("opalx-scaling-ffa");
         sector_m = new ScalingFFAMagnet("test");
         // characteristic length is R*dphi => 0.6545 m
         std::shared_ptr<endfieldmodel::Tanh> tanh =
@@ -72,10 +78,12 @@ public:
     void TearDown() {
         delete sector_m;
         sector_m = nullptr;
+        directory_m.reset();
     }
 
     ~ScalingFFAMagnetTest() {}
 
+    opalx::test::TemporaryDirectory directory_m;
     ScalingFFAMagnet* sector_m;
     std::ofstream fout_m;
     double r0_m           = 24;                                       // m
@@ -376,7 +384,7 @@ TEST_F(ScalingFFAMagnetTest, RejectsExpansionBeyondDeviceStorage) {
 }
 
 TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
-    std::ofstream fout("/tmp/b_twod.out");
+    std::ofstream fout(directory_m.path() / "b_twod.out");
     bool passtest = true;
     for (double y = 0.; y < 0.025; y += 0.015) {
         for (double r = r0_m; r < r0_m + 1; r += 0.2) {
@@ -389,7 +397,7 @@ TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceYTest) {
-    std::ofstream fout("/tmp/convergence_y.out");
+    std::ofstream fout(directory_m.path() / "convergence_y.out");
     bool passtest = true;
     for (double y = 0.00001; y < 0.02; y *= 2.) {
         passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
@@ -487,7 +495,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceEndLengthTest) {
-    std::ofstream fout("/tmp/convergence_endlength.out");
+    std::ofstream fout(directory_m.path() / "convergence_endlength.out");
     bool passtest = true;
     for (double endLength = 1.; endLength < 10.1; endLength += 1.) {
         std::shared_ptr<endfieldmodel::Tanh> tanh =
@@ -585,6 +593,94 @@ TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
     }
 }
 
+// Each element contributes its local Cartesian field [T] to the accumulator.
+// Raw field getters instead replace their output, including zero outside support.
+TEST_F(ScalingFFAMagnetTest, SuperposesParticleAndReferenceFieldsWithoutErasingOtherElements) {
+    sector_m->setTanDelta(0.);
+    sector_m->setFieldIndex(0.);
+    sector_m->setMaxOrder(2);
+    sector_m->setDipoleConstant(2.);
+    sector_m->setAzimuthalExtent(2. * psi0_m);
+    sector_m->initialise();
+    std::unique_ptr<ScalingFFAMagnet> second(sector_m->clone());
+    second->setDipoleConstant(-.4);
+    second->setVerticalExtent(.05);
+    second->initialise();
+    const auto cartesian = [this](double radius, double y, double phi) {
+        return Vector_t<double, 3>(radius * std::cos(phi) - r0_m, y, radius * std::sin(phi));
+    };
+    const std::array<Vector_t<double, 3>, 4> positions = {
+            cartesian(r0_m, 0., psi0_m),        // inside both elements
+            cartesian(r0_m, .1, psi0_m),        // inside first, outside second
+            cartesian(2.1 * r0_m, 0., psi0_m),  // outside radial support
+            cartesian(r0_m, 0., 4. * psi0_m)};  // outside azimuthal support
+    const Vector_t<double, 3> seedB(.25, -.5, .75), seedE(1., 2., 3.);
+    std::array<Vector_t<double, 3>, positions.size()> firstField, secondField;
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        firstField[i] = secondField[i] = seedB;
+        sector_m->getFieldValue(positions[i], firstField[i]);
+        second->getFieldValue(positions[i], secondField[i]);
+    }
+    ASSERT_GT(std::abs(firstField[0][1]), 1.);
+    ASSERT_GT(std::abs(firstField[1][1]), 1.);
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_DOUBLE_EQ(secondField[1][d], 0.);
+        EXPECT_DOUBLE_EQ(firstField[2][d], 0.);
+        EXPECT_DOUBLE_EQ(firstField[3][d], 0.);
+    }
+
+    Beam beam;
+    PartBunch_t bunch(
+            {1.}, {1.}, {&beam}, {positions.size()}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
+    const auto pc = bunch.getParticleContainer();
+    pc->createParticles(positions.size());
+    auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+    for (std::size_t i = 0; i < positions.size(); ++i)
+        hostR(i) = positions[i];
+    Kokkos::deep_copy(pc->R.getView(), hostR);
+    Kokkos::deep_copy(pc->B.getView(), seedB);
+    Kokkos::deep_copy(pc->E.getView(), seedE);
+    sector_m->apply(pc);
+    auto hostB = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+    for (std::size_t i = 0; i < positions.size(); ++i)
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(hostB(i)[d], seedB[d] + firstField[i][d], 1e-12);
+    second->apply(pc);
+    Kokkos::deep_copy(hostB, pc->B.getView());
+    const auto hostE = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        Vector_t<double, 3> scalarB = seedB, scalarE = seedE;
+        Vector_t<double, 3> referenceB = seedB, referenceE = seedE;
+        sector_m->apply(positions[i], {}, 0., scalarE, scalarB);
+        second->apply(positions[i], {}, 0., scalarE, scalarB);
+        EXPECT_EQ(
+                sector_m->getConfig().outsideAperture(positions[i]),
+                sector_m->applyToReferenceParticle(positions[i], {}, 0., referenceE, referenceB));
+        EXPECT_EQ(
+                second->getConfig().outsideAperture(positions[i]),
+                second->applyToReferenceParticle(positions[i], {}, 0., referenceE, referenceB));
+        for (unsigned d = 0; d < 3; ++d) {
+            // A picotesla absolute allowance covers summation at O(1 T) scale.
+            const double expected = seedB[d] + firstField[i][d] + secondField[i][d];
+            EXPECT_NEAR(hostB(i)[d], expected, 1e-12) << "particle=" << i << ", component=" << d;
+            EXPECT_NEAR(scalarB[d], expected, 1e-12);
+            EXPECT_NEAR(referenceB[d], expected, 1e-12);
+            EXPECT_DOUBLE_EQ(hostE(i)[d], seedE[d]);
+            EXPECT_DOUBLE_EQ(scalarE[d], seedE[d]);
+            EXPECT_DOUBLE_EQ(referenceE[d], seedE[d]);
+        }
+    }
+    // The public raw batch getter must still overwrite a nonzero initial value.
+    Kokkos::deep_copy(pc->B.getView(), seedB);
+    ScalingFFAMagnet::getFieldValue(
+            sector_m->getConfig(), sector_m->getEndField(), pc->R.getView(), pc->B.getView());
+    Kokkos::deep_copy(hostB, pc->B.getView());
+    for (std::size_t i = 0; i < positions.size(); ++i)
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(hostB(i)[d], firstField[i][d], 1e-12);
+}
+
 TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     // ParallelTracker applies overlapping elements one after another to the same B view, so the
     // particle kernel must add its field, and leave B unchanged where this magnet has no field.
@@ -597,7 +693,12 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     sector_m->getFieldValue(inside, expected);
     ASSERT_GT(magnitude(expected), 0.1);
 
-    Kokkos::View<Vector_t<double, 3>*> R("R", 2), B("B", 2);
+    Beam beam;
+    PartBunch_t bunch(
+            {1.}, {1.}, {&beam}, {2}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+    const auto pc = bunch.getParticleContainer();
+    pc->createParticles(2);
+    const auto R = pc->R.getView(), B = pc->B.getView();
     auto Rhost = Kokkos::create_mirror_view(R);
     auto Bhost = Kokkos::create_mirror_view(B);
     Rhost(0)   = inside;
@@ -606,7 +707,7 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     Bhost(1)   = existing;
     Kokkos::deep_copy(R, Rhost);
     Kokkos::deep_copy(B, Bhost);
-    ScalingFFAMagnet::getFieldValue(sector_m->getConfig(), sector_m->getEndField(), R, B);
+    sector_m->apply(pc);
     Kokkos::deep_copy(Bhost, B);
     for (size_t d = 0; d < 3; ++d) {
         EXPECT_NEAR(Bhost(0)[d], existing[d] + expected[d], 1e-12) << d;

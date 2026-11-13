@@ -152,8 +152,10 @@ namespace opalx::spacecharge {
         updateLayoutsAndMigrate(fieldStorage, frame);
         updateMoments(beamFrame);
 
+        // Fixed bounds keep the extents, so rebuildGlobalLayoutInPlace() keeps an ORB layout.
+        // solve() rejects ORB for bunch bounds, so only PERIODICBOX gets here with ORB enabled.
         bool redistributed = false;
-        if (!fixed && beamFrame && isRedistributionDue(context.stepState().step)) {
+        if (beamFrame && isRedistributionDue(context.stepState().step)) {
             redistributed = config_m.loadBalancingPairWeight > 0.0
                                     ? redistributeByPairWeight(context, fieldStorage)
                                     : loadIsImbalanced(config_m.loadBalancingThreshold)

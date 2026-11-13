@@ -371,6 +371,7 @@ namespace opalx::spacecharge {
         values.p3mCutoffCells = meshTiedCutoff ? fieldSolver.getP3MCutoffCells() : 0.0;
         values.repeatCount    = fieldSolver.getRepeatCount();
         values.repeatSpacing  = fieldSolver.getRepeatSpacing();
+        values.periodicBox    = fieldSolver.getPeriodicBox();
         values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;

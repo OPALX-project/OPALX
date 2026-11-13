@@ -6,6 +6,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
+#include "../TemporaryDirectory.h"
 
 #include "Distribution/Distribution.h"
 #include "Distribution/FromFile.h"
@@ -43,14 +44,15 @@ protected:
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
         pc->setBunchStateHandler(bunchStateHandler);
-        tempFilename = "fromfile_test_input.dat";
+        // Rank 0 writes the file and all ranks read it, so they need one shared directory.
+        tempFilename =
+                (directory_m.create("opalx-fromfile", MPI_COMM_WORLD) / "input.dat").string();
     }
 
     void TearDown() override {
+        // Every rank must be done reading before rank 0 removes the shared directory.
         ippl::Comm->barrier();
-        if (!tempFilename.empty() && ippl::Comm->rank() == 0) {
-            std::remove(tempFilename.c_str());
-        }
+        directory_m.reset();
     }
 
     void writeSampleFile() {
@@ -105,6 +107,7 @@ protected:
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
+    opalx::test::TemporaryDirectory directory_m;
     std::string tempFilename;
 };
 

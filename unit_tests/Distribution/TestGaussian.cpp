@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -346,46 +347,61 @@ TEST_F(GaussianTest, largeCutoffDisablesTruncation) {
     const Vector_t<double, 3> cutoffP(noCut, noCut, noCut);
     Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, false, cutoffP);
 
-    size_t total_nparticles = 100000;
+    size_t total_nparticles         = 100000;
+    const size_t requestedParticles = total_nparticles;
     preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
-    auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
-    auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
-    constexpr double tailThreshold   = 3.0;
-    unsigned long long localTails[6] = {}, globalTails[6];
-    double locMax[6]                 = {}, globMax[6];
+    auto r              = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p              = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    const MPI_Comm comm = ippl::Comm->getCommunicator();
+    const auto localParticles          = static_cast<unsigned long long>(pc->getLocalNum());
+    unsigned long long globalParticles = 0;
+    MPI_Allreduce(&localParticles, &globalParticles, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm);
+    ASSERT_EQ(globalParticles, requestedParticles);
+
+    constexpr double formerCutoff = 3.0;
+    constexpr std::array<unsigned, 5> uncutDimensions{0, 1, 3, 4, 5};
+    std::array<double, 6> locMax{}, globMax{};
+    std::array<unsigned long long, 6> locTails{}, globTails{};
     for (size_t i = 0; i < pc->getLocalNum(); ++i) {
         for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_TRUE(std::isfinite(r(i)[d]) && std::isfinite(p(i)[d]));
-            locMax[d]     = std::max(locMax[d], std::abs(r(i)[d]));
-            locMax[3 + d] = std::max(locMax[3 + d], std::abs(p(i)[d]));
-            localTails[d] += std::abs(r(i)[d]) > tailThreshold;
-            localTails[3 + d] += std::abs(p(i)[d]) > tailThreshold;
+            EXPECT_TRUE(std::isfinite(r(i)[d]) && std::isfinite(p(i)[d]))
+                    << "particle " << i << ", coordinate " << d;
+            const double absR = std::abs(r(i)[d]);
+            const double absP = std::abs(p(i)[d]);
+            locMax[d]         = std::max(locMax[d], absR);
+            locMax[3 + d]     = std::max(locMax[3 + d], absP);
+            locTails[d] += absR > formerCutoff;
+            locTails[3 + d] += absP > formerCutoff;
         }
     }
-    MPI_Allreduce(locMax, globMax, 6, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-            localTails, globalTails, 6, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-            ippl::Comm->getCommunicator());
+    MPI_Allreduce(locMax.data(), globMax.data(), 6, MPI_DOUBLE, MPI_MAX, comm);
+    MPI_Allreduce(locTails.data(), globTails.data(), 6, MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm);
 
-    // An untruncated normal has no deterministic maximum. Instead, test its
-    // two-sided tail probability p = erfc(3/sqrt(2)). Each tail count is binomial.
-    // Bernstein's bound with a union bound over five marginals gives a combined
-    // false-rejection probability <= 1e-9 (no independence between axes needed).
-    // At N=100000 the expected count is about 270; zero tails from a restored
-    // 3-sigma cutoff lie well outside this sample-size-dependent acceptance band.
-    constexpr double falseRejectionProbability = 1e-9;
-    constexpr unsigned uncutMarginals          = 5;
-    const double probability                   = std::erfc(tailThreshold / std::sqrt(2.0));
-    const double expectedTails                 = total_nparticles * probability;
-    const double variance                      = expectedTails * (1.0 - probability);
-    const double logBound   = std::log(2.0 * uncutMarginals / falseRejectionProbability);
-    const double countBound = std::sqrt(2.0 * variance * logBound) + 2.0 * logBound / 3.0;
-    ASSERT_GT(expectedTails, countBound);  // The test must reject a clipped zero-tail sample.
-    for (unsigned d : {0u, 1u, 3u, 4u, 5u}) {
-        EXPECT_NEAR(static_cast<double>(globalTails[d]), expectedTails, countBound)
-                << "phase-space component " << d;
+    // No centering is applied, so the five uncut coordinates remain unit normals.
+    // Their counts beyond 3 sigma are Binomial(N, erfc(3/sqrt(2))); a cutoff at
+    // 3 sigma would produce zero counts. Invert two-sided Bernstein and union-bound
+    // across coordinates, using half the tail-check false-alarm budget.
+    constexpr double tailFailureProbability = 1.e-6;
+    const double n                          = static_cast<double>(globalParticles);
+    const double logFailure      = std::log(4.0 * uncutDimensions.size() / tailFailureProbability);
+    const double tailProbability = std::erfc(formerCutoff / std::sqrt(2.0));
+    const double expectedTails   = n * tailProbability;
+    const double variance        = expectedTails * (1.0 - tailProbability);
+    const double countMargin =
+            logFailure / 3.0
+            + std::sqrt(2.0 * variance * logFailure + logFailure * logFailure / 9.0);
+    ASSERT_GT(expectedTails, countMargin);  // Enough samples to reject complete truncation.
+
+    // An unbounded normal has no fixed maximum. P(|Z| > t) <= 2 exp(-t^2/2),
+    // union-bounded over N samples and five coordinates, spends the other half.
+    // The combined 1e-6 budget covers these tail checks, not the width checks below.
+    const double maximum = std::sqrt(2.0 * (logFailure + std::log(n)));
+    for (unsigned d : uncutDimensions) {
+        SCOPED_TRACE(::testing::Message() << "coordinate " << d);
+        EXPECT_LE(std::abs(static_cast<double>(globTails[d]) - expectedTails), countMargin);
+        EXPECT_LE(globMax[d], maximum);
     }
     EXPECT_LE(globMax[2], cutoffR[2]);  // z keeps its per-axis cut
 

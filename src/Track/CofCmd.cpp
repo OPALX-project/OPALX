@@ -112,9 +112,11 @@ namespace {
         void applyDefault(const ElementBase& element) override {
             if (!element.getName().empty() && element.getName().front() == '#') return;
             const auto type = element.getType();
-            // A monitor is passive for scalar optics. Do not initialise its
-            // diagnostic sink (which could overwrite a TRACK monitor file).
-            if (type == ElementType::MONITOR) return;
+            // Diagnostics are passive for scalar optics. Keep PROBE outside
+            // magnetic placement and do not construct sinks or histories while
+            // COF tracks trial rays. The same ring can then serve COF and TRACK
+            // without trial crossings contaminating or overwriting real output.
+            if (type == ElementType::MONITOR || type == ElementType::PROBE) return;
             static constexpr std::array acceptedTypes{
                     ElementType::DRIFT,           ElementType::MARKER, ElementType::MULTIPOLE,
                     ElementType::SBEND,           ElementType::RBEND,  ElementType::CYCLOTRONSECTOR,

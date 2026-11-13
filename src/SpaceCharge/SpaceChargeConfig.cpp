@@ -238,6 +238,19 @@ namespace opalx::spacecharge {
                 [](const auto& selected) {
                     using Config = std::decay_t<decltype(selected)>;
                     if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
+                        const bool allPeriodic = std::all_of(
+                                selected.boundaryConditions.begin(),
+                                selected.boundaryConditions.end(), [](auto boundary) {
+                                    return boundary == FieldBoundaryCondition::Periodic;
+                                });
+                        if (!std::isfinite(selected.periodicBox) || selected.periodicBox < 0.0
+                            || (selected.periodicBox > 0.0
+                                && (!allPeriodic || selected.binning.has_value()))) {
+                            throw OpalException(
+                                    "validateSpaceChargeConfig",
+                                    "PERIODICBOX must be non-negative and needs PERIODIC "
+                                    "boundaries on all faces and no BINS.");
+                        }
                         validateCartesian(selected);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         validateFFT2D5(selected);

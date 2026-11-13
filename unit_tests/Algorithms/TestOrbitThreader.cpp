@@ -1,3 +1,4 @@
+#include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
 #include "AbsBeamline/CyclotronSector.h"
@@ -229,17 +230,25 @@ protected:
     }
 
     void SetUp() override {
+        savedInput_m = OpalData::getInstance()->getInputFn();
+        directory_m.create("opalx-orbit-threader", ippl::Comm->getCommunicator());
         Options::enableLinearTransferMaps = false;
         resetMapSettings();
-        OpalData::getInstance()->storeInputFn("TestOrbitThreader.opal");
+        OpalData::getInstance()->storeInputFn(
+                (directory_m.path() / "TestOrbitThreader.opal").string());
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
-        std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
 
     void TearDown() override {
         Options::enableLinearTransferMaps = false;
         resetMapSettings();
+        OpalData::getInstance()->storeInputFn(savedInput_m);
+        ippl::Comm->barrier();
+        directory_m.reset();
     }
+
+    opalx::test::TemporaryDirectory directory_m;
+    std::string savedInput_m;
 
     static void resetMapSettings() {
         Options::linearTransferMapRichardsonLevels = 0;

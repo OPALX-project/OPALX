@@ -1,3 +1,4 @@
+#include "../TemporaryDirectory.h"
 //
 // Unit tests for DirichletPlaneWriter.
 //
@@ -24,6 +25,17 @@ protected:
 
     static void TearDownTestSuite() { ippl::finalize(); }
 
+    void SetUp() override {
+        directory_m.create("opalx-dirichlet-writer", ippl::Comm->getCommunicator());
+    }
+
+    void TearDown() override {
+        ippl::Comm->barrier();
+        directory_m.reset();
+    }
+
+    opalx::test::TemporaryDirectory directory_m;
+
     static std::string readFile(const std::string& path) {
         std::ifstream f(path);
         std::stringstream ss;
@@ -33,8 +45,7 @@ protected:
 };
 
 TEST_F(DirichletPlaneWriterTest, ConstructorCreatesOutputDirectory) {
-    const std::string dir = "dirichlet_writer_test_dir";
-    std::filesystem::remove_all(dir);
+    const std::string dir = (directory_m.path() / "dirichlet_writer_test_dir").string();
 
     DirichletPlaneWriter writer(dir);
 
@@ -43,8 +54,7 @@ TEST_F(DirichletPlaneWriterTest, ConstructorCreatesOutputDirectory) {
 }
 
 TEST_F(DirichletPlaneWriterTest, WritePlaneCreatesAsciiDumpWithMetadata) {
-    const std::string dir = "dirichlet_writer_dump_dir";
-    std::filesystem::remove_all(dir);
+    const std::string dir = (directory_m.path() / "dirichlet_writer_dump_dir").string();
 
     DirichletPlaneWriter writer(dir);
 
@@ -70,8 +80,7 @@ TEST_F(DirichletPlaneWriterTest, WritePlaneCreatesAsciiDumpWithMetadata) {
 }
 
 TEST_F(DirichletPlaneWriterTest, InvalidDimensionsThrow) {
-    const std::string dir = "dirichlet_writer_invalid_dims";
-    std::filesystem::remove_all(dir);
+    const std::string dir = (directory_m.path() / "dirichlet_writer_invalid_dims").string();
 
     DirichletPlaneWriter writer(dir);
 

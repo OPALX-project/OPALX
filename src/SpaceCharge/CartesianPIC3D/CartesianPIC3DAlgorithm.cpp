@@ -133,10 +133,28 @@ namespace opalx::spacecharge {
         SpaceChargeSolveResult result;
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
-        const auto& fixedState = bunchState_m->fixedCartesianDomain();
+        auto fixedState = bunchState_m->fixedCartesianDomain();
+        if (config_m.periodicBox > 0.0) {
+            if (fixedState.has_value()) {
+                throw OpalException(
+                        "CartesianPIC3DAlgorithm::solve",
+                        "PERIODICBOX cannot be combined with fixed Cartesian bounds set on the "
+                        "bunch.");
+            }
+            // updateMeshGeometry() places the nodes half a cell inside the domain, so the period
+            // N h is the requested box only with bounds half a cell inside its faces.
+            std::array<double, 3> lower, upper;
+            for (unsigned d = 0; d < 3; ++d) {
+                const double h =
+                        config_m.periodicBox / static_cast<double>(config_m.grid.meshSize[d]);
+                lower[d] = -0.5 * config_m.periodicBox + 0.5 * h;
+                upper[d] = 0.5 * config_m.periodicBox - 0.5 * h;
+            }
+            fixedState = BunchStateHandler::FixedCartesianDomainState{lower, upper};
+        }
         const bool fixedDomain = fixedState.has_value();
         if (fixedDomain) {
-            if (config_m.backend != PoissonSolverType::Open) {
+            if (config_m.backend != PoissonSolverType::Open && config_m.periodicBox <= 0.0) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
@@ -146,11 +164,11 @@ namespace opalx::spacecharge {
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain does not support Dirichlet planes.");
             }
-            if (config_m.repartitionFrequency != 0) {
+            if (config_m.repartitionFrequency != 0 && config_m.periodicBox <= 0.0) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
-                        "ORB redistribution must be disabled while a fixed Cartesian domain is "
-                        "active.");
+                        "ORB redistribution must be disabled while fixed Cartesian bounds set on "
+                        "the bunch are active.");
             }
         }
         clearSelfFields(*primary_m);

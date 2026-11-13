@@ -68,6 +68,7 @@ guide for Macs.
 
 [OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
+
 ## Dependencies
 
 In order to compile OPALX, make sure you have the following dependencies installed on your system:
@@ -158,24 +159,6 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
   mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
-#### FFT2D5 transverse fields and reference paths
-
-`FFT2D5` deposits charge on a reference-path mesh using laboratory positions and
-line charge. The slice Poisson field is therefore the laboratory transverse
-electric field. The magnetic field follows `B = beta * t_hat cross E / c`, so a
-comoving particle's transverse self-force is reduced by `1/gamma^2`. The
-longitudinal `PIPEMODE` approximation is separate from this transverse solve. The
-longitudinal density derivative is sampled at cell centers with the same shape
-as charge deposition: linear interpolation for `SCATTERLONGITUDINALLY=TRUE`,
-otherwise one cell. Closed-ring interpolation wraps across the path boundary.
-
-For an open path, `REFPATHFNAME` must cover the full finite bunch throughout
-tracking, including particles behind the first reference-particle position.
-Particles beyond either path endpoint now cause an error before deposition;
-clamping them into an endpoint slice would concentrate charge artificially.
-If the generated design path is too short, provide an extended path explicitly.
-This coverage check does not change closed-ring wrapping.
-
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -206,7 +189,7 @@ Dependency version/ref options:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `IPPL_GIT_TAG` | `3.4.0` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.4.0` is resolved to `IPPL-3.4.0` and `master` refers to the current IPPL master. |
+| `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.4.0` is resolved to `IPPL-3.4.0`. |
 | `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 

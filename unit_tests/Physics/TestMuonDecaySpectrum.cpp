@@ -40,8 +40,7 @@
  *    @f$A@f$ flips sign relative to @f$\mu^-@f$ — the V-A signature.
  *
  * Writes muon_angular_spectrum_mu_minus.csv and muon_angular_spectrum_mu_plus.csv
- * into the test working directory; those CSVs are consumed by
- * tools/spectrum_plots/plot_spectrum.py (use --overlay to compare the two).
+ * into owned temporary directories, removed at the end of each test case.
  */
 
 #include <gtest/gtest.h>
@@ -55,6 +54,7 @@
 #include <string>
 #include <vector>
 
+#include "../TemporaryDirectory.h"
 #include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/MuonDecay.h"
@@ -225,9 +225,11 @@ namespace {
             EXPECT_NEAR(meanCos, meanRef, 0.01);
             EXPECT_NEAR(area, 1.0, 0.01);
 
+            opalx::test::TemporaryDirectory directory("opalx-muon-spectrum");
+            const auto outputPath = (directory.path() / csvPath).string();
             opalx::test::writeSpectrumCsv(
-                    csvPath, hist, analyticPdf, "cos(theta) w.r.t. muon spin");
-            std::cout << "[MuonAngularSpectrum] CSV written: " << csvPath << '\n';
+                    outputPath, hist, analyticPdf, "cos(theta) w.r.t. muon spin");
+            std::cout << "[MuonAngularSpectrum] CSV written: " << outputPath << '\n';
         }
 
     private:
