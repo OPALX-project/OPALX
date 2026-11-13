@@ -52,7 +52,10 @@ OpalVariableRFCavity::OpalVariableRFCavity()
 OpalVariableRFCavity::OpalVariableRFCavity(const std::string& name, OpalVariableRFCavity* parent)
     : OpalElement(name, parent) {
     const VariableRFCavity* cavity = dynamic_cast<VariableRFCavity*>(parent->getElement());
-    setElement(new VariableRFCavity(*cavity));
+    auto* copy                     = new VariableRFCavity(*cavity);
+    // The runtime element carries the name of the input object, as for every other element.
+    copy->setName(name);
+    setElement(copy);
 }
 
 OpalVariableRFCavity* OpalVariableRFCavity::clone(const std::string& name) {

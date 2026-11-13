@@ -100,7 +100,8 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
 OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent)
     : OpalElement(name, parent) {
-    auto magnet = std::make_shared<ScalingFFAMagnet>("SCALINGFFAMAGNET");
+    // The runtime element carries the name of the input object, as for every other element.
+    auto magnet = std::make_shared<ScalingFFAMagnet>(name);
     magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     setElement(magnet);
 }
