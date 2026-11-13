@@ -22,6 +22,7 @@
 #include "Track/RunDescription.h"
 
 class DataSink;
+class ElementBase;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -44,6 +45,10 @@ struct TrackingSetup {
     opalx::spacecharge::SpaceChargeSolver* spaceChargeSolver = nullptr;  ///< Borrowed solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane;  ///< Plane used for particle loss.
     DataSink* dataSink = nullptr;  ///< Borrowed statistics and phase-space output.
+
+    /// The elements of the tracked line, in line order, built from the run description
+    /// (opalx::run::buildElements()); ParallelTracker copies them into its OpalBeamline.
+    std::vector<std::shared_ptr<ElementBase>> elements;
 
     /// Step-size schedule, one entry per DT segment: time step (s), stop path length (m) and
     /// number of steps.

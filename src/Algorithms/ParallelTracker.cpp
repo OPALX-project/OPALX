@@ -95,6 +95,7 @@ namespace {
 ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
     : Tracker(beamline, *setup.bunch, false, false),
       options_m(setup.options),
+      lineElements_m(std::move(setup.elements)),
       bareTracking_m(setup.bareTracking),
       allowBoundaryControl_m(setup.allowBoundaryControl),
       initialOrbit_m(std::move(setup.initialOrbit)),
@@ -150,13 +151,9 @@ void ParallelTracker::initializeSpaceChargeContainerActivity() {
 }
 // --- Element list ---
 
-void ParallelTracker::addLineElements(const Beamline& line) {
-    for (const FlaggedElmPtr& entry : static_cast<const FlaggedBeamline&>(line)) {
-        const ElementBase& element = *entry.getElement();
-        if (element.getType() == ElementType::BEAMLINE) {
-            addLineElements(static_cast<const Beamline&>(element));
-            continue;
-        }
+void ParallelTracker::addLineElements() {
+    for (const auto& built : lineElements_m) {
+        const ElementBase& element = *built;
         switch (element.trackedAs()) {
             case TrackedAs::FieldElement:
                 itsOpalBeamline_m.addElement(element, *itsBunch_m);
@@ -2179,10 +2176,10 @@ void ParallelTracker::evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc) {
  * @copybrief ParallelTracker::prepareSections
  */
 void ParallelTracker::prepareSections() {
-    // Copy every element of the line into itsOpalBeamline_m (OpalBeamline::addElement clones
-    // it and calls initialise()).
+    // Copy every element built for this RUN into itsOpalBeamline_m (OpalBeamline::addElement
+    // clones it and calls initialise()).
     probeConfigs_m.clear();
-    addLineElements(itsBeamline_m);
+    addLineElements();
 
     // Sorts the elements in OpalBeamline::elements_m by starting position
     itsOpalBeamline_m.prepareSections();

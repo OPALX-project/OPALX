@@ -114,6 +114,8 @@ private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
     /// OPTION values of this RUN; the tracker reads no Options:: globals.
     opalx::run::OptionValues options_m;
+    /// The elements of the tracked line, built from the run description (TrackingSetup).
+    std::vector<std::shared_ptr<ElementBase>> lineElements_m;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
     bool allowBoundaryControl_m =
@@ -141,12 +143,11 @@ private:
      */
     bool prepareTracking();
     /**
-     * @brief Copy the elements of @p line, in order and entering nested lines, into
-     *        itsOpalBeamline_m. ElementBase::trackedAs() says what happens to each: field
-     *        elements are copied, PROBE configures the recorder, MARKER is left out and LASER
-     *        is an error.
+     * @brief Copy the elements built for this RUN (lineElements_m) into itsOpalBeamline_m.
+     *        ElementBase::trackedAs() says what happens to each: field elements are copied,
+     *        PROBE configures the recorder, MARKER is left out and LASER is an error.
      */
-    void addLineElements(const Beamline& line);
+    void addLineElements();
     /// Bunch time, time step and step number of the current step, passed to element apply().
     StepTime stepTime() const {
         return {itsBunch_m->getT(), itsBunch_m->getdT(),

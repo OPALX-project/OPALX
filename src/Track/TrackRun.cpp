@@ -73,6 +73,7 @@
 #include "SpaceCharge/SpaceChargeFactory.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
 
+#include "Track/BuildElements.h"
 #include "Track/FreezeRun.h"
 #include "Track/RunDescriptionWriter.h"
 #include "Track/ValidateRun.h"
@@ -304,7 +305,11 @@ void TrackRun::execute() {
     if (!errors.empty()) {
         throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
     }
-    if (opal_m->checkOnly) return;
+    if (opal_m->checkOnly) {
+        // Build the elements too, to check them; nothing is tracked.
+        opalx::run::buildElements(description.line);
+        return;
+    }
 
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), buildTracking(description));
@@ -637,6 +642,7 @@ TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& descript
             restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
     setup.ringPeriod = ringPeriod;
     setup.options    = description.options;
+    setup.elements   = opalx::run::buildElements(description.line);
     if (Track::block->initialOrbit) {
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),
