@@ -8,6 +8,7 @@ set (_SRCS
     TrackEnd.cpp
     TrackParser.cpp
     TrackRun.cpp
+    ValidateRun.cpp
     )
 
 set (HDRS
@@ -21,6 +22,7 @@ set (HDRS
     Track.h
     TrackParser.h
     TrackRun.h
+    ValidateRun.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
