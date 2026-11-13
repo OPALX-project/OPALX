@@ -19,6 +19,7 @@
 #include "Ippl.h"
 #include "OpalConfigure/Configure.h"
 #include "Track/BuildElements.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -28,22 +29,18 @@ using namespace opalx::run;
 
 namespace {
 
-    AttributeEntry set(const std::string& name, AttributeValue value) {
-        AttributeEntry entry;
-        entry.name        = name;
-        entry.hasValue    = true;
-        entry.defaultUsed = false;
-        entry.value       = std::move(value);
-        return entry;
+    /// A QUADRUPOLE input object, the way the parser makes it, with L, ELEMEDGE and maybe K1.
+    std::unique_ptr<Object> quadrupoleObject(const std::string& name, bool withK1 = true) {
+        std::unique_ptr<Object> input(OpalData::getInstance()->makeObject("QUADRUPOLE", name));
+        Attributes::setReal(*input->findAttribute("L"), 0.1);
+        if (withK1) Attributes::setReal(*input->findAttribute("K1"), 2.5);
+        Attributes::setReal(*input->findAttribute("ELEMEDGE"), 0.3);
+        return input;
     }
 
-    ElementDescription quadrupole(const std::string& name) {
+    ElementDescription quadrupole(const std::string& name, bool withK1 = true) {
         ElementDescription element;
-        element.object.keyword = "QUADRUPOLE";
-        element.object.name    = name;
-        element.object.attributes.push_back(set("L", 0.1));
-        element.object.attributes.push_back(set("K1", 2.5));
-        element.object.attributes.push_back(set("ELEMEDGE", 0.3));
+        element.object      = describeObject(*quadrupoleObject(name, withK1));
         element.elementType = "Multipole";
         return element;
     }
@@ -67,13 +64,10 @@ namespace {
 }  // namespace
 
 TEST_F(BuildElementsTest, ElementMatchesTheOneOfTheInputObject) {
-    // The same QUADRUPOLE as an input object, the way the parser makes it.
-    std::unique_ptr<Object> input(OpalData::getInstance()->makeObject("QUADRUPOLE", "Q1"));
-    auto* quad = dynamic_cast<Element*>(input.get());
+    // The runtime element update() of the input object fills.
+    std::unique_ptr<Object> input = quadrupoleObject("Q1");
+    auto* quad                    = dynamic_cast<Element*>(input.get());
     ASSERT_NE(quad, nullptr);
-    Attributes::setReal(*quad->findAttribute("L"), 0.1);
-    Attributes::setReal(*quad->findAttribute("K1"), 2.5);
-    Attributes::setReal(*quad->findAttribute("ELEMEDGE"), 0.3);
     quad->update();
     const auto* expected = dynamic_cast<const Multipole*>(quad->getElement());
     ASSERT_NE(expected, nullptr);
@@ -90,12 +84,11 @@ TEST_F(BuildElementsTest, ElementMatchesTheOneOfTheInputObject) {
 }
 
 TEST_F(BuildElementsTest, AttributesTheInputDidNotSetKeepTheKeywordDefault) {
-    ElementDescription element               = quadrupole("Q2");
-    element.object.attributes[1].defaultUsed = true;  // K1 = 2.5 was a default: not copied
-    const auto built                         = buildElement(element);
-    const auto* got                          = dynamic_cast<const Multipole*>(built.get());
+    const auto built = buildElement(quadrupole("Q2", false));
+    const auto* got  = dynamic_cast<const Multipole*>(built.get());
     ASSERT_NE(got, nullptr);
-    EXPECT_EQ(got->getNormalComponent(1), 0.0);
+    EXPECT_EQ(got->getNormalComponent(1), 0.0);         // K1 has no default
+    EXPECT_TRUE(got->getFlagDeleteOnTransverseExit());  // DELETEONTRANSVERSEEXIT defaults to true
 }
 
 TEST_F(BuildElementsTest, UnknownKeywordOrFailedAttributeThrows) {

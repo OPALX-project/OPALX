@@ -16,6 +16,8 @@
 #ifndef OPAL_OPALMULTIPOLET_HH
 #define OPAL_OPALMULTIPOLET_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalMultipoleT final : public OpalElement {
@@ -55,6 +57,9 @@ public:
     /** Update the MultipoleT with new parameters from UI parser */
     void update() override;
 
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+
     void print(std::ostream& os) const override;
 
     // Not implemented.
@@ -62,6 +67,9 @@ public:
     void operator=(const OpalMultipoleT&) = delete;
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ElementValues& values);
+
     /** Constants */
     static constexpr double DefaultMAXFORDER = 3.0;
     static constexpr double MinimumMAXFORDER = 1.0;

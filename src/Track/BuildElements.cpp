@@ -36,7 +36,10 @@
 #include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
+#include "Elements/OpalMultipole.h"
+#include "Elements/OpalMultipoleT.h"
 #include "Elements/OpalProbe.h"
+#include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
@@ -68,10 +71,10 @@ namespace opalx::run {
                     {"LASER", {ElementType::LASER, nullptr}},
                     {"MARKER", {ElementType::MARKER, &OpalMarker::build}},
                     {"MONITOR", {ElementType::MONITOR, &OpalMonitor::build}},
-                    {"MULTIPOLE", {ElementType::MULTIPOLE, nullptr}},
-                    {"MULTIPOLET", {ElementType::MULTIPOLET, nullptr}},
+                    {"MULTIPOLE", {ElementType::MULTIPOLE, &OpalMultipole::build}},
+                    {"MULTIPOLET", {ElementType::MULTIPOLET, &OpalMultipoleT::build}},
                     {"PROBE", {ElementType::PROBE, &OpalProbe::build}},
-                    {"QUADRUPOLE", {ElementType::MULTIPOLE, nullptr}},
+                    {"QUADRUPOLE", {ElementType::MULTIPOLE, &OpalQuadrupole::build}},
                     {"RBEND", {ElementType::RBEND, nullptr}},
                     {"RFCAVITY", {ElementType::RFCAVITY, &OpalCavity::build}},
                     {"SBEND", {ElementType::SBEND, nullptr}},
