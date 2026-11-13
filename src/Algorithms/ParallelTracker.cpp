@@ -214,7 +214,7 @@ bool ParallelTracker::prepareTracking() {
 
     // Restart/follow-up state is process-wide so every output-producing element can select append
     // semantics before the beamline is prepared and its writers are initialized.
-    if (restarting_m || OpalData::getInstance()->hasPriorTrack()) {
+    if (restarting_m) {
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
     }
 
@@ -2737,7 +2737,7 @@ void ParallelTracker::saveCavityPhases() { itsDataSink_m->storeCavityInformation
 void ParallelTracker::restoreCavityPhases() {
     typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
-    if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
+    if (OpalData::getInstance()->inRestartRun()) {
         iterator_t it  = OpalData::getInstance()->getFirstMaxPhases();
         iterator_t end = OpalData::getInstance()->getLastMaxPhases();
         for (; it < end; ++it) {

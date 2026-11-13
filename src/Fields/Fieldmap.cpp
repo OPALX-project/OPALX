@@ -457,7 +457,7 @@ void Fieldmap::checkMap(
 
     auto opal = OpalData::getInstance();
     std::ofstream out;
-    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+    if (ippl::Comm->rank() == 0) {
         std::string fname = Util::combineFilePath(
                 {opal->getAuxiliaryOutputDirectory(),
                  Filename_m.substr(lastSlash, lastDot) + ".check"});
@@ -484,7 +484,7 @@ void Fieldmap::checkMap(
         error += std::pow(difference, 2.0);
         ezSquare += std::pow(ez, 2.0);
 
-        if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+        if (ippl::Comm->rank() == 0) {
             out << std::setw(16) << std::setprecision(8) << *it << std::setw(16)
                 << std::setprecision(8) << ez << std::setw(16) << std::setprecision(8)
                 << onAxisFieldCheck << std::endl;

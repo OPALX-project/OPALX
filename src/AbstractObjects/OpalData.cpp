@@ -77,8 +77,6 @@ struct OpalDataImpl {
     // The page title from the latest TITLE command.
     std::string itsTitle_m;
 
-    bool hasPriorRun_m;
-
     // true if we restart a simulation
     bool isRestart_m;
 
@@ -105,7 +103,6 @@ struct OpalDataImpl {
     // last step of a run
     int last_step_m;
 
-    bool hasBunchAllocated_m;
     // The particle bunch to be tracked.
     PartBunch_t* bunch_m;
 
@@ -133,9 +130,6 @@ struct OpalDataImpl {
     // the accumulated (over all TRACKs) number of steps
     unsigned long long maxTrackSteps_m;
 
-    bool isInOPALCyclMode_m;
-    bool isInOPALTMode_m;
-    bool isOptimizerFlag_m;
     bool isInPrepState_m;
 
     std::map<std::string, unsigned int> problemSize_m;
@@ -148,19 +142,14 @@ OpalDataImpl::OpalDataImpl()
       referenceMomentum(0),
       modified(false),
       itsTitle_m(),
-      hasPriorRun_m(false),
       isRestart_m(false),
       restartStep_m(0),
       hasRestartFile_m(false),
       restart_dump_freq_m(1),
       last_step_m(0),
-      hasBunchAllocated_m(false),
       hasDataSinkAllocated_m(false),
       gPhaseShift_m(0.0),
       maxTrackSteps_m(0),
-      isInOPALCyclMode_m(false),
-      isInOPALTMode_m(false),
-      isOptimizerFlag_m(false),
       isInPrepState_m(false) {
     bunch_m    = nullptr;
     dataSink_m = nullptr;
@@ -241,30 +230,13 @@ OpalData::~OpalData() { delete p; }
 void OpalData::reset() {
     delete p;
     p                         = new OpalDataImpl();
-    p->hasPriorRun_m          = false;
     p->isRestart_m            = false;
     p->hasRestartFile_m       = false;
-    p->hasBunchAllocated_m    = false;
     p->hasDataSinkAllocated_m = false;
     p->gPhaseShift_m          = 0.0;
     p->maxPhases_m.clear();
-    p->isInOPALCyclMode_m = false;
-    p->isInOPALTMode_m    = false;
-    p->isInPrepState_m    = false;
-    p->isOptimizerFlag_m  = false;
+    p->isInPrepState_m = false;
 }
-
-bool OpalData::isInOPALCyclMode() { return p->isInOPALCyclMode_m; }
-
-bool OpalData::isInOPALTMode() { return p->isInOPALTMode_m; }
-
-bool OpalData::isOptimizerRun() { return p->isOptimizerFlag_m; }
-
-void OpalData::setInOPALCyclMode() { p->isInOPALCyclMode_m = true; }
-
-void OpalData::setInOPALTMode() { p->isInOPALTMode_m = true; }
-
-void OpalData::setOptimizerFlag() { p->isOptimizerFlag_m = true; }
 
 bool OpalData::isInPrepState() { return p->isInPrepState_m; }
 
@@ -284,10 +256,6 @@ void OpalData::PreparationState::finish() noexcept {
 }
 
 OpalData::PreparationState OpalData::enterPreparationState() { return PreparationState(*this); }
-
-bool OpalData::hasPriorTrack() { return p->hasPriorRun_m; }
-
-void OpalData::setPriorTrack(const bool& value) { p->hasPriorRun_m = value; }
 
 bool OpalData::inRestartRun() { return p->isRestart_m; }
 
@@ -317,10 +285,6 @@ OpalData::OpenMode OpalData::getOpenMode() const { return p->openMode_m; }
 void OpalData::setLastStep(const int& step) { p->last_step_m = step; }
 
 int OpalData::getLastStep() const { return p->last_step_m; }
-
-bool OpalData::hasBunchAllocated() { return p->hasBunchAllocated_m; }
-
-void OpalData::bunchIsAllocated() { p->hasBunchAllocated_m = true; }
 
 void OpalData::setPartBunch(PartBunch_t* b) { p->bunch_m = b; }
 
@@ -592,7 +556,7 @@ std::string OpalData::getInputBasename() {
 void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
     if (p->outFiles_m.count(outfn) == 0) {
         p->outFiles_m.insert(outfn);
-    } else if (!hasBunchAllocated()) {
+    } else {
         throw OpalException(
                 "OpalData::checkAndAddOutputFileName",
                 "Duplicate file name for output, '" + outfn + "', detected");

@@ -54,10 +54,6 @@ Track::Track(
       zstop(zStop),
       timeIntegrator(timeintegrator),
       beamNames_m(beamNames) {
-    if (!OpalData::getInstance()->hasBunchAllocated()) {
-        /// \todo can we do this anymore  OpalData::getInstance()->setPartBunch(new
-        /// PartBunch(&ref));
-    }
     // \todo crashes here
     // bunch = OpalData::getInstance()->getPartBunch();
 }

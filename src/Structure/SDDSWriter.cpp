@@ -192,14 +192,7 @@ void SDDSWriter::addDefaultParameters() {
     revision << buildinfo::project_name << " " << buildinfo::project_version << " "
              << "git rev. #" << Util::getGitRevision();
 
-    std::string flavor;
-    if (OpalData::getInstance()->isInOPALTMode()) {
-        flavor = "opal-t";
-    } else if (OpalData::getInstance()->isInOPALCyclMode()) {
-        flavor = "opal-cycl";
-    } else {
-        flavor = "opal-map";
-    }
+    const std::string flavor = "opal-map";
 
     addParameter("processors", "long", "Number of Cores used", ippl::Comm->size());
 

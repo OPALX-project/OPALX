@@ -381,15 +381,14 @@ void Monitor::writeStatistics() {
 
     std::string fileName =
             OpalData::getInstance()->getInputBasename() + std::string("_Monitors.stat");
-    auto instance      = OpalData::getInstance();
-    bool hasPriorTrack = instance->hasPriorTrack();
-    bool inRestartRun  = instance->inRestartRun();
+    auto instance     = OpalData::getInstance();
+    bool inRestartRun = instance->inRestartRun();
 
     auto it     = statFileEntries_sm.begin();
     double spos = it->first;
     Util::rewindLinesSDDS(fileName, spos, false);
 
-    MonitorStatisticsWriter writer(fileName, hasPriorTrack || inRestartRun);
+    MonitorStatisticsWriter writer(fileName, inRestartRun);
 
     for (const auto& entry : statFileEntries_sm) {
         writer.addRow(entry.second);

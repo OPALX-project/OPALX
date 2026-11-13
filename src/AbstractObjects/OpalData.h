@@ -164,21 +164,10 @@ public:
     std::map<std::string, std::string> getVariableData();
     std::vector<std::string> getVariableNames();
 
-    bool isInOPALCyclMode();
-    bool isInOPALTMode();
-    bool isOptimizerRun();
-
-    void setInOPALCyclMode();
-    void setInOPALTMode();
-    void setOptimizerFlag();
-
     bool isInPrepState();
     void setInPrepState(bool state);
 
     [[nodiscard]] PreparationState enterPreparationState();
-
-    /// true if in follow-up track
-    bool hasPriorTrack();
 
     /// Process output policy: standalone COF runs produce only explicit OUTPUT files.
     bool hasCofRun = false, hasTrackingRun = false;
@@ -188,9 +177,6 @@ public:
 
     /// Number of RUN commands executed so far in this input.
     int numberOfRuns = 0;
-
-    /// true if in follow-up track
-    void setPriorTrack(const bool& value = true);
 
     /// true if we do a restart run
     bool inRestartRun();
@@ -242,11 +228,6 @@ public:
 
     /// get the last step from a possible previous run
     int getLastStep() const;
-
-    /// true if we already allocated a ParticleBunch object
-    bool hasBunchAllocated();
-
-    void bunchIsAllocated();
 
     PartBunch_t* getPartBunch();
 

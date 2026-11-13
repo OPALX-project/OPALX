@@ -580,10 +580,6 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
     }
 
     OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
-
-    if (OpalData::getInstance()->hasBunchAllocated()) {
-        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
-    }
 }
 
 LossDataSink::LossDataSink(const LossDataSink& rhs)

@@ -184,23 +184,6 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
     normal distribution)");
     }
     */
-    if (OpalData::getInstance()->isInOPALCyclMode() && ippl::Comm->size() == 1) {
-        columns_m.addColumn("R0_x", "double", "m", "R0 Particle position in x");
-        columns_m.addColumn("R0_y", "double", "m", "R0 Particle position in y");
-        columns_m.addColumn("R0_s", "double", "m", "R0 Particle position in z");
-
-        columns_m.addColumn("P0_x", "double", "1", "R0 Particle momentum in x");
-        columns_m.addColumn("P0_y", "double", "1", "R0 Particle momentum in y");
-        columns_m.addColumn("P0_s", "double", "1", "R0 Particle momentum in z");
-    }
-
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
-        columns_m.addColumn("halo_x", "double", "1", "Halo in x");
-        columns_m.addColumn("halo_y", "double", "1", "Halo in y");
-        columns_m.addColumn("halo_z", "double", "1", "Halo in z");
-
-        columns_m.addColumn("azimuth", "double", "deg", "Azimuth in global coordinates");
-    }
 
     for (size_t i = 0; i < losses.size(); ++i) {
         columns_m.addColumn(losses[i].first, "long", "1", "Number of lost particles in element");
@@ -231,7 +214,7 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
 
 void StatWriter::write(
         PartBunch_t& beam, Vector_t<double, 3> FDext[], int reportedBinCount,
-        const losses_t& losses, const double& azimuth, const size_t npOutside,
+        const losses_t& losses, const double& /*azimuth*/, const size_t npOutside,
         size_t particleContainerIndex) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
@@ -418,37 +401,6 @@ void StatWriter::write(
             "normalizedEps99_99Percentile_z", beam->get_normalizedEps_99_99Percentile()[2]);
     }
     */
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
-        if (ippl::Comm->size() == 1) {
-            if (pc->getLocalNum() > 0) {
-                auto rDev  = pc->R.getView();
-                auto pDev  = pc->P.getView();
-                auto rHost = Kokkos::create_mirror_view(rDev);
-                auto pHost = Kokkos::create_mirror_view(pDev);
-                Kokkos::deep_copy(rHost, rDev);
-                Kokkos::deep_copy(pHost, pDev);
-                columns_m.addColumnValue("R0_x", rHost(0)[0]);
-                columns_m.addColumnValue("R0_y", rHost(0)[1]);
-                columns_m.addColumnValue("R0_s", rHost(0)[2]);
-                columns_m.addColumnValue("P0_x", pHost(0)[0]);
-                columns_m.addColumnValue("P0_y", pHost(0)[1]);
-                columns_m.addColumnValue("P0_s", pHost(0)[2]);
-            } else {
-                columns_m.addColumnValue("R0_x", 0.0);
-                columns_m.addColumnValue("R0_y", 0.0);
-                columns_m.addColumnValue("R0_s", 0.0);
-                columns_m.addColumnValue("P0_x", 0.0);
-                columns_m.addColumnValue("P0_y", 0.0);
-                columns_m.addColumnValue("P0_s", 0.0);
-            }
-        }
-        Vector_t<double, 3> halo = beam.get_halo();
-        columns_m.addColumnValue("halo_x", halo(0));
-        columns_m.addColumnValue("halo_y", halo(1));
-        columns_m.addColumnValue("halo_z", halo(2));
-
-        columns_m.addColumnValue("azimuth", azimuth);
-    }
 
     for (size_t i = 0; i < losses.size(); ++i) {
         long unsigned int loss = losses[i].second;

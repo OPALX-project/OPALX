@@ -198,7 +198,7 @@ void OpalBeamline::save3DLattice() {
 }
 
 void OpalBeamline::save3DLattice(MeshGenerator& mesh) {
-    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0) return;
 
     // Write elements in s-sorted order (the order prepareSections established). This is stable
     // for 6D-posed elements too, unlike the former application-order sort.
@@ -383,7 +383,7 @@ namespace {
 }  // namespace
 
 void OpalBeamline::save3DInput() {
-    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0) return;
 
     ElementList::iterator it  = elements_m.begin();
     ElementList::iterator end = elements_m.end();

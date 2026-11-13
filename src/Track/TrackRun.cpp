@@ -206,7 +206,6 @@ TrackRun::TrackRun()
       fs_m(nullptr),
       ds_m(nullptr),
       phaseSpaceSinks_m(),
-      isFollowupTrack_m(false),
       method_m(RunMethod::NONE) {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
             "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
@@ -256,7 +255,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       fs_m(nullptr),
       ds_m(nullptr),
       phaseSpaceSinks_m(),
-      isFollowupTrack_m(false),
       method_m(RunMethod::NONE) {
     /*
       the opal dictionary
@@ -350,7 +348,6 @@ TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& descript
 
     // Follow-up behavior is still based on whether a bunch was allocated already.
     // Emission sources are resolved from the selected BEAM later.
-    isFollowupTrack_m = opal_m->hasBunchAllocated();
     // Field solver commands are registry-owned by OpalData; TrackRun only borrows it.
     fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
     *gmsg << level1 << *fs_m << endl;
@@ -707,10 +704,6 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
         if (isRestart && std::filesystem::exists(dest)) {
             phaseSpaceSinks_m.push_back(
                     std::make_unique<H5PartWrapperForPT>(dest, -1, dest, H5_O_RDWR));
-        } else if (!isRestart && isFollowupTrack_m) {
-            phaseSpaceSinks_m.push_back(
-                    std::make_unique<H5PartWrapperForPT>(
-                            dest, -1, stem + std::string(".h5"), H5_O_WRONLY));
         } else {
             phaseSpaceSinks_m.push_back(std::make_unique<H5PartWrapperForPT>(dest, H5_O_WRONLY));
         }
@@ -1032,17 +1025,10 @@ Inform& TrackRun::print(Inform& os) const {
     os << endl;
     os << "* ************* T R A C K  R U N *************************************************** "
        << endl;
-    if (!isFollowupTrack_m) {
-        os << "* Selected Tracking Method == " << getRunMethodName() << ", NEW TRACK" << '\n'
-           << "* "
-              "********************************************************************************** "
-           << '\n';
-    } else {
-        os << "* Selected Tracking Method == " << getRunMethodName() << ", FOLLOWUP TRACK" << '\n'
-           << "* "
-              "********************************************************************************** "
-           << '\n';
-    }
+    os << "* Selected Tracking Method == " << getRunMethodName() << ", NEW TRACK" << '\n'
+       << "* "
+          "********************************************************************************** "
+       << '\n';
     os << "* Phase space dump frequency    = " << Options::psDumpFreq << '\n'
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'

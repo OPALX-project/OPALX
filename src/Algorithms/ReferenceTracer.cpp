@@ -201,7 +201,7 @@ bool ReferenceTracer::rayHitsBox(
 
 void ReferenceTracer::openDesignPath() {
     auto opal = OpalData::getInstance();
-    if (ippl::Comm->rank() != 0 || opal->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0) return;
 
     const std::string fileName = Util::combineFilePath(
             {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});

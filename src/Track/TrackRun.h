@@ -157,8 +157,6 @@ private:
 
     OpalData* opal_m;
 
-    bool isFollowupTrack_m;
-
     RunMethod method_m;
     static const BiMap<RunMethod, std::string> stringMethod_s;
 };
