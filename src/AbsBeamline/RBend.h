@@ -115,7 +115,7 @@ public:
     /// Use the initialization time step to preserve OPAL-T's sampled endpoint convention.
     void initialiseReferencePath(double mass, double charge, double timeStep);
     /// Path length used by downstream placement; physical pole-face geometry is unchanged.
-    double getPlacementPathLength() const;
+    double getPlacementPathLength() const override;
 
     /// @brief Store the normal/skew multipole coefficients into the device views
     ///        read by apply()/computeFieldHost().

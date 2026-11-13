@@ -18,8 +18,6 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Utilities/ElementList.h"
 
-class ScalingFFAMagnet;
-
 /**
  * @class PlacementResolver
  * @brief Resolves every beamline element's global-to-local transform in one place.
@@ -53,7 +51,7 @@ public:
      * ffa->getPosition() and length ffa->getArcLength().
      */
     static void resolveFFAElemEdge(
-            std::shared_ptr<ScalingFFAMagnet> ffa, double& endPriorPathLength,
+            const std::shared_ptr<ElementBase>& ffa, double& endPriorPathLength,
             CoordinateSystemTrafo& currentCoordTrafo,
             const CoordinateSystemTrafo& labFrame = CoordinateSystemTrafo());
 };

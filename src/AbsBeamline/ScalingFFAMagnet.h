@@ -296,6 +296,20 @@ public:
      */
     void setPhiStart(double phiStart) { config_m.phiStart_m = phiStart; }
 
+    /// ELEMEDGE is an arc length along the circle of radius R0.
+    std::optional<double> getPlacementRadius() const override { return getR0(); }
+
+    /// Sets the start angle of the field: half the end-field centre length for a pose, half the
+    /// length over |R0| for ELEMEDGE.
+    void prepareForPlacement(bool byPose) override {
+        if (byPose) {
+            setupEndField();
+            setPhiStart(getEndField()->getCentreLength() / 2.0);
+        } else {
+            setPhiStart(getGeometry().getArcLength() / 2.0 / std::abs(getR0()));
+        }
+    }
+
     /** Get the maximum radius
      */
     double getRMin() const { return config_m.rMin_m; }

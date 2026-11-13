@@ -368,6 +368,25 @@ public:
     /// @return True if ELEMEDGE has been set.
     bool isElementPositionSet() const;
 
+    /**
+     * @brief Path length this element adds to the reference path when placing the elements
+     *        after it by ELEMEDGE. Default: the arc length of its geometry.
+     */
+    virtual double getPlacementPathLength() const { return getGeometry().getArcLength(); }
+
+    /**
+     * @brief For an element whose ELEMEDGE is an arc length along a circle (the circle's centre
+     *        is at x = -radius in the lab frame), the radius of that circle; empty otherwise.
+     */
+    virtual std::optional<double> getPlacementRadius() const { return std::nullopt; }
+
+    /**
+     * @brief Called by PlacementResolver before the element is placed.
+     * @param byPose True when the element is placed by its X, Y, Z, THETA, PHI, PSI pose,
+     *               false when it is placed by ELEMEDGE.
+     */
+    virtual void prepareForPlacement(bool /*byPose*/) {}
+
     /* =============================== Aperture ================================ */
 
     void setAperture(const ApertureType& type, const std::vector<double>& args);
