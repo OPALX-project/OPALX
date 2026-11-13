@@ -104,8 +104,30 @@ public:
     void erase(const std::string& name);
 
     /// Find entry.
-    //  Identified by [b]name[/b].
+    //  Identified by [b]name[/b]: an object defined in the input or a builtin constant, else
+    //  the keyword of that name (see findKeyword()).
     Object* find(const std::string& name);
+
+    /**
+     * @brief Register a keyword (QUADRUPOLE, BEAM, OPTION, ...).
+     * @param keywordObject An object built with its keyword constructor: it holds the
+     *        attribute definitions and defaults. OpalData takes ownership. It is kept apart
+     *        from the objects of the input, so update() and the other directory loops never
+     *        see it.
+     * @throws OpalException if the keyword or an object of that name exists already.
+     */
+    void addKeyword(Object* keywordObject);
+
+    /// The object registered for @p keyword, or nullptr if it is not a keyword.
+    Object* findKeyword(const std::string& keyword) const;
+
+    /**
+     * @brief Make a new object of @p keyword named @p name, with the keyword's attribute
+     *        defaults (the same object the parser makes for "NAME: KEYWORD;").
+     * @return The new object, owned by the caller, or nullptr if @p keyword is unknown.
+     * @note The object is not stored; pass it to define() to store it.
+     */
+    Object* makeObject(const std::string& keyword, const std::string& name);
 
     /// Return value of global reference momentum.
     double getP0() const;

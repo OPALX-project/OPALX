@@ -108,75 +108,75 @@ namespace {
 
     void makeActions() {
         OpalData* opal = OpalData::getInstance();
-        opal->create(new Call());
-        opal->create(new DumpEMFields());
-        opal->create(new Echo());
-        opal->create(new Help());
-        opal->create(new Option());
-        opal->create(new Select());
-        opal->create(new Stop());
-        opal->create(new Quit());
-        opal->create(new PSystem());
-        opal->create(new System());
-        opal->create(new Title());
-        opal->create(new TrackCmd());
-        opal->create(new CofCmd());
-        opal->create(new Value());
+        opal->addKeyword(new Call());
+        opal->addKeyword(new DumpEMFields());
+        opal->addKeyword(new Echo());
+        opal->addKeyword(new Help());
+        opal->addKeyword(new Option());
+        opal->addKeyword(new Select());
+        opal->addKeyword(new Stop());
+        opal->addKeyword(new Quit());
+        opal->addKeyword(new PSystem());
+        opal->addKeyword(new System());
+        opal->addKeyword(new Title());
+        opal->addKeyword(new TrackCmd());
+        opal->addKeyword(new CofCmd());
+        opal->addKeyword(new Value());
     }
 
     void makeDefinitions() {
         OpalData* opal = OpalData::getInstance();
         // Must create the value definitions first.
-        opal->create(new BoolConstant());
-        opal->create(new RealConstant());
-        opal->create(new RealVariable());
-        opal->create(new RealVector());
-        opal->create(new StringConstant());
+        opal->addKeyword(new BoolConstant());
+        opal->addKeyword(new RealConstant());
+        opal->addKeyword(new RealVariable());
+        opal->addKeyword(new RealVector());
+        opal->addKeyword(new StringConstant());
 
-        opal->create(new MacroCmd());
+        opal->addKeyword(new MacroCmd());
 
-        opal->create(new Beam());
-        opal->create(new EmissionSource());
-        opal->create(new FieldSolverCmd());
-        opal->create(new Distribution());
-        opal->create(new EmissionSourceList());
-        opal->create(new BinningCmd());
+        opal->addKeyword(new Beam());
+        opal->addKeyword(new EmissionSource());
+        opal->addKeyword(new FieldSolverCmd());
+        opal->addKeyword(new Distribution());
+        opal->addKeyword(new EmissionSourceList());
+        opal->addKeyword(new BinningCmd());
     }
 
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
-        opal->create(new OpalCavity());
-        opal->create(new OpalTravelingWave());
-        opal->create(new OpalConstantEFieldCavity());
-        opal->create(new OpalConstantFocusing());
-        opal->create(new OpalCyclotronSector());
-        opal->create(new OpalTrimCoil());
-        opal->create(new OpalBox());
-        opal->create(new OpalCollimator());
-        opal->create(new OpalDrift());
-        opal->create(new OpalLaser());
-        opal->create(new OpalMonitor());
-        opal->create(new OpalMarker());
-        opal->create(new OpalProbe());
-        opal->create(new OpalMultipole());
-        opal->create(new OpalQuadrupole());
-        opal->create(new OpalRBend());
-        opal->create(new OpalSBend());
-        opal->create(new OpalScalingFFAMagnet());
-        opal->create(new OpalFieldmapElement());
-        opal->create(new OpalSolenoid());
-        opal->create(new Line());
-        opal->create(new Ring());
-        opal->create(new OpalVerticalFFAMagnet());
-        opal->create(new OpalPolynomialTimeDependence());
-        opal->create(new OpalSinusoidalTimeDependence());
-        opal->create(new OpalSplineTimeDependence());
-        opal->create(new OpalMultipoleT());
-        opal->create(new OpalVariableRFCavity());
+        opal->addKeyword(new OpalCavity());
+        opal->addKeyword(new OpalTravelingWave());
+        opal->addKeyword(new OpalConstantEFieldCavity());
+        opal->addKeyword(new OpalConstantFocusing());
+        opal->addKeyword(new OpalCyclotronSector());
+        opal->addKeyword(new OpalTrimCoil());
+        opal->addKeyword(new OpalBox());
+        opal->addKeyword(new OpalCollimator());
+        opal->addKeyword(new OpalDrift());
+        opal->addKeyword(new OpalLaser());
+        opal->addKeyword(new OpalMonitor());
+        opal->addKeyword(new OpalMarker());
+        opal->addKeyword(new OpalProbe());
+        opal->addKeyword(new OpalMultipole());
+        opal->addKeyword(new OpalQuadrupole());
+        opal->addKeyword(new OpalRBend());
+        opal->addKeyword(new OpalSBend());
+        opal->addKeyword(new OpalScalingFFAMagnet());
+        opal->addKeyword(new OpalFieldmapElement());
+        opal->addKeyword(new OpalSolenoid());
+        opal->addKeyword(new Line());
+        opal->addKeyword(new Ring());
+        opal->addKeyword(new OpalVerticalFFAMagnet());
+        opal->addKeyword(new OpalPolynomialTimeDependence());
+        opal->addKeyword(new OpalSinusoidalTimeDependence());
+        opal->addKeyword(new OpalSplineTimeDependence());
+        opal->addKeyword(new OpalMultipoleT());
+        opal->addKeyword(new OpalVariableRFCavity());
 
-        opal->create(new OpalEnge());
-        opal->create(new OpalTanh());
-        opal->create(new OpalAsymmetricEnge());
+        opal->addKeyword(new OpalEnge());
+        opal->addKeyword(new OpalTanh());
+        opal->addKeyword(new OpalAsymmetricEnge());
     }
 };  // namespace
 
