@@ -146,6 +146,8 @@ void MultipoleT::setEntryOffset(const double offset) { config_m.entryOffset_m = 
 
 void MultipoleT::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
+    // Every tracked copy looks up its scaling model by name.
+    initialiseTimeDependencies();
     implementation_->initialise();
 }
 

@@ -161,7 +161,13 @@ BoundingBox VariableRFCavity::getLocalSupportBox(const double reach) const {
     return box;
 }
 
-void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
+void VariableRFCavity::initialise(PartBunch_t* bunch) {
+    RefPartBunch_m = bunch;
+    // Every tracked copy looks up its amplitude, frequency and phase models by name. An
+    // element whose models were set directly (without names) keeps them.
+    if (!amplitudeName_m.empty() && !frequencyName_m.empty() && !phaseName_m.empty())
+        initialiseTimeDependencies();
+}
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 
