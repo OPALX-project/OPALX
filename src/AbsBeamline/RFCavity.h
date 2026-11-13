@@ -169,8 +169,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual void goOnline(const double& kineticEnergy) override;
-
     virtual void goOffline() override;
 
     virtual void setDesignEnergy(const double& ekin, bool changeable = true) override;

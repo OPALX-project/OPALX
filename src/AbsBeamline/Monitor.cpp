@@ -336,11 +336,10 @@ void Monitor::initialise(PartBunch_t* bunch) {
     }
 
     lossDs_m = std::make_unique<LossDataSink>(filename_m, !Options::asciidump, type_m);
+    online_m = true;
 }
 
 void Monitor::finalise() {}
-
-void Monitor::goOnline(const double&) { online_m = true; }
 
 void Monitor::goOffline() {
     if (!lossDs_m) {

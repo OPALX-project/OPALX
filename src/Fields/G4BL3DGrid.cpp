@@ -587,7 +587,7 @@ void G4BL3DGrid::swap() {
 
 void G4BL3DGrid::getInfo(Inform* msg) {
     // Deliberately says neither magnetostatic nor electric: getInfo() is called from the
-    // element's initialise(), which runs before goOnline() reads the data, and nothing in
+    // element's initialise() before Fieldmap::readMap() reads the data, and nothing in
     // the header says whether the electric columns are there or what is in them.
     (*msg) << Filename_m << " (G4beamline grid, 3D static); x= " << xbegin_m << " .. " << xend_m
            << " m; y= " << ybegin_m << " .. " << yend_m << " m; z= " << zbegin_m << " .. " << zend_m

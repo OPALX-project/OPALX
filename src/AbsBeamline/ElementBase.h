@@ -482,9 +482,8 @@ public:
     // Clean-up
     virtual void finalise() = 0;
 
-    /// Prepare runtime resources for tracking (e.g. load a field map); sets online_m.
-    virtual void goOnline(const double& kineticEnergy);
     /// Release runtime resources / flush element output (e.g. loss data); clears online_m.
+    /// initialise() prepares them (field maps, output files) and sets online_m where it is read.
     virtual void goOffline();
 
     /**

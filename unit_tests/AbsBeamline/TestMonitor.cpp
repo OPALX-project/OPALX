@@ -73,6 +73,9 @@ public:
 
     void setLength(double length) { geom_.setElementLength(length); }
 
+    /// What initialise() sets at the end, without the bunch and the loss file it also needs.
+    void markOnline() { online_m = true; }
+
 private:
     Geometry geom_;
     Plane plane_ = OFF;
@@ -194,7 +197,7 @@ TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
     Vector_t<double, 3> E(1.0);
     Vector_t<double, 3> B(2.0);
 
-    monitor.goOnline(0.0);
+    monitor.markOnline();
 
     EXPECT_FALSE(monitor.applyToReferenceParticle(R, P, 0.0, E, B));
 }

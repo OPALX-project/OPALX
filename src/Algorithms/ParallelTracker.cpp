@@ -258,10 +258,6 @@ bool ParallelTracker::prepareTracking() {
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
 
-    // Activate all beamline elements (sets ElementBase::online_m = true)
-    itsOpalBeamline_m.activateElements();
-    m << level3 << "Activated all beamline elements." << endl;
-
     if (!tuneInitial_m.empty()) {
         if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1)
             throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");

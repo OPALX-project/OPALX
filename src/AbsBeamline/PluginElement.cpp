@@ -45,7 +45,7 @@ void PluginElement::initialise(PartBunch_t* bunch) {
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
     // virtual hook
     doInitialise(bunch);
-    goOnline(-1e6);
+    online_m = true;
 }
 
 void PluginElement::finalise() {

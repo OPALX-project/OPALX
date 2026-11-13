@@ -110,9 +110,6 @@ public:
     /// @note not implemented
     virtual void finalise() override;
 
-    /// @brief Load field map and go online
-    virtual void goOnline(const double& kineticEnergy) override;
-
     /// @brief Free field map and go offline
     virtual void goOffline() override;
 

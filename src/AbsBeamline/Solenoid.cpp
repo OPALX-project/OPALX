@@ -158,6 +158,7 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
         startField_m = zBegin;
         endField_m   = zEnd;
+        Fieldmap::readMap(filename_m);
     } else {
         startField_m = 0.0;
         endField_m   = 0.0;
@@ -165,12 +166,6 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 }
 
 void Solenoid::finalise() {}
-
-/// @brief Read field map and go online
-void Solenoid::goOnline(const double&) {
-    Fieldmap::readMap(filename_m);
-    online_m = true;
-}
 
 /// @brief Free field map and go offline
 void Solenoid::goOffline() {

@@ -71,8 +71,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual void goOnline(const double& kineticEnergy) override;
-
     virtual void goOffline() override;
 
     virtual ElementType getType() const override;

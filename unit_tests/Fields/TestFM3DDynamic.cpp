@@ -338,7 +338,6 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     cavity.setAmplitudeError(0.3);
     cavity.setPhaseError(-0.15);
     cavity.initialise(&bunch);
-    cavity.goOnline(0.0);
     for (const double phase : {0.0, 0.7, Physics::pi / 2, Physics::pi}) {
         cavity.setPhasem(phase);
         Kokkos::deep_copy(particles->E.getView(), Vector(7.0));

@@ -317,11 +317,6 @@ std::vector<std::vector<double>> ScalingFFAMagnet::getDfCoefficients() const {
     return dfCoefficients;
 }
 
-void ScalingFFAMagnet::goOnline(const double& kineticEnergy) {
-    ElementBase::goOnline(kineticEnergy);
-    initialise();
-}
-
 void ScalingFFAMagnet::goOffline() {
     ElementBase::goOffline();
     finalise();

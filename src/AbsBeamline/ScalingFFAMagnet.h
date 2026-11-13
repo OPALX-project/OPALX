@@ -218,9 +218,6 @@ public:
     /** calls finalise() */
     void goOffline() override;
 
-    /** call initialise() */
-    void goOnline(const double& kineticEnergy) override;
-
     /** Get the field extent
      *
      *  \param zBegin sets start z coordinate in the local coordinate system of

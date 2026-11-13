@@ -441,10 +441,3 @@ void OpalBeamline::save3DInput() {
 
     pos << input << std::endl;
 }
-
-void OpalBeamline::activateElements() {
-    const double designEnergy = 0.0;
-    for (auto it = elements_m.begin(); it != elements_m.end(); ++it) {
-        (*it)->goOnline(designEnergy);
-    }
-}

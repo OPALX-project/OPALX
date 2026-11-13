@@ -578,7 +578,6 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
     bunch->setT(1.e-9);
     bunch->setdT(2.e-9);
     cavity.initialise(bunch.get());
-    cavity.goOnline(0.);
     cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     const auto magnetic = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());

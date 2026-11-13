@@ -98,19 +98,15 @@ public:
     virtual void accept(BeamlineVisitor&) const override;
 
     /**
-     * @brief Load the map, check its type, and take the element's box from its extent.
+     * @brief Load the map, check its type, take the element's box from its extent, and read
+     *        the map data.
      *
-     * The map header is parsed by the reader's constructor inside Fieldmap::getFieldmap(),
-     * so both extents are available here -- before goOnline() reads the data. This runs on
-     * the tracked clone in OpalBeamline::visit(), which is before the element list is sorted
-     * and before PlacementResolver runs, so the map-derived length reaches every consumer.
+     * This runs in OpalBeamline::addElement(), before the element list is sorted and before
+     * PlacementResolver runs, so the map-derived length reaches every consumer.
      */
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
-
-    /// @brief Read the map data and go online.
-    virtual void goOnline(const double& kineticEnergy) override;
 
     /// @brief Release the map data and go offline.
     virtual void goOffline() override;

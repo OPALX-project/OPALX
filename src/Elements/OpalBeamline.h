@@ -50,7 +50,6 @@ public:
     OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation);
     ~OpalBeamline();
 
-    void activateElements();
     /// Select runtime elements whose isInside() support contains lab position x [m].
     /// Includes aperture checks; selection does not imply a nonzero field. Candidates come
     /// from the element grid once placement is final, otherwise every element is tested.

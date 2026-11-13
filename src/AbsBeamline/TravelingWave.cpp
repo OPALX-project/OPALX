@@ -260,11 +260,6 @@ void TravelingWave::initialise(PartBunch_t* bunch) {
 
 void TravelingWave::finalise() {}
 
-void TravelingWave::goOnline(const double&) {
-    Fieldmap::readMap(filename_m);
-    online_m = true;
-}
-
 void TravelingWave::goOffline() {
     // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
     Fieldmap::freeMap(filename_m);

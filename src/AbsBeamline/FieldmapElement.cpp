@@ -173,7 +173,7 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
     }
 
     // The reader's constructor has already parsed the header, so both extents answer now,
-    // before goOnline() reads the data.
+    // before Fieldmap::readMap() at the end of this function reads the data.
     fieldmap_m->getFieldDimensions(startField_m, endField_m);
     getGeometry().setElementLength(endField_m - startField_m);
     // The local frame is the map's frame, so the body starts where the map's z range starts.
@@ -209,14 +209,11 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
                "beam can leave it."
             << endl;
     }
+
+    Fieldmap::readMap(filename_m);
 }
 
 void FieldmapElement::finalise() { online_m = false; }
-
-void FieldmapElement::goOnline(const double& /*kineticEnergy*/) {
-    Fieldmap::readMap(filename_m);
-    online_m = true;
-}
 
 void FieldmapElement::goOffline() {
     // freeMap() drops the reference count and deletes the map when it reaches zero, so the

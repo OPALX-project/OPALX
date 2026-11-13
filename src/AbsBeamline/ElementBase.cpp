@@ -475,8 +475,6 @@ BoundingBox ElementBase::getArcSupportBox(
 
 ElementType ElementBase::getType() const { return ElementType::ANY; }
 
-void ElementBase::goOnline(const double&) { online_m = true; }
-
 void ElementBase::goOffline() { online_m = false; }
 
 void ElementBase::apply(

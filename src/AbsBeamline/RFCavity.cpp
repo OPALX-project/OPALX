@@ -281,19 +281,11 @@ void RFCavity::initialise(PartBunch_t* bunch) {
         }
         frequency_m = fieldmap_m->getFrequency();
     }
+
+    Fieldmap::readMap(filename_m);
 }
 
 void RFCavity::finalise() {}
-
-void RFCavity::goOnline(const double&) {
-    if (isCyclotronGap() || isIdeal()) {
-        online_m = true;
-        return;
-    }
-    Fieldmap::readMap(filename_m);
-
-    online_m = true;
-}
 
 void RFCavity::goOffline() {
     if (isCyclotronGap() || isIdeal()) {
