@@ -158,8 +158,9 @@ namespace opalx::spacecharge {
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
-        return {config.backend,        config.greenFunction,  config.p3mCutoff,
-                config.boundaryConditions, config.p3mCutoffCells, config.repeatCount,
+        return {config.backend,        config.greenFunction,
+                config.p3mCutoff,      config.boundaryConditions,
+                config.p3mCutoffCells, config.repeatCount,
                 config.repeatSpacing};
     }
 

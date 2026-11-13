@@ -105,7 +105,8 @@ namespace {
             if (end_m == buffer_m.size()) {
                 buffer_m.resize(2 * buffer_m.size());  // a line longer than the buffer
             }
-            const size_t got = std::fread(buffer_m.data() + end_m, 1, buffer_m.size() - end_m, file_m);
+            const size_t got =
+                    std::fread(buffer_m.data() + end_m, 1, buffer_m.size() - end_m, file_m);
             end_m += got;
             eof_m = got == 0;
         }
@@ -188,8 +189,8 @@ void FromFile::readFile(const std::string& filename) {
     const int nranks          = std::max(1, ippl::Comm->size());
     const std::uint64_t bytes = fileSize - dataOffset_m;
     auto rangeBegin           = [&](int r) {
-        return dataOffset_m + static_cast<std::uint64_t>(
-                       static_cast<long double>(bytes) * r / nranks);
+        return dataOffset_m
+               + static_cast<std::uint64_t>(static_cast<long double>(bytes) * r / nranks);
     };
     const std::uint64_t begin = rangeBegin(rank);
     const std::uint64_t end   = rangeBegin(rank + 1);
@@ -211,8 +212,9 @@ void FromFile::readFile(const std::string& filename) {
         }
     }
     std::vector<std::uint64_t> gathered(2 * nranks);
-    MPI_Allgather(local, 2, MPI_UINT64_T, gathered.data(), 2, MPI_UINT64_T,
-                  ippl::Comm->getCommunicator());
+    MPI_Allgather(
+            local, 2, MPI_UINT64_T, gathered.data(), 2, MPI_UINT64_T,
+            ippl::Comm->getCommunicator());
     rangeLineCounts_m.resize(nranks);
     rangeFirstLine_m.resize(nranks);
     std::uint64_t dataLines = 0;
@@ -230,8 +232,8 @@ void FromFile::readFile(const std::string& filename) {
         throw OpalException(
                 "FromFile::readFile", "Number of data lines (" + std::to_string(dataLines)
                                               + ") does not match declared count ("
-                                              + std::to_string(numParticles_m) + ") in '"
-                                              + filename + "'.");
+                                              + std::to_string(numParticles_m) + ") in '" + filename
+                                              + "'.");
     }
 }
 
@@ -248,9 +250,9 @@ Kokkos::View<double**, Kokkos::HostSpace> FromFile::readRows(size_t first, size_
         index += rangeLineCounts_m[range++];
     }
     if (range == rangeLineCounts_m.size()) {
-        throw OpalException("FromFile::readRows", "Data row " + std::to_string(first)
-                                                          + " is beyond the end of '" + filename_m
-                                                          + "'.");
+        throw OpalException(
+                "FromFile::readRows", "Data row " + std::to_string(first)
+                                              + " is beyond the end of '" + filename_m + "'.");
     }
 
     const size_t maxColIdx = *std::max_element(columnIndices_m.begin(), columnIndices_m.end());
@@ -267,7 +269,7 @@ Kokkos::View<double**, Kokkos::HostSpace> FromFile::readRows(size_t first, size_
         const std::string text(line);
         const char* cursor = text.c_str();
         for (size_t col = 0; col <= maxColIdx; ++col) {
-            char* next = nullptr;
+            char* next  = nullptr;
             values[col] = std::strtod(cursor, &next);
             if (next == cursor) {
                 throw OpalException(
@@ -284,9 +286,9 @@ Kokkos::View<double**, Kokkos::HostSpace> FromFile::readRows(size_t first, size_
         ++row;
     }
     if (row != count) {
-        throw OpalException("FromFile::readRows", "'" + filename_m + "' ended after "
-                                                          + std::to_string(first + row)
-                                                          + " data rows.");
+        throw OpalException(
+                "FromFile::readRows",
+                "'" + filename_m + "' ended after " + std::to_string(first + row) + " data rows.");
     }
     return rows;
 }

@@ -35,31 +35,31 @@ enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
     enum {
-        TYPE,          // The field solver name
-        BINS,          // Name of BINNING definition or NONE
-        NX,            // mesh size in x
-        NY,            // mesh size in y
-        NZ,            // mesh size in z
-        PARFFTX,       // parallelized grid in x
-        PARFFTY,       // parallelized grid in y
-        PARFFTZ,       // parallelized grid in z
-        BCFFTX,        // Poisson-domain boundary in x
-        BCFFTY,        // Poisson-domain boundary in y
-        BCFFTZ,        // Poisson-domain boundary in z
-        GREENSF,       // Green function for OPEN; P3M selects its kernel internally
-        P3MRCUT,       // P3M particle-particle cutoff radius [m]
-        P3MRCUTCELLS,  // P3M cutoff in units of the largest mesh spacing
-        REPEATS,       // shifted kernel copies on each side along z [OPEN, P3M]
-        REPEATSPACING, // lab-frame spacing of the copies in metres [OPEN, P3M]
-        PERIODICBOX,   // edge length of a fixed all-periodic cube [m]; zero follows the particles
-        BBOXINCR,      // how much the boundingbox is increased
-        FFT2D5MODEL,   // Explicit FFT2D5 model identity; ORIGINAL is currently supported
-        PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
-        BEAMR,         // Beam radius in metres [FFT2D5 only]
-        CLOSEDRING,    // TRUE if the ring is closed [FFT2D5 only]
-        PIPESIZEX,     // Size of the pipe in meters in the transverse direction [FFT2D5 only]
-        PIPESIZEY,     // Size of the pipe in meters in the vertical direction [FFT2D5 only]
-        REFPATHFNAME,  // Reference path file name [FFT2D5 only]
+        TYPE,           // The field solver name
+        BINS,           // Name of BINNING definition or NONE
+        NX,             // mesh size in x
+        NY,             // mesh size in y
+        NZ,             // mesh size in z
+        PARFFTX,        // parallelized grid in x
+        PARFFTY,        // parallelized grid in y
+        PARFFTZ,        // parallelized grid in z
+        BCFFTX,         // Poisson-domain boundary in x
+        BCFFTY,         // Poisson-domain boundary in y
+        BCFFTZ,         // Poisson-domain boundary in z
+        GREENSF,        // Green function for OPEN; P3M selects its kernel internally
+        P3MRCUT,        // P3M particle-particle cutoff radius [m]
+        P3MRCUTCELLS,   // P3M cutoff in units of the largest mesh spacing
+        REPEATS,        // shifted kernel copies on each side along z [OPEN, P3M]
+        REPEATSPACING,  // lab-frame spacing of the copies in metres [OPEN, P3M]
+        PERIODICBOX,    // edge length of a fixed all-periodic cube [m]; zero follows the particles
+        BBOXINCR,       // how much the boundingbox is increased
+        FFT2D5MODEL,    // Explicit FFT2D5 model identity; ORIGINAL is currently supported
+        PIPEMODE,       // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
+        BEAMR,          // Beam radius in metres [FFT2D5 only]
+        CLOSEDRING,     // TRUE if the ring is closed [FFT2D5 only]
+        PIPESIZEX,      // Size of the pipe in meters in the transverse direction [FFT2D5 only]
+        PIPESIZEY,      // Size of the pipe in meters in the vertical direction [FFT2D5 only]
+        REFPATHFNAME,   // Reference path file name [FFT2D5 only]
         SCATTERLONGITUDINALLY,  // Scatter charge between longitudinal slices [FFT2D5 only]
         SIZE
     };

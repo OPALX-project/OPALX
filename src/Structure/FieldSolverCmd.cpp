@@ -96,8 +96,9 @@ FieldSolverCmd::FieldSolverCmd()
             0.0);
 
     itsAttr[FIELDSOLVER::REPEATSPACING] = Attributes::makeReal(
-            "REPEAT_SPACING", "Lab-frame spacing of the REPEATS copies in m (beta*c/f for bunches "
-                              "in neighbouring RF buckets).",
+            "REPEAT_SPACING",
+            "Lab-frame spacing of the REPEATS copies in m (beta*c/f for bunches "
+            "in neighbouring RF buckets).",
             0.0);
 
     itsAttr[FIELDSOLVER::PERIODICBOX] = Attributes::makeReal(
@@ -189,8 +190,8 @@ bool FieldSolverCmd::hasP3MCutoffCells() const {
 int FieldSolverCmd::getRepeatCount() const {
     const double repeats = Attributes::getReal(itsAttr[FIELDSOLVER::REPEATS]);
     if (repeats < 0.0 || repeats != std::floor(repeats)) {
-        throw OpalException("FieldSolverCmd::getRepeatCount",
-                            "REPEATS must be a non-negative integer.");
+        throw OpalException(
+                "FieldSolverCmd::getRepeatCount", "REPEATS must be a non-negative integer.");
     }
     return static_cast<int>(repeats);
 }
