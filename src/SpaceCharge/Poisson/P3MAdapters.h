@@ -80,6 +80,9 @@ namespace opalx::spacecharge {
                 cutoff_m = *request.p3mCutoff;
                 backend_m->updateParameter("alpha", 2.0 / cutoff_m);
             }
+            if (request.repeatSpacing.has_value()) {
+                backend_m->updateParameter("repeat_spacing", *request.repeatSpacing);
+            }
             kernelRestore_m.solve(*backend_m, request);
             IpplTimings::stopTimer(timer);
         }
@@ -96,6 +99,8 @@ namespace opalx::spacecharge {
             parameters.add("alpha", 2.0 / cutoff_m);
             parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
             parameters.add("regularization_cutoff", p3mRegularizationCutoff);
+            parameters.add("repeat_count", config_m.repeatCount);
+            parameters.add("repeat_spacing", config_m.repeatSpacing);
             parameters.add(
                     "boundary_type", allPeriodic ? NativeBackend::PERIODIC : NativeBackend::OPEN);
             capabilities_m.supportsShiftedGreenFunction = !allPeriodic;
