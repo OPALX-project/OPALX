@@ -28,14 +28,18 @@
 #include "Attributes/UpperCaseStringArray.h"
 #include "Elements/ElementValues.h"
 #include "Elements/OpalBox.h"
+#include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalDrift.h"
+#include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalSolenoid.h"
+#include "Elements/OpalTravelingWave.h"
+#include "Elements/OpalVariableRFCavity.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
@@ -60,7 +64,7 @@ namespace opalx::run {
                      {ElementType::CONSTANTFOCUSING, &OpalConstantFocusing::build}},
                     {"CYCLOTRONSECTOR", {ElementType::CYCLOTRONSECTOR, nullptr}},
                     {"DRIFT", {ElementType::DRIFT, &OpalDrift::build}},
-                    {"FIELDMAP", {ElementType::FIELDMAP, nullptr}},
+                    {"FIELDMAP", {ElementType::FIELDMAP, &OpalFieldmapElement::build}},
                     {"LASER", {ElementType::LASER, nullptr}},
                     {"MARKER", {ElementType::MARKER, &OpalMarker::build}},
                     {"MONITOR", {ElementType::MONITOR, &OpalMonitor::build}},
@@ -69,12 +73,12 @@ namespace opalx::run {
                     {"PROBE", {ElementType::PROBE, &OpalProbe::build}},
                     {"QUADRUPOLE", {ElementType::MULTIPOLE, nullptr}},
                     {"RBEND", {ElementType::RBEND, nullptr}},
-                    {"RFCAVITY", {ElementType::RFCAVITY, nullptr}},
+                    {"RFCAVITY", {ElementType::RFCAVITY, &OpalCavity::build}},
                     {"SBEND", {ElementType::SBEND, nullptr}},
                     {"SCALINGFFAMAGNET", {ElementType::SCALINGFFAMAGNET, nullptr}},
                     {"SOLENOID", {ElementType::SOLENOID, &OpalSolenoid::build}},
-                    {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, nullptr}},
-                    {"VARIABLE_RF_CAVITY", {ElementType::ANY, nullptr}},
+                    {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, &OpalTravelingWave::build}},
+                    {"VARIABLE_RF_CAVITY", {ElementType::ANY, &OpalVariableRFCavity::build}},
                     {"VERTICALFFAMAGNET", {ElementType::ANY, nullptr}},
             };
             return kinds;

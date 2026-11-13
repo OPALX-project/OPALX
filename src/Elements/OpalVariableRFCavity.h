@@ -18,6 +18,8 @@
 #ifndef OPAL_OPALVARIABLERFCAVITY_H
 #define OPAL_OPALVARIABLERFCAVITY_H
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalVariableRFCavity : public OpalElement {
@@ -56,11 +58,17 @@ public:
     /** Update the OpalVariableRFCavity with new parameters from UI parser */
     void update() override;
 
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+
     // Not implemented.
     OpalVariableRFCavity(const OpalVariableRFCavity&) = delete;
     void operator=(const OpalVariableRFCavity&)       = delete;
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ElementValues& values);
+
     static const std::string doc_string;
 };
 

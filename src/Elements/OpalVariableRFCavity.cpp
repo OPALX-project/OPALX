@@ -17,6 +17,8 @@
 //
 #include "Elements/OpalVariableRFCavity.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/VariableRFCavityRep.h"
 
@@ -66,28 +68,34 @@ OpalVariableRFCavity* OpalVariableRFCavity::clone() {
     return new OpalVariableRFCavity(this->getOpalName(), this);
 }
 
-void OpalVariableRFCavity::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalVariableRFCavity::build(const ElementValues& values) {
+    auto element = std::make_shared<VariableRFCavity>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-    auto* cavity = dynamic_cast<VariableRfCavityRep*>(getElement());
+void OpalVariableRFCavity::update() { fill(*getElement(), getValues()); }
 
-    const double length = Attributes::getReal(itsAttr[LENGTH]);
+void OpalVariableRFCavity::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+
+    auto* cavity = dynamic_cast<VariableRfCavityRep*>(&element);
+
+    const double length = values.getReal("L");
     cavity->setLength(length);
 
-    const std::string phaseName = Attributes::getString(itsAttr[PHASE_MODEL]);
+    const std::string phaseName = values.getString("PHASE_MODEL");
     cavity->setPhaseName(phaseName);
 
-    const std::string ampName = Attributes::getString(itsAttr[AMPLITUDE_MODEL]);
+    const std::string ampName = values.getString("AMPLITUDE_MODEL");
     cavity->setAmplitudeName(ampName);
 
-    const std::string freqName = Attributes::getString(itsAttr[FREQUENCY_MODEL]);
+    const std::string freqName = values.getString("FREQUENCY_MODEL");
     cavity->setFrequencyName(freqName);
 
-    const double width = Attributes::getReal(itsAttr[WIDTH]);
+    const double width = values.getReal("WIDTH");
     cavity->setWidth(width);
 
-    const double height = Attributes::getReal(itsAttr[HEIGHT]);
+    const double height = values.getReal("HEIGHT");
     cavity->setHeight(height);
-
-    setElement(cavity);
 }
