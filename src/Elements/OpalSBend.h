@@ -33,7 +33,13 @@ public:
     /// Update the embedded CLASSIC bend.
     virtual void update();
 
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ElementValues& values);
+
     // Not implemented.
     OpalSBend(const OpalSBend&);
     void operator=(const OpalSBend&);

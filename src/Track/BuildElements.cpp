@@ -40,6 +40,8 @@
 #include "Elements/OpalMultipoleT.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalQuadrupole.h"
+#include "Elements/OpalRBend.h"
+#include "Elements/OpalSBend.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
@@ -75,9 +77,9 @@ namespace opalx::run {
                     {"MULTIPOLET", {ElementType::MULTIPOLET, &OpalMultipoleT::build}},
                     {"PROBE", {ElementType::PROBE, &OpalProbe::build}},
                     {"QUADRUPOLE", {ElementType::MULTIPOLE, &OpalQuadrupole::build}},
-                    {"RBEND", {ElementType::RBEND, nullptr}},
+                    {"RBEND", {ElementType::RBEND, &OpalRBend::build}},
                     {"RFCAVITY", {ElementType::RFCAVITY, &OpalCavity::build}},
-                    {"SBEND", {ElementType::SBEND, nullptr}},
+                    {"SBEND", {ElementType::SBEND, &OpalSBend::build}},
                     {"SCALINGFFAMAGNET", {ElementType::SCALINGFFAMAGNET, nullptr}},
                     {"SOLENOID", {ElementType::SOLENOID, &OpalSolenoid::build}},
                     {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, &OpalTravelingWave::build}},

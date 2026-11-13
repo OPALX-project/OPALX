@@ -16,7 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalRBend.h"
+
 #include <cmath>
+#include <memory>
 #include <string>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -40,65 +42,72 @@ OpalRBend::~OpalRBend() {}
 
 OpalRBend* OpalRBend::clone(const std::string& name) { return new OpalRBend(name, this); }
 
-void OpalRBend::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalRBend::build(const ElementValues& values) {
+    auto element = std::make_shared<RBendRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalRBend::update() { fill(*getElement(), getValues()); }
+
+void OpalRBend::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
 
     // Geometry, field profile and calibration are independent RBEND settings.
-    const bool hasProfile = !itsAttr[FMAPFN].defaultUsed();
-    const bool hasE1      = !itsAttr[E1].defaultUsed();
-    const bool hasE2      = !itsAttr[E2].defaultUsed();
-    RBendRep* bend        = dynamic_cast<RBendRep*>(getElement());
-    const double length   = Attributes::getReal(itsAttr[LENGTH]);
-    double angle          = Attributes::getReal(itsAttr[ANGLE]);
+    const bool hasProfile = !values.defaultUsed("FMAPFN");
+    const bool hasE1      = !values.defaultUsed("E1");
+    const bool hasE2      = !values.defaultUsed("E2");
+    RBendRep* bend        = dynamic_cast<RBendRep*>(&element);
+    const double length   = values.getReal("L");
+    double angle          = values.getReal("ANGLE");
     Geometry& geometry    = static_cast<Geometry&>(bend->getGeometry());
     geometry.setElementLength(length);
     geometry.setBendAngle(angle);
     geometry.setPoleFaceAnglesEnabled(hasE1 || hasE2);
-    const double e1 = hasE1   ? Attributes::getReal(itsAttr[E1])
-                      : hasE2 ? angle - Attributes::getReal(itsAttr[E2])
+    const double e1 = hasE1   ? values.getReal("E1")
+                      : hasE2 ? angle - values.getReal("E2")
                               : 0.5 * angle;
-    const double e2 = hasE2 ? Attributes::getReal(itsAttr[E2]) : angle - e1;
+    const double e2 = hasE2 ? values.getReal("E2") : angle - e1;
     if (hasE1 || hasE2 || hasProfile) {
-        if (!std::isfinite(length) || length <= 0.0 || !std::isfinite(angle) || !itsAttr[ANGLE]
-            || std::abs(angle) >= Physics::pi || !std::isfinite(e1) || !std::isfinite(e2)
-            || std::abs(e1) >= 0.5 * Physics::pi || std::abs(e2) >= 0.5 * Physics::pi)
-            throw OpalException("OpalRBend::update", getOpalName()
+        if (!std::isfinite(length) || length <= 0.0 || !std::isfinite(angle)
+            || !values.hasValue("ANGLE") || std::abs(angle) >= Physics::pi || !std::isfinite(e1)
+            || !std::isfinite(e2) || std::abs(e1) >= 0.5 * Physics::pi
+            || std::abs(e2) >= 0.5 * Physics::pi)
+            throw OpalException("OpalRBend::update", values.getName()
                 + ": RBEND requires L > 0, ANGLE, and pole-face angles strictly between -pi/2 and pi/2.");
         if (std::abs(e1 + e2 - angle) > 1e-12)
-            throw OpalException("OpalRBend::update", getOpalName()
+            throw OpalException("OpalRBend::update", values.getName()
                 + ": parallel rectangular pole faces require E1 + E2 = ANGLE; omit either angle to derive it.");
     }
     geometry.setEntranceAngle(e1);
     geometry.setExitAngle(e2);
     if (hasProfile) {
-        for (int attr : {K0, K0S, K1, K1S, K2, K2S, K3, K3S, FINT})
-            if (!itsAttr[attr].defaultUsed())
-                throw OpalException("OpalRBend::update", getOpalName()
+        for (const char* attr : {"K0", "K0S", "K1", "K1S", "K2", "K2S", "K3", "K3S", "FINT"})
+            if (!values.defaultUsed(attr))
+                throw OpalException("OpalRBend::update", values.getName()
                     + ": a 1DProfile1 field is an ANGLE-calibrated dipole; explicit multipoles and FINT are unsupported.");
     }
-    if (itsAttr[H1] || itsAttr[H2])
+    if (values.hasValue("H1") || values.hasValue("H2"))
         throw OpalException("OpalRBend::update", "Curved pole faces H1/H2 are not supported.");
 
     // Field coefficients use the configured reference-orbit curvature. DESIGNENERGY
     // changes their rigidity at initialization, once the particle species is known.
     double factor                    = OpalData::getInstance()->getP0() / Physics::c;
-    double k0                        = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
+    double k0                        = values.hasValue("K0") ? values.getReal("K0")
                                        : length ? (geometry.hasPoleFaceAngles() ? angle / geometry.getArcLength()
                                                                                 : 2 * sin(angle / 2) / length)
                                                 : angle;
     const std::vector<double> normal = {
-            factor * k0, factor * Attributes::getReal(itsAttr[K1]),
-            factor * Attributes::getReal(itsAttr[K2]) / 2.0,
-            factor * Attributes::getReal(itsAttr[K3]) / 6.0};
+            factor * k0, factor * values.getReal("K1"), factor * values.getReal("K2") / 2.0,
+            factor * values.getReal("K3") / 6.0};
     const std::vector<double> skew = {
-            factor * Attributes::getReal(itsAttr[K0S]), factor * Attributes::getReal(itsAttr[K1S]),
-            factor * Attributes::getReal(itsAttr[K2S]) / 2.0,
-            factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
+            factor * values.getReal("K0S"), factor * values.getReal("K1S"),
+            factor * values.getReal("K2S") / 2.0, factor * values.getReal("K3S") / 6.0};
     bend->setFieldComponents(normal, skew);
     bend->setReferenceMomentum(OpalData::getInstance()->getP0());
 
     // Set the bend angle.
-    if (itsAttr[ANGLE]) {
+    if (values.hasValue("ANGLE")) {
         if (!geometry.hasPoleFaceAngles() && bend->isPositioned() && angle < 0.0) {
             angle = -angle;
 
@@ -117,69 +126,69 @@ void OpalRBend::update() {
     }
 
     // Energy in eV.
-    if (itsAttr[DESIGNENERGY]) {
-        const double energy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+    if (values.hasValue("DESIGNENERGY")) {
+        const double energy = values.getReal("DESIGNENERGY");
         if (!std::isfinite(energy) || energy <= 0.0)
             throw OpalException("OpalRBend::update", "DESIGNENERGY must be positive and finite.");
         bend->setDesignEnergy(energy * Units::MeV2eV, false);
     }
 
-    const bool hasGap  = !itsAttr[GAP].defaultUsed();
-    const bool hasHgap = !itsAttr[HGAP].defaultUsed();
+    const bool hasGap  = !values.defaultUsed("GAP");
+    const bool hasHgap = !values.defaultUsed("HGAP");
     if (hasGap && hasHgap)
         throw OpalException("OpalRBend::update", "Specify GAP or HGAP, not both.");
-    double fullGap =
-            hasGap ? Attributes::getReal(itsAttr[GAP]) : 2.0 * Attributes::getReal(itsAttr[HGAP]);
+    double fullGap = hasGap ? values.getReal("GAP") : 2.0 * values.getReal("HGAP");
     if (!std::isfinite(fullGap) || fullGap < 0.0)
         throw OpalException("OpalRBend::update", "The pole gap must be finite and nonnegative.");
     // gap_m stores the full gap; HGAP is the half gap, so double it.
     bend->setFullGap(fullGap);
-    bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
-    const std::string filename = hasProfile ? Attributes::getString(itsAttr[FMAPFN]) : "";
+    bend->setFringeIntegral(values.getReal("FINT"));
+    const std::string filename = hasProfile ? values.getString("FMAPFN") : "";
     if (hasProfile && filename.empty())
         throw OpalException("OpalRBend::update", "FMAPFN cannot be empty.");
     bend->setFieldMap(filename);
     if (hasProfile && fullGap == 0.0) fullGap = bend->getFullGap();
 
     // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
-    // one comes from HAPERT or from APERTURE, never from both. OpalElement::update() has
+    // one comes from HAPERT or from APERTURE, never from both. setCommonFields() has
     // already installed either the APERTURE string (full widths, halved by getApert()) or
     // the 1e6 default, so this block only adds the gap and rejects the combinations that
     // have no physical meaning.
     //
-    // "Given" means written in the deck. HAPERT has a default, so itsAttr[HAPERT] reads as
-    // set even when the deck omits it; only defaultUsed() tells the two apart.
-    const bool hasApert  = !itsAttr[APERT].defaultUsed();
-    const bool hasHapert = !itsAttr[HAPERT].defaultUsed();
+    // "Given" means written in the input. HAPERT has a default, so values.hasValue("HAPERT") is
+    // true even when the input omits it; only defaultUsed() tells the two apart.
+    const bool hasApert  = !values.defaultUsed("APERTURE");
+    const bool hasHapert = !values.defaultUsed("HAPERT");
     const double hgap    = 0.5 * fullGap;
-    const double hapert  = Attributes::getReal(itsAttr[HAPERT]);
+    const double hapert  = values.getReal("HAPERT");
 
     if (hasApert && hasHapert) {
         throw OpalException(
                 "OpalRBend::update",
-                getOpalName()
+                values.getName()
                         + ": APERTURE and HAPERT cannot both be given. APERTURE sets both "
                           "half-apertures, HAPERT only the horizontal one.");
     }
     if ((hasApert || hasHapert) && hgap <= 0.0) {
         throw OpalException(
                 "OpalRBend::update",
-                getOpalName()
+                values.getName()
                         + ": HAPERT/APERTURE requires a positive HGAP; the vertical aperture "
                           "is the half gap.");
     }
     if (hasHapert && hapert <= 0.0) {
-        throw OpalException("OpalRBend::update", getOpalName() + ": HAPERT must be positive.");
+        throw OpalException("OpalRBend::update", values.getName() + ": HAPERT must be positive.");
     }
 
     auto aperture = bend->getAperture();
     if (hasApert) {
-        // Keep the deck's own shape and half-widths, but the chamber cannot be taller than
+        // Keep the input's own shape and half-widths, but the chamber cannot be taller than
         // the poles it sits between. Equality is fine: flush with the pole faces.
         if (aperture.second[1] > hgap) {
             throw OpalException(
                     "OpalRBend::update",
-                    getOpalName() + ": vertical half-aperture " + std::to_string(aperture.second[1])
+                    values.getName() + ": vertical half-aperture "
+                            + std::to_string(aperture.second[1])
                             + " m exceeds the half gap HGAP = " + std::to_string(hgap) + " m.");
         }
     } else if (hgap > 0.0) {
@@ -193,22 +202,19 @@ void OpalRBend::update() {
         bend->setAperture(aperture.first, aperture.second);
     }
 
-    if (itsAttr[LENGTH])
-        bend->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
+    if (values.hasValue("L"))
+        bend->getGeometry().setElementLength(values.getReal("L"));
     else
         bend->getGeometry().setElementLength(0.0);
 
-    if (itsAttr[WAKEF]) {
+    if (values.hasValue("WAKEF")) {
         throw OpalException(
                 "OpalRBend::update", "WAKEF is not supported yet for the OPALX-native RBEND port.");
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION]) {
+    if (values.hasValue("PARTICLEMATTERINTERACTION")) {
         throw OpalException(
                 "OpalRBend::update",
                 "PARTICLEMATTERINTERACTION is not supported yet for the OPALX-native RBEND port.");
     }
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(bend);
 }
