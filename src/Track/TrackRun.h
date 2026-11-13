@@ -71,7 +71,9 @@ public:
      * @param description What freeze() read for this RUN; the OPTION values come from it.
      * @note Called by execute() after freeze() and validate().
      */
-    TrackingSetup buildTracking(const opalx::run::RunDescription& description);
+    TrackingSetup buildTracking(
+            const opalx::run::RunDescription& description,
+            std::vector<std::shared_ptr<ElementBase>> elements);
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;

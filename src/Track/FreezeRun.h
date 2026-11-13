@@ -9,6 +9,7 @@
 
 #include "Track/RunDescription.h"
 
+class BeamSequence;
 class Object;
 
 namespace opalx::run {
@@ -34,6 +35,13 @@ namespace opalx::run {
      *       object never throws for an attribute the run does not read.
      */
     ObjectDescription describeObject(const Object& object);
+
+    /**
+     * @brief Describe a LINE or RING: its topology, start position and direction, and every
+     *        element occurrence in line order, nested lines entered.
+     * @note Used by freeze() for the tracked line and by COF for its RING.
+     */
+    LineDescription describeLine(const BeamSequence& sequence);
 
 }  // namespace opalx::run
 

@@ -104,7 +104,11 @@ namespace opalx::run {
         std::string name;
         std::string topology;  ///< "LINE" or "RING".
         std::vector<ElementDescription> elements;
-        double length = 0;  ///< Length of the line (the circumference of a RING). Not written.
+        /// Circumference of a RING: the sum of the arc lengths of the built elements
+        /// (opalx::run::ringLength()). Not written.
+        double length = 0;
+        std::array<double, 3> origin{0.0, 0.0, 0.0};          ///< Start position (m). Not written.
+        std::array<double, 4> direction{1.0, 0.0, 0.0, 0.0};  ///< Start direction. Not written.
     };
 
     /**

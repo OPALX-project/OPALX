@@ -35,6 +35,12 @@ namespace opalx::run {
      */
     std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line);
 
+    /**
+     * @brief Circumference of a RING: the sum of the arc lengths of its elements, markers left
+     *        out.
+     */
+    double ringLength(const std::vector<std::shared_ptr<ElementBase>>& elements);
+
 }  // namespace opalx::run
 
 #endif  // OPALX_BUILD_ELEMENTS_H

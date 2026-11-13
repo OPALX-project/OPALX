@@ -345,24 +345,24 @@ namespace opalx::run {
             }
         }
 
-        if (const BeamSequence* use = track->use) {
-            run.line.name = use->getOpalName();
-            if (const Beamline* line = use->fetchLine()) {
-                // The same test TrackRun uses to tell a RING from a LINE.
-                run.line.topology =
-                        line->getBeamlineTopology() == BeamlineTopology::RING ? "RING" : "LINE";
-                // Only a RING length is read: TrackRun never evaluates a LINE's length, and
-                // evaluating it can fail.
-                if (run.line.topology == "RING") {
-                    tryRead([&] {
-                        run.line.length = use->getLength();
-                    });
-                }
-                LineWalker walker(*line, run.line.elements);
-                line->accept(walker);
-            }
-        }
+        if (const BeamSequence* use = track->use) run.line = describeLine(*use);
         return run;
+    }
+
+    LineDescription describeLine(const BeamSequence& sequence) {
+        LineDescription description;
+        description.name = sequence.getOpalName();
+        if (const Beamline* line = sequence.fetchLine()) {
+            description.topology =
+                    line->getBeamlineTopology() == BeamlineTopology::RING ? "RING" : "LINE";
+            const auto origin     = line->getOrigin3D();
+            const auto direction  = line->getInitialDirection();
+            description.origin    = {origin[0], origin[1], origin[2]};
+            description.direction = {direction[0], direction[1], direction[2], direction[3]};
+            LineWalker walker(*line, description.elements);
+            line->accept(walker);
+        }
+        return description;
     }
 
 }  // namespace opalx::run

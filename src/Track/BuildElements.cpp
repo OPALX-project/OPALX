@@ -126,4 +126,13 @@ namespace opalx::run {
         return elements;
     }
 
+    double ringLength(const std::vector<std::shared_ptr<ElementBase>>& elements) {
+        double length = 0.0;
+        for (const auto& element : elements) {
+            if (element->getType() == ElementType::MARKER) continue;
+            length += element->getGeometry().getArcLength();
+        }
+        return length;
+    }
+
 }  // namespace opalx::run

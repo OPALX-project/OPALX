@@ -289,8 +289,12 @@ TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, t
 void TrackRun::execute() {
     // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy
     // as text and stop: nothing is tracked and no other output is written.
-    const opalx::run::RunDescription description =
-            opalx::run::freeze(*this, ++opal_m->numberOfRuns);
+    opalx::run::RunDescription description = opalx::run::freeze(*this, ++opal_m->numberOfRuns);
+    std::vector<std::shared_ptr<ElementBase>> elements =
+            opalx::run::buildElements(description.line);
+    if (description.line.topology == "RING") {
+        description.line.length = opalx::run::ringLength(elements);
+    }
     const std::vector<std::string> errors = opalx::run::validate(description);
     if (opal_m->checkOnly) {
         const std::string fileName = opalx::run::dumpFileName(description);
@@ -305,17 +309,16 @@ void TrackRun::execute() {
     if (!errors.empty()) {
         throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
     }
-    if (opal_m->checkOnly) {
-        // Build the elements too, to check them; nothing is tracked.
-        opalx::run::buildElements(description.line);
-        return;
-    }
+    if (opal_m->checkOnly) return;
 
-    itsTracker_m = std::make_unique<ParallelTracker>(buildTracking(description));
+    itsTracker_m =
+            std::make_unique<ParallelTracker>(buildTracking(description, std::move(elements)));
     itsTracker_m->execute();
 }
 
-TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& description) {
+TrackingSetup TrackRun::buildTracking(
+        const opalx::run::RunDescription& description,
+        std::vector<std::shared_ptr<ElementBase>> elements) {
     OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
@@ -591,13 +594,10 @@ TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& descript
        findPhasesForMaxEnergy();
 
     */
-    Track::block->use->prepareForTracking();
-
-    auto maxSteps = Track::block->localTimeSteps;
-    auto sStop    = Track::block->zstop;
-    const bool isRing =
-            Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
-    const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
+    auto maxSteps           = Track::block->localTimeSteps;
+    auto sStop              = Track::block->zstop;
+    const bool isRing       = description.line.topology == "RING";
+    const double ringPeriod = isRing ? description.line.length : 0.0;
     // validate() checked the RING length and the EKINSTOP and TURNS settings.
     unsigned long long directedTurns = 0;
     const double kineticStop         = Track::block->kineticEnergyStopGeV;
@@ -641,9 +641,11 @@ TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& descript
             restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
     setup.ringPeriod    = ringPeriod;
     setup.options       = description.options;
-    setup.elements      = opalx::run::buildElements(description.line);
-    setup.lineOrigin    = Track::block->use->fetchLine()->getOrigin3D();
-    setup.lineDirection = Track::block->use->fetchLine()->getInitialDirection();
+    setup.elements      = std::move(elements);
+    const auto& origin  = description.line.origin;
+    const auto& turn    = description.line.direction;
+    setup.lineOrigin    = Vector_t<double, 3>(origin[0], origin[1], origin[2]);
+    setup.lineDirection = Quaternion(turn[0], turn[1], turn[2], turn[3]);
     if (Track::block->initialOrbit) {
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),
