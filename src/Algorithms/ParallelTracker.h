@@ -79,6 +79,8 @@
 #include <vector>
 
 class PluginElement;
+class PassiveRingProbe;
+class DirectedTurnCounter;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -127,7 +129,25 @@ private:
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
-    bool hasCyclotronGaps();
+    /// True if an RF cavity of the line is a single cyclotron gap (TYPE = SINGLEGAP); set
+    /// once in prepareTracking().
+    bool hasCyclotronGaps() const;
+    bool cyclotronGaps_m = false;
+    /// Loop state built by prepareTracking(): turn counters for TURNS and EKINSTOP, passive
+    /// ring probes, and the PROBE recorder with its per-container turn counters.
+    std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters_m;
+    std::unique_ptr<PassiveRingProbe> passiveProbes_m;
+    std::unique_ptr<CyclotronProbeRecorder> probeRecorder_m;
+    std::vector<std::unique_ptr<DirectedTurnCounter>> probeTurns_m;
+    /**
+     * @brief Everything before the first step: elements, placement, reference particles,
+     *        element grid, reference pass, ring mode and output.
+     * @return False if nothing is left to track (SPECTRALTUNES ran instead, or a restart is
+     *         already at the end of the schedule).
+     */
+    bool prepareTracking();
+    /// The step loop and the final output; prepareTracking() must have returned true.
+    void trackSteps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
     /// Fixed-size first-failure payload, allocated once when device RF transport is prepared.
     Kokkos::View<rf_event::ParticleFailure> cyclotronFailure_m;
@@ -384,9 +404,6 @@ public:
 
     /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
     void changeDT();
-
-    /// @brief Reset per-particle dt views to the current global bunch dt.
-    void setTime();
 
 private:
     struct SpaceChargeEmissionProgress {

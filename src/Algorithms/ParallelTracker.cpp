@@ -219,6 +219,10 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  * @copybrief ParallelTracker::execute
  */
 void ParallelTracker::execute() {
+    if (prepareTracking()) trackSteps();
+}
+
+bool ParallelTracker::prepareTracking() {
     Inform m("ParallelTracker::execute");
     terminalStepDt_m = 0;
     cyclotronBunchLattice_m.reset();
@@ -268,6 +272,11 @@ void ParallelTracker::execute() {
 
     // Populate the OpalBeamline and calculate coordinate transformations
     prepareSections();
+    // Whether an RF cavity is a single cyclotron gap is fixed once the elements exist.
+    cyclotronGaps_m = false;
+    for (const auto& element : itsOpalBeamline_m.getElements())
+        if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
+            cyclotronGaps_m |= cavity->isCyclotronGap();
     if (restarting_m) {
         restoreCavityPhases();
     }
@@ -299,7 +308,7 @@ void ParallelTracker::execute() {
         SpectralTunes::run(
                 itsOpalBeamline_m, *itsBunch_m->getParticleContainer(0)->getReference(),
                 tuneInitial_m, tuneSettings_m, OpalData::getInstance()->getInputBasename());
-        return;
+        return false;
     }
 
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
@@ -412,7 +421,7 @@ void ParallelTracker::execute() {
               << "schedule; no integration steps remain." << endl;
         itsOpalBeamline_m.switchElementsOff();
         Kokkos::fence();
-        return;
+        return false;
     }
 
     // Global spatial bounds: union over all containers
@@ -459,7 +468,8 @@ void ParallelTracker::execute() {
     itsOpalBeamline_m.buildElementMapping();
 
     bool designBeamAssigned = false;
-    std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
+    turnCounters_m.clear();
+    turnCounters_m.resize(nContainers);
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
@@ -475,7 +485,7 @@ void ParallelTracker::execute() {
             throw OpalException(
                     "ParallelTracker", "EKINSTOP must exceed the launch kinetic energy.");
         if (requestedTurns_m || kineticEnergyStop_m > 0) {
-            turnCounters[ci] =
+            turnCounters_m[ci] =
                     std::make_unique<DirectedTurnCounter>(pc->getRefPartR(), pc->getRefPartP());
         }
         if (!isDesignBeam) continue;
@@ -559,21 +569,17 @@ void ParallelTracker::execute() {
     // their ID selection must never select particles for boundary refinement.
     // The first milestone is restricted to fresh supported bare rings; the
     // cyclotron and collective-field integration infrastructure is untouched.
-    auto passiveProbes = PassiveRingProbe::fromEnvironment(
+    passiveProbes_m = PassiveRingProbe::fromEnvironment(
             spatialRing_m && bareTracking_m && nContainers == 1 && !restarting_m && emitted
             && !particleContainers.front()->hasSpin() && stepSizes_m.getdT() > 0);
-    if (passiveProbes) {
-        passiveProbes->observe(particleContainers.front(), itsBunch_m->getT());
+    if (passiveProbes_m) {
+        passiveProbes_m->observe(particleContainers.front(), itsBunch_m->getT());
         m << level1 << "Passive ring probes: accepted endpoint interpolation; tracking unchanged."
           << endl;
     }
 
     // Stop timing for the reference pass
     IpplTimings::stopTimer(referencePassTimer_m);
-
-    // Set the time view of the particle bunch
-    setTime();
-    m << level4 << "Set time view of particle bunch." << endl;
 
     // Legacy OPAL emission starts a fresh tracker before the RF reference time for centered
     // flat-top pulses. Checkpoint time already contains this shift and must not be shifted again.
@@ -584,11 +590,7 @@ void ParallelTracker::execute() {
     }
     m << level4 << "Reset bunch time to " << time << "." << endl;
 
-    // Get the current global tracking step and the position within the step-size schedule.
-    unsigned long long step  = itsBunch_m->getGlobalTrackStep();
-    std::size_t segmentIndex = stepSizes_m.getCurrentIndex();
-    unsigned long long stepsCompletedInSegment =
-            restarting_m ? restartPosition.stepsCompletedInSegment : 0;
+    const unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
     *gmsg << level1 << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time)
           << "; "
@@ -619,18 +621,37 @@ void ParallelTracker::execute() {
     // The reference pass and the other setup stages may cross diagnostic elements. Only
     // crossings produced by the real tracking loop may write output.
     preparationState.finish();
-    std::unique_ptr<CyclotronProbeRecorder> probeRecorder;
-    std::vector<std::unique_ptr<DirectedTurnCounter>> probeTurns(nContainers);
+    probeRecorder_m.reset();
+    probeTurns_m.clear();
+    probeTurns_m.resize(nContainers);
     if (!probeConfigs_m.empty()) {
-        probeRecorder = std::make_unique<CyclotronProbeRecorder>(probeConfigs_m);
-        probeRecorder->initialize(particleContainers);
+        probeRecorder_m = std::make_unique<CyclotronProbeRecorder>(probeConfigs_m);
+        probeRecorder_m->initialize(particleContainers);
         for (std::size_t i = 0; i < nContainers; ++i) {
-            probeTurns[i] = std::make_unique<DirectedTurnCounter>(
+            probeTurns_m[i] = std::make_unique<DirectedTurnCounter>(
                     particleContainers[i]->getRefPartR(), particleContainers[i]->getRefPartP());
-            probeRecorder->observe(
+            probeRecorder_m->observe(
                     particleContainers[i], itsBunch_m->getT(), static_cast<short>(i), 0);
         }
     }
+    return true;
+}
+
+void ParallelTracker::trackSteps() {
+    Inform m("ParallelTracker::execute");
+    BorisPusher pusher;
+    const auto& particleContainers = itsBunch_m->getParticleContainers();
+    const size_t nContainers       = itsBunch_m->getNumParticleContainers();
+    auto& turnCounters             = turnCounters_m;
+    auto& passiveProbes            = passiveProbes_m;
+    auto& probeRecorder            = probeRecorder_m;
+    auto& probeTurns               = probeTurns_m;
+
+    // The current global tracking step and the position within the step-size schedule.
+    unsigned long long step  = itsBunch_m->getGlobalTrackStep();
+    std::size_t segmentIndex = stepSizes_m.getCurrentIndex();
+    unsigned long long stepsCompletedInSegment =
+            restarting_m ? restartPosition_m.stepsCompletedInSegment : 0;
 
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
@@ -1118,12 +1139,7 @@ void ParallelTracker::execute() {
 
 // --- PIC integration and fields ---
 
-bool ParallelTracker::hasCyclotronGaps() {
-    for (const auto& element : itsOpalBeamline_m.getElements())
-        if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
-            if (cavity->isCyclotronGap()) return true;
-    return false;
-}
+bool ParallelTracker::hasCyclotronGaps() const { return cyclotronGaps_m; }
 
 double ParallelTracker::advanceCyclotronGaps(
         Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
@@ -2605,18 +2621,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump);
-    }
-}
-
-/**
- * @copybrief ParallelTracker::setTime
- */
-void ParallelTracker::setTime() {
-    double newdT = itsBunch_m->getdT();
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
-        if (pc) {
-            pc->dt = newdT;
-        }
     }
 }
 
