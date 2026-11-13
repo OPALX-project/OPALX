@@ -35,7 +35,6 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <utility>
 
@@ -149,18 +148,6 @@ namespace opalx::spacecharge {
             typename View::const_type charge_m;
             bool perParticle_m;
         };
-
-        /**
-         * @brief Read-only view over the full storage of @p attribute.
-         *
-         * Overlap layouts store ghost particles after the local ones, beyond the local range that
-         * getView() covers.
-         */
-        template <typename Attribute>
-        typename Attribute::view_type::const_type storageView(const Attribute& attribute) {
-            return typename Attribute::view_type::const_type(
-                    attribute.getView().data(), attribute.size());
-        }
     }  // namespace detail
 
     /**
@@ -172,7 +159,6 @@ namespace opalx::spacecharge {
     class P3MShortRangeInteraction final {
     public:
         using ParticleContainer = ::ParticleContainer<double, 3>;
-        using VectorView        = typename ParticleContainer::particle_position_type::view_type;
 
         /** @brief Adds the electrostatic short-range field to @c particles.E. */
         void apply(ParticleContainer& particles) const {
@@ -196,62 +182,17 @@ namespace opalx::spacecharge {
          * the lab.
          *
          * Pairs with s >= cutoff are skipped; since s >= |r|, the lab-frame search cells and halos
-         * contain every remaining pair. Positions, momenta, and charges are read over the full
-         * storage, ghosts included, and must be in the frame the layout was built in. The fields
-         * are added to the local particles' E and B.
+         * contain every remaining pair. Positions, momenta, and charges must be in the frame the
+         * layout was built in; ghosts carry their own momentum and charge. The fields are added to
+         * the local particles' E and B. IPPL's TruncatedGreenParticleInteraction evaluates them in
+         * its moving-source mode, with the same pair loop and linear core as apply().
          */
         static void addMovingSourceField(ParticleContainer& particles) {
             const double cutoff =
                     requireCutoff(particles, "P3MShortRangeInteraction::addMovingSourceField");
-            using Vector = typename VectorView::value_type;
-            using Charge = detail::P3MChargeView<typename ParticleContainer::qm_view_type>;
-
             static IpplTimings::TimerRef timer = IpplTimings::getTimer("P3M: PP moving src");
             IpplTimings::startTimer(timer);
-            const auto positions = detail::storageView(particles.R);
-            const auto momenta   = detail::storageView(particles.P);
-            const Charge charge(
-                    particles.getQStorageView(),
-                    particles.getQMStorageMode() == ParticleContainer::QMStorageMode::Attributes);
-            const auto electric         = particles.E.getView();
-            const auto magnetic         = particles.B.getView();
-            const double cutoffSquared  = cutoff * cutoff;
-            const double alpha          = 2.0 / cutoff;
-            const double coulomb        = 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-            const double regularization = p3mRegularizationCutoff;
-            const double inverseLight   = 1.0 / Physics::c;
-            const double twoOverSqrtPi  = 2.0 / std::sqrt(Physics::pi);
-            particles.getP3MLayout().template forEachPair<Kokkos::DefaultExecutionSpace>(
-                    KOKKOS_LAMBDA(const std::size_t& i, const std::size_t& j) {
-                        const Vector separation = positions(i) - positions(j);
-                        const double labSquared = separation.dot(separation);
-                        if (labSquared >= cutoffSquared || labSquared == 0.0) {
-                            return;
-                        }
-                        const Vector momentum    = momenta(j);
-                        const double along       = momentum.dot(separation);
-                        const double restSquared = labSquared + along * along;
-                        if (restSquared >= cutoffSquared) {
-                            return;
-                        }
-                        const double rest     = Kokkos::sqrt(restSquared);
-                        const double x        = alpha * rest;
-                        const double gaussian = twoOverSqrtPi * x * Kokkos::exp(-x * x);
-                        const double cube     = restSquared * rest;
-                        // Same linear core as the IPPL pair kernel, continuous at the radius.
-                        const double radial =
-                                rest < regularization
-                                        ? 1.0 / (regularization * regularization * regularization)
-                                                  - (Kokkos::erf(x) - gaussian) / cube
-                                        : (Kokkos::erfc(x) + gaussian) / cube;
-                        const double gamma = Kokkos::sqrt(1.0 + momentum.dot(momentum));
-                        const Vector e     = (coulomb * charge(j) * gamma * radial) * separation;
-                        const Vector b     = (inverseLight / gamma) * cross(momentum, e);
-                        for (unsigned d = 0; d < 3; ++d) {
-                            Kokkos::atomic_add(&electric(i)[d], e[d]);
-                            Kokkos::atomic_add(&magnetic(i)[d], b[d]);
-                        }
-                    });
+            solvePairs(particles, particles.E, particles.R, cutoff, &particles.B, &particles.P);
             IpplTimings::stopTimer(timer);
         }
 
@@ -267,10 +208,12 @@ namespace opalx::spacecharge {
             return cutoff;
         }
 
+        /// Static sources without @p magnetic and @p momenta, moving sources with both.
         template <typename VectorAttribute>
         static void solvePairs(
                 ParticleContainer& particles, VectorAttribute& field,
-                const VectorAttribute& positions, double cutoff) {
+                const VectorAttribute& positions, double cutoff,
+                VectorAttribute* magnetic = nullptr, const VectorAttribute* momenta = nullptr) {
             using ContainerView = detail::P3MContainerView<ParticleContainer>;
             using ChargeView    = detail::P3MChargeView<typename ParticleContainer::qm_view_type>;
             using Interaction   = ippl::TruncatedGreenParticleInteraction<
@@ -289,8 +232,15 @@ namespace opalx::spacecharge {
             parameters.add("force_constant", -1.0 / (4.0 * Physics::pi * Physics::epsilon_0));
             parameters.add("regularization_cutoff", p3mRegularizationCutoff);
 
-            Interaction interaction(container, field, positions, charge, parameters);
-            interaction.solve();
+            if (momenta != nullptr) {
+                parameters.add("speed_of_light", Physics::c);
+                Interaction interaction(
+                        container, field, *magnetic, positions, *momenta, charge, parameters);
+                interaction.solve();
+            } else {
+                Interaction interaction(container, field, positions, charge, parameters);
+                interaction.solve();
+            }
         }
     };
 
