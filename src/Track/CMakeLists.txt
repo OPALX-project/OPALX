@@ -11,6 +11,7 @@ set (_SRCS
 set (HDRS
     CofCmd.h
     DecayChain.h
+    RunDescription.h
     TrackCmd.h
     TrackEnd.h
     Track.h
