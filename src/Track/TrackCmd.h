@@ -36,10 +36,6 @@ public:
     /// Return the timestep in seconds
     std::vector<double> getDT() const;
 
-    double getDTSCINIT() const;
-
-    double getDTAU() const;
-
     /// Return the elapsed time (sec) of the bunch
     double getT0() const;
 
@@ -57,7 +53,6 @@ public:
     std::vector<double> getZStop() const;
 
     /// return the name of time integrator
-    Steppers::TimeIntegrator getTimeIntegrator();
 
 private:
     // Not implemented.
@@ -66,8 +61,6 @@ private:
 
     // Clone constructor.
     TrackCmd(const std::string& name, TrackCmd* parent);
-
-    static const std::map<std::string, Steppers::TimeIntegrator> stringTimeIntegrator_s;
 };
 
 #endif  // OPAL_TrackCmd_HH

@@ -38,22 +38,15 @@ class Track {
 public:
     Track(BeamSequence*, const PartData&, const std::vector<double>& dt,
           const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
-          const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-          double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList = nullptr,
+          const std::vector<double>& zStop, double t0,
           const std::vector<std::string>& beamNames = {});
     ~Track();
-
-    /// The particle bunch to be tracked.
-    PartBunch_t* bunch;
 
     /// The reference data.
     PartData reference;
 
     /// The lattice to be tracked through.
     BeamSequence* use;
-
-    /// The emission sources list for particle injection (SOURCES= on TRACK).
-    EmissionSourceList* emissionSources;
 
     /// The parser used during tracking.
     TrackParser parser;
@@ -63,9 +56,6 @@ public:
 
     /// The initial timestep
     std::vector<double> dT;
-
-    // For AMTS integrator in OPAL-T
-    double dtScInit, deltaTau;
 
     /// The ellapsed time of the beam can be used to propper
     /// start the beam when created in a cavity i.e. without emission
@@ -95,9 +85,6 @@ public:
 
     /// Whether TRACK ZSTOP was given; without it zstop holds the 1e6 m default.
     bool zStopGiven = false;
-
-    /// The ID of time integrator
-    Steppers::TimeIntegrator timeIntegrator;
 
     /// The names of beams selected on the enclosing TRACK command.
     /// (If RUN::BEAM is omitted, TrackRun resolves from this list.)
