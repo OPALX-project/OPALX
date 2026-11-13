@@ -69,7 +69,7 @@ namespace opalx::spacecharge {
                             auto p  = pc.P.getHostMirror();
                             auto id = pc.ID.getHostMirror();
                             for (size_t n = 0; n < sources.size(); ++n) {
-                                r(n)  = sources[n];
+                                r(n) = sources[n];
                                 // Nonuniform pz with global mean .4, testing number weighting
                                 // after migration leaves unequal particle counts on ranks.
                                 p(n)  = V(0., 0., .4 + .01 * (2. * n - sources.size() + 1.));
@@ -221,7 +221,8 @@ namespace opalx::spacecharge {
                                 EXPECT_DOUBLE_EQ(magnetic(n)[2], 0.);
                                 for (int d = 0; d < 3; ++d) {
                                     EXPECT_DOUBLE_EQ(positions(n)[d], sources[ids(n)][d]);
-                                    const double pz = .4 + .01 * (2. * ids(n) - sources.size() + 1.);
+                                    const double pz =
+                                            .4 + .01 * (2. * ids(n) - sources.size() + 1.);
                                     EXPECT_DOUBLE_EQ(momenta(n)[d], d == 2 ? pz : 0.);
                                 }
                             }

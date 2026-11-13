@@ -344,8 +344,9 @@ namespace opalx::spacecharge {
             Kokkos::deep_copy(fieldStorage_m->chargeDensity().getView(), 0.);
             for (size_t c = 0; c < particles_m.size(); ++c)
                 if (context.trackingActive()[c])
-                    scatterContainer(c, diagnostic, usePreparedProjections,
-                                     context.stepState().deferTrackerMoments);
+                    scatterContainer(
+                            c, diagnostic, usePreparedProjections,
+                            context.stepState().deferTrackerMoments);
             finishChargeDeposition(context, diagnostic);
         });
     }
@@ -368,9 +369,9 @@ namespace opalx::spacecharge {
                 usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
         validateDepositionContainer(container, usePreparedProjections, meansOnly);
         pc->scaleDtByCharge();
-        const auto r       = pc->R.getView();
-        const auto p       = pc->P.getView();
-        const auto meanPs  = meansOnly ? meanLongitudinalMomentum(container) : pc->getMeanP()[2];
+        const auto r      = pc->R.getView();
+        const auto p      = pc->P.getView();
+        const auto meanPs = meansOnly ? meanLongitudinalMomentum(container) : pc->getMeanP()[2];
         if (usePreparedProjections) preparedMeanPs_m[container] = meanPs;
         const auto dt      = pc->dt.getView();
         const auto invalid = pc->InvalidMask.getView();
@@ -705,11 +706,13 @@ namespace opalx::spacecharge {
             for (size_t c = 0; c < particles_m.size(); ++c) {
                 if (!context.trackingActive()[c]) continue;
                 if (config_m.scatterLongitudinally)
-                    gatherContainer<true>(c, diagnostic, usePreparedProjections,
-                                          context.stepState().deferTrackerMoments);
+                    gatherContainer<true>(
+                            c, diagnostic, usePreparedProjections,
+                            context.stepState().deferTrackerMoments);
                 else
-                    gatherContainer<false>(c, diagnostic, usePreparedProjections,
-                                           context.stepState().deferTrackerMoments);
+                    gatherContainer<false>(
+                            c, diagnostic, usePreparedProjections,
+                            context.stepState().deferTrackerMoments);
             }
         });
     }
@@ -727,10 +730,10 @@ namespace opalx::spacecharge {
         const auto r                   = pc->R.getView();
         const auto p                   = pc->P.getView();
         const auto ref                 = solveReferencePath_m;
-        const auto meanPs = meansOnly
-                ? (usePreparedProjections ? preparedMeanPs_m[container]
-                                          : meanLongitudinalMomentum(container))
-                : pc->getMeanP()[2];
+        const auto meanPs              = meansOnly
+                                                 ? (usePreparedProjections ? preparedMeanPs_m[container]
+                                                                           : meanLongitudinalMomentum(container))
+                                                 : pc->getMeanP()[2];
         const auto e                   = pc->E.getView();
         const auto b                   = pc->B.getView();
         const auto invalid             = pc->InvalidMask.getView();

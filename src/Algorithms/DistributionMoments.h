@@ -198,8 +198,8 @@ private:
     double meanGammaZ_m;
 
     // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of Mview(k).
-    bool rescaleToReference_m = false;
-    double referenceMassGeV_m = 0.0;
+    bool rescaleToReference_m        = false;
+    double referenceMassGeV_m        = 0.0;
     bool compactSymmetricReduction_m = false;
 
     Vector_t<double, 6> centroid_m;

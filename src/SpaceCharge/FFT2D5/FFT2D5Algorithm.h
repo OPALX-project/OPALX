@@ -783,8 +783,10 @@ namespace opalx::spacecharge {
          * deposition.
          * @param container Active source index. @param usePreparedProjections Use the per-solve
          * caches. @param meansOnly Leave full moments dirty; scatter computes mean pz directly. */
-        void validateDepositionContainer(size_t container, bool usePreparedProjections, bool meansOnly);
-        /// Number-weighted global mean pz in the current solve frame; includes all stored particles.
+        void validateDepositionContainer(
+                size_t container, bool usePreparedProjections, bool meansOnly);
+        /// Number-weighted global mean pz in the current solve frame; includes all stored
+        /// particles.
         T meanLongitudinalMomentum(size_t container) const;
         /** @internal @brief Deposit one container and restore its charge-scaled time steps.
          * @tparam DiagnosticPolicy Stage observer. @param container Active source index.
@@ -835,7 +837,8 @@ namespace opalx::spacecharge {
          * Observer.
          * @param container Source index. @param diagnostic Field observer.
          * @param usePreparedProjections Use current per-solve path caches.
-         * @param meansOnly Reuse the prepared scalar mean, or compute it for a standalone gather. */
+         * @param meansOnly Reuse the prepared scalar mean, or compute it for a standalone gather.
+         */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy>
         void gatherContainer(
                 size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,

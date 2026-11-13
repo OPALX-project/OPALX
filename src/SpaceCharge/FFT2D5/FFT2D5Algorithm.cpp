@@ -28,7 +28,7 @@ namespace opalx::spacecharge {
                 value += momentum(i)[2];
             }
         };
-    }
+    }  // namespace fft2d5_detail
 
     FFT2D5Algorithm::FFT2D5Algorithm(
             FFT2D5Config config, std::span<ParticleContainer* const> particles,
@@ -91,7 +91,8 @@ namespace opalx::spacecharge {
                 restoreParticleSolveFrames(context, labToSolve);
                 throw;
             }
-            restoreParticleSolveFrames(context, labToSolve, !context.stepState().deferTrackerMoments);
+            restoreParticleSolveFrames(
+                    context, labToSolve, !context.stepState().deferTrackerMoments);
             result.backendSolves = fieldStorage_m->backendSolves();
             if (ippl::Comm->size() > 1) {
                 const auto local = result.backendSolves;
@@ -434,9 +435,9 @@ namespace opalx::spacecharge {
     }
 
     FFT2D5Algorithm::T FFT2D5Algorithm::meanLongitudinalMomentum(size_t container) const {
-        const auto* pc = particles_m[container];
+        const auto* pc      = particles_m[container];
         const auto momentum = pc->P.getView();
-        T sum = 0.;
+        T sum               = 0.;
         Kokkos::parallel_reduce(
                 "FFT2D5::meanLongitudinalMomentum", pc->getLocalNum(),
                 fft2d5_detail::MeanLongitudinalMomentumFunctor{momentum}, sum);

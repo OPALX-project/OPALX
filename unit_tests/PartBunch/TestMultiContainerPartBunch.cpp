@@ -272,7 +272,8 @@ namespace {
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
         using namespace opalx::spacecharge;
         // Reconfiguration to a different solver must clear a previous FFT2D5 selection.
-        for (const auto& pc : bunch->getParticleContainers()) pc->setCompactSymmetricMoments(true);
+        for (const auto& pc : bunch->getParticleContainers())
+            pc->setCompactSymmetricMoments(true);
         CartesianPIC3DConfig values;
         values.backend                         = PoissonSolverType::PeriodicFFT;
         values.grid.meshSize                   = storageConfig.meshSize;
@@ -305,7 +306,7 @@ namespace {
     }
 
     TEST_F(MultiContainerPartBunchTest, FFT2D5BeamParametersMatchLegacyWithEmptyAndUnevenRanks) {
-        auto pc = bunch->getParticleContainer();
+        auto pc           = bunch->getParticleContainer();
         const size_t rank = ippl::Comm->rank();
         // Exercise an empty bunch, ownership on rank zero only, then uneven ownership.
         for (size_t added : {size_t(0), rank == 0 ? size_t(3) : size_t(0), rank + 1}) {
@@ -320,12 +321,12 @@ namespace {
             Kokkos::deep_copy(pc->P.getView(), p);
             pc->markMomentsDirty();
             bunch->calcBeamParameters();
-            const auto minimum = bunch->rmin_m;
-            const auto maximum = bunch->rmax_m;
-            const auto means = pc->getMeans();
+            const auto minimum    = bunch->rmin_m;
+            const auto maximum    = bunch->rmax_m;
+            const auto means      = pc->getMeans();
             const auto covariance = pc->getCovMatrix();
-            const auto rmsR = pc->getRmsR();
-            const auto rmsP = pc->getRmsP();
+            const auto rmsR       = pc->getRmsR();
+            const auto rmsP       = pc->getRmsP();
 
             pc->markMomentsDirty();
             bunch->rmin_m = 123.0;

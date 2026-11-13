@@ -20,7 +20,8 @@ namespace opalx::spacecharge {
         SpaceChargeSolver(
                 std::unique_ptr<SpaceChargeAlgorithm> algorithm, std::size_t particleContainerCount,
                 bool fft2d5 = false)
-            : algorithm_m(std::move(algorithm)), particleContainerCount_m(particleContainerCount),
+            : algorithm_m(std::move(algorithm)),
+              particleContainerCount_m(particleContainerCount),
               fft2d5_m(fft2d5) {
             if (algorithm_m == nullptr) {
                 throw OpalException(
@@ -62,7 +63,7 @@ namespace opalx::spacecharge {
     private:
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;
         std::size_t particleContainerCount_m = 0;
-        bool fft2d5_m = false;
+        bool fft2d5_m                        = false;
         std::size_t backendSolveCount_m      = 0;
         std::size_t redistributionCount_m    = 0;
         int reportedBinCount_m               = 1;

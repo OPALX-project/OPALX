@@ -9,20 +9,20 @@ namespace opalx::spacecharge::fft2d5_detail {
      * The tracker converges eligibility across ranks before changing collective scheduling.
      */
     struct MomentUpdateEligibility {
-        bool fft2d5 = false;
-        bool midpoint = false;
-        bool boundaryControlled = false;
-        bool emissionActive = false;
-        bool globalProcesses = false;
-        bool spinEnabled = false;
-        bool solveActive = false;
+        bool fft2d5                = false;
+        bool midpoint              = false;
+        bool boundaryControlled    = false;
+        bool emissionActive        = false;
+        bool globalProcesses       = false;
+        bool spinEnabled           = false;
+        bool solveActive           = false;
         std::size_t containerCount = 0;
 
         [[nodiscard]] bool mayDefer() const {
-            return fft2d5 && midpoint && !boundaryControlled && !emissionActive
-                   && !globalProcesses && !spinEnabled && solveActive && containerCount == 1;
+            return fft2d5 && midpoint && !boundaryControlled && !emissionActive && !globalProcesses
+                   && !spinEnabled && solveActive && containerCount == 1;
         }
     };
-}
+}  // namespace opalx::spacecharge::fft2d5_detail
 
 #endif

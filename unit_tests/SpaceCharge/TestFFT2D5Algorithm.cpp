@@ -28,23 +28,24 @@ namespace opalx::spacecharge {
             const MomentUpdateEligibility eligible{
                     .fft2d5 = true, .midpoint = true, .solveActive = true, .containerCount = 1};
             EXPECT_TRUE(eligible.mayDefer());
-            for (auto member : {&MomentUpdateEligibility::fft2d5,
-                                &MomentUpdateEligibility::midpoint,
-                                &MomentUpdateEligibility::solveActive}) {
-                auto fallback = eligible;
+            for (auto member :
+                 {&MomentUpdateEligibility::fft2d5, &MomentUpdateEligibility::midpoint,
+                  &MomentUpdateEligibility::solveActive}) {
+                auto fallback    = eligible;
                 fallback.*member = false;
                 EXPECT_FALSE(fallback.mayDefer());
             }
-            for (auto member : {&MomentUpdateEligibility::boundaryControlled,
-                                &MomentUpdateEligibility::emissionActive,
-                                &MomentUpdateEligibility::globalProcesses,
-                                &MomentUpdateEligibility::spinEnabled}) {
-                auto fallback = eligible;
+            for (auto member :
+                 {&MomentUpdateEligibility::boundaryControlled,
+                  &MomentUpdateEligibility::emissionActive,
+                  &MomentUpdateEligibility::globalProcesses,
+                  &MomentUpdateEligibility::spinEnabled}) {
+                auto fallback    = eligible;
                 fallback.*member = true;
                 EXPECT_FALSE(fallback.mayDefer());
             }
             for (size_t count : {size_t(0), size_t(2)}) {
-                auto fallback = eligible;
+                auto fallback           = eligible;
                 fallback.containerCount = count;
                 EXPECT_FALSE(fallback.mayDefer());
             }
@@ -599,9 +600,9 @@ namespace opalx::spacecharge {
             auto step = alignedStep(-0.5);
             ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
             EXPECT_FALSE(particles_m->isMomentsDirty());
-            const auto expectedE = physicalFields(true);
-            const auto expectedB = physicalFields(false);
-            const auto expectedMeans = particles_m->getMeans();
+            const auto expectedE          = physicalFields(true);
+            const auto expectedB          = physicalFields(false);
+            const auto expectedMeans      = particles_m->getMeans();
             const auto expectedCovariance = particles_m->getCovMatrix();
 
             setPhysicalSource(positions, momentum, referenceToLab);
@@ -646,8 +647,8 @@ namespace opalx::spacecharge {
             const std::array<std::uint8_t, 1> activity{1};
             auto step = alignedStep(0.);
             ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-            const auto expectedE = physicalFields(true);
-            const auto expectedB = physicalFields(false);
+            const auto expectedE     = physicalFields(true);
+            const auto expectedB     = physicalFields(false);
             step.deferTrackerMoments = true;
             ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
             EXPECT_TRUE(particles_m->isMomentsDirty());
@@ -676,7 +677,7 @@ namespace opalx::spacecharge {
             const std::array<std::uint8_t, 1> activity{1};
             for (bool deferred : {false, true}) {
                 setPhysicalSource(positions, momentum, referenceToLab);
-                auto step = alignedStep(-0.5);
+                auto step                = alignedStep(-0.5);
                 step.deferTrackerMoments = deferred;
                 EXPECT_THROW(static_cast<void>(solver.solve({activity, step})), OpalException);
                 expectSourceRestored(positions, momentum);

@@ -50,8 +50,10 @@ namespace opalx::spacecharge {
             algorithm = std::make_unique<FFT2D5Algorithm>(
                     std::get<FFT2D5Config>(std::move(config)), particles, bunchState);
         }
-        auto solver = std::make_unique<SpaceChargeSolver>(std::move(algorithm), particles.size(), fft2d5);
-        for (auto* container : particles) container->setCompactSymmetricMoments(fft2d5);
+        auto solver =
+                std::make_unique<SpaceChargeSolver>(std::move(algorithm), particles.size(), fft2d5);
+        for (auto* container : particles)
+            container->setCompactSymmetricMoments(fft2d5);
         return solver;
     }
 

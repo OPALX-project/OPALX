@@ -403,20 +403,22 @@ namespace {
     TEST_F(ParticleContainerTest, DeferredMomentsPreserveNearThresholdLossesAndSurvivorStatistics) {
         Options::useQMAttributes = false;
         for (double offset : {-1.e-10, 1.e-10}) {
-            auto eager = makeContainer();
+            auto eager    = makeContainer();
             auto deferred = makeContainer();
             // Compare dense/eager with FFT2D5 compact/deferred, including an empty MPI rank.
             deferred->setCompactSymmetricMoments(true);
-            const std::vector<std::array<double, 3>> positions = ippl::Comm->rank() == 0
-                    ? std::vector<std::array<double, 3>>{
-                              {-0.1, 0., 0.}, {0.1, 0., 0.}, {-0.05, 0., 0.},
-                              {0.05, 0., 0.}, {0., 0., 0.}, {1.5, 0., 0.}}
-                    : std::vector<std::array<double, 3>>{};
+            const std::vector<std::array<double, 3>> positions =
+                    ippl::Comm->rank() == 0
+                            ? std::vector<std::array<double, 3>>{{-0.1, 0., 0.},  {0.1, 0., 0.},
+                                                                 {-0.05, 0., 0.}, {0.05, 0., 0.},
+                                                                 {0., 0., 0.},    {1.5, 0., 0.}}
+                            : std::vector<std::array<double, 3>>{};
             for (auto pc : {eager, deferred}) {
                 pc->createParticles(positions.size());
                 auto initialR = pc->R.getHostMirror();
                 for (size_t i = 0; i < positions.size(); ++i)
-                    initialR(i) = Vector_t<double, 3>(positions[i][0], positions[i][1], positions[i][2]);
+                    initialR(i) =
+                            Vector_t<double, 3>(positions[i][0], positions[i][1], positions[i][2]);
                 Kokkos::deep_copy(pc->R.getView(), initialR);
                 Kokkos::deep_copy(pc->P.getView(), Vector_t<double, 3>(0., 0., 0.1));
                 Kokkos::deep_copy(pc->dt.getView(), 1.e-12);
