@@ -22,7 +22,6 @@
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Distribution/Distribution.h"
 #include "Lines/EmissionSourceList.h"
-#include "Lines/Ring.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
 #include "Structure/BoundaryGeometry.h"
@@ -187,28 +186,15 @@ namespace opalx::run {
             }
         }
 
-        /// Name of the beam's EMISSIONSOURCELIST, or "" if SOURCES is not set (TrackRun reports
-        /// that error when it needs the list).
-        std::string emissionSourceListOf(const Beam& beam) {
+        /// Run @p read; a parse object that cannot answer (OpalException) leaves the field at its
+        /// default and stores the message in @p error, if given. TrackRun reports such errors.
+        template <class F>
+        void tryRead(F&& read, std::string* error = nullptr) {
             try {
-                return beam.getEmissionSourceListName();
-            } catch (const OpalException&) {
-                return "";
+                read();
+            } catch (const OpalException& e) {
+                if (error != nullptr) *error = e.what();
             }
-        }
-
-        BeamDescription describeBeam(const Beam& beam) {
-            BeamDescription description;
-            description.object             = describeObject(beam);
-            const PartData& reference      = beam.getReference();
-            description.reference.mass     = reference.getM();
-            description.reference.charge   = reference.getQ();
-            description.reference.momentum = reference.getP();
-            description.reference.gamma    = reference.getGamma();
-            description.chargePerParticle  = beam.getChargePerParticle();
-            description.massPerParticle    = beam.getMassPerParticle();
-            description.emissionSourceList = emissionSourceListOf(beam);
-            return description;
         }
 
         /// Attribute of @p object by name, or nullptr.
@@ -217,6 +203,88 @@ namespace opalx::run {
                 if (attribute && attribute.getName() == name) return &attribute;
             }
             return nullptr;
+        }
+
+        SourceDescription describeSource(const EmissionSource& source) {
+            SourceDescription description;
+            description.name = source.getOpalName();
+            tryRead([&] {
+                description.distribution = source.getDistributionName();
+            });
+            tryRead([&] {
+                description.t0 = source.getT0();
+            });
+            if (const auto* dist = findAs<Distribution>(description.distribution)) {
+                description.distributionFound = true;
+                if (const Attribute* type = attributeNamed(*dist, "TYPE")) {
+                    tryRead([&] {
+                        description.distributionType = Attributes::getString(*type);
+                    });
+                }
+                if (const Attribute* emitted = attributeNamed(*dist, "EMITTED")) {
+                    tryRead([&] {
+                        description.emitted = Attributes::getBool(*emitted);
+                    });
+                }
+            }
+            return description;
+        }
+
+        BeamDescription describeBeam(const Beam& beam) {
+            BeamDescription d;
+            d.object                  = describeObject(beam);
+            const PartData& reference = beam.getReference();
+            d.reference.mass          = reference.getM();
+            d.reference.charge        = reference.getQ();
+            d.reference.momentum      = reference.getP();
+            d.reference.gamma         = reference.getGamma();
+            d.reference.beta          = reference.getBeta();
+            d.chargePerParticle       = beam.getChargePerParticle();
+            d.massPerParticle         = beam.getMassPerParticle();
+            tryRead(
+                    [&] {
+                        d.emissionSourceList = beam.getEmissionSourceListName();
+                    },
+                    &d.emissionSourceListError);
+
+            tryRead([&] {
+                d.particleName = beam.getParticleName();
+            });
+            tryRead([&] {
+                d.isPhoton = beam.isPhoton();
+            });
+            tryRead([&] {
+                d.daughterBeam = beam.getDaughterBeamName();
+            });
+            tryRead([&] {
+                d.globalProcesses = beam.getGlobalProcessNames();
+            });
+            tryRead([&] {
+                d.hasExplicitEnergy = beam.hasExplicitEnergy();
+            });
+            tryRead([&] {
+                d.hasEmissionSources = beam.hasEmissionSources();
+            });
+            tryRead([&] {
+                d.hasPolarization = beam.hasPolarization();
+            });
+            tryRead([&] {
+                d.zStop = beam.getZStop();
+            });
+            tryRead([&] {
+                d.untilMaxSteps = beam.getUntilMaxSteps();
+            });
+            tryRead([&] {
+                d.tuneInitial = beam.getTuneInitial();
+            });
+
+            if (const auto* list = findAs<EmissionSourceList>(d.emissionSourceList)) {
+                d.emissionSourceListFound = true;
+                for (const EmissionSource* source : list->fetchSources()) {
+                    if (source != nullptr) d.sources.push_back(describeSource(*source));
+                }
+            }
+            return d;
         }
 
     }  // namespace
@@ -270,7 +338,7 @@ namespace opalx::run {
             const Beam* beam = findAs<Beam>(name);
             if (beam == nullptr) continue;
             run.beams.push_back(describeBeam(*beam));
-            const auto* list = findAs<EmissionSourceList>(emissionSourceListOf(*beam));
+            const auto* list = findAs<EmissionSourceList>(run.beams.back().emissionSourceList);
             if (list == nullptr) continue;
             for (const EmissionSource* source : list->fetchSources()) {
                 if (source == nullptr) continue;
@@ -284,6 +352,9 @@ namespace opalx::run {
         if (const Attribute* solver = attributeNamed(runCommand, "FIELDSOLVER")) {
             if (const auto* fs = findAs<FieldSolverCmd>(Attributes::getString(*solver))) {
                 run.fieldSolver = describeObject(*fs);
+                tryRead([&] {
+                    run.track.fieldSolverType = fs->getType();
+                });
                 if (const BinningCmd* binning = fs->getBinningCmd()) {
                     run.binning = describeObject(*binning);
                 }
@@ -296,9 +367,18 @@ namespace opalx::run {
         }
 
         if (const BeamSequence* use = track->use) {
-            run.line.name     = use->getOpalName();
-            run.line.topology = dynamic_cast<const Ring*>(use) != nullptr ? "RING" : "LINE";
+            run.line.name = use->getOpalName();
             if (const Beamline* line = use->fetchLine()) {
+                // The same test TrackRun uses to tell a RING from a LINE.
+                run.line.topology =
+                        line->getBeamlineTopology() == BeamlineTopology::RING ? "RING" : "LINE";
+                // Only a RING length is read: TrackRun never evaluates a LINE's length, and
+                // evaluating it can fail.
+                if (run.line.topology == "RING") {
+                    tryRead([&] {
+                        run.line.length = use->getLength();
+                    });
+                }
                 LineWalker walker(*line, run.line.elements);
                 line->accept(walker);
             }

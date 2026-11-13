@@ -51,6 +51,19 @@ namespace opalx::run {
         double charge   = 0;
         double momentum = 0;
         double gamma    = 0;
+        double beta     = 0;  ///< Not written by the text writer.
+    };
+
+    /**
+     * @brief One EMISSIONSOURCE of a beam and the distribution it names.
+     */
+    struct SourceDescription {
+        std::string name;
+        std::string distribution;        ///< DISTRIBUTION attribute of the source.
+        bool distributionFound = false;  ///< False if no DISTRIBUTION has that name.
+        std::string distributionType;    ///< TYPE of the distribution, upper case.
+        bool emitted = false;            ///< EMITTED of the distribution.
+        double t0    = 0;                ///< T0 of the source (s).
     };
 
     struct BeamDescription {
@@ -59,6 +72,22 @@ namespace opalx::run {
         double chargePerParticle = 0;  ///< Macro charge per particle (C).
         double massPerParticle   = 0;  ///< Macro mass per particle (GeV/c^2).
         std::string emissionSourceList;
+
+        // Values read through Beam's own functions, for validate(). The text writer leaves them
+        // out: the attributes above already hold the input they come from.
+        std::string particleName;
+        bool isPhoton = false;
+        std::string daughterBeam;  ///< DAUGHTERBEAM, empty if not set.
+        std::vector<std::string> globalProcesses;
+        bool hasExplicitEnergy  = false;  ///< GAMMA, ENERGY or PC given.
+        bool hasEmissionSources = false;  ///< SOURCES given.
+        bool hasPolarization    = false;
+        std::optional<double> zStop;             ///< BEAM ZSTOP.
+        bool untilMaxSteps = false;              ///< BEAM UNTILMAXSTEPS.
+        std::vector<double> tuneInitial;         ///< TUNEINITIAL.
+        std::string emissionSourceListError;     ///< Why the SOURCES name could not be read.
+        bool emissionSourceListFound = false;    ///< An EMISSIONSOURCELIST of that name exists.
+        std::vector<SourceDescription> sources;  ///< The sources of that list, in order.
     };
 
     /**
@@ -75,6 +104,7 @@ namespace opalx::run {
         std::string name;
         std::string topology;  ///< "LINE" or "RING".
         std::vector<ElementDescription> elements;
+        double length = 0;  ///< Length of the line (the circumference of a RING). Not written.
     };
 
     /**
@@ -91,7 +121,8 @@ namespace opalx::run {
         int stepsPerTurn            = 0;
         double kineticEnergyStopGeV = 0;
         bool hasInitialOrbit        = false;
-        ObjectDescription run;  ///< Attributes of the RUN command.
+        ObjectDescription run;        ///< Attributes of the RUN command.
+        std::string fieldSolverType;  ///< TYPE of the RUN FIELDSOLVER, if found. Not written.
     };
 
     /**
