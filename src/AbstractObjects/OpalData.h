@@ -183,6 +183,12 @@ public:
     /// Process output policy: standalone COF runs produce only explicit OUTPUT files.
     bool hasCofRun = false, hasTrackingRun = false;
 
+    /// Set by --check: RUN writes its run description and does not track.
+    bool checkOnly = false;
+
+    /// Number of RUN commands executed so far in this input.
+    int numberOfRuns = 0;
+
     /// true if in follow-up track
     void setPriorTrack(const bool& value = true);
 

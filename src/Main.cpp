@@ -175,6 +175,8 @@ namespace OPALXMAIN {
         *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
         *ippl::Info << "   --2D5BatchSize <n>       : Batch n transverse FFT2D5 slices (positive "
                        "integer; default: serial).\n";
+        *ippl::Info << "   --check                  : Read the input; each RUN writes what it would track "
+                       "with to <input>_run<n>.txt and does not track.\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -383,6 +385,9 @@ int main(int argc, char* argv[]) {
                             ++ii;
                         }
                     }
+                    continue;
+                } else if (argStr == std::string("--check")) {
+                    opal->checkOnly = true;
                     continue;
                 } else if (argStr == "--2D5BatchSize") {
                     int value  = 0;

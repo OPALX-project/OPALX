@@ -73,6 +73,9 @@
 #include "SpaceCharge/SpaceChargeFactory.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
 
+#include "Track/FreezeRun.h"
+#include "Track/RunDescriptionWriter.h"
+
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
 #include "changes.h"
@@ -284,6 +287,21 @@ TrackRun::~TrackRun() {
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
 void TrackRun::execute() {
+    // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy
+    // as text and stop: nothing is tracked and no other output is written.
+    const opalx::run::RunDescription description =
+            opalx::run::freeze(*this, ++opal_m->numberOfRuns);
+    if (opal_m->checkOnly) {
+        const std::string fileName = opalx::run::dumpFileName(description);
+        if (ippl::Comm->rank() == 0) {
+            std::ofstream out(fileName);
+            opalx::run::write(description, out);
+        }
+        *gmsg << level1 << "* --check: wrote the run description to " << fileName
+              << "; RUN does not track." << endl;
+        return;
+    }
+
     OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
