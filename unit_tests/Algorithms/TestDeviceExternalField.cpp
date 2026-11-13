@@ -80,7 +80,7 @@ TEST_F(DeviceExternalFieldTest, OrderedCandidatesPreserveOccurrencesAndRejectUnk
     ASSERT_NE(first, last);
     ASSERT_EQ(first->getName(), last->getName());
     lattice.prepareSections();
-    std::set<std::shared_ptr<ElementBase>> selected;
+    ElementSet selected;
     selected.insert(last);
     selected.insert(first);
     const std::vector<std::shared_ptr<ElementBase>> expected{first, last};
@@ -137,7 +137,7 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
         }
         lattice.prepareSections();
         ASSERT_EQ((*allocated.begin())->getName(), names[arrangement == 0 ? 0 : 2]);
-        std::set<std::shared_ptr<ElementBase>> selected;
+        ElementSet selected;
         for (auto it = allocated.rbegin(); it != allocated.rend(); ++it)
             selected.insert(*it);
         const auto ordered = device_external::orderedCandidates(lattice, selected);

@@ -54,7 +54,7 @@ public:
     /// Select runtime elements whose isInside() support contains lab position x [m].
     /// Includes aperture checks; selection does not imply a nonzero field. Candidates come
     /// from the element grid once placement is final, otherwise every element is tested.
-    std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
+    ElementSet getElements(const Vector_t<double, 3>& x);
 
     /**
      * @brief Build the element grid from the placed elements with the current OPTION values.
@@ -71,7 +71,7 @@ public:
      * Get all elements in the beamline, regardless of their position.
      * @return Set of shared pointers to all runtime elements, not a reference-path ordering.
      */
-    std::set<std::shared_ptr<ElementBase>> getElements();
+    ElementSet getElements();
 
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
@@ -157,6 +157,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
+    elptr->setLineIndex(elements_m.size() + 1);
     elements_m.push_back(elptr);
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;

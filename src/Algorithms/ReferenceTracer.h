@@ -80,7 +80,7 @@ public:
             const Vector_t<double, 3>& direction);
 
 private:
-    using ElementSet = std::set<std::shared_ptr<ElementBase>>;
+    using ElementSet = ::ElementSet;
 
     /// One Boris step with the elements at the step midpoint; returns false on a material hit.
     bool step(double dt, ElementSet& fields);

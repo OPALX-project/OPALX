@@ -120,7 +120,7 @@ public:
      *  0
      *  <field map data>
      */
-    static void writeFields(const std::set<std::shared_ptr<ElementBase>>& elements);
+    static void writeFields(const ElementSet& elements);
 
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const override;
@@ -143,14 +143,14 @@ public:
 private:
     enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };
 
-    virtual void writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements);
+    virtual void writeFieldThis(const ElementSet& elements);
     virtual void buildGrid();
     void parseCoordinateSystem();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(
-            const std::set<std::shared_ptr<ElementBase>>& elements,
-            const Vector_t<double, 3>& point, const double& time, std::ofstream& fout) const;
+            const ElementSet& elements, const Vector_t<double, 3>& point, const double& time,
+            std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
     Vector_t<double, 3> cylindricalOrigin_m{};

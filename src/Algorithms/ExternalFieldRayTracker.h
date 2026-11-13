@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "AbsBeamline/ElementBase.h"
 #include "OPALTypes.h"
 #include "Steppers/BorisPusher.h"
 
@@ -132,7 +133,7 @@ public:
     State advance(const State& initial, double dt, std::vector<Step>* accepted = nullptr) const;
 
 private:
-    using ElementSet = std::set<std::shared_ptr<ElementBase>>;
+    using ElementSet = ::ElementSet;
     OpalBeamline& beamline_m;
     const PartData& reference_m;
     BorisPusher integrator_m;

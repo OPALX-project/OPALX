@@ -42,8 +42,7 @@ namespace device_external {
      * silently omitting a field. Does not change geometry, field formulas,
      * descriptor indices, or the legacy ordering used by other tracking modes.
      */
-    std::vector<std::shared_ptr<ElementBase>> orderedCandidates(
-            OpalBeamline&, const std::set<std::shared_ptr<ElementBase>>&);
+    std::vector<std::shared_ptr<ElementBase>> orderedCandidates(OpalBeamline&, const ElementSet&);
 
     /** @brief Could a tracking-frame AABB intersect a cyclotron angular wedge?
      *
@@ -67,9 +66,9 @@ namespace device_external {
      * no particle copies or additional MPI collectives. This host capability is
      * independent of analytic Builder::supports and introduces no descriptors.
      */
-    std::set<std::shared_ptr<ElementBase>> selectCyclotronCandidates(
+    ElementSet selectCyclotronCandidates(
             const ElementList& sectors, const CoordinateSystemTrafo& toLab, const Vector& minimum,
-            const Vector& maximum, std::set<std::shared_ptr<ElementBase>> mapped);
+            const Vector& maximum, ElementSet mapped);
 
     /// Device value representation of CoordinateSystemTrafo (parent -> local).
     struct Rigid {

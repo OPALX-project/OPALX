@@ -11,7 +11,7 @@
 #include "Utilities/OpalException.h"
 
 std::vector<std::shared_ptr<ElementBase>> device_external::orderedCandidates(
-        OpalBeamline& beamline, const std::set<std::shared_ptr<ElementBase>>& candidates) {
+        OpalBeamline& beamline, const ElementSet& candidates) {
     auto remaining = candidates;
     std::vector<std::shared_ptr<ElementBase>> ordered;
     ordered.reserve(candidates.size());
@@ -58,9 +58,9 @@ bool device_external::cyclotronSectorMayIntersect(
     return maxEntrance >= -margin && maxExit >= -margin;
 }
 
-std::set<std::shared_ptr<ElementBase>> device_external::selectCyclotronCandidates(
+ElementSet device_external::selectCyclotronCandidates(
         const ElementList& sectors, const CoordinateSystemTrafo& toLab, const Vector& minimum,
-        const Vector& maximum, std::set<std::shared_ptr<ElementBase>> mapped) {
+        const Vector& maximum, ElementSet mapped) {
     for (auto it = mapped.begin(); it != mapped.end();) {
         if ((*it)->getType() == ElementType::CYCLOTRONSECTOR)
             it = mapped.erase(it);

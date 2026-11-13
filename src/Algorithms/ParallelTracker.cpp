@@ -1700,7 +1700,7 @@ void ParallelTracker::forEachElementInBunchFrame(
             // only. Keep these flags local: this pointer-ordered element set
             // has no common index across MPI ranks. The timestep decision is
             // separately collective in boundaryCrossed().
-            std::set<std::shared_ptr<ElementBase>> selected;
+            ElementSet selected;
             size_t j = 0;
             for (const auto& element : all) {
                 if (host(j++)) selected.insert(element);

@@ -57,8 +57,8 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
-    std::set<std::shared_ptr<ElementBase>> elementSet;
+ElementSet OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    ElementSet elementSet;
     const auto selectIfInside = [&](const std::shared_ptr<ElementBase>& element) {
         if (element->isInside(transformToLocalCS(element, x))) elementSet.insert(element);
     };
@@ -83,8 +83,8 @@ const GeneralElementMapping& OpalBeamline::getElementMapping() {
     return *elementMapping_m;
 }
 
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
-    std::set<std::shared_ptr<ElementBase>> elementSet;
+ElementSet OpalBeamline::getElements() {
+    ElementSet elementSet;
     for (auto& item : elements_m) {
         elementSet.insert(item);
     }
@@ -104,10 +104,10 @@ unsigned long OpalBeamline::getFieldAt(
         Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
 
-    std::set<std::shared_ptr<ElementBase>> elements = getElements(position);
+    ElementSet elements = getElements(position);
 
-    std::set<std::shared_ptr<ElementBase>>::const_iterator it        = elements.begin();
-    const std::set<std::shared_ptr<ElementBase>>::const_iterator end = elements.end();
+    ElementSet::const_iterator it        = elements.begin();
+    const ElementSet::const_iterator end = elements.end();
 
     for (; it != end; ++it) {
         ElementType type = (*it)->getType();

@@ -152,7 +152,7 @@ namespace {
     // bodies use the nearest finite centreline; circular FFA/cyclotron elements
     // own their angular windows. Every selected element uses its native loss check.
     void checkApertures(
-            OpalBeamline& lattice, const std::set<std::shared_ptr<ElementBase>>& elements,
+            OpalBeamline& lattice, const ElementSet& elements,
             const ExternalFieldRayTracker::State& ray) {
         double nearest = std::numeric_limits<double>::infinity();
         for (const auto& element : elements) {

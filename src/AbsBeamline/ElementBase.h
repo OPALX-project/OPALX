@@ -30,6 +30,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -572,7 +573,36 @@ private:
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
     std::optional<double> reach_m;
+
+    /// Position in the tracked line, counted from 1 by OpalBeamline; 0 if not in a line.
+    std::size_t lineIndex_m = 0;
+
+public:
+    /// Position in the tracked line, counted from 1; 0 for an element outside a tracked line.
+    std::size_t getLineIndex() const { return lineIndex_m; }
+    /// Set by OpalBeamline when it takes its copy of the element.
+    void setLineIndex(std::size_t index) { lineIndex_m = index; }
 };
+
+/**
+ * @brief Orders elements by their position in the tracked line.
+ *
+ * Loops over the elements at one point sum their fields; with this order the sum is the same in
+ * every run. Ordering by address made the last digits of the results change from run to run.
+ * Elements outside a tracked line (index 0) fall back to their addresses.
+ */
+struct ByLinePosition {
+    bool operator()(
+            const std::shared_ptr<ElementBase>& a, const std::shared_ptr<ElementBase>& b) const {
+        // A null pointer sorts first, by address like before.
+        if (a && b && a->getLineIndex() != b->getLineIndex())
+            return a->getLineIndex() < b->getLineIndex();
+        return std::less<std::shared_ptr<ElementBase>>()(a, b);
+    }
+};
+
+/// A set of elements in line order; see ByLinePosition.
+using ElementSet = std::set<std::shared_ptr<ElementBase>, ByLinePosition>;
 
 // Inline functions.
 // ------------------------------------------------------------------------
