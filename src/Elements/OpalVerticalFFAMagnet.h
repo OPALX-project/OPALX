@@ -18,6 +18,8 @@
 #ifndef OPAL_OPALVERTICALFFAMAGNET_H
 #define OPAL_OPALVERTICALFFAMAGNET_H
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalVerticalFFAMagnet : public OpalElement {
@@ -48,7 +50,13 @@ public:
     /** Update the VerticalFFA with new parameters from UI parser */
     virtual void update();
 
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ElementValues& values);
+
     // Not implemented.
     OpalVerticalFFAMagnet(const OpalVerticalFFAMagnet&);
     void operator=(const OpalVerticalFFAMagnet&);

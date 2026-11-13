@@ -1,5 +1,7 @@
 #include "Elements/OpalCyclotronSector.h"
+
 #include <cmath>
+#include <memory>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"
@@ -45,31 +47,37 @@ OpalCyclotronSector::OpalCyclotronSector(const std::string& name, OpalCyclotronS
 OpalCyclotronSector* OpalCyclotronSector::clone(const std::string& name) {
     return new OpalCyclotronSector(name, this);
 }
-void OpalCyclotronSector::update() {
-    OpalElement::update();
-    const auto filename = Attributes::getString(itsAttr[FMAPFN]);
-    if (filename.empty()) return;  // exemplar
+std::shared_ptr<ElementBase> OpalCyclotronSector::build(const ElementValues& values) {
+    auto element = std::make_shared<CyclotronSector>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalCyclotronSector::update() { fill(*getElement(), getValues()); }
+
+void OpalCyclotronSector::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+    const auto filename = values.getString("FMAPFN");
+    if (filename.empty()) return;  // no field map: nothing to configure
     auto map         = CyclotronSectorFieldMap::read(filename);
-    const double sym = Attributes::getReal(itsAttr[SYM]);
+    const double sym = values.getReal("SYM");
     if (!std::isfinite(sym) || sym < 2 || sym > 100000 || sym != std::round(sym))
         throw OpalException("OpalCyclotronSector", "SYM must be an integer >=2.");
-    for (int a : {RMIN, RMAX}) {
-        const double expected = a == RMIN ? map->rmin : map->rmin + (map->nr - 1) * map->dr;
-        if (!itsAttr[a].defaultUsed()
-            && (!std::isfinite(Attributes::getReal(itsAttr[a]))
-                || std::abs(Attributes::getReal(itsAttr[a]) - expected) > 1e-10))
+    for (const char* a : {"RMIN", "RMAX"}) {
+        const double expected =
+                std::string(a) == "RMIN" ? map->rmin : map->rmin + (map->nr - 1) * map->dr;
+        if (!values.defaultUsed(a)
+            && (!std::isfinite(values.getReal(a))
+                || std::abs(values.getReal(a) - expected) > 1e-10))
             throw OpalException("OpalCyclotronSector", "RMIN/RMAX must match the field map.");
     }
     std::vector<CyclotronTrimCoil> coils;
-    for (const auto& name : Attributes::getStringArray(itsAttr[TRIMCOIL])) {
+    for (const auto& name : values.getStringArray("TRIMCOIL")) {
         auto* coil = dynamic_cast<OpalTrimCoil*>(OpalData::getInstance()->find(name));
         if (!coil) throw OpalException("OpalCyclotronSector", "Unknown TRIMCOIL: " + name);
         coils.push_back(coil->model());
     }
-    static_cast<CyclotronSector*>(getElement())
-            ->configure(
-                    map, static_cast<int>(sym), Attributes::getReal(itsAttr[VMIN]),
-                    Attributes::getReal(itsAttr[VMAX]), Attributes::getReal(itsAttr[BSCALE]),
-                    coils);
-    OpalElement::updateUnknown(getElement());
+    static_cast<CyclotronSector*>(&element)->configure(
+            map, static_cast<int>(sym), values.getReal("VMIN"), values.getReal("VMAX"),
+            values.getReal("BSCALE"), coils);
 }

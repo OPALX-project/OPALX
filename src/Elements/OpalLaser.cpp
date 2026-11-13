@@ -1,5 +1,7 @@
 #include "Elements/OpalLaser.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/LaserRep.h"
 #include "Utilities/OpalException.h"
@@ -10,35 +12,35 @@
 
 namespace {
     double getRequiredPositiveReal(
-            const std::vector<Attribute>& attrs, int index, const std::string& where) {
-        if (!attrs[index]) {
-            throw OpalException(where, "\"" + attrs[index].getName() + "\" must be set.");
+            const ElementValues& values, const std::string& name, const std::string& where) {
+        if (!values.hasValue(name)) {
+            throw OpalException(where, "\"" + name + "\" must be set.");
         }
 
-        const double value = Attributes::getReal(attrs[index]);
+        const double value = values.getReal(name);
         if (value <= 0.0) {
-            throw OpalException(
-                    where, "\"" + attrs[index].getName() + "\" must be greater than 0.");
+            throw OpalException(where, "\"" + name + "\" must be greater than 0.");
         }
 
         return value;
     }
 
     Vector_t<double, 3> getVector3(
-            const Attribute& attr, const std::string& where, const std::string& semanticName) {
-        if (!attr) {
-            throw OpalException(where, "\"" + attr.getName() + "\" must be set.");
+            const ElementValues& values, const std::string& name, const std::string& where,
+            const std::string& semanticName) {
+        if (!values.hasValue(name)) {
+            throw OpalException(where, "\"" + name + "\" must be set.");
         }
 
-        const std::vector<double> values = Attributes::getRealArray(attr);
-        if (values.size() != 3) {
+        const std::vector<double> entries = values.getRealArray(name);
+        if (entries.size() != 3) {
             std::ostringstream msg;
-            msg << "\"" << attr.getName() << "\" must contain exactly 3 values for " << semanticName
-                << "; got " << values.size() << ".";
+            msg << "\"" << name << "\" must contain exactly 3 values for " << semanticName
+                << "; got " << entries.size() << ".";
             throw OpalException(where, msg.str());
         }
 
-        return Vector_t<double, 3>(values[0], values[1], values[2]);
+        return Vector_t<double, 3>(entries[0], entries[1], entries[2]);
     }
 }  // namespace
 
@@ -68,50 +70,39 @@ OpalLaser::~OpalLaser() {}
 
 OpalLaser* OpalLaser::clone(const std::string& name) { return new OpalLaser(name, this); }
 
-void OpalLaser::update() {
+std::shared_ptr<ElementBase> OpalLaser::build(const ElementValues& values) {
+    auto element = std::make_shared<LaserRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalLaser::update() { fill(*getElement(), getValues()); }
+
+void OpalLaser::fill(ElementBase& element, const ElementValues& values) {
     constexpr const char* where = "OpalLaser::update()";
 
-    OpalElement::update();
+    setCommonFields(element, values);
 
-    auto* laser = dynamic_cast<LaserRep*>(getElement());
+    auto* laser = dynamic_cast<LaserRep*>(&element);
     if (!laser) {
-        OpalElement::updateUnknown(getElement());
         return;
     }
 
-    // OpalData::update() calls update() on every object in the directory,
-    // including the prototype instance whose required attributes are all unset.
-    // Skip propagation silently only when none of the required attributes has
-    // been configured yet (i.e. this is truly the unmodified prototype).
-    //
-    /// \todo Refactor to follow the standard OPAL element pattern:
-    //   1. Register every attribute with a sentinel default in the constructor
-    //      (e.g. Attributes::makeReal("WAVELENGTH", "...", 0.0)) so that
-    //      Attributes::getReal() always returns a well-defined value, even on
-    //      the prototype. OpalSolenoid and OpalCavity are good examples.
-    //   2. In update(), read all attributes unconditionally with
-    //      Attributes::getReal() / Attributes::getRealArray() and forward them
-    //      to LaserRep without throwing. No prototype guard is needed because
-    //      zero/sentinel values are harmless.
-    //   3. Move the "must be positive / must be set" validation into LaserRep,
-    //      e.g. in initialise() which is called only when the element is
-    //      actually inserted into a tracked beamline.  That is the right layer
-    //      to enforce physical constraints, and it keeps OpalLaser::update()
-    //      consistent with every other OpalElement subclass.
-    const bool anyConfigured = itsAttr[WAVELENGTH] || itsAttr[PULSEENERGY] || itsAttr[PULSELENGTH]
-                               || itsAttr[WAISTX] || itsAttr[WAISTY] || itsAttr[DIR];
+    // A LASER that sets none of the required attributes is left unconfigured, as before.
+    const bool anyConfigured = values.hasValue("WAVELENGTH") || values.hasValue("PULSEENERGY")
+                               || values.hasValue("PULSELENGTH") || values.hasValue("WAISTX")
+                               || values.hasValue("WAISTY") || values.hasValue("DIR");
     if (!anyConfigured) {
-        OpalElement::updateUnknown(laser);
         return;
     }
 
-    const double wavelength  = getRequiredPositiveReal(itsAttr, WAVELENGTH, where);
-    const double pulseEnergy = getRequiredPositiveReal(itsAttr, PULSEENERGY, where);
-    const double pulseLength = getRequiredPositiveReal(itsAttr, PULSELENGTH, where);
-    const double waistX      = getRequiredPositiveReal(itsAttr, WAISTX, where);
-    const double waistY      = getRequiredPositiveReal(itsAttr, WAISTY, where);
+    const double wavelength  = getRequiredPositiveReal(values, "WAVELENGTH", where);
+    const double pulseEnergy = getRequiredPositiveReal(values, "PULSEENERGY", where);
+    const double pulseLength = getRequiredPositiveReal(values, "PULSELENGTH", where);
+    const double waistX      = getRequiredPositiveReal(values, "WAISTX", where);
+    const double waistY      = getRequiredPositiveReal(values, "WAISTY", where);
 
-    Vector_t<double, 3> direction = getVector3(itsAttr[DIR], where, "the propagation direction");
+    Vector_t<double, 3> direction = getVector3(values, "DIR", where, "the propagation direction");
     const double directionNorm    = std::sqrt(dot(direction, direction));
     if (directionNorm <= 0.0) {
         throw OpalException(where, "\"DIR\" must be a non-zero vector.");
@@ -119,15 +110,15 @@ void OpalLaser::update() {
     direction /= directionNorm;
 
     Vector_t<double, 3> stokes(0.0);
-    if (itsAttr[STOKES]) {
-        stokes                   = getVector3(itsAttr[STOKES], where, "the Stokes vector");
+    if (values.hasValue("STOKES")) {
+        stokes                   = getVector3(values, "STOKES", where, "the Stokes vector");
         const double stokesNorm2 = dot(stokes, stokes);
         if (stokesNorm2 > 1.0 + 1.0e-12) {
             throw OpalException(where, "\"STOKES\" must satisfy xi1^2 + xi2^2 + xi3^2 <= 1.");
         }
     }
 
-    const double length = itsAttr[LENGTH] ? Attributes::getReal(itsAttr[LENGTH]) : 0.0;
+    const double length = values.hasValue("L") ? values.getReal("L") : 0.0;
     if (length < 0.0) {
         throw OpalException(where, "\"L\" must be greater than or equal to 0.");
     }
@@ -140,6 +131,4 @@ void OpalLaser::update() {
     laser->setWaistY(waistY);
     laser->setDirection(direction);
     laser->setStokes(stokes);
-
-    OpalElement::updateUnknown(laser);
 }

@@ -18,7 +18,11 @@
 #ifndef OPAL_OPALSCALINGFFAMAGNET_H
 #define OPAL_OPALSCALINGFFAMAGNET_H
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
+
+class ScalingFFAMagnet;
 
 /** OpalScalingFFAMagnet provides user interface information for the SCALINGFFA object
  *
@@ -54,7 +58,13 @@ public:
     /** Update the ScalingFFA with new parameters from UI parser */
     virtual void update();
 
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ElementValues& values);
+
     // Not implemented.
     OpalScalingFFAMagnet(const OpalScalingFFAMagnet&);
     void operator=(const OpalScalingFFAMagnet&);
@@ -62,8 +72,8 @@ private:
     // Clone constructor.
     OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent);
 
-    void setupNamedEndField();
-    void setupDefaultEndField();
+    static void setupNamedEndField(ScalingFFAMagnet& magnet, const ElementValues& values);
+    static void setupDefaultEndField(ScalingFFAMagnet& magnet, const ElementValues& values);
 };
 
 #endif  // OPAL_OPALSCALINGFFAMAGNET_H

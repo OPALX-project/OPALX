@@ -20,6 +20,8 @@
 #include "AbsBeamline/EndFieldModel/Tanh.h"  // OPALX
 #include "AbsBeamline/VerticalFFAMagnet.h"   // OPALX
 #include "Elements/OpalVerticalFFAMagnet.h"
+
+#include <memory>
 #include "Physics/Units.h"
 
 std::string OpalVerticalFFAMagnet::docstring_m =
@@ -78,20 +80,29 @@ OpalVerticalFFAMagnet* OpalVerticalFFAMagnet::clone(const std::string& name) {
     return new OpalVerticalFFAMagnet(name, this);
 }
 
-void OpalVerticalFFAMagnet::update() {
-    VerticalFFAMagnet* magnet = dynamic_cast<VerticalFFAMagnet*>(getElement());
-    magnet->setB0(Attributes::getReal(itsAttr[B0]));
-    int maxOrder = floor(Attributes::getReal(itsAttr[MAX_HORIZONTAL_POWER]));
+std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ElementValues& values) {
+    auto element = std::make_shared<VerticalFFAMagnet>(values.getName());
+    element->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
+    fill(*element, values);
+    return element;
+}
+
+void OpalVerticalFFAMagnet::update() { fill(*getElement(), getValues()); }
+
+void OpalVerticalFFAMagnet::fill(ElementBase& element, const ElementValues& values) {
+    VerticalFFAMagnet* magnet = dynamic_cast<VerticalFFAMagnet*>(&element);
+    magnet->setB0(values.getReal("B0"));
+    int maxOrder = floor(values.getReal("MAX_HORIZONTAL_POWER"));
     magnet->setMaxOrder(maxOrder);
-    magnet->setFieldIndex(Attributes::getReal(itsAttr[FIELD_INDEX]));
-    magnet->setNegativeVerticalExtent(Attributes::getReal(itsAttr[HEIGHT_NEG_EXTENT]));
-    magnet->setPositiveVerticalExtent(Attributes::getReal(itsAttr[HEIGHT_POS_EXTENT]));
-    magnet->setBBLength(Attributes::getReal(itsAttr[BB_LENGTH]));
-    magnet->setWidth(Attributes::getReal(itsAttr[WIDTH]));
+    magnet->setFieldIndex(values.getReal("FIELD_INDEX"));
+    magnet->setNegativeVerticalExtent(values.getReal("HEIGHT_NEG_EXTENT"));
+    magnet->setPositiveVerticalExtent(values.getReal("HEIGHT_POS_EXTENT"));
+    magnet->setBBLength(values.getReal("BB_LENGTH"));
+    magnet->setWidth(values.getReal("WIDTH"));
 
     // get centre length and end length in radians
-    double end_length    = Attributes::getReal(itsAttr[END_LENGTH]);
-    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]);
+    double end_length    = values.getReal("END_LENGTH");
+    double centre_length = values.getReal("CENTRE_LENGTH");
     auto endField =
             std::make_shared<endfieldmodel::Tanh>(centre_length / 2.0, end_length, maxOrder);
     magnet->setEndField(endField);

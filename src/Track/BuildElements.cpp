@@ -32,8 +32,10 @@
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
+#include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalFieldmapElement.h"
+#include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
@@ -42,9 +44,11 @@
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
+#include "Elements/OpalScalingFFAMagnet.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
+#include "Elements/OpalVerticalFFAMagnet.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
@@ -67,10 +71,11 @@ namespace opalx::run {
                      {ElementType::CONSTANTEFIELDCAVITY, &OpalConstantEFieldCavity::build}},
                     {"CONSTANTFOCUSING",
                      {ElementType::CONSTANTFOCUSING, &OpalConstantFocusing::build}},
-                    {"CYCLOTRONSECTOR", {ElementType::CYCLOTRONSECTOR, nullptr}},
+                    {"CYCLOTRONSECTOR",
+                     {ElementType::CYCLOTRONSECTOR, &OpalCyclotronSector::build}},
                     {"DRIFT", {ElementType::DRIFT, &OpalDrift::build}},
                     {"FIELDMAP", {ElementType::FIELDMAP, &OpalFieldmapElement::build}},
-                    {"LASER", {ElementType::LASER, nullptr}},
+                    {"LASER", {ElementType::LASER, &OpalLaser::build}},
                     {"MARKER", {ElementType::MARKER, &OpalMarker::build}},
                     {"MONITOR", {ElementType::MONITOR, &OpalMonitor::build}},
                     {"MULTIPOLE", {ElementType::MULTIPOLE, &OpalMultipole::build}},
@@ -80,11 +85,12 @@ namespace opalx::run {
                     {"RBEND", {ElementType::RBEND, &OpalRBend::build}},
                     {"RFCAVITY", {ElementType::RFCAVITY, &OpalCavity::build}},
                     {"SBEND", {ElementType::SBEND, &OpalSBend::build}},
-                    {"SCALINGFFAMAGNET", {ElementType::SCALINGFFAMAGNET, nullptr}},
+                    {"SCALINGFFAMAGNET",
+                     {ElementType::SCALINGFFAMAGNET, &OpalScalingFFAMagnet::build}},
                     {"SOLENOID", {ElementType::SOLENOID, &OpalSolenoid::build}},
                     {"TRAVELINGWAVE", {ElementType::TRAVELINGWAVE, &OpalTravelingWave::build}},
                     {"VARIABLE_RF_CAVITY", {ElementType::ANY, &OpalVariableRFCavity::build}},
-                    {"VERTICALFFAMAGNET", {ElementType::ANY, nullptr}},
+                    {"VERTICALFFAMAGNET", {ElementType::ANY, &OpalVerticalFFAMagnet::build}},
             };
             return kinds;
         }

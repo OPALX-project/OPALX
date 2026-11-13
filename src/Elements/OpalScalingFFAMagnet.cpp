@@ -112,86 +112,88 @@ OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
     return new OpalScalingFFAMagnet(name, this);
 }
 
-void OpalScalingFFAMagnet::setupDefaultEndField() {
-    auto element = getElementPtr();
-    std::shared_ptr<ScalingFFAMagnet> magnet =
-            std::dynamic_pointer_cast<ScalingFFAMagnet, ElementBase>(element);
+std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ElementValues& values) {
+    auto magnet = std::make_shared<ScalingFFAMagnet>(values.getName());
+    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
+    fill(*magnet, values);
+    return magnet;
+}
+
+void OpalScalingFFAMagnet::update() { fill(*getElement(), getValues()); }
+
+void OpalScalingFFAMagnet::setupDefaultEndField(
+        ScalingFFAMagnet& magnet, const ElementValues& values) {
     // get centre length and end length in metres
-    double end_length = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
-    double x0         = Attributes::getReal(itsAttr[LENGTH]) / 2.;
+    double end_length = values.getReal("FRINGE_LENGTH");
+    double x0         = values.getReal("L") / 2.;
     auto endField     = std::make_shared<endfieldmodel::Tanh>();
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(x0);
-    std::string endName = "__opal_internal__" + getOpalName();
-    magnet->setEndFieldName(endName);
-    magnet->setPhiStart(0.0);
+    std::string endName = "__opal_internal__" + values.getName();
+    magnet.setEndFieldName(endName);
+    magnet.setPhiStart(0.0);
     endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(endName, endField);
 }
 
-void OpalScalingFFAMagnet::setupNamedEndField() {
-    if (!itsAttr[END_FIELD_MODEL]) {
+void OpalScalingFFAMagnet::setupNamedEndField(
+        ScalingFFAMagnet& magnet, const ElementValues& values) {
+    if (!values.hasValue("END_FIELD_MODEL")) {
         return;
     }
-    std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
-    auto element     = getElementPtr();
-    std::shared_ptr<ScalingFFAMagnet> magnet =
-            std::dynamic_pointer_cast<ScalingFFAMagnet, ElementBase>(element);
-    auto endField = std::make_shared<endfieldmodel::Tanh>();
-    magnet->setEndFieldName(name);
+    std::string name = values.getString("END_FIELD_MODEL");
+    auto endField    = std::make_shared<endfieldmodel::Tanh>();
+    magnet.setEndFieldName(name);
     // make sure the EFM is cleared
-    magnet->setEndField(endField);
-    magnet->setPhiStart(0.0);
+    magnet.setEndField(endField);
+    magnet.setPhiStart(0.0);
 }
 
-void OpalScalingFFAMagnet::update() {
-    OpalElement::update();
-    auto element = getElementPtr();
-    std::shared_ptr<ScalingFFAMagnet> magnet =
-            std::dynamic_pointer_cast<ScalingFFAMagnet, ElementBase>(element);
+void OpalScalingFFAMagnet::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+    auto& magnet = dynamic_cast<ScalingFFAMagnet&>(element);
     // use L = r0*theta; we define the magnet into length for UI but into angles
     // internally; and use m as external default unit
-    double r0Abs    = std::abs(Attributes::getReal(itsAttr[R0]));
-    double r0Signed = Attributes::getReal(itsAttr[R0]);
-    magnet->setR0(r0Signed);
-    magnet->setDipoleConstant(Attributes::getReal(itsAttr[B0]));
-    if (itsAttr[APERT]) {
+    double r0Abs    = std::abs(values.getReal("R0"));
+    double r0Signed = values.getReal("R0");
+    magnet.setR0(r0Signed);
+    magnet.setDipoleConstant(values.getReal("B0"));
+    if (values.hasValue("APERTURE")) {
         throw OpalException(
                 "OpalScalingFFAMagnet::update()", "SCALINGFFAMAGNET does not use APERTURE command");
     }
 
     // dimensionless quantities
-    magnet->setFieldIndex(Attributes::getReal(itsAttr[FIELD_INDEX]));
-    magnet->setTanDelta(Attributes::getReal(itsAttr[TAN_DELTA]));
+    magnet.setFieldIndex(values.getReal("FIELD_INDEX"));
+    magnet.setTanDelta(values.getReal("TAN_DELTA"));
     int maxOrder = 3;
-    if (itsAttr[MAX_Y_POWER]) {
-        maxOrder = std::floor(Attributes::getReal(itsAttr[MAX_Y_POWER]));
+    if (values.hasValue("MAX_Y_POWER")) {
+        maxOrder = std::floor(values.getReal("MAX_Y_POWER"));
     }
-    magnet->setMaxOrder(maxOrder);
+    magnet.setMaxOrder(maxOrder);
 
     // get rmin and rmax bounding box edge
-    double rmin = r0Abs - Attributes::getReal(itsAttr[RADIAL_NEG_EXTENT]);
-    double rmax = r0Abs + Attributes::getReal(itsAttr[RADIAL_POS_EXTENT]);
-    magnet->setRMin(rmin);
-    magnet->setRMax(rmax);
+    double rmin = r0Abs - values.getReal("RADIAL_NEG_EXTENT");
+    double rmax = r0Abs + values.getReal("RADIAL_POS_EXTENT");
+    magnet.setRMin(rmin);
+    magnet.setRMax(rmax);
 
     // we store maximum vertical displacement (which is half the height)
-    double height = Attributes::getReal(itsAttr[HEIGHT]);
-    magnet->setVerticalExtent(height / 2.);
+    double height = values.getReal("HEIGHT");
+    magnet.setVerticalExtent(height / 2.);
 
     // get azimuthal extent in radians; this is just the bounding box
-    if (itsAttr[AZIMUTHAL_EXTENT]) {
-        if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
+    if (values.hasValue("AZIMUTHAL_EXTENT")) {
+        if (values.getReal("AZIMUTHAL_EXTENT") < 0.0) {
             throw OpalException("OpalScalingFFAMagnet::update()", "AZIMUTHAL_EXTENT must be > 0.0");
         }
-        magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) / r0Abs);
+        magnet.setAzimuthalExtent(values.getReal("AZIMUTHAL_EXTENT") / r0Abs);
     } else {
-        magnet->setAzimuthalExtent(-1);  // leave it for setupEndField
+        magnet.setAzimuthalExtent(-1);  // leave it for setupEndField
     }
-    if (itsAttr[END_FIELD_MODEL]) {
-        setupNamedEndField();
+    if (values.hasValue("END_FIELD_MODEL")) {
+        setupNamedEndField(magnet, values);
     } else {
-        setupDefaultEndField();
+        setupDefaultEndField(magnet, values);
     }
-    setElement(magnet);
 }
