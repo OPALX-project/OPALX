@@ -141,32 +141,30 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double cosphi = Kokkos::cos(phi);
     const double sinphi = Kokkos::sin(phi);
 
-    const double electricScale = scale * cosphi;
-    const double magneticScale = -scale * sinphi;
+    const double electricScale   = scale * cosphi;
+    const double magneticScale   = -scale * sinphi;
+    const ElementRegions regions = getRegions();
 
     if (isIdeal()) {
-        const auto R            = pc->R.getView();
-        const auto E            = pc->E.getView();
-        const auto length       = getGeometry().getElementLength();
-        const auto apertureType = aperture_m.first;
-        const auto ax           = aperture_m.second[0];
-        const auto ay           = aperture_m.second[1];
-        const double ez         = electricScale * Units::MVpm2Vpm;
+        const auto R    = pc->R.getView();
+        const auto E    = pc->E.getView();
+        const double ez = electricScale * Units::MVpm2Vpm;
         Kokkos::parallel_for(
                 "RFCavity::ideal", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
-                    if (R(i)[2] >= 0.0 && R(i)[2] < length
-                        && ApertureHelper::isInsideAperture(R(i)[0], R(i)[1], apertureType, ax, ay))
-                        E(i)[2] += ez;
+                    if (regions.fieldAppliesAt(R(i))) E(i)[2] += ez;
                 });
         return;
     }
 
     if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
-        dynamicFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+        dynamicFieldmap->applyRFField(
+                pc, electricScale, magneticScale, startField, endField, regions);
     } else if (auto* dynamic3DFieldmap = dynamic_cast<FM3DDynamic*>(fieldmap_m)) {
-        dynamic3DFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+        dynamic3DFieldmap->applyRFField(
+                pc, electricScale, magneticScale, startField, endField, regions);
     } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
-        astraFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+        astraFieldmap->applyRFField(
+                pc, electricScale, magneticScale, startField, endField, regions);
     } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
@@ -185,7 +183,7 @@ void RFCavity::apply(
                     * std::cos(frequency_m * t + phase_m + phaseError_m);
         return;
     }
-    if (R(2) >= startField_m && R(2) < endField_m) {
+    if (R(2) >= startField_m && R(2) < endField_m && getRegions().inFieldRegion(R)) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
@@ -200,9 +198,9 @@ bool RFCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (isCyclotronGap()) return false;
+    const ElementRegions regions = getRegions();
+    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
     if (isIdeal()) {
-        if (R[2] < 0.0 || R[2] >= getGeometry().getElementLength()) return false;
-        if (!ApertureHelper::isInsideAperture(R, aperture_m)) return true;
         // Reference tracking deliberately excludes DVOLT and DLAG, as for mapped cavities.
         E[2] += scale_m * Units::MVpm2Vpm * std::cos(frequency_m * t + phase_m);
         return false;
@@ -210,8 +208,9 @@ bool RFCavity::applyToReferenceParticle(
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
+        // Outside the map data but inside the aperture is a field-free gap, not material.
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return true;
+        if (outOfBounds) return false;
 
         E += scale_m * std::cos(frequency_m * t + phase_m) * tmpE;
         B -= scale_m * std::sin(frequency_m * t + phase_m) * tmpB;
@@ -780,12 +779,11 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
     if (isCyclotronGap()) return false;
-    if (isIdeal())
-        return r[2] >= 0.0 && r[2] < getGeometry().getElementLength()
-               && ApertureHelper::isInsideAperture(r, aperture_m);
-    if (fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)) {
-        return fieldmap_m->isInside(r);
-    }
+    if (!ElementBase::isInside(r)) return false;
+    return isIdeal() || (fieldmap_m != nullptr && fieldmap_m->isInside(r));
+}
 
-    return false;
+std::optional<ApertureShape> RFCavity::getFieldMapRange() const {
+    if (isCyclotronGap() || isIdeal() || fieldmap_m == nullptr) return std::nullopt;
+    return fieldmap_m->getTransverseRange();
 }

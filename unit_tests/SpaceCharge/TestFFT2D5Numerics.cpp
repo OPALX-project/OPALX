@@ -465,7 +465,7 @@ namespace {
         static void makeReferencePathFile(
                 const std::filesystem::path& fileName, const std::vector<Point_t>& points,
                 const bool noTimeColumn = false) {
-            // Emulates the file created by OrbitThreader.  Use noTimeColumn = true to create
+            // Emulates the file created by ReferenceTracer.  Use noTimeColumn = true to create
             // an invalid file.
             // Make the directory path exist
             if (const auto parentPath = fileName.parent_path(); !parentPath.empty()) {

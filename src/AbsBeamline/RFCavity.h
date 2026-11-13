@@ -94,10 +94,6 @@ public:
                         cyclotronProfile_m->data.data(), cyclotronProfile_m->data.extent(0), 3),
                 cyclotronKick_m, gapMin_m, gapMax_m};
     }
-    /// Discrete gaps never contribute to continuous field lookup or apertures.
-    bool isInsideBody(const Vector_t<double, 3>& r) const override {
-        return !isCyclotronGap() && ElementBase::isInsideBody(r);
-    }
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
 
@@ -228,6 +224,9 @@ public:
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
+
+    /// Transverse range of the field map; none for IDEAL and SINGLEGAP.
+    std::optional<ApertureShape> getFieldMapRange() const override;
 
     void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setAmplitudeModelName(std::string name);

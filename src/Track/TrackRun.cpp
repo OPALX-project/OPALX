@@ -747,6 +747,8 @@ void TrackRun::execute() {
                     Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
                             ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
                             : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
+    static_cast<ParallelTracker*>(itsTracker_m.get())
+            ->setBeamStops(makeBeamStops(beams, isRing, restartMetadata.beamStops));
     if (Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
         const double turns  = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);
@@ -877,6 +879,59 @@ void TrackRun::setupGlobalProcesses(
         }
         particleContainers[i]->setGlobalProcesses(std::move(globalProcessesLists[i]));
     }
+}
+
+std::vector<BeamStop> TrackRun::makeBeamStops(
+        const std::vector<Beam*>& beams, const bool isRing,
+        const std::vector<BeamStop>& restored) const {
+    const std::vector<std::string>& beamNames = Track::block->beamNames_m;
+    const auto name                           = [&](std::size_t i) {
+        return "\"" + (i < beamNames.size() ? beamNames[i] : std::to_string(i)) + "\"";
+    };
+    std::vector<BeamStop> stops(beams.size());
+    for (std::size_t i = 0; i < beams.size(); ++i) {
+        const std::optional<double> zStop = beams[i]->getZStop();
+        const bool untilMaxSteps          = beams[i]->getUntilMaxSteps();
+        if ((zStop || untilMaxSteps) && isRing) {
+            throw OpalException(
+                    "TrackRun::makeBeamStops",
+                    "BEAM ZSTOP and UNTILMAXSTEPS apply to LINE tracking only (beam " + name(i)
+                            + ").");
+        }
+        if (zStop && i == 0) {
+            throw OpalException(
+                    "TrackRun::makeBeamStops",
+                    "Beam " + name(i)
+                            + " is the first beam of the TRACK; set its stop with TRACK ZSTOP, "
+                              "not BEAM ZSTOP.");
+        }
+        if (zStop && decayRoots_m[i] != i) {
+            throw OpalException(
+                    "TrackRun::makeBeamStops",
+                    "Beam " + name(i)
+                            + " receives decay daughters and does not start at the start of the "
+                              "line, so it cannot have a ZSTOP.");
+        }
+        stops[i].zStop         = zStop;
+        stops[i].untilMaxSteps = untilMaxSteps;
+    }
+    if (!isRing && Track::block->zStopGiven) stops[0].zStop = Track::block->zstop.back();
+    for (std::size_t i = 0; i < stops.size(); ++i) {
+        if (stops[i].zStop && stops[i].untilMaxSteps) {
+            throw OpalException(
+                    "TrackRun::makeBeamStops",
+                    "Beam " + name(i) + " has both a ZSTOP" + (i == 0 ? " (from TRACK)" : "")
+                            + " and UNTILMAXSTEPS; give only one of them.");
+        }
+        // A restart continues with the planes and done flags of the checkpoint.
+        if (i < restored.size()) {
+            stops[i].planeSet    = restored[i].planeSet;
+            stops[i].planeOrigin = restored[i].planeOrigin;
+            stops[i].planeNormal = restored[i].planeNormal;
+            stops[i].done        = restored[i].done;
+        }
+    }
+    return stops;
 }
 
 void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {

@@ -5,6 +5,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
+#include <cmath>
 
 #include <cstddef>
 #include <memory>
@@ -51,6 +52,16 @@ public:
 
     /// @param frequency Angular frequency [rad/s].
     void setFrequency(double frequency) override;
+
+    /// The map is defined for xbegin <= x < xend, ybegin <= y < yend.
+    std::optional<ApertureShape> getTransverseRange() const override {
+        ApertureShape range;
+        range.centreX = 0.5 * (xbegin_m + xend_m);
+        range.centreY = 0.5 * (ybegin_m + yend_m);
+        range.halfX   = 0.5 * (xend_m - xbegin_m);
+        range.halfY   = 0.5 * (yend_m - ybegin_m);
+        return range;
+    }
 
     /// @brief Host-side bounds check; lower faces are included and upper faces excluded.
     bool isInside(const Vector_t<double, 3>& position) const override {
@@ -123,12 +134,15 @@ public:
         }
     }
 
-    void applyField(std::shared_ptr<ParticleContainer_t> particles, double, double) override;
+    void applyField(
+            std::shared_ptr<ParticleContainer_t> particles, double, double,
+            const ElementRegions& regions = ElementRegions()) override;
 
     /// @brief Apply separate electric and magnetic RF factors within the active z interval.
     void applyRFField(
             std::shared_ptr<ParticleContainer_t> particles, double electricScale,
-            double magneticScale, double startField, double endField);
+            double magneticScale, double startField, double endField,
+            const ElementRegions& regions = ElementRegions());
 
     void getOnaxisEz(std::vector<std::pair<double, double>>& field) override;
 

@@ -107,14 +107,12 @@ void ConstantFocusing::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     ippl::Comm->allreduce(centroid[0], 3, std::plus<double>());
     centroid /= static_cast<double>(nTotal);
 
-    // Gate each particle in the element extent
-    const double gradient = gradient_m;
-    double zBegin         = 0.0;
-    double zEnd           = 0.0;
-    getFieldExtent(zBegin, zEnd);
+    // Gate each particle by the element's field window and aperture
+    const double gradient        = gradient_m;
+    const ElementRegions regions = getRegions();
     Kokkos::parallel_for(
             "ConstantFocusing::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (R(i)[2] >= zBegin && R(i)[2] < zEnd) {
+                if (regions.fieldAppliesAt(R(i))) {
                     E(i) += gradient * (R(i) - centroid);
                 }
             });

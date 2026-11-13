@@ -25,6 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <algorithm>
 #include <cmath>
 
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -118,6 +119,73 @@ const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
     setupEndField();
+}
+
+BoundingBox ScalingFFAMagnet::getLocalSupportBox(const double reach) const {
+    BoundingBox box;
+    for (const SupportBox& patch : getLocalSupportBoxes(reach)) {
+        box.enlargeToContainPosition(patch.centre - patch.half);
+        box.enlargeToContainPosition(patch.centre + patch.half);
+    }
+    return box;
+}
+
+std::vector<SupportBox> ScalingFFAMagnet::getLocalSupportBoxes(double /*reach*/) const {
+    setupEndField();
+    // Inverse of getCylindricalCoordinates(): phi = phiSpiral + tan(delta) ln(r/|r0|) + phiStart,
+    // x = sign(r0) r cos(phi) - r0, z = r sin(phi). Sample in steps of about 2 cm.
+    const ScalingFFAMagnetConfig& c = config_m;
+    const double sign               = std::copysign(1.0, c.r0_m);
+    const double rLow               = std::max(c.rMin_m, 1e-9 * std::abs(c.r0_m));
+    const double rHigh              = std::max(c.rMax_m, rLow);
+    const double extent             = std::max(c.azimuthalExtent_m, 0.0);
+    const int nR   = std::clamp(static_cast<int>(std::ceil((rHigh - rLow) / 0.02)), 16, 512);
+    const int nPhi = std::clamp(static_cast<int>(std::ceil(2.0 * extent * rHigh / 0.02)), 64, 2048);
+    std::vector<Vector_t<double, 3>> points((nR + 1) * (nPhi + 1));
+    const auto at = [&](int i, int j) -> Vector_t<double, 3>& {
+        return points[i * (nPhi + 1) + j];
+    };
+    for (int i = 0; i <= nR; ++i) {
+        const double r = rLow + (rHigh - rLow) * i / nR;
+        for (int j = 0; j <= nPhi; ++j) {
+            const double phiSpiral = -extent + 2.0 * extent * j / nPhi;
+            const double phi =
+                    phiSpiral + c.tanDelta_m * std::log(r / std::abs(c.r0_m)) + c.phiStart_m;
+            at(i, j) = Vector_t<double, 3>(
+                    {sign * r * std::cos(phi) - c.r0_m, 0.0, r * std::sin(phi)});
+        }
+    }
+    double step = 0.0;
+    for (int i = 0; i <= nR; ++i) {
+        for (int j = 0; j <= nPhi; ++j) {
+            if (i > 0)
+                step = std::max(step, euclidean_norm(Vector_t<double, 3>(at(i, j) - at(i - 1, j))));
+            if (j > 0)
+                step = std::max(step, euclidean_norm(Vector_t<double, 3>(at(i, j) - at(i, j - 1))));
+        }
+    }
+
+    // Patches of the (r, phiSpiral) grid, about 0.2 m along the arc, so that the boxes follow
+    // the spiral strip rather than its bounding box. Between neighbouring samples the strip's
+    // edges bulge by at most about step^2 / (8 r), so step^2 / r is a safe margin.
+    const int patchesR = std::min(4, nR);
+    const int patchesPhi =
+            std::clamp(static_cast<int>(std::ceil(2.0 * extent * rHigh / 0.2)), 1, 32);
+    const double bulge = step * step / std::max(rLow, step);
+    const Vector_t<double, 3> margin({bulge, c.verticalExtent_m, bulge});
+    std::vector<SupportBox> patches;
+    for (int pr = 0; pr < patchesR; ++pr) {
+        for (int pp = 0; pp < patchesPhi; ++pp) {
+            BoundingBox patch;
+            for (int i = nR * pr / patchesR; i <= nR * (pr + 1) / patchesR; ++i)
+                for (int j = nPhi * pp / patchesPhi; j <= nPhi * (pp + 1) / patchesPhi; ++j)
+                    patch.enlargeToContainPosition(at(i, j));
+            auto [lower, upper] = patch.getCorners();
+            patches.push_back(
+                    toSupportBox(BoundingBox::getBoundingBox({lower - margin, upper + margin})));
+        }
+    }
+    return patches;
 }
 
 bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {

@@ -93,6 +93,9 @@ public:
     /// The location at which the simulation stops
     std::vector<double> zstop;
 
+    /// Whether TRACK ZSTOP was given; without it zstop holds the 1e6 m default.
+    bool zStopGiven = false;
+
     /// The ID of time integrator
     Steppers::TimeIntegrator timeIntegrator;
 

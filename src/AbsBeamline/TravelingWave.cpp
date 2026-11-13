@@ -14,6 +14,8 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 
+#include <algorithm>
+
 extern Inform* gmsg;
 
 TravelingWave::TravelingWave() : TravelingWave("") {}
@@ -106,14 +108,14 @@ void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             pc, scaleEntry * cosEntry, -scaleEntry * sinEntry, scaleCore * cosCore1,
             -scaleCore * sinCore1, scaleCore * cosCore2, -scaleCore * sinCore2,
             scaleEntry * cosExit, -scaleEntry * sinExit, startField, startCoreField, startExitField,
-            mappedStartExit, periodLength, cellLength, fieldLength);
+            mappedStartExit, periodLength, cellLength, fieldLength, getRegions());
 }
 
 void TravelingWave::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const double omega_t = frequency_m * t;
-    if (R(2) < startField_m || R(2) >= endField_m) return;
+    if (R(2) < startField_m || R(2) >= endField_m || !getRegions().inFieldRegion(R)) return;
 
     Vector_t<double, 3> tmpR({R(0), R(1), R(2) - startField_m});
     Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
@@ -439,6 +441,11 @@ double TravelingWave::getAutoPhaseEstimate(
 }
 
 bool TravelingWave::isInside(const Vector_t<double, 3>& r) const {
-    return (ApertureHelper::isInsideAperture(r, aperture_m) && r(2) >= -0.5 * periodLength_m
-            && r(2) < startExitField_m);
+    return getRegions().aperture.contains(r(0), r(1)) && r(2) >= -0.5 * periodLength_m
+           && r(2) < startExitField_m;
+}
+
+std::optional<ApertureShape> TravelingWave::getFieldMapRange() const {
+    if (fieldmap_m == nullptr) return std::nullopt;
+    return fieldmap_m->getTransverseRange();
 }

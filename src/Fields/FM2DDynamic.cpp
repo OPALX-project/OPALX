@@ -205,7 +205,8 @@ void FM2DDynamic::freeMap() {
  * @param pc Particle container
  * param scale Scaling factor for the field (currently not used)
  */
-void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) {
+void FM2DDynamic::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double, double, const ElementRegions& regions) {
     // Local copies of member variables for use in the lambda function
     double zbegin  = zbegin_m;
     double zend    = zend_m;
@@ -228,6 +229,7 @@ void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, do
 
     Kokkos::parallel_for(
             "FM2DDynamic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
                     && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
                     computeField(
@@ -239,7 +241,7 @@ void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, do
 
 void FM2DDynamic::applyRFField(
         std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
-        double startField, double endField) {
+        double startField, double endField, const ElementRegions& regions) {
     double zbegin  = zbegin_m;
     double zend    = zend_m;
     double rend    = rend_m;
@@ -260,6 +262,7 @@ void FM2DDynamic::applyRFField(
 
     Kokkos::parallel_for(
             "FM2DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 const auto& R = Rview(i);
 
                 if (R(2) >= startField && R(2) < endField && R(2) >= zbegin && R(2) < zend

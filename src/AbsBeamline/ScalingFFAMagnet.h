@@ -358,6 +358,19 @@ public:
 
     bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /**
+     * @brief Box of the spiral sector support of isInside(), sampled from the configuration.
+     *
+     * The support is rMin <= r <= rMax, |phiSpiral| <= azimuthalExtent and |y| <= the
+     * vertical extent; it ignores the aperture, so @p reach is unused. The planar-arc
+     * Geometry is not used: for negative r0 its arc runs in the wrong direction.
+     */
+    BoundingBox getLocalSupportBox(double reach) const override;
+
+    /// The same support as patches of about 0.2 m along the spiral strip, so that a bunch in
+    /// a neighbouring magnet does not reach this magnet's bounding box.
+    std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
+
 private:
     friend struct scaling_ffa_detail::FieldEvaluator;
 

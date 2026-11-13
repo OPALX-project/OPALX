@@ -259,6 +259,7 @@ void TrackCmd::execute() {
             theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
     Track::block->kineticEnergyStopGeV = kineticStop;
+    Track::block->zStopGiven           = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
     Track::block->initialOrbit         = std::move(initialOrbit);
 
     Track::block->parser.run();

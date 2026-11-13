@@ -223,7 +223,9 @@ public:
      *
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) override;
+    void applyField(
+            std::shared_ptr<ParticleContainer_t> pc, double, double,
+            const ElementRegions& regions = ElementRegions()) override;
 
     /**
      * @brief Apply RF-scaled Astra1DDynamic field to all particles.
@@ -239,7 +241,7 @@ public:
      */
     void applyRFField(
             std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
-            double startField, double endField);
+            double startField, double endField, const ElementRegions& regions = ElementRegions());
 
     /**
      * @brief Apply the traveling-wave RF field map to all particles.
@@ -281,7 +283,8 @@ public:
             double core2ElectricScale, double core2MagneticScale, double exitElectricScale,
             double exitMagneticScale, double startField, double startCoreField,
             double startExitField, double mappedStartExitField, double periodLength,
-            double cellLength, double elementLength);
+            double cellLength, double elementLength,
+            const ElementRegions& regions = ElementRegions());
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double>>& F) override;
 

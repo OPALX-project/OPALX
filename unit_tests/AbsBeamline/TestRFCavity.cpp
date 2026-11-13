@@ -106,7 +106,9 @@ public:
     bool isInside(const Vector_t<double, 3>&) const override { return true; }
 
     // --- required no-op implementations ---
-    void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0, double = 1.0) override {}
+    void applyField(
+            std::shared_ptr<ParticleContainer_t>, double = 1.0, double = 1.0,
+            const ElementRegions& = ElementRegions()) override {}
     bool getFieldDerivative(
             const Vector_t<double, 3>&, Vector_t<double, 3>&, Vector_t<double, 3>&,
             const DiffDirection&) const override {
@@ -479,11 +481,12 @@ TEST_F(RFCavityTest, FieldmapOutOfBounds) {
 
     cav_->apply(R, P, 0.0, E, B);
 
-    // Out-of-bounds: no field is applied.
+    // Out-of-bounds: no field is applied. Inside the aperture this is a field-free gap, not
+    // material, so the reference particle is not lost either.
     EXPECT_DOUBLE_EQ(E(0), 0.0);
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
-    EXPECT_TRUE(cav_->applyToReferenceParticle(R, P, 0.0, E, B));
+    EXPECT_FALSE(cav_->applyToReferenceParticle(R, P, 0.0, E, B));
 }
 
 // Ideal (map-free) RF cavity behavior.

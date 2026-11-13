@@ -80,12 +80,6 @@ public:
     /// @param zEnd Where the field ends (larger than element length for fringe fields)
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    /// @brief Containment in the straight box frame.
-    /// @note Box z within the field extent and inside the transverse aperture.
-    /// @param r The point to test.
-    /// @return True if r is inside.
-    bool isInside(const Vector_t<double, 3>& r) const override;
-
     /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
     /// @param gap The full vertical pole gap.
     void setFullGap(double gap);

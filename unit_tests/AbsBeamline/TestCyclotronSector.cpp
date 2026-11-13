@@ -89,7 +89,7 @@ TEST_F(CyclotronTest, EightRotatedSectorsOwnEverySeamExactlyOnce) {
             for (int k = 0; k < 8; ++k) {
                 const double a = theta - k * std::acos(-1.0) / 4;
                 Vector_t<double, 3> r(1.25 * std::cos(a) - 1.2, 0, 1.25 * std::sin(a));
-                owners += sector.isInsideBody(r);
+                owners += sector.isInside(r);
                 Vector_t<double, 3> p(0), e(0), b(0);
                 sector.apply(r, p, 0, e, b);
                 total += b[1];

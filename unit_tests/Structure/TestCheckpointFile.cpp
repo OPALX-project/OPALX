@@ -156,7 +156,13 @@ namespace {
                 CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
         OpalData::getInstance()->setMaxPhase("TEST_CAVITY", 0.375);
         const int phasesBeforeRead = OpalData::getInstance()->getNumberOfMaxPhases();
-        ASSERT_NO_THROW(CheckpointFile::write(path, *source, 2, 7));
+        std::vector<BeamStop> stops(2);
+        stops[1].zStop       = 3.0;  // from the input, not stored
+        stops[1].planeSet    = true;
+        stops[1].planeOrigin = Vector_t<double, 3>(1.0, 2.0, 3.0);
+        stops[1].planeNormal = Vector_t<double, 3>(0.0, 0.6, 0.8);
+        stops[1].done        = true;
+        ASSERT_NO_THROW(CheckpointFile::write(path, *source, 2, 7, stops));
         if (ippl::Comm->rank() == 0) {
             EXPECT_TRUE(std::filesystem::exists(path));
             EXPECT_FALSE(std::filesystem::exists(path + ".tmp"));
@@ -169,6 +175,14 @@ namespace {
         EXPECT_EQ(inspected.numContainers, 2u);
         EXPECT_EQ(inspected.stepSizeSegment, 2u);
         EXPECT_EQ(inspected.stepsCompletedInSegment, 7u);
+        ASSERT_EQ(inspected.beamStops.size(), 2u);
+        EXPECT_FALSE(inspected.beamStops[0].planeSet);
+        EXPECT_FALSE(inspected.beamStops[0].done);
+        EXPECT_TRUE(inspected.beamStops[1].planeSet);
+        EXPECT_TRUE(inspected.beamStops[1].done);
+        EXPECT_FALSE(inspected.beamStops[1].zStop.has_value());
+        expectVectorEqual(inspected.beamStops[1].planeOrigin, Vector_t<double, 3>(1.0, 2.0, 3.0));
+        expectVectorEqual(inspected.beamStops[1].planeNormal, Vector_t<double, 3>(0.0, 0.6, 0.8));
 
         DataSink targetSink;
         auto target         = makeBunch(targetSink);

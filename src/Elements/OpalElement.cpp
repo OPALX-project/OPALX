@@ -84,6 +84,11 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
             "the element transversally",
             true);
 
+    itsAttr[REACH] = Attributes::makeReal(
+            "REACH",
+            "Minimum transverse half-width [m] around the element axis within which a bunch "
+            "activates the element; overrides OPTION ELEMENTMAPPINGREACH");
+
     const unsigned int end = COMMON;
     for (unsigned int i = 0; i < end; ++i) {
         AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
@@ -470,6 +475,15 @@ void OpalElement::update() {
     base->setMisalignment(misalignment);
 
     base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
+
+    if (itsAttr[REACH]) {
+        const double reach = Attributes::getReal(itsAttr[REACH]);
+        if (!std::isfinite(reach) || reach <= 0.0) {
+            throw OpalException(
+                    "OpalElement::update", getOpalName() + ": REACH must be a positive length.");
+        }
+        base->setReach(reach);
+    }
 }
 
 void OpalElement::updateUnknown(ElementBase* base) {

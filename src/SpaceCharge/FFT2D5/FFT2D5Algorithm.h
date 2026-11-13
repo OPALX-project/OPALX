@@ -40,8 +40,9 @@ namespace opalx::spacecharge {
      * in the electric and magnetic fields that particles feel.
      * 1. Map the fixed laboratory reference path and the particles' moving reference
      *    coordinates into one aligned spatial frame, then into Frenet-Serret coordinates.
-     *    The reference path is provided by a file or the OrbitThreader. Only diagnostic
-     *    momenta are boosted; source positions and line charge retain laboratory normalization.
+     *    The reference path is provided by a file or taken from the <basename>_DesignPath.dat
+     *    written by the ReferenceTracer. Only diagnostic momenta are boosted; source positions
+     *    and line charge retain laboratory normalization.
      * 2. Do CiC scatter of charge into the 3D charge density grid.  This spreads the charge out
      * both transversely and (optionally) longitudinally which should be a help in reducing noise.
      * With PARFFTZ, OPEN's spatial layout migrates particles by their projected s

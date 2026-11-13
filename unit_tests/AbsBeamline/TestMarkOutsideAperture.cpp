@@ -7,18 +7,18 @@
  * ---------------------------------------------------------------------------
  *
  * 1. Base implementation (DriftRep on a minimal 8^3 mesh)
- *    - marks exactly the particles inside the z-window and outside the
- *      aperture in InvalidMask, and returns the newly-marked count
+ *    - marks exactly the particles inside the body window, inside the reach and
+ *      outside the aperture in InvalidMask, and returns the newly-marked count
+ *    - particles beyond the reach are never marked
  *    - honors setFlagDeleteOnTransverseExit(false)
  *    - never clears marks set by other producers and does not recount them
  *    - marked particles are removed by deleteInvalidParticles()
  *    - empty container / nullptr return 0
  *
  * 2. z-window source (MonitorRep)
- *    - the window comes from getFieldExtent(), which is centered on the
- *      monitor plane ([-halfLength, +halfLength]), not [0, L)
+ *    - the window is the body [startZ, startZ + L), not getFieldExtent()
  *
- * 3. Arc-coordinate override (SBendRep)
+ * 3. Arc coordinates (SBendRep, curved MultipoleT)
  *    - the z-window and the aperture are measured in arc coordinates
  *      relative to the design orbit, not in the straight entrance frame
  *
@@ -139,6 +139,22 @@ namespace {
         const std::vector<bool> mask     = invalidMaskOnHost(pc);
         const std::vector<bool> expected = {false, true, true, false, false, false};
         EXPECT_EQ(mask, expected);
+    }
+
+    TEST_F(MarkOutsideApertureTest, NeverMarksParticlesBeyondTheReach) {
+        DriftRep drift = makeDrift(0.1, 0.01);
+        drift.setReach(0.2);
+        auto pc = makeContainer();
+
+        createParticlesAt(
+                pc, {
+                            {0.100, 0.000, 0.05},  // 0: inside the reach, outside the aperture
+                            {0.300, 0.000, 0.05},  // 1: beyond the reach -> kept
+                            {0.000, -0.30, 0.05},  // 2: beyond the reach -> kept
+                    });
+
+        EXPECT_EQ(drift.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, false, false}));
     }
 
     TEST_F(MarkOutsideApertureTest, RespectsDeleteOnTransverseExitFlag) {

@@ -21,6 +21,8 @@
 #include "BeamlineCore/BoxRep.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
+
 OpalBox::OpalBox()
     : OpalElement(
               SIZE, "BOX",
@@ -54,12 +56,17 @@ void OpalBox::update() {
     // including the unmodified builtin prototype whose attributes are all
     // unset. Only validate real (cloned) element instances.
     if (!isBuiltin()) {
-        // The aperture decides whether the element is registered along the
-        // reference path (ElementBase::isInside), so it must stay wide open.
+        // The block sets the element's size. With an APERTURE the shared rule would also
+        // delete particles between the APERTURE and the reach, and REACH is set below.
         if (itsAttr[APERT] && !Attributes::getString(itsAttr[APERT]).empty()) {
             throw OpalException(
                     "OpalBox::update()",
                     "BOX \"" + getOpalName() + "\" takes WIDTH and HEIGHT, not APERTURE");
+        }
+        if (itsAttr[REACH]) {
+            throw OpalException(
+                    "OpalBox::update()",
+                    "BOX \"" + getOpalName() + "\" takes WIDTH and HEIGHT, not REACH");
         }
         if (width <= 0.0 || height <= 0.0 || length <= 0.0) {
             throw OpalException(
@@ -71,6 +78,8 @@ void OpalBox::update() {
     BoxRep* box = dynamic_cast<BoxRep*>(getElement());
     box->getGeometry().setElementLength(length);
     box->setHalfSize(0.5 * width, 0.5 * height);
+    // The reach is one half-width for x and y: the larger of the two covers the block.
+    if (!isBuiltin()) box->setReach(0.5 * std::max(width, height));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(box);

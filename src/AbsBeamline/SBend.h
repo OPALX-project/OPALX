@@ -78,22 +78,13 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    /// @brief Mark particles outside the transverse aperture in pc->InvalidMask.
-    /// @note Overrides the base version to measure the z-window and the aperture
-    ///       in arc-length coordinates, matching isInside().
-    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
-
     /// @brief Calculate the SBend field extent in the element's coordinatesystem
     /// @param zBegin Where the field begins (negative for fringe fields)
     /// @param zEnd Where the field ends (larger than element length for fringe fields)
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    /// @brief Containment in arc-length coordinates.
-    /// @note Uses arc-length (so the bend stays selected as the reference orbit curves
-    ///       through it), not the straight-frame z.
-    /// @param r The point to test.
-    /// @return True if r is inside.
-    bool isInside(const Vector_t<double, 3>& r) const override;
+    /// The arc band of getLocalSupportBox() in chord-aligned segments.
+    std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
 
     /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
     /// @param gap The full vertical pole gap.
@@ -144,11 +135,6 @@ private:
     /// @param r The local point.
     /// @return The point in bend coordinates.
     Vector_t<double, 3> bendCoords(const Vector_t<double, 3>& r) const;
-
-    /// @brief Longitudinal containment: arc-length s within the field extent.
-    /// @param arc The point in bend coordinates.
-    /// @return True if the arc-length s is within the field extent.
-    bool isInsideArc(const Vector_t<double, 3>& arc) const;
 
     /// Normal/skew multipole coefficients on the device, read by tracking.
     Kokkos::View<double*> normalComponents_m;

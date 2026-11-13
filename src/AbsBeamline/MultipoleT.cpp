@@ -23,6 +23,9 @@
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
+#include <algorithm>
+#include <cmath>
+
 MultipoleT::MultipoleT(const std::string& name) : ElementBase(name) { chooseImplementation(); }
 
 MultipoleT::MultipoleT(const MultipoleT& right)
@@ -55,13 +58,14 @@ void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     validateConfiguration();
     implementation_->getField(
             pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(RefPartBunch_m->getT()),
-            pc->getLocalNum());
+            pc->getLocalNum(), getRegions());
 }
 
 void MultipoleT::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     validateConfiguration();
+    if (!getRegions().inFieldRegion(R)) return;
     implementation_->getField(R, E, B, getScaling(t));
 }
 
@@ -171,73 +175,86 @@ Vector_t<double, 3> MultipoleT::bendCoords(const Vector_t<double, 3>& r) const {
             r, getGeometry().getCurvature(), getGeometry().getElementLength());
 }
 
-bool MultipoleT::isInside(const Vector_t<double, 3>& r) const {
-    const Vector_t<double, 3> arc = bendCoords(r);
-    double zBegin                 = 0.0;
-    double zEnd                   = 0.0;
+BoundingBox MultipoleT::getLocalSupportBox(const double reach) const {
+    BoundingBox box = ElementBase::getLocalSupportBox(reach);
+
+    // Kernel gate in the magnet frame of MultipoleTBase::rotateFrame(). Without BBLENGTH the
+    // kernel has no z cut, so the selection extent bounds z as it did for the reference path.
+    const double length = getGeometry().getElementLength();
+    double zBegin       = 0.0;
+    double zEnd         = 0.0;
     getFieldExtent(zBegin, zEnd);
-    return arc(2) >= zBegin && arc(2) < zEnd && ApertureHelper::isInsideAperture(arc, aperture_m);
+    if (config_m.boundingBoxLength_m != 0.0) {
+        zBegin = std::min(zBegin, 0.5 * (length - config_m.boundingBoxLength_m));
+        zEnd   = std::max(zEnd, 0.5 * (length + config_m.boundingBoxLength_m));
+    }
+    const double halfX     = 0.5 * config_m.horizontalAperture_m;
+    const double halfY     = 0.5 * config_m.verticalAperture_m;
+    const double curvature = getGeometry().getCurvature();
+    const BoundingBox kernel =
+            curvature != 0.0 ? getArcSupportBox(curvature, length, zBegin, zEnd, halfX, halfY)
+                             : BoundingBox::getBoundingBox(
+                                       {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
+                                        Vector_t<double, 3>({halfX, halfY, zEnd})});
+
+    // Undo the EANGLE turn about y, then the ROTATION about z.
+    const double cosE         = std::cos(config_m.entranceAngle_m);
+    const double sinE         = std::sin(config_m.entranceAngle_m);
+    const double cosR         = std::cos(config_m.rotation_m);
+    const double sinR         = std::sin(config_m.rotation_m);
+    const auto [lower, upper] = kernel.getCorners();
+    for (const double x : {lower(0), upper(0)}) {
+        for (const double y : {lower(1), upper(1)}) {
+            for (const double z : {lower(2), upper(2)}) {
+                const double x1 = cosE * x - sinE * z;
+                const double z1 = sinE * x + cosE * z;
+                box.enlargeToContainPosition(
+                        Vector_t<double, 3>({cosR * x1 - sinR * y, sinR * x1 + cosR * y, z1}));
+            }
+        }
+    }
+    return box;
 }
 
-size_t MultipoleT::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!pc || !getFlagDeleteOnTransverseExit()) {
-        return 0;
+std::vector<SupportBox> MultipoleT::getLocalSupportBoxes(const double reach) const {
+    const double curvature = getGeometry().getCurvature();
+    if (curvature == 0.0 || config_m.rotation_m != 0.0 || config_m.entranceAngle_m != 0.0) {
+        return ElementBase::getLocalSupportBoxes(reach);
     }
-    const size_t nLocal = pc->getLocalNum();
-    if (nLocal == 0) {
-        return 0;
+    const double length = getGeometry().getElementLength();
+    double zBegin       = 0.0;
+    double zEnd         = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    zBegin = std::min(zBegin, 0.0);
+    zEnd   = std::max(zEnd, length);
+    if (config_m.boundingBoxLength_m != 0.0) {
+        zBegin = std::min(zBegin, 0.5 * (length - config_m.boundingBoxLength_m));
+        zEnd   = std::max(zEnd, 0.5 * (length + config_m.boundingBoxLength_m));
     }
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    return getArcSupportBoxes(
+            curvature, length, zBegin, zEnd, std::max(halfX, 0.5 * config_m.horizontalAperture_m),
+            std::max(halfY, 0.5 * config_m.verticalAperture_m));
+}
 
-    // Members copied to locals; the device kernel must not capture `this`.
-    const ApertureType type = aperture_m.first;
-    const double xLimit     = aperture_m.second[0];
-    const double yLimit     = aperture_m.second[1];
-    const double curvature  = getGeometry().getCurvature();
-    const double bodyLength = getGeometry().getElementLength();
-
-    auto Rview   = pc->R.getView();
-    auto invalid = pc->InvalidMask.getView();
-
-    size_t localMarked = 0;
-    Kokkos::parallel_reduce(
-            "MultipoleT::markOutsideAperture", nLocal,
-            KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                // The aperture belongs to the body, so the window is the geometric body
-                // [0, L) in arc coordinates, not the wider field extent used by isInside().
-                const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
-
-                const bool inZ = arc(2) >= 0.0 && arc(2) < bodyLength;
-                const bool hit =
-                        inZ
-                        && !ApertureHelper::isInsideAperture(arc(0), arc(1), type, xLimit, yLimit);
-                const bool newlyMarked = hit && !invalid(i);
-                invalid(i)             = invalid(i) || hit;
-                count += newlyMarked ? 1 : 0;
-            },
-            localMarked);
-    Kokkos::fence();
-
-    return localMarked;
+std::optional<ApertureShape> MultipoleT::getFieldRange() const {
+    // A turned kernel gate is not an axis-aligned shape in the element frame; the kernel keeps
+    // its own gate then.
+    if (config_m.rotation_m != 0.0 || config_m.entranceAngle_m != 0.0) return std::nullopt;
+    ApertureShape range;
+    range.halfX = 0.5 * config_m.horizontalAperture_m;
+    range.halfY = 0.5 * config_m.verticalAperture_m;
+    return range;
 }
 
 bool MultipoleT::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const Vector_t<double, 3> arc = bendCoords(R);
-    double zBegin                 = 0.0;
-    double zEnd                   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    if (arc(2) < zBegin || arc(2) >= zEnd) {
-        return false;
-    }
-    if (!ApertureHelper::isInsideAperture(arc, aperture_m)) {
-        return true;
-    }
+    const ElementRegions regions = getRegions();
+    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
 
     // The reference particle has to see the same field as every other particle. Without this
-    // the orbit threader walks a straight line through a curved magnet, so the magnet never
-    // stops being the selected element and the threader never reaches the end of the line.
+    // the reference walks a straight line through a curved magnet and never leaves it.
     apply(R, P, t, E, B);
     return false;
 }
