@@ -39,10 +39,6 @@ public:
     virtual void execute();
 
 private:
-    void handlePsDumpFrame(const std::string& dumpFrame);
-
-    static std::string getDumpFrameString(const DumpFrame& df);
-
     using Object::update;
     void update(const std::vector<Attribute>&);
 
@@ -52,8 +48,6 @@ private:
 
     // Clone constructor.
     Option(const std::string& name, Option* parent);
-
-    static const BiMap<DumpFrame, std::string> bmDumpFrameString_s;
 };
 
 #endif  // OPAL_Option_HH

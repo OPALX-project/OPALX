@@ -24,8 +24,6 @@
 #include <array>
 #include <string>
 
-enum class DumpFrame : unsigned short { GLOBAL, BUNCH_MEAN, REFERENCE };
-
 namespace Options {
     /// Echo flag.
     //  If true, print an input echo.
@@ -34,7 +32,6 @@ namespace Options {
     /// Info flag.
     //  If true, print informative messages.
     extern bool info;
-    extern int infoLevel;
 
     /// Requested FFT2D5 batch size; zero uses serial slices on one rank and batch one with MPI.
     extern int fft2d5BatchSize;
@@ -46,7 +43,6 @@ namespace Options {
     /// Warn flag.
     //  If true, print warning messages.
     extern bool warn;
-    extern int warnLevel;
 
     //  The global random generator.
     extern Random rangen;
@@ -72,23 +68,10 @@ namespace Options {
     /// The frequency to print per-rank particle distribution tables; 0 disables them.
     extern int printRankDistrFreq;
 
-    /// phase space dump flag for OPAL-cycl
-    //  if true, dump phase space after each turn
-    extern bool psDumpEachTurn;
-
-    /// flag to decide in which coordinate frame the phase space will be dumped for OPAL-cycl
-    //  - GLOBAL, in Cartesian frame of the global particle
-    //  - BUNCH_MEAN, in Cartesian frame of the bunch mean
-    //  - REFERENCE, in Cartesian frame of the reference (0) particle
-    extern DumpFrame psDumpFrame;
-
     /// If true, store `Q`/`M` as per-particle attributes (accessible via
     /// `getQView()`/`getMView()`). If false (default), use a single shared value per container to
     /// save memory.
     extern bool useQMAttributes;
-
-    /// The frequency to dump single particle trajectory of particles with ID = 0 & 1
-    extern int sptDumpFreq;
 
     /// The frequency to do particles repartition for better load balance between nodes
     extern int repartFreq;
@@ -96,50 +79,16 @@ namespace Options {
     /// The number of bins that have to be emitted before the bin are squashed into a single bin
     extern int minBinEmitted;
 
-    /// The number of steps into the simulation before the bins are squashed into a single bin
-    extern int minStepForRebin;
-
-    /// The frequency to reset energy bin ID for all particles
-    extern int rebinFreq;
-
-    /// The frequency to solve space charge fields.
-    extern int scSolveFreq;
-
-    // How many small timesteps are inside the large timestep used in multiple time stepping (MTS)
-    // integrator
-    extern int mtsSubsteps;
-
-    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size
-    // of the bunch in any dimension, the particle will be deleted artifically to hold the accuracy
-    // of space charge calculation. The default setting of -1 stands for no deletion.
-    extern double remotePartDel;
-
     extern bool rhoDump;
 
     extern bool ebDump;
 
     extern bool rankDump;
 
-    extern bool csrDump;
-
     // the number of refinements of the search range for the phase with maximum energy
     // if eq 0 then no autophase
     // if true opal find the phases in the cavities, such that the energy gain is at maximum
     extern int autoPhase;
-
-    // Options for the Belos solver
-    /// RCG: cycle length
-    extern int numBlocks;
-    /// RCG: number of recycle blocks
-    extern int recycleBlocks;
-    /// number of old left hand sides used to extrapolate a new start vector
-    extern int nLHS;
-
-    /// If true create symmetric distribution
-    extern bool cZero;
-
-    /// random number generator
-    extern std::string rngtype;
 
     /// If true HDF5 files are written
     extern bool enableHDF5;
@@ -161,24 +110,11 @@ namespace Options {
 
     extern double beamHaloBoundary;
 
-    /// Do closed orbit and tune calculation only.
-    extern bool cloTuneOnly;
-
-    // Using hard edge model for calculation of path length
-    extern bool idealized;
-
-    extern bool writeBendTrajectories;
-
     /// opal version of input file
     extern int version;
 
-    extern bool memoryDump;
-
     /// The constant parameter C to shift halo, by < w^4 > / < w^2 > ^2 - C (w=x,y,z)
     extern double haloShift;
-
-    /// The frequency to delete particles (currently: OPAL-cycl only)
-    extern unsigned int delPartFreq;
 
     extern bool computePercentiles;
 

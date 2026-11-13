@@ -26,13 +26,11 @@ namespace Options {
     bool echo = false;
 
     bool info           = true;
-    int infoLevel       = 1;
     int fft2d5BatchSize = 0;
 
     bool mtrace = false;
 
-    bool warn     = true;
-    int warnLevel = 1;
+    bool warn = true;
 
     Random rangen;
     int seed = 123456789;
@@ -47,25 +45,9 @@ namespace Options {
 
     int printRankDistrFreq = 0;
 
-    bool psDumpEachTurn = false;
-
-    DumpFrame psDumpFrame = DumpFrame::GLOBAL;
-
-    int sptDumpFreq = 1;
-
     int repartFreq = 10;
 
     int minBinEmitted = 10;
-
-    int minStepForRebin = 200;
-
-    int rebinFreq = 100;
-
-    int scSolveFreq = 1;
-
-    int mtsSubsteps = 1;
-
-    double remotePartDel = 0.0;
 
     bool rhoDump = false;
 
@@ -73,19 +55,7 @@ namespace Options {
 
     bool rankDump = false;
 
-    bool csrDump = false;
-
     int autoPhase = 6;
-
-    int numBlocks = 0;
-
-    int recycleBlocks = 0;
-
-    int nLHS = 1;
-
-    bool cZero = false;
-
-    std::string rngtype = std::string("RANDOM");
 
     bool enableHDF5 = true;
 
@@ -100,19 +70,9 @@ namespace Options {
 
     double beamHaloBoundary = 0;
 
-    bool cloTuneOnly = false;
-
-    bool idealized = false;
-
-    bool writeBendTrajectories = false;
-
     int version = 10000;
 
-    bool memoryDump = false;
-
     double haloShift = 0.0;
-
-    unsigned int delPartFreq = 1;
 
     bool computePercentiles = false;
 

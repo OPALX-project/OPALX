@@ -130,29 +130,20 @@ namespace opalx::run {
      */
     struct OptionValues {
         bool echo = false, info = false, mtrace = false, warn = false;
-        int infoLevel = 0, warnLevel = 0, fft2d5BatchSize = 0, seed = 0;
+        int fft2d5BatchSize = 0, seed = 0;
         int psDumpFreq = 0, statDumpFreq = 0, checkpointFreq = 0, stepInfoFreq = 0;
         int printRankDistrFreq = 0;
-        bool psDumpEachTurn    = false;
-        int psDumpFrame        = 0;
         bool useQMAttributes   = false;
-        int sptDumpFreq = 0, repartFreq = 0, minBinEmitted = 0, minStepForRebin = 0;
-        int rebinFreq = 0, scSolveFreq = 0, mtsSubsteps = 0;
-        double remotePartDel = 0;
-        bool rhoDump = false, ebDump = false, rankDump = false, csrDump = false;
-        int autoPhase = 0, numBlocks = 0, recycleBlocks = 0, nLHS = 0;
-        bool cZero = false;
-        std::string rngtype;
+        int repartFreq = 0, minBinEmitted = 0;
+        bool rhoDump = false, ebDump = false, rankDump = false;
+        int autoPhase   = 0;
         bool enableHDF5 = false, enableVTK = false;
         std::array<unsigned, 3> elementMappingGrid{};
         double elementMappingReach = 0;
         bool asciidump             = false;
         double boundpDestroy = 0, beamHaloBoundary = 0;
-        bool cloTuneOnly = false, idealized = false, writeBendTrajectories = false;
-        int version              = 0;
-        bool memoryDump          = false;
-        double haloShift         = 0;
-        unsigned int delPartFreq = 0;
+        int version             = 0;
+        double haloShift        = 0;
         bool computePercentiles = false, aggressiveStateSync = false;
         double loadBalancingThreshold = 0, loadBalancingPairWeight = 0;
     };
