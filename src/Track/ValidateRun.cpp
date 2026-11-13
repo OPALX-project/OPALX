@@ -77,7 +77,7 @@ namespace opalx::run {
             return true;
         }
 
-        /// An RF cavity tracked as a single cyclotron gap (OpalCavity::update sets the profile
+        /// An RF cavity tracked as a single cyclotron gap (OpalCavity::build() sets the profile
         /// for TYPE = SINGLEGAP with a FMAPFN).
         bool isCyclotronGap(const ElementDescription& element) {
             return element.elementType == "RFCavity" && text(element.object, "TYPE") == "SINGLEGAP"
