@@ -384,13 +384,6 @@ void OpalElement::printMultipoleStrength(
 }
 
 void OpalElement::validatePlacement(bool hasElemEdge, bool has6DPose) const {
-    // OpalData::update() calls update() on every object in the directory, including
-    // the unmodified builtin prototype whose attributes are all unset. Only validate
-    // real (cloned) element instances.
-    if (isBuiltin()) {
-        return;
-    }
-
     if (hasElemEdge && has6DPose) {
         throw OpalException(
                 "OpalElement::update",

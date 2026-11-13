@@ -64,7 +64,7 @@ void OpalProbe::update() {
     prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
     prob->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    if (!isBuiltin()) CyclotronProbeRecorder::configuration(*prob);
+    CyclotronProbeRecorder::configuration(*prob);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(prob);
