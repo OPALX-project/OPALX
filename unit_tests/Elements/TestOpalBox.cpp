@@ -33,9 +33,10 @@ namespace {
         /**
          * @brief A BOX as an input file would define it.
          *
-         * Made from the keyword table, as the parser does for "B1: BOX;".
+         * Made from the keyword table, as the parser does for "B1: BOX;". Returns the runtime
+         * element a RUN builds for it.
          */
-        std::unique_ptr<OpalBox> makeBox(
+        std::shared_ptr<ElementBase> makeBox(
                 double length, double width, double height,
                 const std::optional<std::string>& aperture = std::nullopt,
                 const std::optional<double>& reach         = std::nullopt) {
@@ -50,8 +51,7 @@ namespace {
             if (reach.has_value()) {
                 Attributes::setReal(*box->findAttribute("REACH"), reach.value());
             }
-            box->update();
-            return box;
+            return opalx::test::buildFrom(*box);
         }
     };
 
@@ -59,7 +59,7 @@ namespace {
 
 TEST_F(TestOpalBox, UpdateSetsTypeLengthAndHalfSize) {
     auto box             = makeBox(0.1, 0.02, 0.04);
-    ElementBase* element = box->getElement();
+    ElementBase* element = box.get();
     ASSERT_NE(element, nullptr);
     EXPECT_EQ(element->getType(), ElementType::BOX);
     EXPECT_DOUBLE_EQ(element->getGeometry().getElementLength(), 0.1);

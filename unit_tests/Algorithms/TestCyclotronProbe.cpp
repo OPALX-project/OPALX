@@ -270,17 +270,19 @@ TEST_F(CyclotronProbeTest, InputConvertsMillimetresAndIgnoresPathLength) {
     Attributes::setReal(*probe->findAttribute("YEND"), 400);
     Attributes::setReal(*probe->findAttribute("STEP"), 2);
     Attributes::setReal(*probe->findAttribute("L"), 1);
-    EXPECT_NO_THROW(probe->update());
-    const auto* representation = dynamic_cast<const Probe*>(probe->getElement());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(*probe));
+    const auto* representation = dynamic_cast<const Probe*>(built.get());
     ASSERT_NE(representation, nullptr);
     auto c = CyclotronProbeRecorder::configuration(*representation);
     EXPECT_DOUBLE_EQ(c.segment.start(0), .1);
     EXPECT_DOUBLE_EQ(c.segment.start(2), .3);
     EXPECT_DOUBLE_EQ(c.step, .002);
-    EXPECT_DOUBLE_EQ(probe->getLength(), 0);
+    // A PROBE adds no path length to its RING, whatever L the input gave it.
+    EXPECT_DOUBLE_EQ(opalx::run::ringLength({built}), 0);
     EXPECT_DOUBLE_EQ(representation->getGeometry().getElementLength(), 0);
     Attributes::setReal(*probe->findAttribute("STEP"), 0);
-    EXPECT_THROW(probe->update(), std::invalid_argument);
+    EXPECT_THROW(opalx::test::buildFrom(*probe), std::invalid_argument);
 }
 
 TEST_F(CyclotronProbeTest, AsciiEmptyRanksMigrationFramesAndTurnGroups) {

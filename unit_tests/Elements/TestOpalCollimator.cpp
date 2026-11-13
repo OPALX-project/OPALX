@@ -33,9 +33,10 @@ namespace {
         /**
          * @brief A COLLIMATOR as a input would define it.
          *
-         * Made from the keyword table, as the parser does for "C1: COLLIMATOR;".
+         * Made from the keyword table, as the parser does for "C1: COLLIMATOR;". Returns the
+         * runtime element a RUN builds for it.
          */
-        std::unique_ptr<OpalCollimator> makeCollimator(
+        std::shared_ptr<ElementBase> makeCollimator(
                 double length, const std::optional<std::string>& aperture,
                 const std::optional<bool>& deleteOnTransverseExit = std::nullopt) {
             auto coll = opalx::test::makeKeywordObject<OpalCollimator>("COLLIMATOR", "C1");
@@ -49,8 +50,7 @@ namespace {
                         *coll->findAttribute("DELETEONTRANSVERSEEXIT"),
                         deleteOnTransverseExit.value());
             }
-            coll->update();
-            return coll;
+            return opalx::test::buildFrom(*coll);
         }
     };
 
@@ -58,14 +58,14 @@ namespace {
 
 TEST_F(TestOpalCollimator, ElementTypeIsCollimator) {
     auto coll            = makeCollimator(0.1, "CIRCLE(0.02)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
     EXPECT_EQ(element->getType(), ElementType::COLLIMATOR);
 }
 
 TEST_F(TestOpalCollimator, UpdateSetsGeometryLengthAndAperture) {
     auto coll            = makeCollimator(0.1, "CIRCLE(0.02)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
 
     // length is taken as-is (no minimum clamp like MONITOR applies)
@@ -80,7 +80,7 @@ TEST_F(TestOpalCollimator, UpdateSetsGeometryLengthAndAperture) {
 
 TEST_F(TestOpalCollimator, RectangularApertureStringReachesElement) {
     auto coll            = makeCollimator(0.05, "RECTANGLE(0.02,0.04)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
 
     const auto aperture = element->getAperture();
@@ -92,12 +92,12 @@ TEST_F(TestOpalCollimator, RectangularApertureStringReachesElement) {
 
 TEST_F(TestOpalCollimator, UpdateSetsDeleteOnTransverseExitDefaultTrue) {
     auto withDefault = makeCollimator(0.1, "CIRCLE(0.02)");
-    ASSERT_NE(withDefault->getElement(), nullptr);
-    EXPECT_TRUE(withDefault->getElement()->getFlagDeleteOnTransverseExit());
+    ASSERT_NE(withDefault, nullptr);
+    EXPECT_TRUE(withDefault->getFlagDeleteOnTransverseExit());
 
     auto disabled = makeCollimator(0.1, "CIRCLE(0.02)", false);
-    ASSERT_NE(disabled->getElement(), nullptr);
-    EXPECT_FALSE(disabled->getElement()->getFlagDeleteOnTransverseExit());
+    ASSERT_NE(disabled, nullptr);
+    EXPECT_FALSE(disabled->getFlagDeleteOnTransverseExit());
 }
 
 TEST_F(TestOpalCollimator, MissingApertureThrows) {

@@ -73,10 +73,11 @@ TEST_F(TestOpalVariableRFCavity, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::WIDTH], 4.0);
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::HEIGHT], 5.0);
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::LENGTH], 6.0);
-    // Update the cavity
-    EXPECT_NO_THROW(ui.update());
+    // Build the cavity
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(ui));
     // Check the values
-    auto* myCavity = dynamic_cast<VariableRFCavity*>(ui.getElement());
+    auto* myCavity = dynamic_cast<VariableRFCavity*>(built.get());
     EXPECT_TRUE(myCavity);
     EXPECT_NO_THROW(myCavity->initialiseTimeDependencies());
     EXPECT_DOUBLE_EQ(myCavity->getPhaseModel()->getValue(0.0), 1.0);

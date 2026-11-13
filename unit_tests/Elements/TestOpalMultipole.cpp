@@ -44,12 +44,12 @@ namespace {
         static void TearDownTestSuite() { ippl::finalize(); }
 
         void SetUp() override {
-            // update() reads OpalData::getP0(), which needs the P0 variable (see TestOpalBend).
+            // Building reads OpalData::getP0(), which needs the P0 variable (see TestOpalBend).
             [[maybe_unused]] static RealVariable* p0Owner =
                     &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
 
-        /// Update a MULTIPOLE made from the keyword table with the given arrays; an empty array
+        /// Build a MULTIPOLE made from the keyword table with the given arrays; an empty array
         /// is left unset. Returns the error text, or "" if none.
         std::string updateError(
                 const std::vector<double>& kn, const std::vector<double>& ks = {},
@@ -65,7 +65,7 @@ namespace {
                 Attributes::setRealArray(*mult->findAttribute("DKN"), dkn);
             }
             try {
-                mult->update();
+                opalx::test::buildFrom(*mult);
             } catch (const OpalException& e) {
                 return e.what();
             }

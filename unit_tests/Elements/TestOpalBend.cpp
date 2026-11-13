@@ -39,15 +39,16 @@ namespace {
 
     enum class BendKind { SBend, RBend };
 
-    /// What the deck writes. An unset field is left at its attribute default, which is
-    /// what update() distinguishes through Attribute::defaultUsed().
+    /// What the input writes. An unset field is left at its attribute default, which the
+    /// build tells apart through Attribute::defaultUsed().
     struct BendSpec {
         std::optional<double> hgap;
         std::optional<double> hapert;
         std::optional<std::string> aperture;
     };
 
-    std::unique_ptr<OpalElement> makeBend(BendKind kind, const BendSpec& spec) {
+    /// The runtime element a RUN builds for a bend with @p spec.
+    std::shared_ptr<ElementBase> makeBend(BendKind kind, const BendSpec& spec) {
         std::unique_ptr<OpalElement> bend;
         if (kind == BendKind::SBend) {
             bend = opalx::test::makeKeywordObject<OpalSBend>("SBEND", "SBEND");
@@ -66,14 +67,13 @@ namespace {
         if (spec.aperture.has_value()) {
             Attributes::setString(*bend->findAttribute("APERTURE"), spec.aperture.value());
         }
-        bend->update();
-        return bend;
+        return opalx::test::buildFrom(*bend);
     }
 
     void expectAperture(
-            const std::unique_ptr<OpalElement>& bend, ApertureType type,
+            const std::shared_ptr<ElementBase>& bend, ApertureType type,
             const std::vector<double>& args) {
-        ElementBase* element = bend->getElement();
+        ElementBase* element = bend.get();
         ASSERT_NE(element, nullptr);
         const auto aperture = element->getAperture();
         EXPECT_EQ(aperture.first, type);
@@ -86,7 +86,7 @@ namespace {
     class TestOpalBend : public testing::TestWithParam<BendKind> {
     protected:
         // The bends allocate Kokkos views for their multipole coefficients, so the runtime
-        // has to be up before the first update().
+        // has to be up before the first bend is built.
         static void SetUpTestSuite() {
             int argc    = 0;
             char** argv = nullptr;

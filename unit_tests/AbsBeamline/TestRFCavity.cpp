@@ -617,24 +617,27 @@ TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
 TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
     auto inputObject  = opalx::test::makePlacedElement<OpalCavity>("RFCAVITY", "RFCAVITY");
     OpalCavity& input = *inputObject;
-    auto* rep         = dynamic_cast<RFCavityRep*>(input.getElement());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
+    auto* rep = dynamic_cast<RFCavityRep*>(built.get());
     ASSERT_NE(rep, nullptr);
-    EXPECT_NO_THROW(input.update());
     EXPECT_FALSE(rep->isIdeal());
     EXPECT_EQ(rep->getCavityType(), CavityType::SW);
     Attributes::setPredefinedString(input.itsAttr[OpalCavity::TYPE], "IDEAL");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setReal(input.itsAttr[OpalCavity::LENGTH], 0.2);
     Attributes::setReal(input.itsAttr[OpalCavity::VOLT], 1.);
     Attributes::setReal(input.itsAttr[OpalCavity::FREQ], 100.);
-    EXPECT_NO_THROW(input.update());
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
+    rep = dynamic_cast<RFCavityRep*>(built.get());
+    ASSERT_NE(rep, nullptr);
     EXPECT_TRUE(rep->isIdeal());
     EXPECT_DOUBLE_EQ(rep->getFrequencym(), Physics::two_pi * 100.e6);
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "unused.map");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "");
     Attributes::setString(input.itsAttr[OpalCavity::PHASE_MODEL], "phase");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     for (double length : {0., -1., std::numeric_limits<double>::infinity()}) {
         cavity.getGeometry().setElementLength(length);
         EXPECT_ANY_THROW(cavity.initialise(nullptr));

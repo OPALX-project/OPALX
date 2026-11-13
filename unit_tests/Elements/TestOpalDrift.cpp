@@ -31,15 +31,15 @@ namespace {
         TestOpalDrift() = default;
     };
 
-    std::unique_ptr<OpalDrift> makeDrift(const std::optional<std::string>& aperture) {
+    /// The runtime element of a 2 m DRIFT with @p aperture.
+    std::shared_ptr<ElementBase> makeDrift(const std::optional<std::string>& aperture) {
         auto drift = opalx::test::makeKeywordObject<OpalDrift>("DRIFT", "DRIFT");
         Attributes::setReal(*drift->findAttribute("L"), 2.0);
         Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
         if (aperture.has_value()) {
             Attributes::setString(*drift->findAttribute("APERTURE"), aperture.value());
         }
-        drift->update();
-        return drift;
+        return opalx::test::buildFrom(*drift);
     }
 
 }  // namespace
@@ -48,8 +48,8 @@ TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
     auto rectangle = makeDrift("RECTANGLE(1,1)");
     auto square    = makeDrift("SQUARE(1)");
 
-    ElementBase* rectangleElement = rectangle->getElement();
-    ElementBase* squareElement    = square->getElement();
+    ElementBase* rectangleElement = rectangle.get();
+    ElementBase* squareElement    = square.get();
 
     ASSERT_NE(rectangleElement, nullptr);
     ASSERT_NE(squareElement, nullptr);
@@ -69,7 +69,7 @@ TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
 
 TEST_F(TestOpalDrift, CircleConstantAlongLengthAndLongitudinalBounds) {
     auto circle                = makeDrift("CIRCLE(1)");
-    ElementBase* circleElement = circle->getElement();
+    ElementBase* circleElement = circle.get();
 
     ASSERT_NE(circleElement, nullptr);
 
@@ -107,9 +107,9 @@ TEST_F(TestOpalDrift, MalformedRectangleArgumentsThrow) {
 namespace {
 
     void expectAperture(
-            const std::unique_ptr<OpalDrift>& drift, ApertureType type,
+            const std::shared_ptr<ElementBase>& drift, ApertureType type,
             const std::vector<double>& args) {
-        ElementBase* element = drift->getElement();
+        ElementBase* element = drift.get();
         ASSERT_NE(element, nullptr);
         const auto aperture = element->getAperture();
         EXPECT_EQ(aperture.first, type);
@@ -146,7 +146,7 @@ TEST_F(TestOpalDrift, NoApertureDefaults1e6Ellipse) {
 }
 
 TEST_F(TestOpalDrift, ReachIsUnsetUnlessGiven) {
-    EXPECT_FALSE(makeDrift(std::nullopt)->getElement()->getReach().has_value());
+    EXPECT_FALSE(makeDrift(std::nullopt)->getReach().has_value());
 }
 
 TEST_F(TestOpalDrift, ReachAttributeSetsTheElementReach) {
@@ -154,10 +154,10 @@ TEST_F(TestOpalDrift, ReachAttributeSetsTheElementReach) {
     Attributes::setReal(*drift->findAttribute("L"), 2.0);
     Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*drift->findAttribute("REACH"), 0.2);
-    drift->update();
+    const auto element = opalx::test::buildFrom(*drift);
 
-    ASSERT_TRUE(drift->getElement()->getReach().has_value());
-    EXPECT_DOUBLE_EQ(*drift->getElement()->getReach(), 0.2);
+    ASSERT_TRUE(element->getReach().has_value());
+    EXPECT_DOUBLE_EQ(*element->getReach(), 0.2);
 }
 
 TEST_F(TestOpalDrift, NonPositiveReachIsRejected) {
@@ -165,5 +165,5 @@ TEST_F(TestOpalDrift, NonPositiveReachIsRejected) {
     Attributes::setReal(*drift->findAttribute("L"), 2.0);
     Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*drift->findAttribute("REACH"), 0.0);
-    EXPECT_THROW(drift->update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(*drift), OpalException);
 }

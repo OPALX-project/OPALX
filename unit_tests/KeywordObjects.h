@@ -11,9 +11,12 @@
 #include <stdexcept>
 #include <string>
 
+#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "Track/BuildElements.h"
+#include "Track/FreezeRun.h"
 
 namespace opalx::test {
 
@@ -47,7 +50,8 @@ namespace opalx::test {
     /**
      * @brief An element made from the keyword table and placed at ELEMEDGE = 0.
      *
-     * Every input element must be placed (ELEMEDGE or a pose); update() refuses one that is not.
+     * Every input element must be placed (ELEMEDGE or a pose); building refuses one that is
+     * not.
      */
     template <class T>
     std::unique_ptr<T> makePlacedElement(const std::string& keywordName, const std::string& name) {
@@ -56,6 +60,16 @@ namespace opalx::test {
         if (elemEdge == nullptr) throw std::logic_error(keywordName + " has no ELEMEDGE");
         Attributes::setReal(*elemEdge, 0.0);
         return element;
+    }
+
+    /**
+     * @brief Build the runtime element of input object @p object, as a RUN does for an
+     *        occurrence of it in the tracked line.
+     */
+    inline std::shared_ptr<ElementBase> buildFrom(const Object& object) {
+        opalx::run::ElementDescription element;
+        element.object = opalx::run::describeObject(object);
+        return opalx::run::buildElement(element);
     }
 
 }  // namespace opalx::test

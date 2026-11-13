@@ -438,7 +438,7 @@ TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
     Attributes::setReal(*sbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*sbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*sbend.findAttribute("E1"), 0.05);
-    EXPECT_THROW(sbend.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(sbend), OpalException);
 }
 
 TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
@@ -449,8 +449,9 @@ TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
     Attributes::setReal(*rbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*rbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*rbend.findAttribute("E2"), 0.05);
-    ASSERT_NO_THROW(rbend.update());
-    auto& bend = dynamic_cast<RBend&>(*rbend.getElement());
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(rbend));
+    auto& bend = dynamic_cast<RBend&>(*built);
     EXPECT_FALSE(bend.hasFieldMap());
     EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
     EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), 0.25);

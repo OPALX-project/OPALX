@@ -50,9 +50,10 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], 0.01);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 0.0, 1.0});
 
-    EXPECT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getGeometry().getElementLength(), 0.01);
     EXPECT_DOUBLE_EQ(rep->getWavelength(), 1.03e-6);
@@ -71,9 +72,10 @@ TEST(TestLaser, UpdateDefaultsStokesToZero) {
     OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
 
-    EXPECT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getStokes()(0), 0.0);
     EXPECT_DOUBLE_EQ(rep->getStokes()(1), 0.0);
@@ -89,7 +91,7 @@ TEST(TestLaser, UpdateRequiresWavelength) {
     Attributes::setReal(laser.itsAttr[OpalLaser::WAISTY], 6.0e-6);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, -2.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsNonPositivePulseEnergy) {
@@ -98,7 +100,7 @@ TEST(TestLaser, UpdateRejectsNonPositivePulseEnergy) {
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSEENERGY], 0.0);
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsBadDirectionSize) {
@@ -107,7 +109,7 @@ TEST(TestLaser, UpdateRejectsBadDirectionSize) {
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 1.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsZeroDirection) {
@@ -116,7 +118,7 @@ TEST(TestLaser, UpdateRejectsZeroDirection) {
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, 0.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsBadStokesSize) {
@@ -125,7 +127,7 @@ TEST(TestLaser, UpdateRejectsBadStokesSize) {
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 1.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsStokesNormAboveOne) {
@@ -134,7 +136,7 @@ TEST(TestLaser, UpdateRejectsStokesNormAboveOne) {
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {1.0, 1.0, 0.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsNegativeLength) {
@@ -143,7 +145,7 @@ TEST(TestLaser, UpdateRejectsNegativeLength) {
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], -1.0);
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 /**
@@ -180,9 +182,10 @@ TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinemati
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {1.0, 0.0, 0.0});
 
-    ASSERT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
 
     Vector_t<double, 3> beamDirection(0.0);

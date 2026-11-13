@@ -113,7 +113,9 @@ TEST_F(RingTest, BuildsAndTagsOneElementPerOccurrenceRecursively) {
     // #S, D, D, then SUBLINE with its own #S and #E, then #E.
     const auto elements = build("R");
     ASSERT_EQ(elements.size(), 7u);
-    const ElementBase* input = Element::find("D")->getElement();
+    // D built on its own, outside any RING: not tagged.
+    const auto definition    = opalx::test::buildFrom(*Element::find("D"));
+    const ElementBase* input = definition.get();
 
     EXPECT_EQ(elements[0]->getName(), "#S");
     EXPECT_EQ(elements[0]->getBeamlineTopology(), BeamlineTopology::LINE);
@@ -145,7 +147,9 @@ TEST_F(RingTest, KeepsSharedElementIndependentAcrossRings) {
     const auto second = build("R2");
     ASSERT_EQ(first.size(), 3u);
     ASSERT_EQ(second.size(), 3u);
-    const ElementBase* input = Element::find("DS")->getElement();
+    // DS built on its own, outside any RING: not tagged.
+    const auto definition    = opalx::test::buildFrom(*Element::find("DS"));
+    const ElementBase* input = definition.get();
 
     EXPECT_NE(first[1].get(), second[1].get());
     EXPECT_NE(first[1].get(), input);
