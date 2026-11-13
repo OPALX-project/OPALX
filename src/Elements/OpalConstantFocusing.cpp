@@ -1,5 +1,7 @@
 #include "Elements/OpalConstantFocusing.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/ConstantFocusingRep.h"
 #include "Utilities/OpalException.h"
@@ -28,21 +30,27 @@ OpalConstantFocusing* OpalConstantFocusing::clone(const std::string& name) {
     return new OpalConstantFocusing(name, this);
 }
 
-void OpalConstantFocusing::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ElementValues& values) {
+    auto element = std::make_shared<ConstantFocusingRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-    const double radius = Attributes::getReal(itsAttr[RADIUS]);
-    if (!itsAttr[RADIUS].defaultUsed() && radius <= 0.0) {
+void OpalConstantFocusing::update() { fill(*getElement(), getValues()); }
+
+void OpalConstantFocusing::fill(ElementBase& element, const ElementValues& values) {
+    setCommonFields(element, values);
+
+    const double radius = values.getReal("RADIUS");
+    if (!values.defaultUsed("RADIUS") && radius <= 0.0) {
         throw OpalException(
                 "OpalConstantFocusing::update", "CONSTANTFOCUSING requires RADIUS > 0.");
     }
 
-    auto* rep = dynamic_cast<ConstantFocusingRep*>(getElement());
+    auto* rep = dynamic_cast<ConstantFocusingRep*>(&element);
     if (rep != nullptr) {
-        rep->getGeometry().setElementLength(getLength());
-        rep->setStrength(Attributes::getReal(itsAttr[STRENGTH]));
+        rep->getGeometry().setElementLength(values.getReal("L"));
+        rep->setStrength(values.getReal("STRENGTH"));
         rep->setRadius(radius);
     }
-
-    OpalElement::updateUnknown(getElement());
 }

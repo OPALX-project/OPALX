@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalCollimator.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
@@ -41,31 +43,37 @@ OpalCollimator* OpalCollimator::clone(const std::string& name) {
     return new OpalCollimator(name, this);
 }
 
-void OpalCollimator::update() {
+std::shared_ptr<ElementBase> OpalCollimator::build(const ElementValues& values) {
+    auto element = std::make_shared<CollimatorRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalCollimator::update() { fill(*getElement(), getValues()); }
+
+void OpalCollimator::fill(ElementBase& element, const ElementValues& values) {
     // Applies the common attributes, including APERTURE and
     // DELETEONTRANSVERSEEXIT, to the embedded element.
-    OpalElement::update();
+    setCommonFields(element, values);
 
     // Unlike every other element, a collimator exists only to scrape, so
     // an absent aperture is an error rather than the wide-open default.
-    if (!itsAttr[APERT] || Attributes::getString(itsAttr[APERT]).empty()) {
+    if (!values.hasValue("APERTURE") || values.getString("APERTURE").empty()) {
         throw OpalException(
                 "OpalCollimator::update()",
-                "COLLIMATOR \"" + getOpalName() + "\" requires an APERTURE");
+                "COLLIMATOR \"" + values.getName() + "\" requires an APERTURE");
     }
 
     // The aperture is only enforced for z in [0, L), so L = 0 would never
     // mark a particle.
-    if (Attributes::getReal(itsAttr[LENGTH]) <= 0.0) {
+    if (values.getReal("L") <= 0.0) {
         throw OpalException(
-                "OpalCollimator::update()", "COLLIMATOR \"" + getOpalName() + "\" requires L > 0");
+                "OpalCollimator::update()",
+                "COLLIMATOR \"" + values.getName() + "\" requires L > 0");
     }
 
-    const double length = Attributes::getReal(itsAttr[LENGTH]);
+    const double length = values.getReal("L");
 
-    CollimatorRep* coll = dynamic_cast<CollimatorRep*>(getElement());
+    CollimatorRep* coll = dynamic_cast<CollimatorRep*>(&element);
     coll->getGeometry().setElementLength(length);
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(coll);
 }

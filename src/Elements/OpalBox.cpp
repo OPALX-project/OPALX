@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalBox.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/BoxRep.h"
@@ -43,39 +45,44 @@ OpalBox::~OpalBox() {}
 
 OpalBox* OpalBox::clone(const std::string& name) { return new OpalBox(name, this); }
 
-void OpalBox::update() {
+std::shared_ptr<ElementBase> OpalBox::build(const ElementValues& values) {
+    auto element = std::make_shared<BoxRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalBox::update() { fill(*getElement(), getValues()); }
+
+void OpalBox::fill(ElementBase& element, const ElementValues& values) {
     // Applies the common attributes, including DELETEONTRANSVERSEEXIT, to the
     // embedded element.
-    OpalElement::update();
+    setCommonFields(element, values);
 
-    const double length = Attributes::getReal(itsAttr[LENGTH]);
-    const double width  = Attributes::getReal(itsAttr[WIDTH]);
-    const double height = Attributes::getReal(itsAttr[HEIGHT]);
+    const double length = values.getReal("L");
+    const double width  = values.getReal("WIDTH");
+    const double height = values.getReal("HEIGHT");
 
     // The block sets the element's size. With an APERTURE the shared rule would also
     // delete particles between the APERTURE and the reach, and REACH is set below.
-    if (itsAttr[APERT] && !Attributes::getString(itsAttr[APERT]).empty()) {
+    if (values.hasValue("APERTURE") && !values.getString("APERTURE").empty()) {
         throw OpalException(
                 "OpalBox::update()",
-                "BOX \"" + getOpalName() + "\" takes WIDTH and HEIGHT, not APERTURE");
+                "BOX \"" + values.getName() + "\" takes WIDTH and HEIGHT, not APERTURE");
     }
-    if (itsAttr[REACH]) {
+    if (values.hasValue("REACH")) {
         throw OpalException(
                 "OpalBox::update()",
-                "BOX \"" + getOpalName() + "\" takes WIDTH and HEIGHT, not REACH");
+                "BOX \"" + values.getName() + "\" takes WIDTH and HEIGHT, not REACH");
     }
     if (width <= 0.0 || height <= 0.0 || length <= 0.0) {
         throw OpalException(
                 "OpalBox::update()",
-                "BOX \"" + getOpalName() + "\" requires WIDTH > 0, HEIGHT > 0 and L > 0");
+                "BOX \"" + values.getName() + "\" requires WIDTH > 0, HEIGHT > 0 and L > 0");
     }
 
-    BoxRep* box = dynamic_cast<BoxRep*>(getElement());
+    BoxRep* box = dynamic_cast<BoxRep*>(&element);
     box->getGeometry().setElementLength(length);
     box->setHalfSize(0.5 * width, 0.5 * height);
     // The reach is one half-width for x and y: the larger of the two covers the block.
     box->setReach(0.5 * std::max(width, height));
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(box);
 }

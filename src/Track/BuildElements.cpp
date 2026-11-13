@@ -27,6 +27,10 @@
 #include "Attributes/UpperCaseString.h"
 #include "Attributes/UpperCaseStringArray.h"
 #include "Elements/ElementValues.h"
+#include "Elements/OpalBox.h"
+#include "Elements/OpalCollimator.h"
+#include "Elements/OpalConstantEFieldCavity.h"
+#include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
@@ -48,10 +52,12 @@ namespace opalx::run {
         /// Every element keyword. One keyword, one runtime element type.
         const std::map<std::string, ElementKind>& elementKinds() {
             static const std::map<std::string, ElementKind> kinds{
-                    {"BOX", {ElementType::BOX, nullptr}},
-                    {"COLLIMATOR", {ElementType::COLLIMATOR, nullptr}},
-                    {"CONSTANTEFIELDCAVITY", {ElementType::CONSTANTEFIELDCAVITY, nullptr}},
-                    {"CONSTANTFOCUSING", {ElementType::CONSTANTFOCUSING, nullptr}},
+                    {"BOX", {ElementType::BOX, &OpalBox::build}},
+                    {"COLLIMATOR", {ElementType::COLLIMATOR, &OpalCollimator::build}},
+                    {"CONSTANTEFIELDCAVITY",
+                     {ElementType::CONSTANTEFIELDCAVITY, &OpalConstantEFieldCavity::build}},
+                    {"CONSTANTFOCUSING",
+                     {ElementType::CONSTANTFOCUSING, &OpalConstantFocusing::build}},
                     {"CYCLOTRONSECTOR", {ElementType::CYCLOTRONSECTOR, nullptr}},
                     {"DRIFT", {ElementType::DRIFT, &OpalDrift::build}},
                     {"FIELDMAP", {ElementType::FIELDMAP, nullptr}},
