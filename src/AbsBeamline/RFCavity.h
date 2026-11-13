@@ -166,11 +166,6 @@ public:
 
     virtual void initialise(PartBunch_t* bunch) override;
 
-    virtual void initialise(
-            PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-            std::shared_ptr<AbstractTimeDependence> ampl_atd,
-            std::shared_ptr<AbstractTimeDependence> phase_atd);
-
     virtual void finalise() override;
 
     virtual void goOnline(const double& kineticEnergy) override;

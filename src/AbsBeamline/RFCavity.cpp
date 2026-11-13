@@ -283,47 +283,6 @@ void RFCavity::initialise(PartBunch_t* bunch) {
     }
 }
 
-// In current version ,this function reads in the cavity voltage profile data from file.
-void RFCavity::initialise(
-        PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-        std::shared_ptr<AbstractTimeDependence> ampl_atd,
-        std::shared_ptr<AbstractTimeDependence> phase_atd) {
-    RefPartBunch_m = bunch;
-
-    /// set the time dependent models
-    setAmplitudeModel(ampl_atd);
-    setPhaseModel(phase_atd);
-    setFrequencyModel(freq_atd);
-
-    std::ifstream in(filename_m.c_str());
-    in >> num_points_m;
-
-    RNormal_m  = std::unique_ptr<double[]>(new double[num_points_m]);
-    VrNormal_m = std::unique_ptr<double[]>(new double[num_points_m]);
-    DvDr_m     = std::unique_ptr<double[]>(new double[num_points_m]);
-
-    for (int i = 0; i < num_points_m; i++) {
-        if (in.eof()) {
-            throw GeneralOpalException(
-                    "RFCavity::initialise",
-                    "Not enough data in file '" + filename_m + "', please check the data format");
-        }
-        in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
-
-        const auto pc = RefPartBunch_m->getParticleContainer();
-        VrNormal_m[i] *= pc->getTotalCharge();
-        DvDr_m[i] *= pc->getTotalCharge();
-    }
-    sinAngle_m = std::sin(angle_m * Units::deg2rad);
-    cosAngle_m = std::cos(angle_m * Units::deg2rad);
-
-    if (!frequencyName_m.empty()) {
-        *gmsg << "* Timedependent frequency model " << frequencyName_m << endl;
-    }
-
-    *gmsg << "* Cavity voltage data read successfully!" << endl;
-}
-
 void RFCavity::finalise() {}
 
 void RFCavity::goOnline(const double&) {
