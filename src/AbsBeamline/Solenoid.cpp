@@ -66,7 +66,7 @@ Solenoid::~Solenoid() {
  * @returns true if at least one particle is lost, false otherwise
  * (not implemented, always returns false)
  */
-void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
 

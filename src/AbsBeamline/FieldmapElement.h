@@ -65,7 +65,8 @@ public:
      * Delegates straight to Fieldmap::applyField(). Particles outside the map get no
      * contribution; the reader kernels already skip them.
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /**
      * @brief Add the map's field at a single position.

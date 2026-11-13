@@ -98,7 +98,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -135,7 +135,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();

@@ -55,8 +55,8 @@ Monitor::~Monitor() {}
 
 void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
-void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!online_m || lossDs_m == nullptr || pc == nullptr || RefPartBunch_m == nullptr) {
+void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr) {
         return;
     }
 
@@ -64,7 +64,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         return;
     }
 
-    const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+    const long long globalStep = time.step;
     const double sPos          = pc->get_sPos();
 
     if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
@@ -104,7 +104,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const bool qmAreAttributes =
             (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
-    const double bunchTime = RefPartBunch_m->getT();
+    const double bunchTime = time.t;
 
     for (size_t i = 0; i < nLoc; ++i) {
         const Vector_t<double, 3> R = hR(i);
@@ -121,7 +121,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const double frac = -R(2) / singleStep(2);
 
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
-            const double crossingTime = bunchTime + 0.5 * RefPartBunch_m->getdT() + frac * dt;
+            const double crossingTime           = bunchTime + 0.5 * time.dt + frac * dt;
 
             const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q       = qmAreAttributes ? hQ(i) : hQ(0);

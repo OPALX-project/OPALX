@@ -65,7 +65,7 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const { visitor.visitTravel
  * of the field from the core to the exit region, while maintaining the correct phase
  * relationship between the fields.
  */
-void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     // RF parameters (copied to device)
     const double freq       = frequency_m;
     const double scaleEntry = scale_m + scaleError_m;
@@ -81,7 +81,7 @@ void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double fieldLength     = endField_m - startField_m;
 
     // Reference particle time -> to be consistent with OPAL
-    const double t       = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
+    const double t       = time.t + 0.5 * time.dt;
     const double omega_t = freq * t;
 
     const double cosEntry = std::cos(omega_t + phase_m + phaseError);

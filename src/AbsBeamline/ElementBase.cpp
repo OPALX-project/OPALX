@@ -479,7 +479,16 @@ void ElementBase::goOnline(const double&) { online_m = true; }
 
 void ElementBase::goOffline() { online_m = false; }
 
-void ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
+void ElementBase::apply(
+        const std::shared_ptr<ParticleContainer_t>& /*pc*/, const StepTime& /*time*/) {}
+
+void ElementBase::takeDesignParticle(const PartBunch_t* bunch) {
+    if (bunch == nullptr) return;
+    const auto pc = bunch->getParticleContainer();
+    if (!pc || pc->getReference() == nullptr) return;
+    designMass_m = pc->getReference()->getM();
+    if (std::abs(pc->getReference()->getQ()) > 1.0e-15) designCharge_m = pc->getReference()->getQ();
+}
 
 void ElementBase::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,

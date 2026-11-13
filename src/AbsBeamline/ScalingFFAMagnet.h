@@ -89,7 +89,7 @@ public:
      * This superposition contract matches the scalar/reference apply path.
      * \param pc the particle container holding positions and field accumulators
      */
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /** Add this element's local Cartesian magnetic field to B.
      *

@@ -111,12 +111,12 @@ void VariableRFCavity::apply(
             R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
-void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     const auto R = pc->R.getView();
     const auto E = pc->E.getView();
     // The ordinary Boris kick and host reference field both sample this
     // physical midpoint. Match RFCavity's common-time convention.
-    const auto t           = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
+    const auto t           = time.t + 0.5 * time.dt;
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);

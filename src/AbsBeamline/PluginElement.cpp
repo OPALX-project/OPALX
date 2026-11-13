@@ -60,7 +60,8 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-void PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
+void PluginElement::apply(
+        const std::shared_ptr<ParticleContainer_t>& /*pc*/, const StepTime& /*time*/) {}
 
 void PluginElement::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,

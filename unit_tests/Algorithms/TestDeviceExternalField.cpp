@@ -160,7 +160,7 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
         for (const auto& element : ordered) {
             const auto transform = lattice.getCSTrafoLab2Local(element);
             particles->transformBunch(transform);
-            element->apply(particles);
+            element->apply(particles, StepTime{});
             particles->transformBunch(transform.inverted());
         }
         const auto outR =
@@ -577,7 +577,7 @@ TEST_F(DeviceExternalFieldTest, ScalingFFASpiralSupportMatchesElementAndAccumula
         Kokkos::deep_copy(particles->R.getView(), point);
         Kokkos::deep_copy(particles->B.getView(), Vector(0));
         for (const auto& element : device_external::orderedCandidates(lattice, source))
-            element->apply(particles);
+            element->apply(particles, StepTime{});
         const auto fields =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->B.getView());
         for (unsigned d = 0; d < 3; ++d)

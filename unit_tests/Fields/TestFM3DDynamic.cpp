@@ -340,7 +340,7 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
         cavity.setPhasem(phase);
         Kokkos::deep_copy(particles->E.getView(), Vector(7.0));
         Kokkos::deep_copy(particles->B.getView(), Vector(-0.25));
-        cavity.apply(particles);
+        cavity.apply(particles, StepTime{bunch.getT(), bunch.getdT(), 0});
         const auto electric =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->E.getView());
         const auto magnetic =

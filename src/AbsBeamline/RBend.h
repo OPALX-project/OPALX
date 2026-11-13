@@ -52,7 +52,7 @@ public:
 
     /// @brief Apply the field to all particles.
     /// @param pc The particle container.
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /// @brief Apply the field to a particle with position R and momentum P.
     /// @param R Position.

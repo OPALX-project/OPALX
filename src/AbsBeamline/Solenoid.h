@@ -43,7 +43,8 @@ public:
      * @brief apply the solenoid field to all particles in the bunch
      *
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /**
      * @brief apply the solenoid field to particle i

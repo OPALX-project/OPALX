@@ -129,6 +129,17 @@ struct SupportBox {
  * marked sharable (makeSharable()). Algorithms dispatch on the concrete
  * element type through accept(BeamlineVisitor&).
  */
+/**
+ * @brief Time of the current tracking step, passed to ElementBase::apply().
+ *
+ * Elements used to read these values from the bunch (RefPartBunch_m).
+ */
+struct StepTime {
+    double t       = 0.0;  ///< Bunch time at the start of the step (s).
+    double dt      = 0.0;  ///< Time step (s).
+    long long step = 0;    ///< Global step number.
+};
+
 class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /* ========================= Construction & lifecycle ====================== */
@@ -370,8 +381,10 @@ public:
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
+     * @param pc   The particles, in the element's local frame.
+     * @param time Bunch time, time step and step number of the current step.
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time);
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -544,9 +557,17 @@ protected:
     static const std::vector<double> defaultAperture_m;
 
     // --- Field / physics ---
-    // The reference bunch (not owned)
+    // The reference bunch (not owned). Only Monitor still reads it, to save the bunch when
+    // the reference particle crosses a TEMPORAL monitor.
     PartBunch_t* RefPartBunch_m;
     bool online_m;
+
+    /// Rest mass (eV) and charge (elementary charges) of the first beam, stored by
+    /// takeDesignParticle(); the charge stays 1 for an element without a bunch.
+    double designMass_m   = 0.0;
+    double designCharge_m = 1.0;
+    /// Store the first beam's mass and charge (a charge of zero keeps 1).
+    void takeDesignParticle(const PartBunch_t* bunch);
 
 private:
     // Not implemented.

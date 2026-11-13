@@ -306,7 +306,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         Kokkos::deep_copy(pc->R.getView(), r);
         Kokkos::deep_copy(pc->E.getView(), initialE);
         Kokkos::deep_copy(pc->B.getView(), initialB);
-        element.apply(pc);
+        element.apply(pc, StepTime{});
         const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
         const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
         const auto invalid =
@@ -360,7 +360,7 @@ TEST_F(BendRepTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
         Kokkos::deep_copy(pc->R.getView(), point);
         Kokkos::deep_copy(pc->E.getView(), Vector3(0.0));
         Kokkos::deep_copy(pc->B.getView(), Vector3(0.0));
-        multipole.apply(pc);
+        multipole.apply(pc, StepTime{});
         const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
 
         Vector3 refE(0.0), refB(0.0);

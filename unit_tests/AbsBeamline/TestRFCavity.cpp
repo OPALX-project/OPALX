@@ -578,7 +578,7 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
     bunch->setdT(2.e-9);
     cavity.initialise(bunch.get());
     cavity.goOnline(0.);
-    cavity.apply(pc);
+    cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     const auto magnetic = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     for (size_t i = 0; i < positions.size(); ++i) {
@@ -757,7 +757,7 @@ TEST_F(IdealRFCavityTest, FieldAmplitudeIndependentOfLength) {
         cavity.apply({0., 0., 0.1}, {}, 0., hostE, b);
         EXPECT_FALSE(cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b));
         Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
-        cavity.apply(pc);
+        cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         const auto fields =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
         // VOLT=5 MV/m sets the field directly; length only sets spatial support.

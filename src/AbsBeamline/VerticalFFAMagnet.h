@@ -58,7 +58,8 @@ public:
      *  \param E calculated electric field - always 0 (no E-field)
      *  \param B calculated magnetic field
      */
-    inline void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    inline void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     inline void apply(
             const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
@@ -231,7 +232,8 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     config_m.zPosExtent_m = positiveExtent;
 }
 
-void VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void VerticalFFAMagnet::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     getFieldValue(config_m, endField_m, pc);
 }
 

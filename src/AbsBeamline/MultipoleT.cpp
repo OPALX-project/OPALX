@@ -54,10 +54,10 @@ double MultipoleT::getScaling(const double t) const {
     return scaling;
 }
 
-void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     validateConfiguration();
     implementation_->getField(
-            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(RefPartBunch_m->getT()),
+            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(time.t),
             pc->getLocalNum(), getRegions());
 }
 

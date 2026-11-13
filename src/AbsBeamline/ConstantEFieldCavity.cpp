@@ -40,7 +40,8 @@ void ConstantEFieldCavity::setEy(double ey) { Ey_m = ey; }
 
 void ConstantEFieldCavity::setEz(double ez) { Ez_m = ez; }
 
-void ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void ConstantEFieldCavity::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     auto Rview          = pc->R.getView();
     auto Eview          = pc->E.getView();
     const size_t nLocal = pc->getLocalNum();

@@ -128,7 +128,7 @@ public:
      * reductions, and does not transfer map data or particle data to the host.
      * The caller owns coordinate transforms and kernel synchronization.
      */
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
     /** @brief Scalar counterpart of the device kernel; adds to B, leaves E unchanged.
      * @param r Element-local position [m]; outside support contributes zero.
      * @param p Mechanical momentum [beta*gamma], unused for this static field.

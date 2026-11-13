@@ -641,12 +641,12 @@ TEST_F(ScalingFFAMagnetTest, SuperposesParticleAndReferenceFieldsWithoutErasingO
     Kokkos::deep_copy(pc->R.getView(), hostR);
     Kokkos::deep_copy(pc->B.getView(), seedB);
     Kokkos::deep_copy(pc->E.getView(), seedE);
-    sector_m->apply(pc);
+    sector_m->apply(pc, StepTime{});
     auto hostB = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     for (std::size_t i = 0; i < positions.size(); ++i)
         for (unsigned d = 0; d < 3; ++d)
             EXPECT_NEAR(hostB(i)[d], seedB[d] + firstField[i][d], 1e-12);
-    second->apply(pc);
+    second->apply(pc, StepTime{});
     Kokkos::deep_copy(hostB, pc->B.getView());
     const auto hostE = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     for (std::size_t i = 0; i < positions.size(); ++i) {
@@ -707,7 +707,7 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     Bhost(1)   = existing;
     Kokkos::deep_copy(R, Rhost);
     Kokkos::deep_copy(B, Bhost);
-    sector_m->apply(pc);
+    sector_m->apply(pc, StepTime{});
     Kokkos::deep_copy(Bhost, B);
     for (size_t d = 0; d < 3; ++d) {
         EXPECT_NEAR(Bhost(0)[d], existing[d] + expected[d], 1e-12) << d;

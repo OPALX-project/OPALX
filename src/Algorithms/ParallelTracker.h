@@ -146,6 +146,11 @@ private:
      *         already at the end of the schedule).
      */
     bool prepareTracking();
+    /// Bunch time, time step and step number of the current step, passed to element apply().
+    StepTime stepTime() const {
+        return {itsBunch_m->getT(), itsBunch_m->getdT(),
+                static_cast<long long>(itsBunch_m->getGlobalTrackStep())};
+    }
     /// The step loop and the final output; prepareTracking() must have returned true.
     void trackSteps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;

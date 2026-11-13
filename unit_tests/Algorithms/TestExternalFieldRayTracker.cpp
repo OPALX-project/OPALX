@@ -149,7 +149,8 @@ namespace {
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        void apply(const std::shared_ptr<ParticleContainer_t>&) override {}
+        void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
+        }
 
         void apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,

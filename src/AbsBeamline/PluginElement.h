@@ -50,7 +50,8 @@ public:
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
     ///@}
     ///@{ Virtual implementation of Component
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,

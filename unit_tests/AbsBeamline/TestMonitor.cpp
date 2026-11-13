@@ -183,7 +183,7 @@ TEST_F(MonitorTest, IsInsideRejectsPointsOutsideElementLength) {
 TEST_F(MonitorTest, ApplyNullParticleContainerIsSafe) {
     TestMonitor monitor;
 
-    EXPECT_NO_THROW(monitor.apply(std::shared_ptr<ParticleContainer_t>()));
+    EXPECT_NO_THROW(monitor.apply(std::shared_ptr<ParticleContainer_t>(), StepTime{}));
 }
 
 TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {

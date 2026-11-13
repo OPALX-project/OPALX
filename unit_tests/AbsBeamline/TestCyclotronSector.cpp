@@ -147,7 +147,7 @@ TEST_F(CyclotronTest, DeviceParticleFieldMatchesHostIncludingTrim) {
     CyclotronSector sector("test");
     sector.configure(
             CyclotronSectorFieldMap::read(filename), 8, -0.05, 0.05, 1, {{1.1, 1.3, 0.0014, 600}});
-    sector.apply(pc);
+    sector.apply(pc, StepTime{});
     const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     Kokkos::View<Vector_t<double, 3>*> descriptorB("descriptor fields", points.size());
     Kokkos::View<int*> descriptorSupport("descriptor support", points.size());
@@ -280,7 +280,7 @@ TEST_F(CyclotronTest, SpatialSelectionRestoresOmittedDeviceFieldAndPreservesOthe
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
     pc->transformBunch(frame);
     // Exercise the existing Kokkos kernel, not a host replacement field.
-    sector->apply(pc);
+    sector->apply(pc, StepTime{});
     pc->transformBunch(frame.inverted());
     const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     const auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());

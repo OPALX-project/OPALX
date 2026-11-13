@@ -82,7 +82,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -119,7 +119,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -656,7 +656,9 @@ TEST_F(TestMultipoleTStraight, AnalyticFringeFieldsAgreeForParticlesAndReference
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0.));
     bunch->setT(0.);
     initialise(bunch.get());
-    apply(pc);  // Actual particle-view kernel, including host/device data movement.
+    apply(pc, StepTime{
+                      bunch->getT(), bunch->getdT(),
+                      0});  // Actual particle-view kernel, including host/device data movement.
     const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
 
     // At y=0, a pure quadrupole has Bx=Bz=0 and By=g*x*S(z), with g [T/m],

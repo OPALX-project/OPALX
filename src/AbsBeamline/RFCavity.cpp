@@ -122,7 +122,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
  * statement
  */
-void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     if (isCyclotronGap()) return;
     // RF parameters (copied to device)
     double freq  = frequency_m;
@@ -133,8 +133,7 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double endField   = endField_m;
 
     // Reference particle time
-    const double t =
-            RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();  // To be consistent with OPAL
+    const double t = time.t + 0.5 * time.dt;  // To be consistent with OPAL
 
     // RF phase for all particles at this step
     const double phi    = freq * t + phase;
@@ -236,6 +235,7 @@ void RFCavity::validateIdeal() const {
 }
 
 void RFCavity::initialise(PartBunch_t* bunch) {
+    takeDesignParticle(bunch);
     if (isIdeal()) {
         validateIdeal();
         RefPartBunch_m = bunch;
@@ -696,7 +696,6 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     double t = t0;
 
     BorisPusher integrator;
-    const PartData& ref = *RefPartBunch_m->getParticleContainer()->getReference();
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend   = endField_m;
@@ -719,7 +718,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
 
-        integrator.kick(z, p, Ef, Bf, dt, ref.getM(), ref.getQ());
+        integrator.kick(z, p, Ef, Bf, dt, designMass_m, designCharge_m);
 
         dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;

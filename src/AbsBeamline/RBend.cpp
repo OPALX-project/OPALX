@@ -40,7 +40,8 @@ RBend::RBend(const std::string& name)
 RBend::~RBend() = default;
 
 void RBend::initialise(PartBunch_t* bunch) {
-    RefPartBunch_m        = bunch;
+    RefPartBunch_m = bunch;
+    takeDesignParticle(bunch);
     const auto* reference = bunch->getParticleContainer()->getReference();
     initialiseField(reference->getM(), reference->getQ());
     if (profile_m.enabled)
@@ -50,7 +51,7 @@ void RBend::initialise(PartBunch_t* bunch) {
 
 void RBend::finalise() { online_m = false; }
 
-void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -149,13 +150,7 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     // Multipole coefficients (dipole + quadrupole), read once from the device views.
     // Divide by the reference charge so the physical field is B = (p/q)·k (see SBend);
     // the species is only known once a bunch is attached. Defaults to q = 1 (unit tests).
-    double charge = 1.0;
-    if (RefPartBunch_m != nullptr) {
-        const double q = RefPartBunch_m->getParticleContainer()->getReference()->getQ();
-        if (std::abs(q) > 1.0e-15) {
-            charge = q;
-        }
-    }
+    const double charge = designCharge_m;  // stored by initialise()
     // Read the pre-built host mirrors directly; no per-apply device->host copy.
     in.dipoleNormal = ((maxNormal_m > 0) ? normalComponentsHost_m(0) : 0.0) * fieldScale_m / charge;
     in.quadNormal   = ((maxNormal_m > 1) ? normalComponentsHost_m(1) : 0.0) * fieldScale_m / charge;

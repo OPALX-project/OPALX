@@ -54,7 +54,8 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void ScalingFFAMagnet::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     // Kernel launch over all particles
     scaling_ffa_detail::FieldEvaluator::evaluate(
             config_m, efm_m, pc->R.getView(), pc->B.getView(), true);

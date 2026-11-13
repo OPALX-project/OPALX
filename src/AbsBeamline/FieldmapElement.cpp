@@ -87,7 +87,8 @@ FieldmapElement::FieldmapElement(const std::string& name)
 FieldmapElement::~FieldmapElement() {}
 
 /* ============================== Apply functions =========================== */
-void FieldmapElement::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void FieldmapElement::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     if (fieldmap_m == nullptr) {
         return;
     }

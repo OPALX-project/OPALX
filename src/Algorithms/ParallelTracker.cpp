@@ -1615,15 +1615,15 @@ void ParallelTracker::computeExternalFields() {
                    const std::shared_ptr<ParticleContainer_t>& pc) {
                 // Trial steps must not append monitor records.
                 if (!spatialRing_m || element->getType() != ElementType::MONITOR)
-                    element->apply(pc);
+                    element->apply(pc, stepTime());
             },
             spatialRing_m);
 
     if (spatialRing_m && !boundaryControlled_m) {
         // Monitors predict a crossing during dt; unlike field support, their
         // selection must include nearby planes outside the current midpoint.
-        forEachElementInBunchFrame([](const auto& element, const auto& pc) {
-            if (element->getType() == ElementType::MONITOR) element->apply(pc);
+        forEachElementInBunchFrame([this](const auto& element, const auto& pc) {
+            if (element->getType() == ElementType::MONITOR) element->apply(pc, stepTime());
         });
     }
 
@@ -2068,8 +2068,8 @@ void ParallelTracker::prepareBoundaryStep(BorisPusher& pusher, boris_step::Contr
         const bool crossed = boundaryCrossed(boundaryStepDt_m);
         if (!schedule.canSplit() || !crossed) {
             // Commit passive diagnostics exactly once at the accepted midpoint.
-            forEachElementInBunchFrame([](const auto& element, const auto& pc) {
-                if (element->getType() == ElementType::MONITOR) element->apply(pc);
+            forEachElementInBunchFrame([this](const auto& element, const auto& pc) {
+                if (element->getType() == ElementType::MONITOR) element->apply(pc, stepTime());
             });
             return;
         }

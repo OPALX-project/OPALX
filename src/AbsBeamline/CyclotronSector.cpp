@@ -84,7 +84,8 @@ void CyclotronSector::apply(
             map->host, hostCoils, map->rmin, map->dr, map->dtheta, map->nr, map->nt, radius, angle,
             vmin, vmax, scale, r, b);
 }
-void CyclotronSector::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void CyclotronSector::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     const auto grid = map->data;
     const auto trim = coils;
     const auto r = pc->R.getView(), b = pc->B.getView();

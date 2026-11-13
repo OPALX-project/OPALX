@@ -375,7 +375,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
-    apply(pc);
+    apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     // Extract the fields from the GPU
     Kokkos::deep_copy(hostE, pc->E.getView());
     Kokkos::fence();
@@ -489,7 +489,7 @@ TEST_F(TestVariableRFCavity, DeviceSamplesAllTimeModelsAtBorisMidpoint) {
         b(0) = initialB;
         Kokkos::deep_copy(pc->E.getView(), e);
         Kokkos::deep_copy(pc->B.getView(), b);
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         Kokkos::deep_copy(e, pc->E.getView());
         Kokkos::deep_copy(b, pc->B.getView());
         const double tm = t + 0.5 * dt;
@@ -557,7 +557,7 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
     bunch->setT(-1.e-9);
     bunch->setdT(2.e-9);  // Peak field at the physical midpoint t=0.
     initialise(bunch.get());
-    apply(pc);
+    apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     Kokkos::deep_copy(e, pc->E.getView());
     Kokkos::deep_copy(b, pc->B.getView());
     for (size_t i = 0; i < samples.size(); ++i) {
@@ -639,7 +639,7 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
     bunch->setT(-1.e-9);
     bunch->setdT(2.e-9);
-    observed.runtime->apply(pc);
+    observed.runtime->apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     for (unsigned d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(fields(0)[d], hostE[d]);

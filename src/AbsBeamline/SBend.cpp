@@ -38,12 +38,13 @@ SBend::~SBend() = default;
 
 void SBend::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
-    online_m       = true;
+    takeDesignParticle(bunch);
+    online_m = true;
 }
 
 void SBend::finalise() { online_m = false; }
 
-void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -151,13 +152,7 @@ BendFieldModel::FieldInputs SBend::makeFieldInputs() const {
     // only known once a bunch is attached). This gives the correct bend direction for either
     // charge sign. Defaults to q = 1 when no bunch is attached (unit tests set the field
     // directly and are unaffected).
-    double charge = 1.0;
-    if (RefPartBunch_m != nullptr) {
-        const double q = RefPartBunch_m->getParticleContainer()->getReference()->getQ();
-        if (std::abs(q) > 1.0e-15) {
-            charge = q;
-        }
-    }
+    const double charge = designCharge_m;  // stored by initialise()
     // Read the pre-built host mirrors directly; no per-apply device->host copy.
     in.dipoleNormal = ((maxNormal_m > 0) ? normalComponentsHost_m(0) : 0.0) / charge;
     in.quadNormal   = ((maxNormal_m > 1) ? normalComponentsHost_m(1) : 0.0) / charge;
