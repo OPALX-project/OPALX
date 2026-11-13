@@ -13,6 +13,7 @@
 
 #include "Algorithms/BeamStop.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
+#include "Algorithms/Quaternion.hpp"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Distribution/SamplingBase.hpp"
@@ -49,6 +50,9 @@ struct TrackingSetup {
     /// The elements of the tracked line, in line order, built from the run description
     /// (opalx::run::buildElements()); ParallelTracker copies them into its OpalBeamline.
     std::vector<std::shared_ptr<ElementBase>> elements;
+    /// Start position and direction of the tracked line in the global frame.
+    Vector_t<double, 3> lineOrigin{0.0, 0.0, 0.0};
+    Quaternion lineDirection{1.0, 0.0, 0.0, 0.0};
 
     /// Step-size schedule, one entry per DT segment: time step (s), stop path length (m) and
     /// number of steps.

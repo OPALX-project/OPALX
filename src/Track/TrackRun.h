@@ -43,7 +43,7 @@ class EmissionSource;
 class GlobalProcess;
 class H5PartWrapper;
 class Inform;
-class Tracker;
+class ParallelTracker;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -141,7 +141,7 @@ private:
     // system, then the particle bunch. Algorithm destructors never observe dangling particles.
     std::unique_ptr<bunch_type> bunch_m;
     std::unique_ptr<opalx::spacecharge::SpaceChargeSolver> spaceChargeSolver_m;
-    std::unique_ptr<Tracker> itsTracker_m;
+    std::unique_ptr<ParallelTracker> itsTracker_m;
 
     /// Distributions referenced by all emission sources (non-owning raw pointers).
     std::vector<Distribution*> distrs_m;

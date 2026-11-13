@@ -1,6 +1,5 @@
 set (_SRCS
     AbstractTimeDependence.cpp
-    AbstractTracker.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     DistributionMoments.cpp
@@ -22,14 +21,12 @@ set (_SRCS
     SplineTimeDependence.cpp
     SinusoidalTimeDependence.cpp
     StepSizeConfig.cpp
-    Tracker.cpp
     CoordinateSystemTrafo.cpp
     Quaternion.cpp
 )
 
 set (HDRS
     AbstractTimeDependence.h
-    AbstractTracker.h
     BeamStop.h
     CavityAutophaser.h
     CompensatedSum.h
@@ -57,7 +54,6 @@ set (HDRS
     SplineTimeDependence.h
     SinusoidalTimeDependence.h
     StepSizeConfig.h
-    Tracker.h
     Matrix.h
     CoordinateSystemTrafo.h
     Quaternion.hpp

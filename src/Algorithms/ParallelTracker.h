@@ -28,7 +28,6 @@
 #include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
-#include "Algorithms/Tracker.h"
 #include "Algorithms/TrackingSetup.h"
 #include "Steppers/BorisPusher.h"
 #include "Steppers/SpinTBMTPusher.h"
@@ -92,7 +91,7 @@ namespace opalx::spacecharge {
  * @note TRACK and RUN in the input file construct a ParallelTracker and run
  *       ParallelTracker::execute().
  */
-class ParallelTracker : public Tracker {
+class ParallelTracker {
 public:
     // Localized TURNS (TrackingSetup::requestedTurns): stop at the Nth forward reference return
     // (single container, supported magnetic/RF elements, no ongoing emission). The complete bunch
@@ -112,6 +111,8 @@ public:
 
 private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
+    /// The particle bunch to track. Borrowed; TrackRun owns it.
+    PartBunch_t* itsBunch_m;
     /// OPTION values of this RUN; the tracker reads no Options:: globals.
     opalx::run::OptionValues options_m;
     /// The elements of the tracked line, built from the run description (TrackingSetup).
@@ -237,16 +238,15 @@ private:
 public:
     /**
      * @brief Construct the tracker for one RUN.
-     * @param bl    Beamline definition.
      * @param setup Everything TrackRun built for this RUN; setup.bunch must be set.
      */
-    ParallelTracker(const Beamline& bl, TrackingSetup setup);
+    explicit ParallelTracker(TrackingSetup setup);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
     /// @brief Run the main tracking loop until all step-size segments complete.
-    void execute() override;
+    void execute();
 
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.

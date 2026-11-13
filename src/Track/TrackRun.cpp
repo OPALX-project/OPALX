@@ -311,8 +311,7 @@ void TrackRun::execute() {
         return;
     }
 
-    itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), buildTracking(description));
+    itsTracker_m = std::make_unique<ParallelTracker>(buildTracking(description));
     itsTracker_m->execute();
 }
 
@@ -640,9 +639,11 @@ TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& descript
     setup.restartDt            = restartMetadata.dt;
     setup.restartPosition      = StepSizeConfig::ResumePosition{
             restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
-    setup.ringPeriod = ringPeriod;
-    setup.options    = description.options;
-    setup.elements   = opalx::run::buildElements(description.line);
+    setup.ringPeriod    = ringPeriod;
+    setup.options       = description.options;
+    setup.elements      = opalx::run::buildElements(description.line);
+    setup.lineOrigin    = Track::block->use->fetchLine()->getOrigin3D();
+    setup.lineDirection = Track::block->use->fetchLine()->getInitialDirection();
     if (Track::block->initialOrbit) {
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),

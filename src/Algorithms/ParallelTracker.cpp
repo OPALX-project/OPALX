@@ -92,8 +92,8 @@ namespace {
 /**
  * @brief Construct the tracker from what TrackRun built for one RUN.
  */
-ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
-    : Tracker(beamline, *setup.bunch, false, false),
+ParallelTracker::ParallelTracker(TrackingSetup setup)
+    : itsBunch_m(setup.bunch),
       options_m(setup.options),
       lineElements_m(std::move(setup.elements)),
       bareTracking_m(setup.bareTracking),
@@ -109,7 +109,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
       spaceChargeSolver_m(setup.spaceChargeSolver),
       dirichletPlane_m(std::move(setup.dirichletPlane)),
       spaceChargeContainerActivity_m(),
-      itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
+      itsOpalBeamline_m(setup.lineOrigin, setup.lineDirection),
       referenceHitMaterial_m(false),
       beamStops_m(std::move(setup.beamStops)),
       sStart_m(setup.sStart),
