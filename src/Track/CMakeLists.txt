@@ -1,5 +1,6 @@
 set (_SRCS
     CofCmd.cpp
+    BuildElements.cpp
     DecayChain.cpp
     FreezeRun.cpp
     RunDescriptionWriter.cpp
@@ -13,6 +14,7 @@ set (_SRCS
 
 set (HDRS
     CofCmd.h
+    BuildElements.h
     DecayChain.h
     FreezeRun.h
     RunDescription.h
