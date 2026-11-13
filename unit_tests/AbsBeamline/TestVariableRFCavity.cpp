@@ -579,8 +579,8 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
     finalise();
 }
 
-TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
-    // Exercise real visitor dispatch without executing an OPALX tracking run.
+TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
+    // Exercise the tracker's element registration without executing an OPALX tracking run.
     // Previously the inherited DefaultVisitor handler silently dropped this
     // element, despite the cavity's direct host/device field tests passing.
     struct Observation {
@@ -603,12 +603,6 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
         }
         Observation& state;
     } cavity(observed);
-    struct BorrowedBunchTracker final : ParallelTracker {
-        BorrowedBunchTracker(const Beamline& line, PartBunch_t& bunch)
-            : ParallelTracker(line, false) {
-            itsBunch_m = &bunch;
-        }
-    };
     AbstractTimeDependence::setTimeDependence(
             "REGISTER_RF_A", std::make_shared<PolynomialTimeDependence>(std::vector{0.05}));
     AbstractTimeDependence::setTimeDependence(
@@ -624,9 +618,11 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
     cavity.setHeight(0.2);
     const auto bunch = makeBunch(1);
     const auto pc    = bunch->getParticleContainer();
-    FlaggedBeamline line;
-    BorrowedBunchTracker tracker(line, *bunch);
-    cavity.accept(tracker);
+    // ParallelTracker copies every element whose trackedAs() is FieldElement into its
+    // OpalBeamline with addElement().
+    ASSERT_EQ(cavity.trackedAs(), TrackedAs::FieldElement);
+    OpalBeamline lattice;
+    lattice.addElement(cavity, *bunch);
     ASSERT_EQ(observed.clones, 1u);
     ASSERT_EQ(observed.attached, bunch.get());
     ASSERT_NE(observed.runtime, nullptr);

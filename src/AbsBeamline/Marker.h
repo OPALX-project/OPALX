@@ -45,6 +45,7 @@ public:
     virtual void finalise() override;
 
     virtual ElementType getType() const override;
+    TrackedAs trackedAs() const override { return TrackedAs::Ignored; }
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

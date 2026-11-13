@@ -140,6 +140,14 @@ struct StepTime {
     long long step = 0;    ///< Global step number.
 };
 
+/// How ParallelTracker uses an element of the tracked line.
+enum class TrackedAs {
+    FieldElement,   ///< Copied into OpalBeamline: applies its field or aperture, or records.
+    Ignored,        ///< Left out of tracking (MARKER, VERTICALFFAMAGNET).
+    ProbeRecorder,  ///< Configures the PROBE recorder; not copied.
+    Unsupported     ///< Tracking it is an error (LASER).
+};
+
 class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /* ========================= Construction & lifecycle ====================== */
@@ -386,6 +394,9 @@ public:
      *               false when it is placed by ELEMEDGE.
      */
     virtual void prepareForPlacement(bool /*byPose*/) {}
+
+    /// How ParallelTracker uses this element; most elements are field elements.
+    virtual TrackedAs trackedAs() const { return TrackedAs::FieldElement; }
 
     /* =============================== Aperture ================================ */
 

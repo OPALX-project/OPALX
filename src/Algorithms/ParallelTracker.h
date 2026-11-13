@@ -109,14 +109,6 @@ public:
     // ordinary step sequence independently of any diagnostic probe selection.
     // Checkpoint/restart and solver configurations that cannot repeat midpoint
     // trials retain fixed Boris/PIC steps with spatial field selection.
-    void visitCyclotronSector(const CyclotronSector& sector) override {
-        itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
-    }
-
-    /// Register global diagnostics separately from field/placement elements.
-    void visitProbe(const Probe& probe) override {
-        probeConfigs_m.push_back(CyclotronProbeRecorder::configuration(probe));
-    }
 
 private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
@@ -146,6 +138,13 @@ private:
      *         already at the end of the schedule).
      */
     bool prepareTracking();
+    /**
+     * @brief Copy the elements of @p line, in order and entering nested lines, into
+     *        itsOpalBeamline_m. ElementBase::trackedAs() says what happens to each: field
+     *        elements are copied, PROBE configures the recorder, MARKER is left out and LASER
+     *        is an error.
+     */
+    void addLineElements(const Beamline& line);
     /// Bunch time, time step and step number of the current step, passed to element apply().
     StepTime stepTime() const {
         return {itsBunch_m->getT(), itsBunch_m->getdT(),
@@ -234,14 +233,6 @@ private:
 
 public:
     /**
-     * @brief Construct tracker with beamline only (no bunch attached here).
-     * @param bl       Beamline definition.
-     * @param revBeam  If true, reversed beam direction (s = C to 0); OPAL-T parallel
-     *                 tracking is forward-only; revTrack is not used.
-     */
-    explicit ParallelTracker(const Beamline& bl, bool revBeam);
-
-    /**
      * @brief Construct the tracker for one RUN.
      * @param bl    Beamline definition.
      * @param setup Everything TrackRun built for this RUN; setup.bunch must be set.
@@ -250,72 +241,6 @@ public:
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
-
-    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
-    /// DefaultVisitor.
-    void visitBeamline(const Beamline&) override;
-
-    /// @brief Visit a generic element using the base tracker behavior.
-    void visitElementBase(const ElementBase&) override;
-
-    /// @brief Apply the algorithm to a constant E-field cavity.
-    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
-
-    /// @brief Apply the algorithm to a constant linear focusing element.
-    void visitConstantFocusing(const ConstantFocusing&) override;
-    /// @brief Apply the algorithm to a box absorber.
-    void visitBox(const Box&) override;
-
-    /// @brief Apply the algorithm to a collimator.
-    void visitCollimator(const Collimator&) override;
-
-    /// @brief Apply the algorithm to a drift.
-    void visitDrift(const Drift&) override;
-
-    /// @brief Apply the algorithm to a field-map-driven element.
-    void visitFieldmapElement(const FieldmapElement&) override;
-
-    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
-    void visitLaser(const Laser&) override;
-
-    /// @brief Apply the algorithm to a monitor.
-    void visitMonitor(const Monitor&) override;
-
-    /// @brief Apply the algorithm to a marker.
-    void visitMarker(const Marker&) override;
-
-    /// @brief Apply the algorithm to a multipole.
-    void visitMultipole(const Multipole&) override;
-
-    /// @brief Apply the algorithm to a multipole (templated type).
-    void visitMultipoleT(const MultipoleT&) override;
-
-    /// @brief Apply the algorithm to a rectangular bend.
-    void visitRBend(const RBend&) override;
-
-    /// @brief Apply the algorithm to an RF cavity.
-    void visitRFCavity(const RFCavity&) override;
-
-    /// @brief Register and initialise an analytic time-dependent RF cavity.
-    void visitVariableRFCavity(const VariableRFCavity&) override;
-
-    /// @brief Apply the algorithm to a sector bend.
-    void visitSBend(const SBend&) override;
-
-    /// @brief Null op, as everywhere. Why does this exist?
-    void visitScalingFFAMagnet(const ScalingFFAMagnet&) override;
-
-    /// @brief Apply the algorithm to a traveling wave cavity.
-    void visitTravelingWave(const TravelingWave&) override;
-
-    /// @brief Apply the algorithm to a solenoid.
-    void visitSolenoid(const Solenoid&) override;
-
-    void visitEnge(const endfieldmodel::Enge&) override;
-
-    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
-
-    void visitTanh(const endfieldmodel::Tanh&) override;
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     void execute() override;
@@ -506,79 +431,5 @@ private:
     /// @brief Restore cavity phases from a prior track or restart.
     void restoreCavityPhases();
 };
-
-inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
-    itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
-    itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitBox(const Box& box) {
-    itsOpalBeamline_m.visit(box, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitCollimator(const Collimator& coll) {
-    itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitDrift(const Drift& drift) {
-    itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
-    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
-    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMarker(const Marker& marker) {
-    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMultipole(const Multipole& mult) {
-    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
-    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitRBend(const RBend& bend) {
-    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
-    itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitVariableRFCavity(const VariableRFCavity& cavity) {
-    itsOpalBeamline_m.visit(cavity, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitSBend(const SBend& bend) {
-    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& ffa) {
-    itsOpalBeamline_m.visit(ffa, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
-    itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
-    itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitEnge(const endfieldmodel::Enge&) {}
-
-inline void ParallelTracker::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
-
-inline void ParallelTracker::visitTanh(const endfieldmodel::Tanh&) {}
 
 #endif  // OPALX_ParallelTracker_HH

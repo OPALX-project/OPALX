@@ -110,6 +110,12 @@ public:
     template <class T>
     void visit(const T&, BeamlineVisitor&, PartBunch_t&);
 
+    /**
+     * @brief Add a copy of @p element to the tracked elements and call its initialise().
+     * @note The copy gets the next line index (see ElementBase::getLineIndex()).
+     */
+    void addElement(const ElementBase& element, PartBunch_t& bunch);
+
     void prepareSections();
     void compute3DLattice();
     void save3DLattice();
@@ -150,9 +156,8 @@ private:
     CoordinateSystemTrafo coordTransformationTo_m;
 };
 
-template <class T>
-inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
+inline void OpalBeamline::addElement(const ElementBase& element, PartBunch_t& bunch) {
+    std::shared_ptr<ElementBase> elptr(element.clone());
 
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
@@ -162,6 +167,11 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
     elementMapping_m.reset();
+}
+
+template <class T>
+inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
+    addElement(element, bunch);
 }
 
 template <>

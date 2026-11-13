@@ -140,6 +140,8 @@ public:
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
+    /// Not tracked by ParallelTracker.
+    TrackedAs trackedAs() const override { return TrackedAs::Ignored; }
 
     /** Get the fringe field
      *

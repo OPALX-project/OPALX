@@ -53,6 +53,7 @@ public:
     virtual double getStep() const;
     ///@}
     virtual ElementType getType() const override;
+    TrackedAs trackedAs() const override { return TrackedAs::ProbeRecorder; }
 
 private:
     /// Initialise peakfinder file

@@ -90,30 +90,6 @@ namespace {
 // --- Constructors ---
 
 /**
- * @brief Construct tracker from a beamline only (see class constructor overload).
- */
-ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
-    : Tracker(beamline, revBeam, false),
-      itsDataSink_m(),
-      spaceChargeSolver_m(nullptr),
-      dirichletPlane_m(),
-      spaceChargeContainerActivity_m(),
-      itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      referenceHitMaterial_m(false),
-      sStart_m(0.0),
-      ringPeriod_m(0.0),
-      dtCurrentTrack_m(0.0),
-      restarting_m(false),
-      restartGlobalStep_m(0),
-      restartDt_m(0.0),
-      restartPosition_m({0, 0}),
-      timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
-      timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
-      fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {}
-
-/**
  * @brief Construct the tracker from what TrackRun built for one RUN.
  */
 ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
@@ -171,46 +147,32 @@ void ParallelTracker::initializeSpaceChargeContainerActivity() {
         }
     }
 }
-// --- Visit functions ---
+// --- Element list ---
 
-/**
- * @copybrief ParallelTracker::visitElementBase
- */
-void ParallelTracker::visitElementBase(const ElementBase& comp) {
-    if (comp.getType() == ElementType::LASER) {
-        throw LogicalError(
-                "ParallelTracker::visitElementBase()",
-                "Tracking of the \"LASER\" element is not implemented yet.");
+void ParallelTracker::addLineElements(const Beamline& line) {
+    for (const FlaggedElmPtr& entry : static_cast<const FlaggedBeamline&>(line)) {
+        const ElementBase& element = *entry.getElement();
+        if (element.getType() == ElementType::BEAMLINE) {
+            addLineElements(static_cast<const Beamline&>(element));
+            continue;
+        }
+        switch (element.trackedAs()) {
+            case TrackedAs::FieldElement:
+                itsOpalBeamline_m.addElement(element, *itsBunch_m);
+                break;
+            case TrackedAs::ProbeRecorder:
+                probeConfigs_m.push_back(
+                        CyclotronProbeRecorder::configuration(static_cast<const Probe&>(element)));
+                break;
+            case TrackedAs::Unsupported:
+                throw LogicalError(
+                        "ParallelTracker::addLineElements()",
+                        "Tracking of the \"" + Util::toUpper(element.getTypeString())
+                                + "\" element is not implemented yet.");
+            case TrackedAs::Ignored:
+                break;
+        }
     }
-    Tracker::visitElementBase(comp);
-}
-
-void ParallelTracker::visitLaser(const Laser&) {
-    throw LogicalError(
-            "ParallelTracker::visitLaser()",
-            "Tracking of the \"LASER\" element is not implemented yet.");
-}
-
-/**
- * @brief Iterate beamline elements and dispatch into OpalBeamline.
- * @param bl Flagged beamline whose elements are visited.
- */
-void ParallelTracker::visitBeamline(const Beamline& bl) {
-    const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
-    /*
-    if (fbl->getRelativeFlag()) {
-        OpalBeamline stash(fbl->getOrigin3D(), fbl->getInitialDirection());
-        stash.swap(itsOpalBeamline_m);
-        fbl->iterate(*this, false);
-        itsOpalBeamline_m.prepareSections();
-        itsOpalBeamline_m.compute3DLattice();
-        stash.merge(itsOpalBeamline_m);
-        stash.swap(itsOpalBeamline_m);
-    } else {
-        fbl->iterate(*this, false);
-    }
-    */
-    fbl->iterate(*this, false);
 }
 
 // --- execute() ---
@@ -2215,15 +2177,10 @@ void ParallelTracker::evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc) {
  * @copybrief ParallelTracker::prepareSections
  */
 void ParallelTracker::prepareSections() {
-    // Calls ParallelTracker::visitBeamline() -> TBeamline::iterate() ->
-    // For each element:
-    // FlaggedElemPtr::accept() -> DefaultVisitor::visitFlaggedElmPtr() ->
-    // ElementBase::accept() -> ParallelTracker::visit[ElemName]() ->
-    // OpalBeamline::visit([ElemName], bunch):
-    // This initialises the ElementList elements_m object of OpalBeamline
-    // with clones of all the elements
+    // Copy every element of the line into itsOpalBeamline_m (OpalBeamline::addElement clones
+    // it and calls initialise()).
     probeConfigs_m.clear();
-    itsBeamline_m.accept(*this);
+    addLineElements(itsBeamline_m);
 
     // Sorts the elements in OpalBeamline::elements_m by starting position
     itsOpalBeamline_m.prepareSections();
