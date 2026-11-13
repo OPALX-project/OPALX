@@ -4,10 +4,6 @@ set (_SRCS
     LineTemplate.cpp
     Replacer.cpp
     Ring.cpp
-    Sequence.cpp
-    SequenceMember.cpp
-    SequenceParser.cpp
-    SequenceTemplate.cpp
     )
 
 set (HDRS
@@ -16,10 +12,6 @@ set (HDRS
     LineTemplate.h
     Replacer.h
     Ring.h
-    Sequence.h
-    SequenceMember.h
-    SequenceParser.h
-    SequenceTemplate.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
