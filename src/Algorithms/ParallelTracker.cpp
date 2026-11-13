@@ -156,7 +156,7 @@ void ParallelTracker::addLineElements() {
         const ElementBase& element = *built;
         switch (element.trackedAs()) {
             case TrackedAs::FieldElement:
-                itsOpalBeamline_m.addElement(element, *itsBunch_m);
+                itsOpalBeamline_m.addElement(built, *itsBunch_m);
                 break;
             case TrackedAs::ProbeRecorder:
                 probeConfigs_m.push_back(
@@ -2176,8 +2176,8 @@ void ParallelTracker::evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc) {
  * @copybrief ParallelTracker::prepareSections
  */
 void ParallelTracker::prepareSections() {
-    // Copy every element built for this RUN into itsOpalBeamline_m (OpalBeamline::addElement
-    // clones it and calls initialise()).
+    // Hand every element built for this RUN to itsOpalBeamline_m (OpalBeamline::addElement
+    // calls initialise()).
     probeConfigs_m.clear();
     addLineElements();
 

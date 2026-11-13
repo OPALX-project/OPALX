@@ -115,6 +115,11 @@ public:
      * @note The copy gets the next line index (see ElementBase::getLineIndex()).
      */
     void addElement(const ElementBase& element, PartBunch_t& bunch);
+    /**
+     * @brief Add @p element itself (no copy) to the tracked elements and call its initialise().
+     * @note For elements built for one RUN only (opalx::run::buildElements()).
+     */
+    void addElement(std::shared_ptr<ElementBase> element, PartBunch_t& bunch);
 
     void prepareSections();
     void compute3DLattice();
@@ -157,13 +162,15 @@ private:
 };
 
 inline void OpalBeamline::addElement(const ElementBase& element, PartBunch_t& bunch) {
-    std::shared_ptr<ElementBase> elptr(element.clone());
+    addElement(std::shared_ptr<ElementBase>(element.clone()), bunch);
+}
 
+inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBunch_t& bunch) {
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
     elptr->setLineIndex(elements_m.size() + 1);
-    elements_m.push_back(elptr);
+    elements_m.push_back(std::move(elptr));
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
     elementMapping_m.reset();

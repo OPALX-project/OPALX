@@ -143,8 +143,8 @@ private:
      */
     bool prepareTracking();
     /**
-     * @brief Copy the elements built for this RUN (lineElements_m) into itsOpalBeamline_m.
-     *        ElementBase::trackedAs() says what happens to each: field elements are copied,
+     * @brief Hand the elements built for this RUN (lineElements_m) to itsOpalBeamline_m.
+     *        ElementBase::trackedAs() says what happens to each: field elements are added,
      *        PROBE configures the recorder, MARKER is left out and LASER is an error.
      */
     void addLineElements();
