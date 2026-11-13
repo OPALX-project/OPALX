@@ -364,6 +364,11 @@ namespace opalx::spacecharge {
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
+        if (config_m.repeatCount > 0) {
+            // Neighbouring bunches are a lab distance apart along z; the rest-frame solve
+            // stretches that distance with hz.
+            poissonRequest.repeatSpacing = gamma * config_m.repeatSpacing;
+        }
         if (primary_m->hasP3MLayout()) {
             // The mesh split follows the cutoff the domain updater gave the overlap layout.
             const double cutoff      = primary_m->getP3MLayout().getCutoff();

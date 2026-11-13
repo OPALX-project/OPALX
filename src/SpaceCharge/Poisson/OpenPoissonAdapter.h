@@ -25,6 +25,9 @@ namespace opalx::spacecharge {
 
     protected:
         void solveImpl(const PoissonSolveRequest& request) override {
+            if (request.repeatSpacing.has_value()) {
+                backend_m->updateParameter("repeat_spacing", *request.repeatSpacing);
+            }
             kernelRestore_m.solve(*backend_m, request);
         }
         void rebuildImpl(PoissonFieldBinding fields) override {
@@ -37,6 +40,8 @@ namespace opalx::spacecharge {
                     "greens_function", config_m.greenFunction == GreenFunctionType::Standard
                                                ? NativeBackend::STANDARD
                                                : NativeBackend::INTEGRATED);
+            parameters.add("repeat_count", config_m.repeatCount);
+            parameters.add("repeat_spacing", config_m.repeatSpacing);
             backend.mergeParameters(parameters);
             detail::bindFields(backend, fields);
         }

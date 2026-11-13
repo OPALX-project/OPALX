@@ -116,6 +116,12 @@ namespace opalx::spacecharge {
                         "Dirichlet planes require TYPE=OPEN, or TYPE=P3M with OPEN domain "
                         "boundaries and SHIFTED_GREENS_FUNCTION.");
             }
+            if (config.dirichletPlane.enabled() && config.repeatCount > 0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "REPEATS cannot be combined with a Dirichlet plane: the image solve "
+                        "does not include the bunch copies.");
+            }
             if (config.dirichletPlane.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
@@ -152,8 +158,10 @@ namespace opalx::spacecharge {
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
-        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions,
-                config.p3mCutoffCells};
+        return {config.backend,        config.greenFunction,
+                config.p3mCutoff,      config.boundaryConditions,
+                config.p3mCutoffCells, config.repeatCount,
+                config.repeatSpacing};
     }
 
     void validatePoissonSolverConfig(const PoissonSolverConfig& config) {
@@ -212,6 +220,17 @@ namespace opalx::spacecharge {
                     "validateSpaceChargeConfig",
                     "P3M requires exactly one finite positive cutoff, RCUT in metres or "
                     "RCUT_CELLS in mesh spacings; other backends require neither.");
+        }
+        if (config.repeatCount < 0
+            || (config.repeatCount > 0
+                && (!(config.repeatSpacing > 0.0) || !std::isfinite(config.repeatSpacing)
+                    || !allOpen
+                    || (config.type != PoissonSolverType::Open
+                        && config.type != PoissonSolverType::P3M)))) {
+            throw OpalException(
+                    "validateSpaceChargeConfig",
+                    "REPEATS needs a finite positive REPEAT_SPACING and TYPE=OPEN or TYPE=P3M "
+                    "with OPEN domain boundaries.");
         }
     }
 

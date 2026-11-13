@@ -369,6 +369,8 @@ namespace opalx::spacecharge {
                 fieldSolver.hasP3MCutoffCells()
                 || (values.backend == PoissonSolverType::P3M && !fieldSolver.hasP3MCutoff());
         values.p3mCutoffCells = meshTiedCutoff ? fieldSolver.getP3MCutoffCells() : 0.0;
+        values.repeatCount    = fieldSolver.getRepeatCount();
+        values.repeatSpacing  = fieldSolver.getRepeatSpacing();
         values.periodicBox    = fieldSolver.getPeriodicBox();
         values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
