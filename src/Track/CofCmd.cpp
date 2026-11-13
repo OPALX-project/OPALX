@@ -12,15 +12,14 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "Structure/Beam.h"
+#include "Track/BuildElements.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -105,18 +104,25 @@ namespace {
         std::string output;
     };
 
-    class LatticeVisitor : public DefaultVisitor {
-        OpalBeamline& lattice;
-        PartBunch_t& bunch;
-        std::string owner;
-        void applyDefault(const ElementBase& element) override {
-            if (!element.getName().empty() && element.getName().front() == '#') return;
+    /**
+     * Add the elements built for the RING to @p lattice, in line order, and return the added
+     * ones except markers. The #S and #E markers, MONITOR and PROBE are left out.
+     */
+    std::vector<std::shared_ptr<ElementBase>> addRingElements(
+            const opalx::run::LineDescription& line,
+            const std::vector<std::shared_ptr<ElementBase>>& elements, OpalBeamline& lattice,
+            PartBunch_t& bunch) {
+        std::vector<std::shared_ptr<ElementBase>> ordered;
+        for (std::size_t i = 0; i < elements.size(); ++i) {
+            require(!line.elements[i].reflected, "Reflected COF members are unsupported.");
+            const ElementBase& element = *elements[i];
+            if (!element.getName().empty() && element.getName().front() == '#') continue;
             const auto type = element.getType();
             // Diagnostics are passive for scalar optics. Keep PROBE outside
             // magnetic placement and do not construct sinks or histories while
             // COF tracks trial rays. The same ring can then serve COF and TRACK
             // without trial crossings contaminating or overwriting real output.
-            if (type == ElementType::MONITOR || type == ElementType::PROBE) return;
+            if (type == ElementType::MONITOR || type == ElementType::PROBE) continue;
             static constexpr std::array acceptedTypes{
                     ElementType::DRIFT,           ElementType::MARKER, ElementType::MULTIPOLE,
                     ElementType::SBEND,           ElementType::RBEND,  ElementType::CYCLOTRONSECTOR,
@@ -124,29 +130,11 @@ namespace {
             require(std::find(acceptedTypes.begin(), acceptedTypes.end(), type)
                             != acceptedTypes.end(),
                     "Unsupported element in static magnetic COF: " + element.getName());
-            require(element.getBeamlineMembership().ownerName == owner
-                            && element.getBeamlineTopology() == BeamlineTopology::RING,
-                    "Ambiguous ring membership for " + element.getName());
-            const auto before = lattice.getElements();
-            lattice.visit(element, *this, bunch);
-            for (const auto& added : lattice.getElements())
-                if (!before.count(added) && type != ElementType::MARKER) ordered.push_back(added);
+            lattice.addElement(elements[i], bunch);
+            if (type != ElementType::MARKER) ordered.push_back(elements[i]);
         }
-
-    public:
-        std::vector<std::shared_ptr<ElementBase>> ordered;
-        LatticeVisitor(
-                const Beamline& line, OpalBeamline& runtime, PartBunch_t& reference,
-                std::string name)
-            : DefaultVisitor(line, false, false),
-              lattice(runtime),
-              bunch(reference),
-              owner(std::move(name)) {}
-        void visitFlaggedElmPtr(const FlaggedElmPtr& pointer) override {
-            require(!pointer.getReflectionFlag(), "Reflected COF members are unsupported.");
-            DefaultVisitor::visitFlaggedElmPtr(pointer);
-        }
-    };
+        return ordered;
+    }
 
     // Aperture ownership is independent of field-candidate selection. Conventional
     // bodies use the nearest finite centreline; circular FFA/cyclotron elements
@@ -411,15 +399,17 @@ namespace {
     // All ranks build the empty reference container once; scalar ray work and files
     // are rank-zero only. Broadcast diagnostic text before throwing on solver failure.
     ClosedOrbitInitialState calculate(
-            BeamSequence& sequence, Beam& beam, const Controls& c, const RunSettings& s) {
-        sequence.prepareForTracking();
+            BeamSequence& sequence, const opalx::run::LineDescription& line, Beam& beam,
+            const Controls& c, const RunSettings& s) {
         // COF needs only empty particle storage for element initialization, not a solver.
         const opalx::spacecharge::CartesianDomainConfig3D domain;
         PartBunch_t bunch({beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", domain);
         OpalBeamline lattice(
-                sequence.fetchLine()->getOrigin3D(), sequence.fetchLine()->getInitialDirection());
-        LatticeVisitor visitor(*sequence.fetchLine(), lattice, bunch, sequence.getOpalName());
-        visitor.execute();
+                Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
+                Quaternion(
+                        line.direction[0], line.direction[1], line.direction[2],
+                        line.direction[3]));
+        const auto ordered = addRingElements(line, opalx::run::buildElements(line), lattice, bunch);
         lattice.prepareSections();
         int rank = 0;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -432,7 +422,7 @@ namespace {
         state.species = beam.getParticleName();
         std::string error, report;
         if (rank == 0) try {
-                report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, state);
+                report = solveAndReport(sequence, beam, lattice, ordered, c, s, state);
             } catch (const OpalException& ex) {
                 error = ex.what();
             } catch (const std::exception& ex) {
@@ -509,8 +499,10 @@ void CofCmd::execute() {
     OpalData::getInstance()->hasCofRun = true;
     require(!OpalData::getInstance()->inRestartRun(), "COF does not support restart mode.");
     auto* sequence = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
-    require(sequence->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING,
-            "LINE must name a RING.");
+    // The RING as it is now: elements are built from this description, not from the parsed
+    // objects.
+    const opalx::run::LineDescription line = opalx::run::describeLine(*sequence);
+    require(line.topology == "RING", "LINE must name a RING.");
     auto* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
     require(beam->hasExplicitEnergy(), "BEAM requires explicit PC, ENERGY (total GeV) or GAMMA.");
     require(beam->getGlobalProcessNames().empty(), "COF does not support BEAM global processes.");
@@ -536,7 +528,8 @@ void CofCmd::execute() {
     c.integrator = ExternalFieldRayTracker::parseIntegrationMethod(
             Attributes::getString(itsAttr[TIMEINTEGRATOR]));
     c.section = CoordinateSystemTrafo(
-            sequence->fetchLine()->getOrigin3D(), sequence->fetchLine()->getInitialDirection());
+            Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
+            Quaternion(line.direction[0], line.direction[1], line.direction[2], line.direction[3]));
     if (!itsAttr[SECTION].defaultUsed()) {
         const auto v = Attributes::getRealArray(itsAttr[SECTION]);
         require(v.size() == 6, "SECTION requires X,Y,Z,THETA,PHI,PSI.");
@@ -570,7 +563,7 @@ void CofCmd::execute() {
         s.output = Attributes::getString(itsAttr[OUTPUT]);
         require(!s.output.empty(), "Explicit OUTPUT must not be empty.");
     }
-    result_m = calculate(*sequence, *beam, c, s);
+    result_m = calculate(*sequence, line, *beam, c, s);
 }
 
 const ClosedOrbitInitialState& CofCmd::findResult(const std::string& name) {
