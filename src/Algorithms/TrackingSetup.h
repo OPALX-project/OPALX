@@ -19,6 +19,7 @@
 #include "OPALTypes.h"
 #include "PartBunch/PartBunchFwd.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
+#include "Track/RunDescription.h"
 
 class DataSink;
 
@@ -75,6 +76,9 @@ struct TrackingSetup {
     /// Ring boundary control may repeat a step: only for solvers that allow that.
     bool allowBoundaryControl                     = true;
     SpaceChargeFieldUpdate spaceChargeFieldUpdate = SpaceChargeFieldUpdate::MIDPOINT;
+
+    /// OPTION values of this RUN (output frequencies, checkpoints, particle loss, ...).
+    opalx::run::OptionValues options;
 
     /// SPECTRALTUNES: start states and settings; empty tuneInitial means ordinary tracking.
     std::vector<double> tuneInitial;

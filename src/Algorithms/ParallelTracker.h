@@ -112,6 +112,8 @@ public:
 
 private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
+    /// OPTION values of this RUN; the tracker reads no Options:: globals.
+    opalx::run::OptionValues options_m;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
     bool allowBoundaryControl_m =

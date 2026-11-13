@@ -94,6 +94,7 @@ namespace {
  */
 ParallelTracker::ParallelTracker(const Beamline& beamline, TrackingSetup setup)
     : Tracker(beamline, *setup.bunch, false, false),
+      options_m(setup.options),
       bareTracking_m(setup.bareTracking),
       allowBoundaryControl_m(setup.allowBoundaryControl),
       initialOrbit_m(std::move(setup.initialOrbit)),
@@ -475,7 +476,7 @@ bool ParallelTracker::prepareTracking() {
     // the same fixed-step integration path.
     boundaryControlled_m =
             spatialRing_m && allowBoundaryControl_m && nContainers == 1 && !restarting_m
-            && Options::checkpointFreq <= 0
+            && options_m.checkpointFreq <= 0
             && !itsBunch_m->getBunchStateHandler()->fixedCartesianDomain().has_value() && emitted
             && !particleContainers.front()->hasSpin() && stepSizes_m.getdT() > 0;
     if (spatialRing_m) {
@@ -515,7 +516,7 @@ bool ParallelTracker::prepareTracking() {
         m << level1
           << "Ring tracking: spatial device field selection with fixed ordinary Boris/PIC steps. "
           << "Boundary refinement is disabled by:"
-          << (Options::checkpointFreq > 0 ? " checkpoint output;" : "")
+          << (options_m.checkpointFreq > 0 ? " checkpoint output;" : "")
           << (restarting_m ? " checkpoint restart;" : "")
           << (!allowBoundaryControl_m ? " solver, binning, or image-charge configuration;" : "")
           << (nContainers != 1 ? " multiple particle containers;" : "")
@@ -873,7 +874,7 @@ void ParallelTracker::trackSteps() {
                   << " particles outside a transverse aperture for deletion." << endl;
             }
 
-            const double sigmas = Options::boundpDestroy;
+            const double sigmas = options_m.boundpDestroy;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
@@ -919,17 +920,18 @@ void ParallelTracker::trackSteps() {
             if (probeRecorder && itsBunch_m->getGlobalTrackStep() % 100 == 0) probeRecorder->save();
 
             // Dump phase space and statistics at configured intervals
-            bool const psDump = Options::psDumpFreq > 0
-                                && ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
-                                    == Options::psDumpFreq);
-            bool const statDump = Options::statDumpFreq > 0
-                                  && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
-                                      == Options::statDumpFreq);
+            bool const psDump = options_m.psDumpFreq > 0
+                                && ((itsBunch_m->getGlobalTrackStep() % options_m.psDumpFreq) + 1
+                                    == options_m.psDumpFreq);
+            bool const statDump =
+                    options_m.statDumpFreq > 0
+                    && ((itsBunch_m->getGlobalTrackStep() % options_m.statDumpFreq) + 1
+                        == options_m.statDumpFreq);
             dumpStats(step, psDump, statDump);
 
-            if (Options::printRankDistrFreq > 0
-                && (itsBunch_m->getGlobalTrackStep() % Options::printRankDistrFreq) + 1
-                           == Options::printRankDistrFreq) {
+            if (options_m.printRankDistrFreq > 0
+                && (itsBunch_m->getGlobalTrackStep() % options_m.printRankDistrFreq) + 1
+                           == options_m.printRankDistrFreq) {
                 const auto& containers = itsBunch_m->getParticleContainers();
                 for (size_t i = 0; i < containers.size(); ++i) {
                     const auto& pc = containers[i];
@@ -1017,8 +1019,8 @@ void ParallelTracker::trackSteps() {
                                          || stepsCompletedInSegment == stepsInSegment
                                          || switchSegment;
 
-            if (Options::checkpointFreq > 0 && (!boundaryControlled_m || boundarySchedule->done())
-                && itsBunch_m->getGlobalTrackStep() % Options::checkpointFreq == 0) {
+            if (options_m.checkpointFreq > 0 && (!boundaryControlled_m || boundarySchedule->done())
+                && itsBunch_m->getGlobalTrackStep() % options_m.checkpointFreq == 0) {
                 const std::size_t nextSegment = segmentComplete ? segmentIndex + 1 : segmentIndex;
                 const unsigned long long nextSegmentSteps =
                         segmentComplete ? 0 : stepsCompletedInSegment;
@@ -1064,12 +1066,12 @@ void ParallelTracker::trackSteps() {
         }
     }
     if (probeRecorder) probeRecorder->save();
-    bool const psDump = Options::psDumpFreq > 0
-                        && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
-                            != Options::psDumpFreq);
-    bool const statDump = Options::statDumpFreq > 0
-                          && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::statDumpFreq) + 1
-                              != Options::statDumpFreq);
+    bool const psDump = options_m.psDumpFreq > 0
+                        && (((itsBunch_m->getGlobalTrackStep() - 1) % options_m.psDumpFreq) + 1
+                            != options_m.psDumpFreq);
+    bool const statDump = options_m.statDumpFreq > 0
+                          && (((itsBunch_m->getGlobalTrackStep() - 1) % options_m.statDumpFreq) + 1
+                              != options_m.statDumpFreq);
 
     writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump, statDump);
 
@@ -1480,7 +1482,7 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
         }
     }
 
-    if (Options::aggressiveStateSync) {
+    if (options_m.aggressiveStateSync) {
         // Preserve legacy state convergence across ranks: any active source keeps stretching
         // enabled, and the minimum emitted fraction supplies the most conservative domain length.
         bool globallyActive = progress.active;
@@ -1516,9 +1518,9 @@ void ParallelTracker::computeSpaceChargeFields() {
     }
 
     const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
-    if (totalParticles <= static_cast<size_t>(Options::minBinEmitted)) {
+    if (totalParticles <= static_cast<size_t>(options_m.minBinEmitted)) {
         m << level4
-          << "Skipping space charge until more than MINBINEMITTED=" << Options::minBinEmitted
+          << "Skipping space charge until more than MINBINEMITTED=" << options_m.minBinEmitted
           << " particles are present (total=" << totalParticles << ")." << endl;
         return;
     }
@@ -2537,7 +2539,8 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
     const size_t totalAll      = itsBunch_m->getTotalNumAllContainers();
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
-    const bool printStepInfo = Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
+    const bool printStepInfo =
+            options_m.stepInfoFreq > 0 && globalStep % options_m.stepInfoFreq == 0;
 
     if (totalAll == 0 && printStepInfo) {
         *gmsg << level1 << "* " << myt2.time() << " "

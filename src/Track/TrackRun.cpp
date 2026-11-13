@@ -308,12 +308,12 @@ void TrackRun::execute() {
     }
     if (opal_m->checkOnly) return;
 
-    itsTracker_m =
-            std::make_unique<ParallelTracker>(*Track::block->use->fetchLine(), buildTracking());
+    itsTracker_m = std::make_unique<ParallelTracker>(
+            *Track::block->use->fetchLine(), buildTracking(description));
     itsTracker_m->execute();
 }
 
-TrackingSetup TrackRun::buildTracking() {
+TrackingSetup TrackRun::buildTracking(const opalx::run::RunDescription& description) {
     OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
@@ -639,6 +639,7 @@ TrackingSetup TrackRun::buildTracking() {
     setup.restartPosition      = StepSizeConfig::ResumePosition{
             restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
     setup.ringPeriod = ringPeriod;
+    setup.options    = description.options;
     if (Track::block->initialOrbit) {
         Track::block->initialOrbit->validate(
                 Track::block->use->getOpalName(), beams.front()->getParticleName(),

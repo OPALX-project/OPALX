@@ -68,9 +68,10 @@ public:
      * @brief Build everything the tracker needs for this RUN: beams, particle containers,
      *        output, samplers or the checkpoint, the space-charge solver, the step-size
      *        schedule and the stop rules.
+     * @param description What freeze() read for this RUN; the OPTION values come from it.
      * @note Called by execute() after freeze() and validate().
      */
-    TrackingSetup buildTracking();
+    TrackingSetup buildTracking(const opalx::run::RunDescription& description);
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;
