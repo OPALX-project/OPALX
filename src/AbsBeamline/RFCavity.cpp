@@ -341,7 +341,9 @@ void RFCavity::goOffline() {
         online_m = false;
         return;
     }
+    // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
     Fieldmap::freeMap(filename_m);
+    fieldmap_m = nullptr;
 
     online_m = false;
 }

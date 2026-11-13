@@ -273,7 +273,12 @@ void TravelingWave::goOnline(const double&) {
     online_m = true;
 }
 
-void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
+void TravelingWave::goOffline() {
+    // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
+    Fieldmap::freeMap(filename_m);
+    fieldmap_m = nullptr;
+    online_m   = false;
+}
 
 void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
