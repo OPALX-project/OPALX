@@ -64,14 +64,10 @@ OpalCavity::OpalCavity()
             "FREQUENCY_MODEL", "The name of the frequency time dependence model.");
 
     registerOwnership();
-
-    setElement(new RFCavityRep("RFCAVITY"));
 }
 
 OpalCavity::OpalCavity(const std::string& name, OpalCavity* parent)
-    : OpalElement(name, parent), obgeo_m(nullptr) {
-    setElement(new RFCavityRep(name));
-}
+    : OpalElement(name, parent), obgeo_m(nullptr) {}
 
 OpalCavity::~OpalCavity() {}
 
@@ -82,8 +78,6 @@ std::shared_ptr<ElementBase> OpalCavity::build(const ElementValues& values) {
     fill(*element, values);
     return element;
 }
-
-void OpalCavity::update() { fill(*getElement(), getValues()); }
 
 void OpalCavity::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);
@@ -116,7 +110,7 @@ void OpalCavity::fill(ElementBase& element, const ElementValues& values) {
             || !values.getString("AMPLITUDE_MODEL").empty()
             || !values.getString("FREQUENCY_MODEL").empty())
             throw OpalException(
-                    "OpalCavity::update",
+                    "OpalCavity::build",
                     "SINGLEGAP uses SI geometry and X/Y/Z/THETA/PHI/PSI poses, PHI0, and static RF "
                     "parameters only.");
         rfc->configureCyclotronGap(

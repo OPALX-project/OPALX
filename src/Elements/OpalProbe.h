@@ -42,9 +42,6 @@ public:
     /// Make clone.
     virtual OpalProbe* clone(const std::string& name);
 
-    /// Update the embedded OPALX probe.
-    virtual void update();
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

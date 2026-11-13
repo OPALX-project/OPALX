@@ -44,14 +44,10 @@ OpalTravelingWave::OpalTravelingWave()
             "MODE", "The phase shift between neighboring cells in 2*pi", 1.0 / 3.0);
 
     registerOwnership();
-
-    setElement(new TravelingWaveRep("TRAVELINGWAVE"));
 }
 
 OpalTravelingWave::OpalTravelingWave(const std::string& name, OpalTravelingWave* parent)
-    : OpalElement(name, parent) {
-    setElement(new TravelingWaveRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalTravelingWave::~OpalTravelingWave() {}
 
@@ -64,8 +60,6 @@ std::shared_ptr<ElementBase> OpalTravelingWave::build(const ElementValues& value
     fill(*element, values);
     return element;
 }
-
-void OpalTravelingWave::update() { fill(*getElement(), getValues()); }
 
 void OpalTravelingWave::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

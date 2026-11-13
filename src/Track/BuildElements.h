@@ -31,13 +31,11 @@ namespace opalx::run {
     /**
      * @brief Build the runtime element of one line occurrence from its description.
      *
-     * The build function of the occurrence's keyword makes the runtime element from the
-     * attribute values in @p element. Keywords without a build function yet make an object
-     * from the keyword table, copy the attribute values the input set into it, and let its
-     * update() fill its runtime element. The parsed input objects are not used.
+     * The build function of the occurrence's keyword (OpalX::build()) makes the runtime
+     * element from the attribute values in @p element. The parsed input objects are not used.
      *
      * @throws OpalException if the keyword is unknown or an attribute the input set could not
-     *         be evaluated or has a type that cannot be copied.
+     *         be evaluated, or the attribute values are not valid for the element.
      */
     std::shared_ptr<ElementBase> buildElement(const ElementDescription& element);
 

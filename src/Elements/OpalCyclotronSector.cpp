@@ -38,12 +38,9 @@ OpalCyclotronSector::OpalCyclotronSector()
     itsAttr[BSCALE]   = Attributes::makeReal("BSCALE", "Base-map multiplier.", 1);
     itsAttr[TRIMCOIL] = Attributes::makeStringArray("TRIMCOIL", "Named trim-coil definitions.");
     registerOwnership();
-    setElement(new CyclotronSector("CYCLOTRONSECTOR"));
 }
 OpalCyclotronSector::OpalCyclotronSector(const std::string& name, OpalCyclotronSector* parent)
-    : OpalElement(name, parent) {
-    setElement(new CyclotronSector(name));
-}
+    : OpalElement(name, parent) {}
 OpalCyclotronSector* OpalCyclotronSector::clone(const std::string& name) {
     return new OpalCyclotronSector(name, this);
 }
@@ -52,8 +49,6 @@ std::shared_ptr<ElementBase> OpalCyclotronSector::build(const ElementValues& val
     fill(*element, values);
     return element;
 }
-
-void OpalCyclotronSector::update() { fill(*getElement(), getValues()); }
 
 void OpalCyclotronSector::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

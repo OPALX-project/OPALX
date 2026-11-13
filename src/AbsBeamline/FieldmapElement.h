@@ -48,7 +48,7 @@ class Fieldmap;
  * @note Placement is restricted to the 6D lab pose. ELEMEDGE positions an element by path
  *       length along the reference orbit, which needs the element's length along that orbit;
  *       this element's extent comes from its map and is not a path length. The rejection
- *       lives in OpalFieldmapElement::update().
+ *       lives in OpalFieldmapElement::build().
  */
 class FieldmapElement : public ElementBase {
 public:

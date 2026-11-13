@@ -33,15 +33,12 @@ public:
     virtual OpalCollimator* clone(const std::string& name);
 
     /**
-     * @brief Update the embedded OPALX collimator.
+     * @brief Build the runtime collimator of one occurrence from its attribute values.
      *
      * @throw OpalException if the input gives no APERTURE or a length L <= 0.
      *        Scraping only happens for z in [0, L) outside the aperture, so a
      *        collimator missing either would silently transmit everything.
      */
-    virtual void update();
-
-    /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
 private:

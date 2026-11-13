@@ -18,6 +18,7 @@
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "OpalConfigure/Configure.h"
+#include "Physics/Physics.h"
 #include "Track/BuildElements.h"
 #include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
@@ -63,24 +64,16 @@ namespace {
 
 }  // namespace
 
-TEST_F(BuildElementsTest, ElementMatchesTheOneOfTheInputObject) {
-    // The runtime element update() of the input object fills.
-    std::unique_ptr<Object> input = quadrupoleObject("Q1");
-    auto* quad                    = dynamic_cast<Element*>(input.get());
-    ASSERT_NE(quad, nullptr);
-    quad->update();
-    const auto* expected = dynamic_cast<const Multipole*>(quad->getElement());
-    ASSERT_NE(expected, nullptr);
-
+TEST_F(BuildElementsTest, ElementHasTheValuesOfTheInputObject) {
     const auto built = buildElement(quadrupole("Q1"));
     const auto* got  = dynamic_cast<const Multipole*>(built.get());
     ASSERT_NE(got, nullptr);
     EXPECT_EQ(got->getName(), "Q1");
-    EXPECT_EQ(got->getGeometry().getElementLength(), expected->getGeometry().getElementLength());
     EXPECT_EQ(got->getGeometry().getElementLength(), 0.1);
-    EXPECT_EQ(got->getElementPosition(), expected->getElementPosition());
-    EXPECT_EQ(got->getNormalComponent(1), expected->getNormalComponent(1));
-    EXPECT_NE(got->getNormalComponent(1), 0.0);
+    EXPECT_EQ(got->getElementPosition(), 0.3);
+    // K1 is a normalised strength; the element stores K1 * P0 / c.
+    EXPECT_DOUBLE_EQ(
+            got->getNormalComponent(1), 2.5 * OpalData::getInstance()->getP0() / Physics::c);
 }
 
 TEST_F(BuildElementsTest, AttributesTheInputDidNotSetKeepTheKeywordDefault) {

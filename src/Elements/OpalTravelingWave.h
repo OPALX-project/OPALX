@@ -48,9 +48,6 @@ public:
     /// Make clone.
     virtual OpalTravelingWave* clone(const std::string& name);
 
-    /// Update the embedded OPALX cavity.
-    virtual void update();
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

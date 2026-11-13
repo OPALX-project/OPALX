@@ -40,14 +40,11 @@ public:
     virtual OpalBox* clone(const std::string& name);
 
     /**
-     * @brief Update the embedded OPALX box.
+     * @brief Build the runtime box of one occurrence from its attribute values.
      *
      * @throw OpalException if WIDTH, HEIGHT or L is not > 0, or if APERTURE is
      *        given. A box has no aperture: it removes particles inside its body.
      */
-    virtual void update();
-
-    /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
 private:

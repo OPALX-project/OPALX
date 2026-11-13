@@ -14,8 +14,6 @@ public:
 
     virtual OpalConstantEFieldCavity* clone(const std::string& name);
 
-    virtual void update();
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

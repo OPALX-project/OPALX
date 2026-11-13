@@ -28,14 +28,10 @@ OpalCollimator::OpalCollimator()
               COMMON, "COLLIMATOR",
               "The \"COLLIMATOR\" element deletes particles that leave its transverse aperture.") {
     registerOwnership();
-
-    setElement(new CollimatorRep("COLLIMATOR"));
 }
 
 OpalCollimator::OpalCollimator(const std::string& name, OpalCollimator* parent)
-    : OpalElement(name, parent) {
-    setElement(new CollimatorRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalCollimator::~OpalCollimator() {}
 
@@ -49,8 +45,6 @@ std::shared_ptr<ElementBase> OpalCollimator::build(const ElementValues& values) 
     return element;
 }
 
-void OpalCollimator::update() { fill(*getElement(), getValues()); }
-
 void OpalCollimator::fill(ElementBase& element, const ElementValues& values) {
     // Applies the common attributes, including APERTURE and
     // DELETEONTRANSVERSEEXIT, to the embedded element.
@@ -60,7 +54,7 @@ void OpalCollimator::fill(ElementBase& element, const ElementValues& values) {
     // an absent aperture is an error rather than the wide-open default.
     if (!values.hasValue("APERTURE") || values.getString("APERTURE").empty()) {
         throw OpalException(
-                "OpalCollimator::update()",
+                "OpalCollimator::build",
                 "COLLIMATOR \"" + values.getName() + "\" requires an APERTURE");
     }
 
@@ -68,8 +62,7 @@ void OpalCollimator::fill(ElementBase& element, const ElementValues& values) {
     // mark a particle.
     if (values.getReal("L") <= 0.0) {
         throw OpalException(
-                "OpalCollimator::update()",
-                "COLLIMATOR \"" + values.getName() + "\" requires L > 0");
+                "OpalCollimator::build", "COLLIMATOR \"" + values.getName() + "\" requires L > 0");
     }
 
     const double length = values.getReal("L");

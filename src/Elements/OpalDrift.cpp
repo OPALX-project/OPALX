@@ -29,13 +29,9 @@ OpalDrift::OpalDrift()
             "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerOwnership();
-
-    setElement(new DriftRep("DRIFT"));
 }
 
-OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent) : OpalElement(name, parent) {
-    setElement(new DriftRep(name));
-}
+OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent) : OpalElement(name, parent) {}
 
 OpalDrift::~OpalDrift() {}
 
@@ -48,8 +44,6 @@ std::shared_ptr<ElementBase> OpalDrift::build(const ElementValues& values) {
     fill(*element, values);
     return element;
 }
-
-void OpalDrift::update() { fill(*getElement(), getValues()); }
 
 void OpalDrift::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

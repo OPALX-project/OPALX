@@ -55,9 +55,6 @@ public:
     /** Destructor does nothing */
     ~OpalVariableRFCavity() override = default;
 
-    /** Update the OpalVariableRFCavity with new parameters from UI parser */
-    void update() override;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

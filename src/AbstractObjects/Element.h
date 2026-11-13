@@ -85,17 +85,6 @@ public:
     //  If true, all references to this name are to the same object.
     virtual void setShared(bool);
 
-    /// Return the embedded OPALX element.
-    //  Return a pointer to the embedded OPALX ElementBase
-    inline ElementBase* getElement() const;
-
-    /// Return the embedded OPALX element as shared_ptr.
-    inline std::shared_ptr<ElementBase> getElementPtr() const;
-
-    /// Assign new OPALX element.
-    inline void setElement(ElementBase*);
-    inline void setElement(std::shared_ptr<ElementBase> base);
-
 protected:
     /// Constructor for exemplars.
     Element(int size, const char* name, const char* help);
@@ -108,27 +97,6 @@ private:
     Element();
     Element(const Element&);
     void operator=(const Element&);
-
-    // The embedded OPALX element.
-    std::shared_ptr<ElementBase> itsOPALXElement;
 };
-
-// Inline functions.
-// ------------------------------------------------------------------------
-
-inline ElementBase* Element::getElement() const { return &*itsOPALXElement; }
-
-inline std::shared_ptr<ElementBase> Element::getElementPtr() const { return itsOPALXElement; }
-
-inline void Element::setElement(ElementBase* base) {
-    if (base == itsOPALXElement.get()) {
-        return;
-    }
-    itsOPALXElement.reset(base);
-}
-
-inline void Element::setElement(std::shared_ptr<ElementBase> base) {
-    itsOPALXElement = std::move(base);
-}
 
 #endif  // OPAL_Element_HH

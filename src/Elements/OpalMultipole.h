@@ -45,9 +45,6 @@ public:
     //  Handle printing in OPAL-8 format.
     virtual void print(std::ostream&) const;
 
-    /// Update the embedded OPALX multipole.
-    virtual void update();
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

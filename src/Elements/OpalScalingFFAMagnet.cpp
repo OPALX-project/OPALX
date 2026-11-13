@@ -92,19 +92,10 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
             "from the magnet centre. Default is CENTRE_LENGTH/2.+5.*FRINGE_LENGTH [m].");
 
     registerOwnership();
-
-    auto magnet = std::make_shared<ScalingFFAMagnet>("SCALINGFFAMAGNET");
-    setElement(magnet);
-    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
 }
 
 OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent)
-    : OpalElement(name, parent) {
-    // The runtime element carries the name of the input object, as for every other element.
-    auto magnet = std::make_shared<ScalingFFAMagnet>(name);
-    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
-    setElement(magnet);
-}
+    : OpalElement(name, parent) {}
 
 OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {}
 
@@ -118,8 +109,6 @@ std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ElementValues& va
     fill(*magnet, values);
     return magnet;
 }
-
-void OpalScalingFFAMagnet::update() { fill(*getElement(), getValues()); }
 
 void OpalScalingFFAMagnet::setupDefaultEndField(
         ScalingFFAMagnet& magnet, const ElementValues& values) {
@@ -160,7 +149,7 @@ void OpalScalingFFAMagnet::fill(ElementBase& element, const ElementValues& value
     magnet.setDipoleConstant(values.getReal("B0"));
     if (values.hasValue("APERTURE")) {
         throw OpalException(
-                "OpalScalingFFAMagnet::update()", "SCALINGFFAMAGNET does not use APERTURE command");
+                "OpalScalingFFAMagnet::build", "SCALINGFFAMAGNET does not use APERTURE command");
     }
 
     // dimensionless quantities
@@ -185,7 +174,7 @@ void OpalScalingFFAMagnet::fill(ElementBase& element, const ElementValues& value
     // get azimuthal extent in radians; this is just the bounding box
     if (values.hasValue("AZIMUTHAL_EXTENT")) {
         if (values.getReal("AZIMUTHAL_EXTENT") < 0.0) {
-            throw OpalException("OpalScalingFFAMagnet::update()", "AZIMUTHAL_EXTENT must be > 0.0");
+            throw OpalException("OpalScalingFFAMagnet::build", "AZIMUTHAL_EXTENT must be > 0.0");
         }
         magnet.setAzimuthalExtent(values.getReal("AZIMUTHAL_EXTENT") / r0Abs);
     } else {

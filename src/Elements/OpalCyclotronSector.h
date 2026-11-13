@@ -33,7 +33,7 @@ private:
  * FMAPFN identifies the PSI map; SYM defaults to 8. Explicit RMIN/RMAX [m] must
  * match its bounds (1e-10 m comparison tolerance); omitted bounds use the file.
  * VMIN/VMAX default to -0.05/+0.05 m and BSCALE to 1. TRIMCOIL is a string array
- * of named OpalTrimCoil definitions, resolved when update() configures the sector.
+ * of named OpalTrimCoil definitions, resolved when the sector is built.
  * Common X/Y/Z/THETA/PHI/PSI attributes retain the existing Mode-A placement rules.
  * @see CyclotronSector
  */
@@ -41,15 +41,13 @@ class OpalCyclotronSector : public OpalElement {
 public:
     OpalCyclotronSector();
     OpalCyclotronSector* clone(const std::string& name) override;
-    /** @brief Resolve map/coil definitions and rebuild the occurrence configuration.
-     * An empty FMAPFN is tolerated for the parser exemplar; tracking an unconfigured
+
+    /** @brief Build the runtime sector of one occurrence: resolve the map and coil definitions.
+     * An empty FMAPFN leaves the sector unconfigured; tracking an unconfigured
      * occurrence is rejected by CyclotronSector::initialise().
      * @throws OpalException For invalid symmetry/bounds or an unknown trim-coil name.
      * Map loading and trim-coil validation errors are propagated.
      */
-    void update() override;
-
-    /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
 private:

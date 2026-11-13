@@ -26,13 +26,10 @@
 OpalMonitor::OpalMonitor()
     : OpalElement(COMMON, "MONITOR", "The \"MONITOR\" element defines a monitor for both planes.") {
     registerOwnership();
-
-    setElement(new MonitorRep("MONITOR"));
 }
 
-OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent) : OpalElement(name, parent) {
-    setElement(new MonitorRep(name));
-}
+OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent)
+    : OpalElement(name, parent) {}
 
 OpalMonitor::~OpalMonitor() {}
 
@@ -43,8 +40,6 @@ std::shared_ptr<ElementBase> OpalMonitor::build(const ElementValues& values) {
     fill(*element, values);
     return element;
 }
-
-void OpalMonitor::update() { fill(*getElement(), getValues()); }
 
 void OpalMonitor::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

@@ -52,14 +52,10 @@ OpalFieldmapElement::OpalFieldmapElement()
             false);
 
     registerOwnership();
-
-    setElement(new FieldmapElementRep("FIELDMAP"));
 }
 
 OpalFieldmapElement::OpalFieldmapElement(const std::string& name, OpalFieldmapElement* parent)
-    : OpalElement(name, parent) {
-    setElement(new FieldmapElementRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalFieldmapElement::~OpalFieldmapElement() {}
 
@@ -73,14 +69,12 @@ std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ElementValues& val
     return element;
 }
 
-void OpalFieldmapElement::update() { fill(*getElement(), getValues()); }
-
 void OpalFieldmapElement::fill(ElementBase& element, const ElementValues& values) {
     // Checked before setCommonFields(), so that the specific message wins over the generic
     // "placement is over-specified" one.
     if (values.hasValue("ELEMEDGE")) {
         throw OpalException(
-                "OpalFieldmapElement::update()",
+                "OpalFieldmapElement::build",
                 values.getName()
                         + ": a FIELDMAP element cannot be placed with ELEMEDGE. ELEMEDGE "
                           "positions an element by path length s along the reference orbit, "
@@ -94,7 +88,7 @@ void OpalFieldmapElement::fill(ElementBase& element, const ElementValues& values
 
     if (values.hasValue("L")) {
         throw OpalException(
-                "OpalFieldmapElement::update()",
+                "OpalFieldmapElement::build",
                 values.getName()
                         + ": a FIELDMAP element takes no L. Its length is the longitudinal "
                           "extent of the field map named by FMAPFN, and is read from the map "
@@ -103,7 +97,7 @@ void OpalFieldmapElement::fill(ElementBase& element, const ElementValues& values
 
     if (!values.hasValue("FMAPFN") || values.getString("FMAPFN").empty()) {
         throw OpalException(
-                "OpalFieldmapElement::update()",
+                "OpalFieldmapElement::build",
                 values.getName() + ": a FIELDMAP element requires FMAPFN.");
     }
 

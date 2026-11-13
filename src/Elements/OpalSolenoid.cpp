@@ -36,14 +36,10 @@ OpalSolenoid::OpalSolenoid()
             false);
 
     registerOwnership();
-
-    setElement(new SolenoidRep("SOLENOID"));
 }
 
 OpalSolenoid::OpalSolenoid(const std::string& name, OpalSolenoid* parent)
-    : OpalElement(name, parent) {
-    setElement(new SolenoidRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalSolenoid::~OpalSolenoid() {}
 
@@ -54,8 +50,6 @@ std::shared_ptr<ElementBase> OpalSolenoid::build(const ElementValues& values) {
     fill(*element, values);
     return element;
 }
-
-void OpalSolenoid::update() { fill(*getElement(), getValues()); }
 
 void OpalSolenoid::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

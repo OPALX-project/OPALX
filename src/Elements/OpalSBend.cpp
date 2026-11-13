@@ -30,13 +30,9 @@
 OpalSBend::OpalSBend()
     : OpalBend("SBEND", "The \"SBEND\" element defines a sector bending magnet.") {
     registerOwnership();
-
-    setElement((new SBendRep("SBEND")));
 }
 
-OpalSBend::OpalSBend(const std::string& name, OpalSBend* parent) : OpalBend(name, parent) {
-    setElement((new SBendRep(name)));
-}
+OpalSBend::OpalSBend(const std::string& name, OpalSBend* parent) : OpalBend(name, parent) {}
 
 OpalSBend::~OpalSBend() {}
 
@@ -48,8 +44,6 @@ std::shared_ptr<ElementBase> OpalSBend::build(const ElementValues& values) {
     return element;
 }
 
-void OpalSBend::update() { fill(*getElement(), getValues()); }
-
 void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);
 
@@ -57,7 +51,7 @@ void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
     // reject them explicitly rather than silently ignoring them.
     if (!values.defaultUsed("E1") || !values.defaultUsed("E2")) {
         throw OpalException(
-                "OpalSBend::update",
+                "OpalSBend::build",
                 values.getName()
                         + ": pole-face rotations (E1, E2) are not yet implemented in the "
                           "OPALX-native bend port. Remove E1/E2 from the element definition.");
@@ -92,33 +86,23 @@ void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
 
     // Set field amplitude or bend angle.
     if (values.hasValue("ANGLE")) {
-        if (bend->isPositioned() && angle < 0.0) {
-            angle = -angle;
-
-            Quaternion rotAboutZ(0, 0, 0, 1);
-            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
-            bend->releasePosition();
-            bend->setCSTrafoGlobal2Local(
-                    CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
-            bend->fixPosition();
-        }
         geometry.setBendAngle(angle);
     }
 
     if (values.hasValue("GREATERTHANPI"))
-        throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
+        throw OpalException("OpalSBend::build", "GREATERTHANPI not supportet any more");
 
     // Units are eV.
     if (values.hasValue("DESIGNENERGY")) {
         // bend->setDesignEnergy(values.getReal("DESIGNENERGY") * Units::MeV2eV, false);
         throw OpalException(
-                "OpalSBend::update",
+                "OpalSBend::build",
                 "DESIGNENERGY is not supported yet for the OPALX-native SBEND port.");
     }
 
     if (values.hasValue("GAP"))
         throw OpalException(
-                "OpalSBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+                "OpalSBend::build", "GAP is not supported; specify HGAP (the half gap) instead.");
     // gap_m stores the full gap; HGAP is the half gap, so double it.
     bend->setFullGap(2.0 * values.getReal("HGAP"));
     bend->setFringeIntegral(values.getReal("FINT"));
@@ -138,20 +122,20 @@ void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
 
     if (hasApert && hasHapert) {
         throw OpalException(
-                "OpalSBend::update",
+                "OpalSBend::build",
                 values.getName()
                         + ": APERTURE and HAPERT cannot both be given. APERTURE sets both "
                           "half-apertures, HAPERT only the horizontal one.");
     }
     if ((hasApert || hasHapert) && hgap <= 0.0) {
         throw OpalException(
-                "OpalSBend::update",
+                "OpalSBend::build",
                 values.getName()
                         + ": HAPERT/APERTURE requires a positive HGAP; the vertical aperture "
                           "is the half gap.");
     }
     if (hasHapert && hapert <= 0.0) {
-        throw OpalException("OpalSBend::update", values.getName() + ": HAPERT must be positive.");
+        throw OpalException("OpalSBend::build", values.getName() + ": HAPERT must be positive.");
     }
 
     auto aperture = bend->getAperture();
@@ -160,7 +144,7 @@ void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
         // the poles it sits between. Equality is fine: flush with the pole faces.
         if (aperture.second[1] > hgap) {
             throw OpalException(
-                    "OpalSBend::update",
+                    "OpalSBend::build",
                     values.getName() + ": vertical half-aperture "
                             + std::to_string(aperture.second[1])
                             + " m exceeds the half gap HGAP = " + std::to_string(hgap) + " m.");
@@ -183,12 +167,12 @@ void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
 
     if (values.hasValue("WAKEF")) {
         throw OpalException(
-                "OpalSBend::update", "WAKEF is not supported yet for the OPALX-native SBEND port.");
+                "OpalSBend::build", "WAKEF is not supported yet for the OPALX-native SBEND port.");
     }
 
     if (values.hasValue("PARTICLEMATTERINTERACTION")) {
         throw OpalException(
-                "OpalSBend::update",
+                "OpalSBend::build",
                 "PARTICLEMATTERINTERACTION is not supported yet for the OPALX-native SBEND port.");
     }
 }

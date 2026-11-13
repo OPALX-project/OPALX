@@ -16,7 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalElement.h"
-#include "Track/FreezeRun.h"
 
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
@@ -387,7 +386,7 @@ void OpalElement::printMultipoleStrength(
 void OpalElement::validatePlacement(const std::string& name, bool hasElemEdge, bool has6DPose) {
     if (hasElemEdge && has6DPose) {
         throw OpalException(
-                "OpalElement::update",
+                "OpalElement::build",
                 name
                         + ": placement is over-specified. Use EITHER ELEMEDGE (with an "
                           "optional PSI roll) OR a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
@@ -395,19 +394,13 @@ void OpalElement::validatePlacement(const std::string& name, bool hasElemEdge, b
     }
     if (!hasElemEdge && !has6DPose) {
         throw OpalException(
-                "OpalElement::update",
+                "OpalElement::build",
                 name
                         + ": placement is under-specified. Specify either ELEMEDGE (with an "
                           "optional PSI roll) or a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
                           "PSI). PSI alone is not a placement.");
     }
 }
-
-ElementValues OpalElement::getValues() const {
-    return ElementValues(opalx::run::describeObject(*this));
-}
-
-void OpalElement::update() { setCommonFields(*getElement(), getValues()); }
 
 void OpalElement::setCommonFields(ElementBase& element, const ElementValues& values) {
     ElementBase* base = &element;
@@ -478,16 +471,9 @@ void OpalElement::setCommonFields(ElementBase& element, const ElementValues& val
         const double reach = values.getReal("REACH");
         if (!std::isfinite(reach) || reach <= 0.0) {
             throw OpalException(
-                    "OpalElement::update", values.getName() + ": REACH must be a positive length.");
+                    "OpalElement::build", values.getName() + ": REACH must be a positive length.");
         }
         base->setReach(reach);
-    }
-}
-
-void OpalElement::updateUnknown(ElementBase* base) {
-    for (std::vector<Attribute>::size_type i = itsSize; i < itsAttr.size(); ++i) {
-        Attribute& attr = itsAttr[i];
-        base->setAttribute(attr.getName(), Attributes::getReal(attr));
     }
 }
 

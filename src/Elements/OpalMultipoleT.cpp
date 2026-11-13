@@ -59,13 +59,10 @@ OpalMultipoleT::OpalMultipoleT()
             "The name of the time dependence model, which should give a scaling factor.");
 
     registerOwnership();
-    setElement(new MultipoleT("MULTIPOLET"));
 }
 
 OpalMultipoleT::OpalMultipoleT(const std::string& name, OpalMultipoleT* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleT(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalMultipoleT* OpalMultipoleT::clone(const std::string& name) {
     return new OpalMultipoleT(name, this);
@@ -79,35 +76,33 @@ std::shared_ptr<ElementBase> OpalMultipoleT::build(const ElementValues& values) 
     return element;
 }
 
-void OpalMultipoleT::update() { fill(*getElement(), getValues()); }
-
 void OpalMultipoleT::fill(ElementBase& element, const ElementValues& values) {
     // Base class first
     setCommonFields(element, values);
     // Make some sanity checks
     const auto maxFOrder = values.getReal("MAXFORDER");
     if (maxFOrder < MinimumMAXFORDER) {
-        throw OpalException("OpalMultipoleT::Update", "Attribute MAXFORDER must be >= 1.0");
+        throw OpalException("OpalMultipoleT::build", "Attribute MAXFORDER must be >= 1.0");
     }
     if (maxFOrder > MaximumMAXFORDER) {
-        throw OpalException("OpalMultipoleT::Update", "Attribute MAXFORDER must be <= 9.0");
+        throw OpalException("OpalMultipoleT::build", "Attribute MAXFORDER must be <= 9.0");
     }
     const double rotation  = values.getReal("ROTATION");
     const double bendAngle = values.getReal("ANGLE");
     if (bendAngle != 0.0 && rotation != 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "Non-zero ROTATION (a skew multipole) is only "
                 "supported for straight magnets");
     }
     const bool varRadius = values.getBool("VARRADIUS");
     if (varRadius && bendAngle != 0.0) {
-        throw OpalException("OpalMultipoleT::Update", "Variable radius is not currently supported");
+        throw OpalException("OpalMultipoleT::build", "Variable radius is not currently supported");
     }
     const double entryOffset = values.getReal("ENTRYOFFSET");
     if (!varRadius && entryOffset != 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "The ENTRYOFFSET is only supported for variable radius curved magnets");
     }
     auto tp = values.getRealArray("TP");
@@ -115,7 +110,7 @@ void OpalMultipoleT::fill(ElementBase& element, const ElementValues& values) {
     const auto length = values.getReal("L");
     if (bendAngle != 0.0 && length == 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "A curved magnet (non-zero ANGLE) needs a non-zero L: the curvature is "
                 "ANGLE / L, with L the arc length");
     }

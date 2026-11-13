@@ -6,26 +6,11 @@
 //
 #include "Track/BuildElements.h"
 
+#include <map>
 #include <memory>
 #include <string>
-#include <variant>
-
-#include <map>
 
 #include "AbsBeamline/ElementBase.h"
-#include "AbstractObjects/Attribute.h"
-#include "AbstractObjects/Element.h"
-#include "AbstractObjects/OpalData.h"
-#include "Attributes/Attributes.h"
-#include "Attributes/Bool.h"
-#include "Attributes/BoolArray.h"
-#include "Attributes/OpalString.h"
-#include "Attributes/PredefinedString.h"
-#include "Attributes/Real.h"
-#include "Attributes/RealArray.h"
-#include "Attributes/StringArray.h"
-#include "Attributes/UpperCaseString.h"
-#include "Attributes/UpperCaseStringArray.h"
 #include "Elements/ElementValues.h"
 #include "Elements/OpalBox.h"
 #include "Elements/OpalCavity.h"
@@ -59,7 +44,7 @@ namespace opalx::run {
         /// What an element keyword builds: the runtime element type and the build function.
         struct ElementKind {
             ElementType type;
-            BuildFunction build;  ///< nullptr: update() of a keyword object fills the element.
+            BuildFunction build;
         };
 
         /// Every element keyword. One keyword, one runtime element type.
@@ -105,60 +90,6 @@ namespace opalx::run {
             return found->second;
         }
 
-        [[noreturn]] void cannotCopy(
-                const ElementDescription& element, const AttributeEntry& entry,
-                const std::string& why) {
-            throw OpalException(
-                    "opalx::run::buildElement",
-                    "Element \"" + element.object.name + "\": attribute " + entry.name + " " + why);
-        }
-
-        /// Set @p attribute to the value the input gave it, with the setter of its handler.
-        void copyValue(
-                Attribute& attribute, const AttributeEntry& entry,
-                const ElementDescription& element) {
-            AttributeHandler* handler   = &attribute.getHandler();
-            const AttributeValue& value = entry.value;
-            if (dynamic_cast<Attributes::Real*>(handler) && std::holds_alternative<double>(value)) {
-                Attributes::setReal(attribute, std::get<double>(value));
-            } else if (
-                    dynamic_cast<Attributes::Bool*>(handler)
-                    && std::holds_alternative<bool>(value)) {
-                Attributes::setBool(attribute, std::get<bool>(value));
-            } else if (
-                    dynamic_cast<Attributes::PredefinedString*>(handler)
-                    && std::holds_alternative<std::string>(value)) {
-                Attributes::setPredefinedString(attribute, std::get<std::string>(value));
-            } else if (
-                    dynamic_cast<Attributes::UpperCaseString*>(handler)
-                    && std::holds_alternative<std::string>(value)) {
-                Attributes::setUpperCaseString(attribute, std::get<std::string>(value));
-            } else if (
-                    dynamic_cast<Attributes::String*>(handler)
-                    && std::holds_alternative<std::string>(value)) {
-                Attributes::setString(attribute, std::get<std::string>(value));
-            } else if (
-                    dynamic_cast<Attributes::RealArray*>(handler)
-                    && std::holds_alternative<std::vector<double>>(value)) {
-                Attributes::setRealArray(attribute, std::get<std::vector<double>>(value));
-            } else if (
-                    dynamic_cast<Attributes::BoolArray*>(handler)
-                    && std::holds_alternative<std::vector<bool>>(value)) {
-                Attributes::setBoolArray(attribute, std::get<std::vector<bool>>(value));
-            } else if (
-                    dynamic_cast<Attributes::UpperCaseStringArray*>(handler)
-                    && std::holds_alternative<std::vector<std::string>>(value)) {
-                Attributes::setUpperCaseStringArray(
-                        attribute, std::get<std::vector<std::string>>(value));
-            } else if (
-                    dynamic_cast<Attributes::StringArray*>(handler)
-                    && std::holds_alternative<std::vector<std::string>>(value)) {
-                Attributes::setStringArray(attribute, std::get<std::vector<std::string>>(value));
-            } else {
-                cannotCopy(element, entry, "has type " + entry.type + ", which cannot be copied.");
-            }
-        }
-
     }  // namespace
 
     std::string elementTypeOf(const std::string& keyword) {
@@ -170,28 +101,13 @@ namespace opalx::run {
         const ElementKind& kind        = kindOf(input.keyword, input.name);
         for (const AttributeEntry& entry : input.attributes) {
             if (entry.defaultUsed || !entry.hasValue || entry.error.empty()) continue;
-            cannotCopy(element, entry, "could not be evaluated: " + entry.error);
+            throw OpalException(
+                    "opalx::run::buildElement",
+                    "Element \"" + input.name + "\": attribute " + entry.name
+                            + " could not be evaluated: " + entry.error);
         }
 
-        std::shared_ptr<ElementBase> built;
-        if (kind.build != nullptr) {
-            built = kind.build(ElementValues(input));
-        } else {
-            std::unique_ptr<Object> object(
-                    OpalData::getInstance()->makeObject(input.keyword, input.name));
-            auto* made = dynamic_cast<Element*>(object.get());
-            // Only what the input set is copied; every other attribute keeps the keyword's
-            // default, so update() sees the same set and unset attributes as for the parsed
-            // object.
-            for (const AttributeEntry& entry : input.attributes) {
-                if (entry.defaultUsed || !entry.hasValue) continue;
-                Attribute* attribute = made->findAttribute(entry.name);
-                if (attribute == nullptr) cannotCopy(element, entry, "is not an attribute.");
-                copyValue(*attribute, entry, element);
-            }
-            made->update();
-            built = made->getElementPtr();
-        }
+        std::shared_ptr<ElementBase> built = kind.build(ElementValues(input));
         if (built->getType() != kind.type) {
             throw LogicalError(
                     "opalx::run::buildElement",

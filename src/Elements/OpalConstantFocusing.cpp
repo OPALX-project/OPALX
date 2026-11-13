@@ -16,13 +16,10 @@ OpalConstantFocusing::OpalConstantFocusing()
     itsAttr[RADIUS] = Attributes::makeReal("RADIUS", "Initial beam radius in m.", 0.0);
 
     registerOwnership();
-    setElement(new ConstantFocusingRep("CONSTANTFOCUSING"));
 }
 
 OpalConstantFocusing::OpalConstantFocusing(const std::string& name, OpalConstantFocusing* parent)
-    : OpalElement(name, parent) {
-    setElement(new ConstantFocusingRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalConstantFocusing::~OpalConstantFocusing() {}
 
@@ -36,15 +33,12 @@ std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ElementValues& va
     return element;
 }
 
-void OpalConstantFocusing::update() { fill(*getElement(), getValues()); }
-
 void OpalConstantFocusing::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);
 
     const double radius = values.getReal("RADIUS");
     if (!values.defaultUsed("RADIUS") && radius <= 0.0) {
-        throw OpalException(
-                "OpalConstantFocusing::update", "CONSTANTFOCUSING requires RADIUS > 0.");
+        throw OpalException("OpalConstantFocusing::build", "CONSTANTFOCUSING requires RADIUS > 0.");
     }
 
     auto* rep = dynamic_cast<ConstantFocusingRep*>(&element);

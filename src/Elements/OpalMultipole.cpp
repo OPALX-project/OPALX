@@ -55,14 +55,10 @@ OpalMultipole::OpalMultipole()
             "DKS", "Errors added to KS, in m^(-k). Same entries and rules as KN.");
 
     registerOwnership();
-
-    setElement(new MultipoleRep("MULTIPOLE"));
 }
 
 OpalMultipole::OpalMultipole(const std::string& name, OpalMultipole* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalMultipole::~OpalMultipole() {}
 
@@ -77,8 +73,6 @@ std::shared_ptr<ElementBase> OpalMultipole::build(const ElementValues& values) {
     fill(*element, values);
     return element;
 }
-
-void OpalMultipole::update() { fill(*getElement(), getValues()); }
 
 void OpalMultipole::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);
@@ -100,7 +94,7 @@ void OpalMultipole::fill(ElementBase& element, const ElementValues& values) {
     const auto check = [&values](const std::string& name, const std::vector<double>& entries) {
         if (entries.size() > static_cast<std::size_t>(MAX_MP_ORDER)) {
             throw OpalException(
-                    "OpalMultipole::update",
+                    "OpalMultipole::build",
                     "MULTIPOLE \"" + values.getName() + "\": " + name + " has "
                             + std::to_string(entries.size())
                             + " entries. MULTIPOLE goes up to decapole: at most 5 entries "
@@ -108,7 +102,7 @@ void OpalMultipole::fill(ElementBase& element, const ElementValues& values) {
         }
         if (!entries.empty() && entries[0] != 0.0) {
             throw OpalException(
-                    "OpalMultipole::update",
+                    "OpalMultipole::build",
                     "MULTIPOLE \"" + values.getName() + "\": the first " + name
                             + " entry is the dipole and must be 0. MULTIPOLE is a straight "
                               "element; use SBEND or RBEND for a dipole field.");

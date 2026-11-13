@@ -36,13 +36,9 @@ OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defin
     itsAttr[STEP]  = Attributes::makeReal("STEP", "Cyclotron radial histogram bin width [mm]", 1.0);
 
     registerOwnership();
-
-    setElement(new ProbeRep("PROBE"));
 }
 
-OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(name, parent) {
-    setElement(new ProbeRep(name));
-}
+OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(name, parent) {}
 
 OpalProbe::~OpalProbe() {}
 
@@ -52,12 +48,6 @@ std::shared_ptr<ElementBase> OpalProbe::build(const ElementValues& values) {
     auto element = std::make_shared<ProbeRep>(values.getName());
     fill(*element, values);
     return element;
-}
-
-void OpalProbe::update() {
-    // A global detector segment contributes no path length to its sequence.
-    Attributes::setReal(itsAttr[LENGTH], 0.0);
-    fill(*getElement(), getValues());
 }
 
 void OpalProbe::fill(ElementBase& element, const ElementValues& values) {

@@ -97,19 +97,6 @@ public:
     //  This special version handles special printing in OPAL-8 format.
     virtual void print(std::ostream&) const;
 
-    /// @brief Transfer the parsed attributes onto the OPALX ElementBase
-    /// Processes the state common to every element:
-    ///     - Aperture
-    ///     - Placement (either ELEMEDGE or X/Y/Z/THETA/PHI/PSI)
-    ///     - Misalignment
-    /// @note Each element overrides update() to specialise its geometry and
-    /// field data, this base version is also called.
-    /// @note Final placement is resolved by PlacementResolver, not here.
-    virtual void update();
-
-    /// Transmit the ``unknown'' (not known to OPALX) attributes to OPALX.
-    virtual void updateUnknown(ElementBase*);
-
 protected:
     /// Exemplar constructor.
     OpalElement(int size, const char* name, const char* help);
@@ -133,9 +120,6 @@ protected:
     static void printAttribute(std::ostream& os, const std::string& name, double value, int& len);
 
     void registerOwnership() const;
-
-    /// The attribute values of this object, evaluated now.
-    ElementValues getValues() const;
 
 private:
     // Not implemented.

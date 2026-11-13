@@ -50,9 +50,6 @@ public:
     /// Make clone.
     virtual OpalFieldmapElement* clone(const std::string& name) override;
 
-    /// Update the embedded OPALX element.
-    virtual void update() override;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 

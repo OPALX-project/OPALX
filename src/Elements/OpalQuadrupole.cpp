@@ -45,14 +45,10 @@ OpalQuadrupole::OpalQuadrupole()
             "DK1S", "Normalised skew quadrupole strength error in m^(-2)", 0.0);
 
     registerOwnership();
-
-    setElement(new MultipoleRep("QUADRUPOLE"));
 }
 
 OpalQuadrupole::OpalQuadrupole(const std::string& name, OpalQuadrupole* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalQuadrupole::~OpalQuadrupole() {}
 
@@ -67,8 +63,6 @@ std::shared_ptr<ElementBase> OpalQuadrupole::build(const ElementValues& values) 
     fill(*element, values);
     return element;
 }
-
-void OpalQuadrupole::update() { fill(*getElement(), getValues()); }
 
 void OpalQuadrupole::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

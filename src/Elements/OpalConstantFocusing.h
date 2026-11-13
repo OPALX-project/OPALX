@@ -13,7 +13,6 @@ public:
     ~OpalConstantFocusing() override;
 
     OpalConstantFocusing* clone(const std::string& name) override;
-    void update() override;
 
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);

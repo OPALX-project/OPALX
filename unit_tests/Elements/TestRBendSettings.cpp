@@ -460,28 +460,25 @@ TEST_F(RBendSettingsTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
     EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), chord);
 }
 
-TEST_F(RBendSettingsTest, ProfilePreservesPositionedNegativeBendConvention) {
-    OpalRBend standard, mapped;
-    for (auto* el : {&standard, &mapped}) {
+TEST_F(RBendSettingsTest, ProfileKeepsTheNegativeBendGeometry) {
+    auto standardObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "STANDARD");
+    auto mappedObject   = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "MAPPED");
+    for (auto* el : {standardObject.get(), mappedObject.get()}) {
         Attributes::setReal(*el->findAttribute("L"), .3);
         Attributes::setReal(*el->findAttribute("ANGLE"), -angle);
         Attributes::setReal(*el->findAttribute("ELEMEDGE"), 0.0);
     }
-    Attributes::setString(*mapped.findAttribute("FMAPFN"), filename);
-    standard.update();
-    mapped.update();
-    standard.getElement()->fixPosition();
-    mapped.getElement()->fixPosition();
-    standard.update();
-    mapped.update();
-    const auto& a = standard.getElement()->getGeometry();
-    const auto& b = mapped.getElement()->getGeometry();
+    Attributes::setString(*mappedObject->findAttribute("FMAPFN"), filename);
+    const auto standard = opalx::test::buildFrom(*standardObject);
+    const auto mapped   = opalx::test::buildFrom(*mappedObject);
+    const auto& a       = standard->getGeometry();
+    const auto& b       = mapped->getGeometry();
     EXPECT_DOUBLE_EQ(a.getBendAngle(), b.getBendAngle());
     EXPECT_DOUBLE_EQ(a.getEntranceAngle(), b.getEntranceAngle());
     EXPECT_DOUBLE_EQ(a.getExitAngle(), b.getExitAngle());
     EXPECT_DOUBLE_EQ(a.getChordLength(), b.getChordLength());
-    const auto da = standard.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
-    const auto db = mapped.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    const auto da = standard->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    const auto db = mapped->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
     for (int d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(da(d), db(d));
 }

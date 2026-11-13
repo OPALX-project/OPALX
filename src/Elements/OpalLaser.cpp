@@ -58,13 +58,9 @@ OpalLaser::OpalLaser()
             "STOKES", "Normalized Stokes polarization vector {xi1, xi2, xi3}.");
 
     registerOwnership();
-
-    setElement(new LaserRep("LASER"));
 }
 
-OpalLaser::OpalLaser(const std::string& name, OpalLaser* parent) : OpalElement(name, parent) {
-    setElement(new LaserRep(name));
-}
+OpalLaser::OpalLaser(const std::string& name, OpalLaser* parent) : OpalElement(name, parent) {}
 
 OpalLaser::~OpalLaser() {}
 
@@ -76,10 +72,8 @@ std::shared_ptr<ElementBase> OpalLaser::build(const ElementValues& values) {
     return element;
 }
 
-void OpalLaser::update() { fill(*getElement(), getValues()); }
-
 void OpalLaser::fill(ElementBase& element, const ElementValues& values) {
-    constexpr const char* where = "OpalLaser::update()";
+    constexpr const char* where = "OpalLaser::build";
 
     setCommonFields(element, values);
 

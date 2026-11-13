@@ -30,24 +30,18 @@
 
 OpalMarker::OpalMarker()
     : OpalElement(COMMON, "MARKER", "The \"MARKER\" element defines a marker.") {
-    setElement(new MarkerRep("MARKER"));
-
     // Construct the begin marker for beam lines.
     OpalMarker* S = new OpalMarker("#S", this);
-    S->getElement()->makeSharable();
-    S->builtin = true;
+    S->builtin    = true;
     OpalData::getInstance()->create(S);
 
     // Construct the end marker for beam lines.
     OpalMarker* E = new OpalMarker("#E", this);
-    E->getElement()->makeSharable();
-    E->builtin = true;
+    E->builtin    = true;
     OpalData::getInstance()->create(E);
 }
 
-OpalMarker::OpalMarker(const std::string& name, OpalMarker* parent) : OpalElement(name, parent) {
-    setElement(new MarkerRep(name));
-}
+OpalMarker::OpalMarker(const std::string& name, OpalMarker* parent) : OpalElement(name, parent) {}
 
 OpalMarker::~OpalMarker() {}
 
@@ -58,5 +52,3 @@ void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 std::shared_ptr<ElementBase> OpalMarker::build(const ElementValues& values) {
     return std::make_shared<MarkerRep>(values.getName());
 }
-
-void OpalMarker::update() {}

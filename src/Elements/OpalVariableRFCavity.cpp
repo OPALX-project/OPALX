@@ -47,18 +47,10 @@ OpalVariableRFCavity::OpalVariableRFCavity()
     itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT", "Full height of the cavity [m].");
 
     registerOwnership();
-
-    setElement(new VariableRFCavity("VARIABLE_RF_CAVITY"));
 }
 
 OpalVariableRFCavity::OpalVariableRFCavity(const std::string& name, OpalVariableRFCavity* parent)
-    : OpalElement(name, parent) {
-    const VariableRFCavity* cavity = dynamic_cast<VariableRFCavity*>(parent->getElement());
-    auto* copy                     = new VariableRFCavity(*cavity);
-    // The runtime element carries the name of the input object, as for every other element.
-    copy->setName(name);
-    setElement(copy);
-}
+    : OpalElement(name, parent) {}
 
 OpalVariableRFCavity* OpalVariableRFCavity::clone(const std::string& name) {
     return new OpalVariableRFCavity(name, this);
@@ -73,8 +65,6 @@ std::shared_ptr<ElementBase> OpalVariableRFCavity::build(const ElementValues& va
     fill(*element, values);
     return element;
 }
-
-void OpalVariableRFCavity::update() { fill(*getElement(), getValues()); }
 
 void OpalVariableRFCavity::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);

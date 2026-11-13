@@ -60,19 +60,10 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
             "HEIGHT_NEG_EXTENT are out of the aperture [m].");
 
     registerOwnership();
-
-    VerticalFFAMagnet* magnet = new VerticalFFAMagnet("VerticalFFAMagnet");
-
-    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
-    setElement(magnet);
 }
 
 OpalVerticalFFAMagnet::OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent)
-    : OpalElement(name, parent) {
-    VerticalFFAMagnet* magnet = new VerticalFFAMagnet(name);
-    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
-    setElement(magnet);
-}
+    : OpalElement(name, parent) {}
 
 OpalVerticalFFAMagnet::~OpalVerticalFFAMagnet() {}
 
@@ -86,8 +77,6 @@ std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ElementValues& v
     fill(*element, values);
     return element;
 }
-
-void OpalVerticalFFAMagnet::update() { fill(*getElement(), getValues()); }
 
 void OpalVerticalFFAMagnet::fill(ElementBase& element, const ElementValues& values) {
     VerticalFFAMagnet* magnet = dynamic_cast<VerticalFFAMagnet*>(&element);

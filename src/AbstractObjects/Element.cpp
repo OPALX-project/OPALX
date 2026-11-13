@@ -77,10 +77,7 @@ double Element::getExit(ReferenceType ref) const {
     }
 }
 
-void Element::setShared(bool flag) {
-    Object::setShared(flag);
-    if (flag && itsOPALXElement) itsOPALXElement->makeSharable();
-}
+void Element::setShared(bool flag) { Object::setShared(flag); }
 
 Element::Element(int size, const char* name, const char* help) : Object(size, name, help) {}
 

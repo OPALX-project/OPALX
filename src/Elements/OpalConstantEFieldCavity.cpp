@@ -15,15 +15,11 @@ OpalConstantEFieldCavity::OpalConstantEFieldCavity()
     itsAttr[EZ] = Attributes::makeReal("EZ", "Electric field strength Ez in MV/m", 0.0);
 
     registerOwnership();
-
-    setElement(new ConstantEFieldCavityRep("CONSTANTEFIELDCAVITY"));
 }
 
 OpalConstantEFieldCavity::OpalConstantEFieldCavity(
         const std::string& name, OpalConstantEFieldCavity* parent)
-    : OpalElement(name, parent) {
-    setElement(new ConstantEFieldCavityRep(name));
-}
+    : OpalElement(name, parent) {}
 
 OpalConstantEFieldCavity::~OpalConstantEFieldCavity() {}
 
@@ -36,8 +32,6 @@ std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(const ElementValues
     fill(*element, values);
     return element;
 }
-
-void OpalConstantEFieldCavity::update() { fill(*getElement(), getValues()); }
 
 void OpalConstantEFieldCavity::fill(ElementBase& element, const ElementValues& values) {
     setCommonFields(element, values);
