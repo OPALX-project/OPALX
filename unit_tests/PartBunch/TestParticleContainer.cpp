@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "Ippl.h"
+#include "Moments/BeamMoments.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/SpaceChargeFrames.h"
 #include "Utilities/Options.h"
@@ -321,34 +322,18 @@ namespace {
     }
 
     // ================================================================
-    // markParticlesOutside – edge cases
+    // markParticlesOutside - box edge cases
     // ================================================================
 
-    TEST_F(ParticleContainerTest, MarkParticlesOutside_NegativeSigma_ReturnsZero) {
+    TEST_F(ParticleContainerTest, MarkParticlesOutside_BoxContainingAll_MarksNone) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
-        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
+        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}, {{1.0, -1.0, 2.0}}};
         createParticlesAt(pc, positions);
-        pc->setM(1.0);
 
         size_t localBefore = pc->getLocalNum();
-        auto marked        = pc->markParticlesOutside(-1.0);
-
-        EXPECT_EQ(marked, 0u);
-        EXPECT_EQ(pc->getLocalNum(), localBefore);
-    }
-
-    TEST_F(ParticleContainerTest, MarkParticlesOutside_ZeroSigma_ReturnsZero) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
-        createParticlesAt(pc, positions);
-        pc->setM(1.0);
-
-        size_t localBefore = pc->getLocalNum();
-        auto marked        = pc->markParticlesOutside(0.0);
+        auto marked = pc->markParticlesOutside(Vector_t<double, 3>(-3.0), Vector_t<double, 3>(3.0));
 
         EXPECT_EQ(marked, 0u);
         EXPECT_EQ(pc->getLocalNum(), localBefore);
@@ -359,7 +344,7 @@ namespace {
         auto pc                  = makeContainer();
 
         ASSERT_EQ(pc->getLocalNum(), 0u);
-        auto marked = pc->markParticlesOutside(3.0);
+        auto marked = pc->markParticlesOutside(Vector_t<double, 3>(-1.0), Vector_t<double, 3>(1.0));
         EXPECT_EQ(marked, 0u);
     }
 
@@ -388,8 +373,13 @@ namespace {
         createParticlesAt(pc, positions);
         pc->setM(1.0);
 
-        size_t totalBefore = pc->getTotalNum();
-        auto marked        = pc->markParticlesOutside(2.0);
+        // The 2-sigma box the tracker builds for BOUNDPDESTROY.
+        const auto moments = opalx::moments::compute(
+                *pc, opalx::moments::Moment::MeanPosition | opalx::moments::Moment::Spread);
+        const Vector_t<double, 3> halfWidth = 2.0 * moments.rmsR();
+        size_t totalBefore                  = pc->getTotalNum();
+        auto marked =
+                pc->markParticlesOutside(moments.meanR() - halfWidth, moments.meanR() + halfWidth);
 
         EXPECT_EQ(marked, 1u);
 

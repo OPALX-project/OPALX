@@ -832,36 +832,18 @@ public:
     }
 
     /**
-     * @brief Mark particles whose position is more than sigmasAway standard deviations
-     *        from the bunch mean in any spatial dimension.
+     * @brief Mark particles whose position lies outside the box [@p lower, @p upper].
      *
-     * Recomputes distribution moments, then ORs the outlier decision into
-     * InvalidMask. Deletion is intentionally deferred to deleteInvalidParticles().
+     * ORs the outside decision into InvalidMask; deletion is deferred to deleteInvalidParticles().
+     * Collective.
      *
-     * @param sigmasAway Number of standard deviations defining the boundary.
      * @return Global number of newly marked particles (across all MPI ranks).
      */
-    size_type markParticlesOutside(double sigmasAway) {
-        size_type nLocal = this->getLocalNum();
-
-        if (nLocal == 0 && this->getTotalNum() == 0) return 0;
-        if (sigmasAway <= 0.0) return 0;
-
-        // Force fresh moments: cached values may not reflect the exact particle state at this
-        // point because emission or migration can shift R between statistics updates.
-        // Safety-critical deletion always recomputes.
-        markMomentsDirty();
-        updateMoments();
-
-        Vector_t<double, Dim> meanR = getMeanR();
-        Vector_t<double, Dim> rmsR  = getRmsR();
-
-        double lb0 = meanR[0] - sigmasAway * rmsR[0];
-        double lb1 = meanR[1] - sigmasAway * rmsR[1];
-        double lb2 = meanR[2] - sigmasAway * rmsR[2];
-        double ub0 = meanR[0] + sigmasAway * rmsR[0];
-        double ub1 = meanR[1] + sigmasAway * rmsR[1];
-        double ub2 = meanR[2] + sigmasAway * rmsR[2];
+    size_type markParticlesOutside(
+            const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper) {
+        const size_type nLocal = this->getLocalNum();
+        const double lb0 = lower[0], lb1 = lower[1], lb2 = lower[2];
+        const double ub0 = upper[0], ub1 = upper[1], ub2 = upper[2];
 
         auto invalid = InvalidMask.getView();
         auto Rview   = this->R.getView();

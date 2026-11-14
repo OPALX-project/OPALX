@@ -915,10 +915,14 @@ void ParallelTracker::execute() {
             const double sigmas = Options::boundpDestroy;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
-                if (!pc || !itsBunch_m->isPcActive(i)) {
+                if (!pc || !itsBunch_m->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
                     continue;
                 }
-                const size_t nMarked = pc->markParticlesOutside(sigmas);
+                const auto moments =
+                        opalx::moments::compute(*pc, Moment::MeanPosition | Moment::Spread);
+                const Vector_t<double, 3> halfWidth = sigmas * moments.rmsR();
+                const size_t nMarked                = pc->markParticlesOutside(
+                        moments.meanR() - halfWidth, moments.meanR() + halfWidth);
                 nStepMarked += nMarked;
                 if (nMarked > 0) {
                     m << level2 << "Marked " << nMarked << " particles outside " << sigmas
