@@ -238,9 +238,8 @@ void TrackCmd::execute() {
         t0           = initial.time;
         initialOrbit = initial;
     }
-    Track::block = new Track(
-            theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop, t0,
-            beamNames);
+    Track::block =
+            new Track(theLineToTrack, dt, maxsteps, stepsperturn, zstart, zstop, t0, beamNames);
     Track::block->kineticEnergyStopGeV = kineticStop;
     Track::block->zStopGiven           = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
     Track::block->initialOrbit         = std::move(initialOrbit);

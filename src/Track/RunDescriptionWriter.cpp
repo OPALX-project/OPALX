@@ -151,7 +151,7 @@ namespace opalx::run {
            << "t0 = " << number(t.t0) << "\n"
            << "stepsPerTurn = " << t.stepsPerTurn << "\n"
            << "kineticEnergyStopGeV = " << number(t.kineticEnergyStopGeV) << "\n"
-           << "hasInitialOrbit = " << flag(t.hasInitialOrbit) << "\n";
+           << "hasInitialOrbit = " << flag(t.initialOrbit.has_value()) << "\n";
 
         os << "\n[run]\n";
         writeObject(t.run, os);

@@ -284,7 +284,7 @@ namespace opalx::run {
         }
 
         // INITIALORBIT (the orbit itself is checked by TrackRun against the COF result).
-        if (track.hasInitialOrbit && (beams.size() != 1 || restart || spectralTunes)) {
+        if (track.initialOrbit && (beams.size() != 1 || restart || spectralTunes)) {
             errors.push_back(
                     "INITIALORBIT: Requires one fresh beam and ordinary particle tracking.");
         }

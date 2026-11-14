@@ -56,7 +56,6 @@
 #include "Processes/GlobalProcesses/PionDecay.h"
 
 #include "Track/DecayChain.h"
-#include "Track/Track.h"
 
 #include "Utilities/OpalException.h"
 
@@ -175,13 +174,14 @@ namespace opalx::run {
             return processes;
         }
 
-        DataSink* initDataSink(size_t numParticleContainers, RunObjects& objects) {
+        DataSink* initDataSink(
+                size_t numParticleContainers, const RunContext& context, RunObjects& objects) {
             OpalData* opal = OpalData::getInstance();
             objects.phaseSpaceSinks.clear();
             objects.phaseSpaceSinks.reserve(numParticleContainers);
 
-            const bool isRestart        = opal->inRestartRun();
-            const std::string inputBase = opal->getInputBasename();
+            const bool isRestart        = context.restart;
+            const std::string inputBase = context.inputBasename;
 
             for (size_t i = 0; Options::enableHDF5 && i < numParticleContainers; ++i) {
                 const std::string stem =
@@ -243,7 +243,7 @@ namespace opalx::run {
          * @param restored Planes and done flags from a checkpoint; empty for a fresh run.
          */
         std::vector<BeamStop> makeBeamStops(
-                const std::vector<Beam*>& beams, const bool isRing,
+                const std::vector<Beam*>& beams, const TrackDescription& track, const bool isRing,
                 const std::vector<BeamStop>& restored) {
             // validate() checked the combinations of TRACK ZSTOP, BEAM ZSTOP and UNTILMAXSTEPS.
             std::vector<BeamStop> stops(beams.size());
@@ -251,7 +251,7 @@ namespace opalx::run {
                 stops[i].zStop         = beams[i]->getZStop();
                 stops[i].untilMaxSteps = beams[i]->getUntilMaxSteps();
             }
-            if (!isRing && Track::block->zStopGiven) stops[0].zStop = Track::block->zstop.back();
+            if (!isRing && track.zStopGiven) stops[0].zStop = track.zStop.back();
             for (std::size_t i = 0; i < stops.size() && i < restored.size(); ++i) {
                 // A restart continues with the planes and done flags of the checkpoint.
                 stops[i].planeSet    = restored[i].planeSet;
@@ -269,9 +269,9 @@ namespace opalx::run {
          */
         void wireDaughterContainers(
                 PartBunch_t& bunch, const std::vector<Beam*>& beams,
+                const std::vector<std::string>& beamNames,
                 const std::vector<std::size_t>& decayRoots) {
-            const auto& containers                   = bunch.getParticleContainers();
-            const std::vector<std::string> beamNames = Track::block->beamNames_m;
+            const auto& containers = bunch.getParticleContainers();
 
             for (std::size_t i = 0; i < beams.size(); ++i) {
                 const std::string daughterName = beams[i]->getDaughterBeamName();
@@ -374,7 +374,8 @@ namespace opalx::run {
         /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
         std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
                 PartBunch_t& bunch, const std::vector<EmissionSource*>& sources, Beam* beam,
-                std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index) {
+                bool hasInitialOrbit, std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers,
+                size_t index) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
             IpplTimings::startTimer(samplingTime);
@@ -401,7 +402,7 @@ namespace opalx::run {
                 const bool usesFileMomentum =
                         opalDist->getType() == DistributionType::FROMFILE
                         || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
-                if (usesFileMomentum && Track::block->initialOrbit)
+                if (usesFileMomentum && hasInitialOrbit)
                     throw OpalException(
                             "INITIALORBIT",
                             "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local "
@@ -572,8 +573,9 @@ namespace opalx::run {
             *gmsg << level1 << *fieldSolver->getBinningCmd() << endl;
         }
 
-        // Process BEAM object names
-        std::vector<std::string> beamNames = Track::block->beamNames_m;
+        const TrackDescription& track             = description.track;
+        const RunContext& context                 = description.context;
+        const std::vector<std::string>& beamNames = track.beamNames;
 
         // Create vector of BEAMs (validate() checked that they exist).
         std::vector<Beam*> beams;
@@ -646,7 +648,7 @@ namespace opalx::run {
         }
 
         // validate() refused emitting or delayed sources and DECAY for a restart.
-        const bool isRestart = opal->inRestartRun();
+        const bool isRestart = context.restart;
         if (isRestart) {
             opal->setOpenMode(OpalData::OpenMode::APPEND);
         }
@@ -690,7 +692,7 @@ namespace opalx::run {
           This will (hopefully) be handled inside the pusher routines!
         */
 
-        DataSink* dataSink = initDataSink(beams.size(), objects);
+        DataSink* dataSink = initDataSink(beams.size(), context, objects);
 
         // Set total particles per container (beam)
         std::vector<size_t> totalParticlesPerBeam(beams.size());
@@ -720,7 +722,7 @@ namespace opalx::run {
 
         // Global processes
         setupGlobalProcesses(bunch, std::move(globalProcessesLists));
-        wireDaughterContainers(bunch, beams, decayRoots);
+        wireDaughterContainers(bunch, beams, beamNames, decayRoots);
 
         // BC handler
         *gmsg << level2 << fieldSolver->constructBCHandler() << endl;
@@ -750,15 +752,16 @@ namespace opalx::run {
                 particleContainers.size());
         CheckpointFile::Metadata restartMetadata;
         if (isRestart) {
-            restartMetadata = CheckpointFile::read(opal->getRestartFileName(), bunch);
+            restartMetadata = CheckpointFile::read(context.restartFileName, bunch);
             dataSink->rewindToCheckpoint(bunch);
-            *gmsg << level1 << "* Restored checkpoint '" << opal->getRestartFileName()
+            *gmsg << level1 << "* Restored checkpoint '" << context.restartFileName
                   << "' at global step " << restartMetadata.globalTrackStep
                   << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
         } else {
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 beamReferenceMomenta[i] = setupDistributionsAndSamplers(
-                        bunch, emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
+                        bunch, emissionSourcesLists[i], beams[i], track.initialOrbit.has_value(),
+                        emittingSamplersList[i], i);
             }
         }
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(
@@ -774,10 +777,11 @@ namespace opalx::run {
         bunch.print(*gmsg);
 
         // Set ZStart, ZStop, and dT
+        double sStart = track.zStart;
         if (!isRestart && bunch.getParticleContainer()->getTotalNum() > 0) {
-            double spos = Track::block->zstart;
-            auto& zstop = Track::block->zstop;
-            auto it     = Track::block->dT.begin();
+            double spos       = track.zStart;
+            const auto& zstop = track.zStop;
+            auto it           = track.dT.begin();
 
             unsigned int i = 0;
             while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
@@ -787,7 +791,7 @@ namespace opalx::run {
 
             bunch.setdT(*it);
         } else if (!isRestart) {
-            Track::block->zstart = 0.0;
+            sStart = 0.0;
         }
 
         /* \todo this is also not unsed in the master.
@@ -796,13 +800,13 @@ namespace opalx::run {
            findPhasesForMaxEnergy();
 
         */
-        auto maxSteps           = Track::block->localTimeSteps;
-        auto sStop              = Track::block->zstop;
+        auto maxSteps           = track.maxSteps;
+        auto sStop              = track.zStop;
         const bool isRing       = description.line.topology == "RING";
         const double ringPeriod = isRing ? description.line.length : 0.0;
         // validate() checked the RING length and the EKINSTOP and TURNS settings.
         unsigned long long directedTurns = 0;
-        const double kineticStop         = Track::block->kineticEnergyStopGeV;
+        const double kineticStop         = track.kineticEnergyStopGeV;
         if (kineticStop > 0) {
             sStop.front() = std::numeric_limits<double>::max();
         }
@@ -810,8 +814,8 @@ namespace opalx::run {
             const double roundedTurns    = std::round(run.getReal("TURNS"));
             const auto turns             = static_cast<unsigned long long>(roundedTurns);
             directedTurns                = turns;
-            const double beta            = Track::block->reference.getBeta();
-            const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
+            const double beta            = description.beams.front().reference.beta;
+            const double distancePerStep = Physics::c * std::abs(track.dT.front()) * beta;
             const double pathLength      = roundedTurns * ringPeriod;
             const double estimatedSteps  = std::ceil(pathLength / distancePerStep);
             const double safetySteps     = 2.0 * estimatedSteps + 100.0;
@@ -819,8 +823,8 @@ namespace opalx::run {
             sStop.front() = std::numeric_limits<double>::max();
             maxSteps.front() =
                     std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
-            *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking "
-                  << turns << " directed turns; nominal circumference for step-budget estimate = "
+            *gmsg << level1 << "* RING " << description.line.name << ": tracking " << turns
+                  << " directed turns; nominal circumference for step-budget estimate = "
                   << ringPeriod << " m." << endl;
         }
 
@@ -830,10 +834,10 @@ namespace opalx::run {
         setup.spaceChargeSolver    = objects.spaceChargeSolver.get();
         setup.dirichletPlane       = dirichletPlane;
         setup.dataSink             = dataSink;
-        setup.dt                   = Track::block->dT;
+        setup.dt                   = track.dT;
         setup.sStop                = sStop;
         setup.maxSteps             = maxSteps;
-        setup.sStart               = Track::block->zstart;
+        setup.sStart               = sStart;
         setup.emittingSamplers     = emittingSamplersList;
         setup.beamReferenceMomenta = std::move(beamReferenceMomenta);
         setup.restarting           = isRestart;
@@ -848,15 +852,15 @@ namespace opalx::run {
         const auto& turn    = description.line.direction;
         setup.lineOrigin    = Vector_t<double, 3>(origin[0], origin[1], origin[2]);
         setup.lineDirection = Quaternion(turn[0], turn[1], turn[2], turn[3]);
-        if (Track::block->initialOrbit) {
-            Track::block->initialOrbit->validate(
-                    Track::block->use->getOpalName(), beams.front()->getParticleName(),
+        if (track.initialOrbit) {
+            track.initialOrbit->validate(
+                    description.line.name, beams.front()->getParticleName(),
                     beams.front()->getReference());
             for (const auto& samplers : emittingSamplersList)
                 for (const auto& sampler : samplers)
-                    if (!sampler->isEmissionDone(Track::block->initialOrbit->time))
+                    if (!sampler->isEmissionDone(track.initialOrbit->time))
                         throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
-            setup.initialOrbit = *Track::block->initialOrbit;
+            setup.initialOrbit = track.initialOrbit;
         }
         // Other solver configurations retain the ordinary unsplit integration sequence.
         setup.bareTracking           = fieldSolver->getType() == "NONE";
@@ -866,14 +870,14 @@ namespace opalx::run {
         setup.spaceChargeFieldUpdate = run.getString("SCFIELDUPDATE") == "PRESTEP"
                                                ? SpaceChargeFieldUpdate::PRESTEP
                                                : SpaceChargeFieldUpdate::MIDPOINT;
-        setup.beamStops              = makeBeamStops(beams, isRing, restartMetadata.beamStops);
+        setup.beamStops = makeBeamStops(beams, track, isRing, restartMetadata.beamStops);
         if (run.getBool("SPECTRALTUNES")) {
             // validate() checked the SPECTRALTUNES settings and the step budget.
             SpectralTunes::Settings settings;
             settings.turns        = static_cast<unsigned>(run.getReal("TURNS"));
             settings.sampleEvery  = static_cast<unsigned>(run.getReal("TUNESAMPLE"));
-            settings.stepsPerTurn = Track::block->stepsPerTurn;
-            settings.dt           = Track::block->dT.front();
+            settings.stepsPerTurn = track.stepsPerTurn;
+            settings.dt           = track.dT.front();
             settings.sector       = run.getString("TUNESECTOR");
             settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
                     run.getString("TUNEINTEGRATOR"));

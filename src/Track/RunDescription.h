@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include "Algorithms/ClosedOrbitInitialState.h"
+
 namespace opalx::run {
 
     /// An evaluated attribute value. Attribute types without a plain value (place, range,
@@ -126,7 +128,8 @@ namespace opalx::run {
         double t0                   = 0;
         int stepsPerTurn            = 0;
         double kineticEnergyStopGeV = 0;
-        bool hasInitialOrbit        = false;
+        /// INITIALORBIT: the COF result the bunch starts on. Only whether it is set is written.
+        std::optional<ClosedOrbitInitialState> initialOrbit;
         ObjectDescription run;        ///< Attributes of the RUN command.
         std::string fieldSolverType;  ///< TYPE of the RUN FIELDSOLVER, if found. Not written.
     };

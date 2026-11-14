@@ -36,14 +36,11 @@ class EmissionSourceList;
 
 class Track {
 public:
-    Track(BeamSequence*, const PartData&, const std::vector<double>& dt,
+    Track(BeamSequence*, const std::vector<double>& dt,
           const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
           const std::vector<double>& zStop, double t0,
           const std::vector<std::string>& beamNames = {});
     ~Track();
-
-    /// The reference data.
-    PartData reference;
 
     /// The lattice to be tracked through.
     BeamSequence* use;

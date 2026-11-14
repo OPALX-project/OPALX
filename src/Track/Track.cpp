@@ -34,11 +34,10 @@ otherwise a new bunch is allocated in the dictionary.
 */
 
 Track::Track(
-        BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
+        BeamSequence* u, const std::vector<double>& dt,
         const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
         const std::vector<double>& zStop, double t0, const std::vector<std::string>& beamNames)
-    : reference(ref),
-      use(u),
+    : use(u),
       parser(),
       dT(dt),
       t0_m(t0),

@@ -296,7 +296,7 @@ namespace opalx::run {
         trackDescription.t0                   = track->t0_m;
         trackDescription.stepsPerTurn         = track->stepsPerTurn;
         trackDescription.kineticEnergyStopGeV = track->kineticEnergyStopGeV;
-        trackDescription.hasInitialOrbit      = track->initialOrbit.has_value();
+        trackDescription.initialOrbit         = track->initialOrbit;
         trackDescription.run                  = describeObject(runCommand);
 
         // Beams, then the emission sources and distributions of each beam, in beam order.
