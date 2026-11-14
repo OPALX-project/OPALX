@@ -352,16 +352,16 @@ namespace {
         validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
         if (!s.output.empty())
             require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
-        ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
+        const PartData reference = beam.getReference();  // the tracker keeps a reference to it
+        ExternalFieldRayTracker tracker(lattice, reference, c.integrator);
         auto map          = makeReturnMap(lattice, tracker, c);
         const auto result = ClosedOrbitSolver::solve(map, s.initial, s.solver);
         writeSolverReport(out, c, s, result);
         if (result.status != ClosedOrbitSolver::Status::Converged) {
             throw OpalException("COF", out.str());
         }
-        const auto returned   = map(result.coordinates);
-        const auto& reference = beam.getReference();
-        const double drift    = (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
+        const auto returned = map(result.coordinates);
+        const double drift  = (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
                               - reference.getGamma())
                              / (reference.getGamma() - 1);
         out << "Return time_s=" << returned.ray.time - c.tracking.time

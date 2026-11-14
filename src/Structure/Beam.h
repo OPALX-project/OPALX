@@ -55,7 +55,11 @@ public:
     size_t getNumAlloc() const;
 
     /// Return the embedded OPALX PartData.
-    const PartData& getReference() const;
+    /**
+     * @brief The reference particle: charge, mass (eV) and momentum from GAMMA, ENERGY or PC.
+     * @throws OpalException if GAMMA, ENERGY or PC is out of range.
+     */
+    PartData getReference() const;
 
     /// Return the beam current in A (legacy; no longer used in OPALX)
     double getCurrent() const;
@@ -128,9 +132,6 @@ public:
     /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
     std::vector<double> getTuneInitial() const;
 
-    /// Update the BEAM data.
-    virtual void update();
-
     void print(std::ostream& os) const;
 
 private:
@@ -143,9 +144,6 @@ private:
 
     // Validate the REFDIRECTION attribute (length 3, non-zero, needs PC/ENERGY/GAMMA).
     void validateReferenceDirection() const;
-
-    // The particle reference data.
-    PartData reference;
 
     // The converstion from GeV to eV.
     static const double energy_scale;

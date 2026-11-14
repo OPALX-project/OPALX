@@ -63,8 +63,7 @@ Beam::Beam()
     : Definition(
               SIZE, "BEAM",
               "The \"BEAM\" statement defines data for the particles "
-              "in a beam."),
-      reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
+              "in a beam.") {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
             "PARTICLE", "Name of particle to be used",
             {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
@@ -151,7 +150,7 @@ void Beam::defineBuiltins() {
     defBeam->builtin = true;
 
     try {
-        defBeam->update();
+        defBeam->getReference();
         OpalData::getInstance()->define(defBeam);
     } catch (...) {
         delete defBeam;
@@ -204,7 +203,7 @@ void Beam::execute() {
                 "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
     }
 
-    update();
+    getReference();  // checks GAMMA, ENERGY and PC
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
@@ -377,21 +376,27 @@ size_t Beam::getNumAlloc() const {
     }
 }
 
-const PartData& Beam::getReference() const {
-    // Cast away const, to allow logically constant Beam to update.
-    const_cast<Beam*>(this)->update();
-    return reference;
-}
-
 double Beam::getCurrent() const { return Attributes::getReal(itsAttr[BCURRENT]); }
 
 double Beam::getBunchCharge() const { return Attributes::getReal(itsAttr[BCHARGE]); }
 
-double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
+double Beam::getCharge() const {
+    if (!itsAttr[CHARGE] && itsAttr[PARTICLE]) {
+        return ParticleProperties::getParticleCharge(
+                ParticleProperties::getParticleType(getParticleName()));
+    }
+    return Attributes::getReal(itsAttr[CHARGE]);
+}
 
-double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
+double Beam::getMass() const {
+    if (!itsAttr[MASS] && itsAttr[PARTICLE]) {
+        return ParticleProperties::getParticleMass(
+                ParticleProperties::getParticleType(getParticleName()));
+    }
+    return Attributes::getReal(itsAttr[MASS]);
+}
 
-double Beam::getMomentum() const { return reference.getP() * Units::eV2GeV; }
+double Beam::getMomentum() const { return getReference().getP() * Units::eV2GeV; }
 
 std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
@@ -415,33 +420,23 @@ double Beam::getMassPerParticle() const {
     return getMass() * getChargePerParticle() / (getCharge() * Physics::q_e);
 }
 
-void Beam::update() {
-    if (itsAttr[PARTICLE]) {
-        std::string pName  = getParticleName();
-        ParticleType pType = ParticleProperties::getParticleType(pName);
-        if (!itsAttr[MASS]) {
-            Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
-        }
-        if (!itsAttr[CHARGE]) {
-            Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
-        }
-    }
-
+PartData Beam::getReference() const {
     if (isPhoton()) {
-        reference = PartData();
-        reference.setQ(0.0);
-        reference.setM(0.0);
-        return;
+        PartData photon;
+        photon.setQ(0.0);
+        photon.setM(0.0);
+        return photon;
     }
 
     // Set up particle reference; convert all to eV for OPALX.
-    double mass   = (itsAttr[MASS] ? getMass() : Physics::m_p) * Units::GeV2eV;
-    double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
+    const bool particle = itsAttr[PARTICLE];
+    double mass         = (itsAttr[MASS] || particle ? getMass() : Physics::m_p) * Units::GeV2eV;
+    double charge       = itsAttr[CHARGE] || particle ? getCharge() : 1.0;
 
-    reference = PartData(charge, mass, 1.0);
+    PartData reference(charge, mass, 1.0);
 
     // Magnetic moment anomaly G = (g-2)/2 for the species (used by T-BMT).
-    if (itsAttr[PARTICLE]) {
+    if (particle) {
         const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
         reference.setAnomaly(ParticleProperties::getParticleAnomaly(pType));
     }
@@ -451,35 +446,34 @@ void Beam::update() {
         if (gamma > 1.0) {
             reference.setGamma(gamma);
         } else {
-            throw OpalException("Beam::update()", "\"GAMMA\" should be greater than 1.");
+            throw OpalException("Beam::getReference()", "\"GAMMA\" should be greater than 1.");
         }
     } else if (itsAttr[ENERGY]) {
         double energy = Attributes::getReal(itsAttr[ENERGY]) * Units::GeV2eV;
         if (energy > reference.getM()) {
             reference.setE(energy);
         } else {
-            throw OpalException("Beam::update()", "\"ENERGY\" should be greater than \"MASS\".");
+            throw OpalException(
+                    "Beam::getReference()", "\"ENERGY\" should be greater than \"MASS\".");
         }
     } else if (itsAttr[PC]) {
         double pc = Attributes::getReal(itsAttr[PC]) * Units::GeV2eV;
         if (pc > 0.0) {
             reference.setP(pc);
         } else {
-            throw OpalException("Beam::update()", "\"PC\" should be greater than 0.");
+            throw OpalException("Beam::getReference()", "\"PC\" should be greater than 0.");
         }
     }
-
-    // Set default name.
-    if (getOpalName().empty()) setOpalName("UNNAMED_BEAM");
+    return reference;
 }
 
 void Beam::print(std::ostream& os) const {
-    double charge = Attributes::getReal(itsAttr[CHARGE]);
+    double charge = getCharge();
     os << "* ************* B E A M ************************************************************ "
        << std::endl;
     os << "* BEAM        " << getOpalName() << '\n'
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
-       << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
+       << "* REST MASS   " << getMass() << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
        << "* MOMENTUM    " << getMomentum() << " [GeV/c]\n"
        << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"

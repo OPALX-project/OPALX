@@ -141,7 +141,7 @@ PartBunch<T, Dim>::PartBunch(
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
-        containers[i]->setReference(&beams[i]->getReference());
+        containers[i]->setReference(beams[i]->getReference());
         particleNames_m[i] = beams[i]->getParticleName();
         containers[i]->Sp  = static_cast<short>(
                 ParticleProperties::getParticleType(beams[i]->getParticleName()));
