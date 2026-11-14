@@ -183,10 +183,6 @@ namespace opalx::run {
             os << "\n[binning " << d.binning->name << "]\n";
             writeObject(*d.binning, os);
         }
-        if (d.boundaryGeometry) {
-            os << "\n[boundarygeometry " << d.boundaryGeometry->name << "]\n";
-            writeObject(*d.boundaryGeometry, os);
-        }
 
         os << "\n[line " << d.line.name << "]\n"
            << "topology = " << d.line.topology << "\n"

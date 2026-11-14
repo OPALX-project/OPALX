@@ -181,7 +181,6 @@ namespace opalx::run {
         std::vector<ObjectDescription> distributions;
         std::optional<ObjectDescription> fieldSolver;
         std::optional<ObjectDescription> binning;
-        std::optional<ObjectDescription> boundaryGeometry;
     };
 
 }  // namespace opalx::run

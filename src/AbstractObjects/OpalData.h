@@ -36,7 +36,6 @@ class Object;
 class Table;
 class ValueDefinition;
 class DataSink;
-class BoundaryGeometry;
 
 // store element name, max phase
 typedef std::pair<std::string, double> MaxPhasesT;
@@ -288,13 +287,6 @@ public:
     void setGlobalPhaseShift(double shift);
     /// units: (sec)
     double getGlobalPhaseShift();
-
-    ///
-    void setGlobalGeometry(BoundaryGeometry* bg);
-    ///
-    BoundaryGeometry* getGlobalGeometry();
-
-    bool hasGlobalGeometry();
 
     void setMaxPhase(std::string elName, double phi);
 

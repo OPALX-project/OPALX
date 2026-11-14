@@ -30,7 +30,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/LBalWriter.h"
 #include "Utilities/Options.h"
@@ -194,12 +193,6 @@ void DataSink::changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers) {
 
     for (size_t i = 0; i < h5wrappers.size(); ++i) {
         h5Writers_m[i]->changeH5Wrapper(h5wrappers[i]);
-    }
-}
-
-void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
-    if (ippl::Comm->rank() == 0 && Options::enableVTK) {
-        bg.writeGeomToVtk(fn);
     }
 }
 

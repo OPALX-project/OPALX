@@ -25,12 +25,10 @@
 #include "BeamlineCore/RFCavityRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalException.h"
 
 OpalCavity::OpalCavity()
-    : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity."),
-      obgeo_m(nullptr) {
+    : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity.") {
     itsAttr[TYPE] = Attributes::makePredefinedString(
             "TYPE",
             "RF cavity model: mapped STANDING (default), mapped SINGLEGAP, or uniform IDEAL.",
@@ -66,8 +64,7 @@ OpalCavity::OpalCavity()
     registerOwnership();
 }
 
-OpalCavity::OpalCavity(const std::string& name, OpalCavity* parent)
-    : OpalElement(name, parent), obgeo_m(nullptr) {}
+OpalCavity::OpalCavity(const std::string& name, OpalCavity* parent) : OpalElement(name, parent) {}
 
 OpalCavity::~OpalCavity() {}
 

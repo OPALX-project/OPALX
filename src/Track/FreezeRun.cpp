@@ -24,7 +24,6 @@
 #include "Lines/Ring.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Track/BuildElements.h"
@@ -325,11 +324,6 @@ namespace opalx::run {
                 if (const BinningCmd* binning = fs->getBinningCmd()) {
                     run.binning = describeObject(*binning);
                 }
-            }
-        }
-        if (const Attribute* geometry = attributeNamed(runCommand, "BOUNDARYGEOMETRY")) {
-            if (const auto* bg = findAs<BoundaryGeometry>(Attributes::getString(*geometry))) {
-                run.boundaryGeometry = describeObject(*bg);
             }
         }
 

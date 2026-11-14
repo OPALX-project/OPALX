@@ -23,7 +23,6 @@
 #include "Elements/OpalElement.h"
 
 class OpalWake;
-class BoundaryGeometry;
 
 class OpalCavity : public OpalElement {
 public:
@@ -72,8 +71,6 @@ private:
 
     // Clone constructor.
     OpalCavity(const std::string& name, OpalCavity* parent);
-
-    BoundaryGeometry* obgeo_m;
 };
 
 #endif  // OPAL_OpalCavity_HH

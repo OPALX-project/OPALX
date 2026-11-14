@@ -96,8 +96,6 @@ private:
     void initDataSink(size_t numParticleContainers);
     std::vector<H5PartWrapper*> borrowedPhaseSpaceSinks() const;
 
-    void setupBoundaryGeometry();
-
     /// @brief Attach prebuilt global process vector to each particle container.
     void setupGlobalProcesses(
             std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists);

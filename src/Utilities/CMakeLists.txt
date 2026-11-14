@@ -16,7 +16,6 @@ set (_SRCS
     Util.cpp
     SDDSParser.cpp
     OpalException.cpp
-    OpalFilter.cpp
     RegularExpression.cpp
     Timer.cpp
     AbstractSpline.cpp
@@ -42,7 +41,6 @@ set (HDRS
     PortableGraymapReader.h
     Util.h
     OpalException.h
-    OpalFilter.h
     RegularExpression.h
     Timer.h
     AbstractSpline.h

@@ -61,7 +61,6 @@
 
 #include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
 #include "Structure/EmissionSource.h"
@@ -511,8 +510,6 @@ TrackingSetup TrackRun::buildTracking(
     // BC handler
     *gmsg << level2 << fs_m->constructBCHandler() << endl;
 
-    setupBoundaryGeometry();
-
     // Get algorithm to use.
     setRunMethod();
 
@@ -743,19 +740,6 @@ std::vector<H5PartWrapper*> TrackRun::borrowedPhaseSpaceSinks() const {
         sinks.push_back(sink.get());
     }
     return sinks;
-}
-
-void TrackRun::setupBoundaryGeometry() {
-    if (Attributes::getString(itsAttr[TRACKRUN::BOUNDARYGEOMETRY]) != "NONE") {
-        // Ask the dictionary if BoundaryGeometry is allocated.
-        // If it is allocated use the allocated BoundaryGeometry
-        if (!OpalData::getInstance()->hasGlobalGeometry()) {
-            const std::string geomDescriptor =
-                    Attributes::getString(itsAttr[TRACKRUN::BOUNDARYGEOMETRY]);
-            BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
-            OpalData::getInstance()->setGlobalGeometry(bg);
-        }
-    }
 }
 
 void TrackRun::setupGlobalProcesses(

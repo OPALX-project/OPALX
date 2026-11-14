@@ -34,7 +34,6 @@
 #include "OpalParser/StringStream.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -116,8 +115,6 @@ struct OpalDataImpl {
     // In units of seconds. This is half of tEmission
     double gPhaseShift_m;
 
-    BoundaryGeometry* bg_m;
-
     std::vector<MaxPhasesT> maxPhases_m;
     energyEvolution_t energyEvolution_m;
 
@@ -156,7 +153,6 @@ OpalDataImpl::OpalDataImpl()
       isInPrepState_m(false) {
     bunch_m    = nullptr;
     dataSink_m = nullptr;
-    bg_m       = nullptr;
     mesh_m     = nullptr;
     FL_m       = nullptr;
     PL_m       = nullptr;
@@ -170,7 +166,6 @@ OpalDataImpl::~OpalDataImpl() {
     // delete PL_m; //this gets deleted by FL_m
 
     delete bunch_m;
-    delete bg_m;
     delete dataSink_m;
 
     mainDirectory.erase();
@@ -353,12 +348,6 @@ double OpalData::getGlobalPhaseShift() {
     /// units: (sec)
     return p->gPhaseShift_m;
 }
-
-void OpalData::setGlobalGeometry(BoundaryGeometry* bg) { p->bg_m = bg; }
-
-BoundaryGeometry* OpalData::getGlobalGeometry() { return p->bg_m; }
-
-bool OpalData::hasGlobalGeometry() { return p->bg_m != nullptr; }
 
 void OpalData::apply(const ObjectFunction& fun) {
     for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {

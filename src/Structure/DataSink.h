@@ -40,7 +40,6 @@
 #include <string>
 #include <vector>
 
-class BoundaryGeometry;
 class H5PartWrapper;
 class BinConfigWriter;
 class DirichletPlaneWriter;
@@ -135,8 +134,6 @@ public:
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeGeomToVtk(BoundaryGeometry& bg, std::string fn);
-    // void writeGeoContourToVtk(BoundaryGeometry &bg, std::string fn);
 
     /**
      * Write impact number and outgoing secondaries in each time step

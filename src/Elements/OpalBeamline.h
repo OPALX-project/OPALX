@@ -35,7 +35,6 @@
 
 #include "OPALTypes.h"
 
-class BoundaryGeometry;
 class MeshGenerator;
 
 /**
@@ -96,8 +95,6 @@ public:
     CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
     void switchElementsOff();
-
-    BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 
     unsigned long getFieldAt(
             const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,

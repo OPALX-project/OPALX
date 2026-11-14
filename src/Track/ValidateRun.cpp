@@ -102,6 +102,14 @@ namespace opalx::run {
             errors.push_back("FieldSolverCmd \"" + text(cmd, "FIELDSOLVER") + "\" not found.");
         }
 
+        // There is no command that defines a boundary geometry.
+        if (const std::string geometry = text(cmd, "BOUNDARYGEOMETRY");
+            !geometry.empty() && geometry != "NONE") {
+            errors.push_back(
+                    "BOUNDARYGEOMETRY \"" + geometry
+                    + "\" is not supported; OPALX has no boundary geometries. Use NONE.");
+        }
+
         // Beams, in TRACK BEAMS order.
         const std::vector<std::string>& names = track.beamNames;
         std::vector<const BeamDescription*> beams;

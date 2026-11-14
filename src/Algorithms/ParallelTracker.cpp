@@ -57,7 +57,6 @@
 
 #include "SpaceCharge/SpaceChargeSolver.h"
 
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
 #include "Structure/CheckpointFile.h"
 #include "Utilities/LogicalError.h"
