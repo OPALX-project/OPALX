@@ -333,20 +333,16 @@ void PartBunch<T, Dim>::calcBeamParameters() {
  * @copybrief PartBunch::print
  */
 template <typename T, unsigned Dim>
-Inform& PartBunch<T, Dim>::print(Inform& os) {
-    // if (pc->getLocalNum() != 0) {  // to suppress Nans
+Inform& PartBunch<T, Dim>::print(Inform& os, std::span<const opalx::moments::BeamMoments> moments) {
     Inform::FmtFlags_t ff = os.flags();
 
     const auto& containers = this->getParticleContainers();
+    if (moments.size() != containers.size()) {
+        throw OpalException("PartBunch::print", "Expected one moment snapshot per container.");
+    }
     for (size_t ci = 0; ci < containers.size(); ++ci) {
         const auto& pc = containers[ci];
-        if (!pc) {
-            os << level1 << "Skipping null particle container: " << ci << endl;
-            continue;
-        }
-
-        const double ek  = pc->getMeanKineticEnergy();
-        const double dek = pc->getStdKineticEnergy();
+        const auto& m  = moments[ci];
 
         // ParticleContainer tracks charge/mass storage mode for QM attributes.
         std::string qmStorageModeStr = "SINGLE";
@@ -362,27 +358,23 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* PARTICLES       = " << pc->getTotalNum() << "\n"
            << "* CHARGE          = " << pc->getTotalCharge() << " (Cb) \n"
            << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
-           << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
-           << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
+           << "* <EKIN>          = " << Util::getEnergyString(m.meanKineticEnergy()) << "\n"
+           << "* <dEKIN>         = " << Util::getEnergyString(m.stdKineticEnergy()) << "\n"
            << "* INTEGRATOR      = " << integration_method_m << "\n"
            << "* LB Threshold    = " << lbt_m << "\n"
-           << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
-           << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
-           << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
-           << "* RMS P           = " << pc->getRmsP() << " [beta gamma]\n"
-           << "* Mean R          = " << pc->getMeanR() << " [m]\n"
-           << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
+           << "* MIN R (origin)  = " << Util::getLengthString(m.minR(), 5) << "\n"
+           << "* MAX R (max ext) = " << Util::getLengthString(m.maxR(), 5) << "\n"
+           << "* RMS R           = " << Util::getLengthString(m.rmsR(), 5) << "\n"
+           << "* RMS P           = " << m.rmsP() << " [beta gamma]\n"
+           << "* Mean R          = " << m.meanR() << " [m]\n"
+           << "* Mean P          = " << m.meanP() << " [beta gamma]\n"
            << "* MESH SPACING    = " << Util::getLengthString(hr_m, 5) << "\n"
            << "* COMPDOM INCR    = " << boundingBoxIncreasePercent_m << " (%) \n"
            << "* FIELD LAYOUT    = " << initialFieldLayout_m << "\n"
-           << "* Centroid : \n* ";
-        for (unsigned int i = 0; i < 2 * Dim; i++) {
-            os << level1 << pc->getCentroid()[i] << " ";
-        }
-        os << level1 << endl << "* Cov Matrix : \n* ";
+           << "* Cov Matrix : \n* ";
         for (unsigned int i = 0; i < 2 * Dim; i++) {
             for (unsigned int j = 0; j < 2 * Dim; j++) {
-                os << level1 << pc->getCovMatrix()(i, j) << " ";
+                os << level1 << m.covariance(i, j) << " ";
             }
             os << level1 << "\n* ";
         }

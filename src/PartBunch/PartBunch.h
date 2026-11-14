@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include "Algorithms/Matrix.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
+#include "Moments/BeamMoments.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/CartesianDomainConfig.h"
@@ -423,10 +425,16 @@ public:
         return Vector_t<double, Dim>(0);
     }
 
-    /// @brief Human-readable dump of each container to @p os.
-    /// @param os Output stream wrapper.
-    /// @return Reference to @p os.
-    Inform& print(Inform& os);
+    /**
+     * @brief Human-readable dump of each container to @p os.
+     * @param moments One snapshot per container holding at least printedMoments.
+     */
+    Inform& print(Inform& os, std::span<const opalx::moments::BeamMoments> moments);
+
+    /// Moment groups print() reads.
+    static constexpr opalx::moments::Request printedMoments =
+            opalx::moments::Moment::Bounds | opalx::moments::Moment::MeanPosition
+            | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
 
     /// @brief Compatibility stub; logs and returns 0.
     double calcMeanPhi() {
