@@ -48,11 +48,6 @@ public:
     //  By default redefinition of an existing Object is not allowed.
     virtual bool canReplaceBy(Object* object);
 
-    /// Return a clone.
-    //  Call the [b]clone[/b] constructor to generate a copy of [b]this[/b]
-    //  with a new name [b]name[/b].
-    virtual Object* clone(const std::string& name) = 0;
-
     /// Copy attributes from another object.
     void copyAttributes(const Object&);
 
@@ -135,16 +130,6 @@ public:
     /// True, if [b]this[/b] is a built-in object.
     bool isBuiltin() const;
 
-    /// Shared flag.
-    //  If true, this object cannot be cloned to create new elements.
-    //  If it is an element or a line, all references are to the same object.
-    virtual bool isShared() const;
-
-    /// Set/reset shared flag.
-    //  If true, this object cannot be cloned to create new elements.
-    //  If it is an element or a line, all references are to the same object.
-    virtual void setShared(bool);
-
     /// Set/reset the [b]modified[/b] flag.
     //  Set the flag when an object is created and modified,
     //  reset it when the object is saved in the DOOM data base.
@@ -199,10 +184,9 @@ protected:
     //  text [b]help[/b]; it initially reserves [b]size[/b] attributes.
     Object(int size, const char* name, const char* help);
 
-    /// Constructor for clones.
-    //  The clone object will have the name [b]name[/b]; it inherits its
-    //  attributes (shared) from the object [b]*parent[/b].
-    Object(const std::string& name, Object* parent);
+    /// A new object named @p name with the keyword, help text and attribute values of
+    /// @p model (shared until set again). Used by the MACRO and LINE templates.
+    Object(const std::string& name, Object* model);
 
     /// Built-in flag.
     //  True, if the object is built-in to OPAL-9, i. e. if it is an exemplar
@@ -242,9 +226,6 @@ private:
     // The set of all references to this object.
     // This allows to invalidate the references when [b]this[/b] is deleted.
     std::set<Invalidator*> references;
-
-    // If true, the object is shared.
-    bool sharedFlag;
 };
 
 // Implementation.

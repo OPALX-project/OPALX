@@ -67,9 +67,6 @@ void RealConstant::defineBuiltins() {
     opal->create(new RealConstant("RANK", ippl::Comm->rank()));
 }
 
-RealConstant::RealConstant(const std::string& name, RealConstant* parent)
-    : ValueDefinition(name, parent) {}
-
 RealConstant::RealConstant(const std::string& name, double value) : RealConstant() {
     setOpalName(name);
     Attributes::setReal(itsAttr[0], value);
@@ -80,8 +77,6 @@ RealConstant::RealConstant(const std::string& name, double value) : RealConstant
 RealConstant::~RealConstant() {}
 
 bool RealConstant::canReplaceBy(Object*) { return false; }
-
-RealConstant* RealConstant::clone(const std::string& name) { return new RealConstant(name, this); }
 
 double RealConstant::getReal() const { return Attributes::getReal(itsAttr[0]); }
 

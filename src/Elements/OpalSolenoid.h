@@ -39,9 +39,6 @@ public:
 
     virtual ~OpalSolenoid();
 
-    /// Make clone.
-    virtual OpalSolenoid* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -52,9 +49,6 @@ private:
     // Not implemented.
     OpalSolenoid(const OpalSolenoid&);
     void operator=(const OpalSolenoid&);
-
-    // Clone constructor.
-    OpalSolenoid(const std::string& name, OpalSolenoid* parent);
 };
 
 #endif  // OPAL_OpalSolenoid_HH

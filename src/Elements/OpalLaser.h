@@ -12,8 +12,6 @@ public:
     OpalLaser();
     ~OpalLaser() override;
 
-    OpalLaser* clone(const std::string& name) override;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -23,7 +21,6 @@ private:
 
     OpalLaser(const OpalLaser&);
     void operator=(const OpalLaser&);
-    OpalLaser(const std::string& name, OpalLaser* parent);
 };
 
 #endif  // OPAL_OpalLaser_HH

@@ -27,9 +27,6 @@ public:
 
     virtual ~Stop();
 
-    /// Make clone.
-    virtual Stop* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -37,9 +34,6 @@ private:
     // Not implemented.
     Stop(const Stop&);
     void operator=(const Stop&);
-
-    // Clone constructor.
-    Stop(const std::string& name, Stop* parent);
 };
 
 #endif  // OPAL_Stop_HH

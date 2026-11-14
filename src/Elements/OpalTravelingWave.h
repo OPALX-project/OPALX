@@ -45,9 +45,6 @@ public:
 
     virtual ~OpalTravelingWave();
 
-    /// Make clone.
-    virtual OpalTravelingWave* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -58,9 +55,6 @@ private:
     // Not implemented.
     OpalTravelingWave(const OpalTravelingWave&);
     void operator=(const OpalTravelingWave&);
-
-    // Clone constructor.
-    OpalTravelingWave(const std::string& name, OpalTravelingWave* parent);
 };
 
 #endif  // OPAL_OpalTravelingWave_HH

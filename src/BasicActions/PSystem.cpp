@@ -32,11 +32,7 @@ PSystem::PSystem()
     registerOwnership(AttributeHandler::COMMAND);
 }
 
-PSystem::PSystem(const std::string& name, PSystem* parent) : Action(name, parent) {}
-
 PSystem::~PSystem() {}
-
-PSystem* PSystem::clone(const std::string& name) { return new PSystem(name, this); }
 
 void PSystem::execute() {
     std::string command = Attributes::getString(itsAttr[0]);

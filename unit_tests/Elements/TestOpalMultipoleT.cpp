@@ -130,8 +130,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
     // An input element must be placed, otherwise building it fails.
     Attributes::setReal(*ui.findAttribute("ELEMEDGE"), 0.0);
-    // Make the clone
-    std::unique_ptr<OpalMultipoleT> uiClone{ui.clone("Clone")};
+    // Make a copy, as "CLONE: UI;" does
+    std::unique_ptr<OpalMultipoleT> uiClone = opalx::test::copyOf(ui, "Clone");
     // Build the magnet
     std::shared_ptr<ElementBase> built;
     ASSERT_NO_THROW(built = opalx::test::buildFrom(*uiClone));

@@ -18,14 +18,7 @@ OpalConstantFocusing::OpalConstantFocusing()
     registerOwnership();
 }
 
-OpalConstantFocusing::OpalConstantFocusing(const std::string& name, OpalConstantFocusing* parent)
-    : OpalElement(name, parent) {}
-
 OpalConstantFocusing::~OpalConstantFocusing() {}
-
-OpalConstantFocusing* OpalConstantFocusing::clone(const std::string& name) {
-    return new OpalConstantFocusing(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ElementValues& values) {
     auto element = std::make_shared<ConstantFocusingRep>(values.getName());

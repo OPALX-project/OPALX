@@ -49,17 +49,6 @@ OpalVariableRFCavity::OpalVariableRFCavity()
     registerOwnership();
 }
 
-OpalVariableRFCavity::OpalVariableRFCavity(const std::string& name, OpalVariableRFCavity* parent)
-    : OpalElement(name, parent) {}
-
-OpalVariableRFCavity* OpalVariableRFCavity::clone(const std::string& name) {
-    return new OpalVariableRFCavity(name, this);
-}
-
-OpalVariableRFCavity* OpalVariableRFCavity::clone() {
-    return new OpalVariableRFCavity(this->getOpalName(), this);
-}
-
 std::shared_ptr<ElementBase> OpalVariableRFCavity::build(const ElementValues& values) {
     auto element = std::make_shared<VariableRFCavity>(values.getName());
     fill(*element, values);

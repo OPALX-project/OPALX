@@ -35,15 +35,10 @@ public:
     /// Exemplar constructor.
     Macro(int size, const char* name, const char* help);
 
-    /// Clone constructor.
-    Macro(const std::string& name, Object* parent);
+    /// A new macro named @p name with the keyword and attributes of @p model.
+    Macro(const std::string& name, Object* model);
 
     virtual ~Macro();
-
-    /// Make clone.
-    //  Throw ParseError, since for macro we must make a template and not
-    //  a clone.
-    virtual Macro* clone(const std::string& name);
 
     /// Return the object category as a string.
     //  Return the string "MACRO".

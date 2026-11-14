@@ -81,16 +81,9 @@ public:
     /// Return arc length from origin to exit (positive !).
     virtual double getExit(ReferenceType) const;
 
-    /// Set shared flag.
-    //  If true, all references to this name are to the same object.
-    virtual void setShared(bool);
-
 protected:
     /// Constructor for exemplars.
     Element(int size, const char* name, const char* help);
-
-    /// Constructor for clones.
-    Element(const std::string& name, Element* parent);
 
 private:
     // Not implemented.

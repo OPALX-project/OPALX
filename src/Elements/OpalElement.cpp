@@ -95,9 +95,6 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
     }
 }
 
-OpalElement::OpalElement(const std::string& name, OpalElement* parent)
-    : Element(name, parent), itsSize(parent->itsSize) {}
-
 OpalElement::~OpalElement() {}
 
 std::pair<ApertureType, std::vector<double>> OpalElement::getApert(const ElementValues& values) {

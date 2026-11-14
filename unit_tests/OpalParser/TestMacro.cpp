@@ -300,7 +300,6 @@ TEST(MacroFactoryTest, RejectsDuplicateAndMalformedFormalsAndBodies) {
         EXPECT_THROW(makeTemplate(model, text), ParseError);
     }
     EXPECT_THROW(model.execute(), ParseError);
-    EXPECT_THROW(model.clone("INVALID"), ParseError);
     auto macro = makeTemplate(model, "): MACRO {}");
     EXPECT_THROW(macro->execute(), ParseError);
     EXPECT_EQ(macro->getCategory(), "MACRO");

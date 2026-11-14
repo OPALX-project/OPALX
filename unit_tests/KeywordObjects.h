@@ -47,6 +47,18 @@ namespace opalx::test {
     }
 
     /**
+     * @brief The copy the parser makes for "NAME: OBJECT;": a new object of the keyword of
+     *        @p object with its attribute values. The keyword must be registered.
+     */
+    template <class T>
+    std::unique_ptr<T> copyOf(const T& object, const std::string& name) {
+        std::unique_ptr<Object> copy(OpalData::getInstance()->copyObject(object, name));
+        if (dynamic_cast<T*>(copy.get()) == nullptr)
+            throw std::logic_error("copy of " + object.getOpalName() + " has another class");
+        return std::unique_ptr<T>(static_cast<T*>(copy.release()));
+    }
+
+    /**
      * @brief An element made from the keyword table and placed at ELEMEDGE = 0.
      *
      * Every input element must be placed (ELEMEDGE or a pose); building refuses one that is

@@ -30,14 +30,7 @@ OpalCollimator::OpalCollimator()
     registerOwnership();
 }
 
-OpalCollimator::OpalCollimator(const std::string& name, OpalCollimator* parent)
-    : OpalElement(name, parent) {}
-
 OpalCollimator::~OpalCollimator() {}
-
-OpalCollimator* OpalCollimator::clone(const std::string& name) {
-    return new OpalCollimator(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalCollimator::build(const ElementValues& values) {
     auto element = std::make_shared<CollimatorRep>(values.getName());

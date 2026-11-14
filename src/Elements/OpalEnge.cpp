@@ -31,7 +31,3 @@ void OpalEnge::update() {
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     efmMan->setEndFieldModel(getOpalName(), efm);
 }
-
-OpalEnge::OpalEnge(const std::string& name, OpalEnge* parent) : OpalElement(name, parent) {}
-
-OpalEnge* OpalEnge::clone(const std::string& name) { return new OpalEnge(name, this); }

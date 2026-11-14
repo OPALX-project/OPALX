@@ -443,11 +443,7 @@ Option::Option()
     FileStream::setEcho(echo);
 }
 
-Option::Option(const std::string& name, Option* parent) : Action(name, parent) {}
-
 Option::~Option() {}
-
-Option* Option::clone(const std::string& name) { return new Option(name, this); }
 
 void Option::execute() {
     if (Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]))

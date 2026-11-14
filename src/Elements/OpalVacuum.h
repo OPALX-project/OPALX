@@ -44,9 +44,6 @@ public:
 
     virtual ~OpalVacuum();
 
-    /// Make clone.
-    virtual OpalVacuum* clone(const std::string& name);
-
     /// Update the embedded OPALX vacuum.
     virtual void update();
 
@@ -54,9 +51,6 @@ private:
     // Not implemented.
     OpalVacuum(const OpalVacuum&);
     void operator=(const OpalVacuum&);
-
-    // Clone constructor.
-    OpalVacuum(const std::string& name, OpalVacuum* parent);
 
     ParticleMatterInteraction* parmatint_m;
 };

@@ -247,43 +247,12 @@ TrackRun::TrackRun()
     opal_m = OpalData::getInstance();
 }
 
-TrackRun::TrackRun(const std::string& name, TrackRun* parent)
-    : Action(name, parent),
-      bunch_m(nullptr),
-      spaceChargeSolver_m(nullptr),
-      itsTracker_m(nullptr),
-      fs_m(nullptr),
-      ds_m(nullptr),
-      phaseSpaceSinks_m(),
-      method_m(RunMethod::NONE) {
-    /*
-      the opal dictionary
-    */
-
-    opal_m = OpalData::getInstance();
-
-    const Vector_t<int, 3> nr(8);
-
-    ippl::NDIndex<3> domain;
-    for (unsigned i = 0; i < 3; i++) {
-        domain[i] = ippl::Index(nr[i]);
-    }
-
-    std::array<bool, 3> isParallel;
-
-    for (unsigned d = 0; d < 3; ++d) {
-        isParallel[d] = true;
-    }
-}
-
 TrackRun::~TrackRun() {
     // Solvers borrow particle containers and must be destroyed before their owner.
     itsTracker_m.reset();
     spaceChargeSolver_m.reset();
     bunch_m.reset();
 }
-
-TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
 void TrackRun::execute() {
     // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy

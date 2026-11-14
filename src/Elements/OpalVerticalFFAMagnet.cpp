@@ -62,14 +62,7 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
     registerOwnership();
 }
 
-OpalVerticalFFAMagnet::OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent)
-    : OpalElement(name, parent) {}
-
 OpalVerticalFFAMagnet::~OpalVerticalFFAMagnet() {}
-
-OpalVerticalFFAMagnet* OpalVerticalFFAMagnet::clone(const std::string& name) {
-    return new OpalVerticalFFAMagnet(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ElementValues& values) {
     auto element = std::make_shared<VerticalFFAMagnet>(values.getName());

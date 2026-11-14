@@ -13,7 +13,6 @@
 class OpalTrimCoil : public Definition {
 public:
     OpalTrimCoil();
-    OpalTrimCoil* clone(const std::string& name) override { return new OpalTrimCoil(name, this); }
     /// Validate the definition without allocating a tracking element.
     void execute() override { model(); }
     bool canReplaceBy(Object* object) override {
@@ -26,7 +25,6 @@ public:
 
 private:
     enum { TYPE, RMIN, RMAX, BMAX, SLPTC, SIZE };
-    OpalTrimCoil(const std::string& name, OpalTrimCoil* parent) : Definition(name, parent) {}
 };
 
 /** @brief Parser and host-side configuration of a placed PSI magnetic sector.
@@ -40,7 +38,6 @@ private:
 class OpalCyclotronSector : public OpalElement {
 public:
     OpalCyclotronSector();
-    OpalCyclotronSector* clone(const std::string& name) override;
 
     /** @brief Build the runtime sector of one occurrence: resolve the map and coil definitions.
      * An empty FMAPFN leaves the sector unconfigured; tracking an unconfigured
@@ -55,6 +52,5 @@ private:
     static void fill(ElementBase& element, const ElementValues& values);
 
     enum { FMAPFN = COMMON, SYM, RMIN, RMAX, VMIN, VMAX, BSCALE, TRIMCOIL, SIZE };
-    OpalCyclotronSector(const std::string& name, OpalCyclotronSector* parent);
 };
 #endif

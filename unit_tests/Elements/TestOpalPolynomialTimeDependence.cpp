@@ -24,8 +24,8 @@
 TEST(TestOpalPolynomialTimeDependence, ConstructorTest) {
     auto depObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
             "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
-    OpalPolynomialTimeDependence& dep             = *depObject;
-    const OpalPolynomialTimeDependence* dep_clone = dep.clone("new name");
+    OpalPolynomialTimeDependence& dep = *depObject;
+    const auto dep_clone              = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 

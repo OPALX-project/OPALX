@@ -29,8 +29,6 @@ public:
 
     virtual ~TrackCmd();
 
-    virtual TrackCmd* clone(const std::string& name);
-
     virtual void execute();
 
     /// Return the timestep in seconds
@@ -58,9 +56,6 @@ private:
     // Not implemented.
     TrackCmd(const TrackCmd&);
     void operator=(const TrackCmd&);
-
-    // Clone constructor.
-    TrackCmd(const std::string& name, TrackCmd* parent);
 };
 
 #endif  // OPAL_TrackCmd_HH

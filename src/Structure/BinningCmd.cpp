@@ -62,14 +62,7 @@ BinningCmd::BinningCmd()
             10);
 }
 
-BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
-    : Definition(name, parent),
-      parameterName_m(parent->parameterName_m),
-      parameterType_m(parent->parameterType_m) {}
-
 BinningCmd::~BinningCmd() {}
-
-BinningCmd* BinningCmd::clone(const std::string& name) { return new BinningCmd(name, this); }
 
 BinningCmd* BinningCmd::find(const std::string& name) {
     BinningCmd* bc = dynamic_cast<BinningCmd*>(OpalData::getInstance()->find(name));

@@ -33,12 +33,6 @@ Macro::Macro(const std::string& name, Object* parent)
 
 Macro::~Macro() {}
 
-Macro* Macro::clone(const std::string&) {
-    throw ParseError(
-            "Macro::clone()",
-            "You cannot execute the command \"" + getOpalName() + "\" without parameters.");
-}
-
 const std::string Macro::getCategory() const { return "MACRO"; }
 
 bool Macro::shouldTrace() const { return false; }

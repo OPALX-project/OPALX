@@ -28,12 +28,7 @@ OpalMonitor::OpalMonitor()
     registerOwnership();
 }
 
-OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent)
-    : OpalElement(name, parent) {}
-
 OpalMonitor::~OpalMonitor() {}
-
-OpalMonitor* OpalMonitor::clone(const std::string& name) { return new OpalMonitor(name, this); }
 
 std::shared_ptr<ElementBase> OpalMonitor::build(const ElementValues& values) {
     auto element = std::make_shared<MonitorRep>(values.getName());

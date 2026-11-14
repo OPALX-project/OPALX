@@ -308,7 +308,7 @@ void OpalParser::parseAssign(Statement& stat) const {
 
 void OpalParser::parseDefine(Statement& stat) const {
     stat.start();
-    bool isShared       = stat.keyword("SHARED");
+    stat.keyword("SHARED");  // accepted; it has no effect
     std::string objName = parseString(stat, "Object name expected.");
 
     if (stat.delimiter(':')) {
@@ -337,7 +337,6 @@ void OpalParser::parseDefine(Statement& stat) const {
                         "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown.");
             }
             copy->parse(stat);
-            copy->setShared(isShared);
         }
 
         parseEnd(stat);

@@ -23,8 +23,8 @@
 TEST(TestOpalSplineTimeDependence, ConstructorTest) {
     auto depObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
             "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
-    OpalSplineTimeDependence& dep             = *depObject;
-    const OpalSplineTimeDependence* dep_clone = dep.clone("new name");
+    OpalSplineTimeDependence& dep = *depObject;
+    const auto dep_clone          = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 

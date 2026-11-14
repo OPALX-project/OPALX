@@ -47,14 +47,7 @@ OpalQuadrupole::OpalQuadrupole()
     registerOwnership();
 }
 
-OpalQuadrupole::OpalQuadrupole(const std::string& name, OpalQuadrupole* parent)
-    : OpalElement(name, parent) {}
-
 OpalQuadrupole::~OpalQuadrupole() {}
-
-OpalQuadrupole* OpalQuadrupole::clone(const std::string& name) {
-    return new OpalQuadrupole(name, this);
-}
 
 void OpalQuadrupole::print(std::ostream& os) const { OpalElement::print(os); }
 

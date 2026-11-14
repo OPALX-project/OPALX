@@ -45,7 +45,6 @@ public:
     virtual ~OpalVerticalFFAMagnet();
 
     /** Inherited copy constructor */
-    virtual OpalVerticalFFAMagnet* clone(const std::string& name);
 
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
@@ -57,9 +56,6 @@ private:
     // Not implemented.
     OpalVerticalFFAMagnet(const OpalVerticalFFAMagnet&);
     void operator=(const OpalVerticalFFAMagnet&);
-
-    // Clone constructor.
-    OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent);
 
     static std::string docstring_m;
 };

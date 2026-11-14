@@ -36,9 +36,6 @@ public:
 
     virtual ~OpalBox();
 
-    /// Make clone.
-    virtual OpalBox* clone(const std::string& name);
-
     /**
      * @brief Build the runtime box of one occurrence from its attribute values.
      *
@@ -54,9 +51,6 @@ private:
     // Not implemented.
     OpalBox(const OpalBox&);
     void operator=(const OpalBox&);
-
-    // Clone constructor.
-    OpalBox(const std::string& name, OpalBox* parent);
 };
 
 #endif  // OPAL_OpalBox_HH

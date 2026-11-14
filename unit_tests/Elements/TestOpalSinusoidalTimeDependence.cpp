@@ -45,8 +45,8 @@ TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
 TEST(TestOpalSinusoidalTimeDependence, ConstructorTest) {
     auto depObject = opalx::test::makeKeywordObject<OpalSinusoidalTimeDependence>(
             "SINUSOIDAL_TIME_DEPENDENCE", "SINUSOIDAL_TIME_DEPENDENCE");
-    OpalSinusoidalTimeDependence& dep             = *depObject;
-    const OpalSinusoidalTimeDependence* dep_clone = dep.clone("new name");
+    OpalSinusoidalTimeDependence& dep = *depObject;
+    const auto dep_clone              = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 

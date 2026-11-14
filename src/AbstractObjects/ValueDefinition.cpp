@@ -74,6 +74,3 @@ const Attribute& ValueDefinition::value() const { return itsAttr[0]; }
 
 ValueDefinition::ValueDefinition(int size, const char* name, const char* help)
     : Object(size, name, help) {}
-
-ValueDefinition::ValueDefinition(const std::string& name, ValueDefinition* parent)
-    : Object(name, parent) {}

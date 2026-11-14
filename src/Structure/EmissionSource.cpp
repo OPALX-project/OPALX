@@ -70,17 +70,10 @@ EmissionSource::EmissionSource()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-EmissionSource::EmissionSource(const std::string& name, EmissionSource* parent)
-    : Definition(name, parent) {}
-
 EmissionSource::~EmissionSource() {}
 
 bool EmissionSource::canReplaceBy(Object* object) {
     return dynamic_cast<EmissionSource*>(object) != nullptr;
-}
-
-EmissionSource* EmissionSource::clone(const std::string& name) {
-    return new EmissionSource(name, this);
 }
 
 void EmissionSource::execute() {}

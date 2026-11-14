@@ -33,14 +33,9 @@ BoolConstant::BoolConstant()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-BoolConstant::BoolConstant(const std::string& name, BoolConstant* parent)
-    : ValueDefinition(name, parent) {}
-
 BoolConstant::~BoolConstant() {}
 
 bool BoolConstant::canReplaceBy(Object*) { return false; }
-
-BoolConstant* BoolConstant::clone(const std::string& name) { return new BoolConstant(name, this); }
 
 bool BoolConstant::getBool() const { return Attributes::getBool(itsAttr[0]); }
 

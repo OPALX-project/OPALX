@@ -29,9 +29,6 @@ public:
 
     virtual ~OpalCollimator();
 
-    /// Make clone.
-    virtual OpalCollimator* clone(const std::string& name);
-
     /**
      * @brief Build the runtime collimator of one occurrence from its attribute values.
      *
@@ -48,9 +45,6 @@ private:
     // Not implemented.
     OpalCollimator(const OpalCollimator&);
     void operator=(const OpalCollimator&);
-
-    // Clone constructor.
-    OpalCollimator(const std::string& name, OpalCollimator* parent);
 };
 
 #endif  // OPAL_OpalCollimator_HH

@@ -226,9 +226,6 @@ void StringConstant::defineBuiltins() {
     CREATE_STRINGCONSTANT("CYLINDRICAL");
 }
 
-StringConstant::StringConstant(const std::string& name, StringConstant* parent)
-    : ValueDefinition(name, parent) {}
-
 StringConstant::StringConstant(const std::string& name, const std::string& value)
     : StringConstant() {
     setOpalName(name);
@@ -240,10 +237,6 @@ StringConstant::StringConstant(const std::string& name, const std::string& value
 StringConstant::~StringConstant() {}
 
 bool StringConstant::canReplaceBy(Object*) { return false; }
-
-StringConstant* StringConstant::clone(const std::string& name) {
-    return new StringConstant(name, this);
-}
 
 std::string StringConstant::getString() const { return Attributes::getString(itsAttr[0]); }
 

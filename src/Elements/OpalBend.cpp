@@ -63,8 +63,6 @@ OpalBend::OpalBend(const char* name, const char* help) : OpalElement(SIZE, name,
             "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
 }
 
-OpalBend::OpalBend(const std::string& name, OpalBend* parent) : OpalElement(name, parent) {}
-
 OpalBend::~OpalBend() {}
 
 void OpalBend::print(std::ostream& os) const { OpalElement::print(os); }

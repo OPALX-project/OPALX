@@ -35,11 +35,7 @@ OpalBox::OpalBox()
     registerOwnership();
 }
 
-OpalBox::OpalBox(const std::string& name, OpalBox* parent) : OpalElement(name, parent) {}
-
 OpalBox::~OpalBox() {}
-
-OpalBox* OpalBox::clone(const std::string& name) { return new OpalBox(name, this); }
 
 std::shared_ptr<ElementBase> OpalBox::build(const ElementValues& values) {
     auto element = std::make_shared<BoxRep>(values.getName());

@@ -46,11 +46,9 @@ TEST_F(TestOpalVariableRFCavity, ConstructorDestructor) {
             "VARIABLE_RF_CAVITY", "VARIABLE_RF_CAVITY");
     OpalVariableRFCavity& cav1 = *cav1Object;
     EXPECT_EQ(cav1.getOpalName(), "VARIABLE_RF_CAVITY");
-    OpalVariableRFCavity cav2("name", &cav1);
-    EXPECT_EQ(cav2.getOpalName(), "name");
-    const std::unique_ptr<OpalVariableRFCavity> cav3{cav2.clone()};
-    EXPECT_EQ(cav3->getOpalName(), "name");
-    const std::unique_ptr<OpalVariableRFCavity> cav4{cav2.clone("other_name")};
+    const auto cav2 = opalx::test::copyOf(cav1, "name");
+    EXPECT_EQ(cav2->getOpalName(), "name");
+    const auto cav4 = opalx::test::copyOf(*cav2, "other_name");
     EXPECT_EQ(cav4->getOpalName(), "other_name");
 }
 

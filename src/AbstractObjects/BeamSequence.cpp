@@ -39,5 +39,3 @@ BeamSequence* BeamSequence::find(const std::string& name) {
 
 BeamSequence::BeamSequence(int size, const char* name, const char* help)
     : Element(size, name, help) {}
-
-BeamSequence::BeamSequence(const std::string& name, BeamSequence* parent) : Element(name, parent) {}

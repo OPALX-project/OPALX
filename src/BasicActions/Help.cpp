@@ -34,11 +34,7 @@ Help::Help()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Help::Help(const std::string& name, Help* parent) : Action(name, parent) {}
-
 Help::~Help() {}
-
-Help* Help::clone(const std::string& name) { return new Help(name, this); }
 
 void Help::execute() {
     if (itsAttr[0]) {

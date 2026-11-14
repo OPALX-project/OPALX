@@ -60,11 +60,7 @@ OpalLaser::OpalLaser()
     registerOwnership();
 }
 
-OpalLaser::OpalLaser(const std::string& name, OpalLaser* parent) : OpalElement(name, parent) {}
-
 OpalLaser::~OpalLaser() {}
-
-OpalLaser* OpalLaser::clone(const std::string& name) { return new OpalLaser(name, this); }
 
 std::shared_ptr<ElementBase> OpalLaser::build(const ElementValues& values) {
     auto element = std::make_shared<LaserRep>(values.getName());

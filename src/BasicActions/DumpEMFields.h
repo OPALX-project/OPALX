@@ -86,7 +86,6 @@ public:
     DumpEMFields();
 
     /** Constructor */
-    DumpEMFields(const std::string& name, DumpEMFields* parent);
 
     /** Destructor */
     ~DumpEMFields() override = default;
@@ -96,7 +95,6 @@ public:
      *  If this is in the dumpsSet_m, so will the clone. Not sure how the
      *  itsAttr stuff works, so this may not get properly copied?
      */
-    DumpEMFields* clone(const std::string& name) override;
 
     /** Builds the grid but does not write the field map
      *

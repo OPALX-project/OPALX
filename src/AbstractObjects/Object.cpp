@@ -243,10 +243,6 @@ void Object::update() {
 
 bool Object::isBuiltin() const { return builtin; }
 
-bool Object::isShared() const { return sharedFlag; }
-
-void Object::setShared(bool flag) { sharedFlag = flag; }
-
 void Object::setDirty(bool dirty) {
     // The object is now different from the data base.
     modified = dirty;
@@ -271,12 +267,7 @@ int Object::increment() { return ++occurrence; }
 int Object::occurrenceCount() { return occurrence; }
 
 Object::Object(int size, const char* name, const char* help)
-    : itsAttr(size),
-      itsName(name),
-      keyword_m(name),
-      itsHelp(help),
-      occurrence(0),
-      sharedFlag(false) {
+    : itsAttr(size), itsName(name), keyword_m(name), itsHelp(help), occurrence(0) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
@@ -290,8 +281,7 @@ Object::Object(const std::string& name, Object* parent)
       itsName(name),
       keyword_m(parent->keyword_m),
       itsHelp(parent->itsHelp),
-      occurrence(0),
-      sharedFlag(false) {
+      occurrence(0) {
     // The object is now different from the data base.
     builtin = flagged = false;
     modified          = true;

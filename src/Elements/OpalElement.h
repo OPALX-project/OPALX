@@ -101,9 +101,6 @@ protected:
     /// Exemplar constructor.
     OpalElement(int size, const char* name, const char* help);
 
-    /// Clone constructor.
-    OpalElement(const std::string& name, OpalElement* parent);
-
     /// Print multipole components in OPAL-8 format.
     //  This function is accessible to all multipole-like elements
     //  (RBend, SBend, Quadrupole, Sextupole, Octupole, Multipole).

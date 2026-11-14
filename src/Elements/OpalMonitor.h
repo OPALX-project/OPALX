@@ -29,9 +29,6 @@ public:
 
     virtual ~OpalMonitor();
 
-    /// Make clone.
-    virtual OpalMonitor* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -42,9 +39,6 @@ private:
     // Not implemented.
     OpalMonitor(const OpalMonitor&);
     void operator=(const OpalMonitor&);
-
-    // Clone constructor.
-    OpalMonitor(const std::string& name, OpalMonitor* parent);
 };
 
 #endif  // OPAL_OpalMonitor_HH

@@ -45,17 +45,12 @@ RealVariable::RealVariable(const std::string& name, double value) : RealVariable
     Attributes::setReal(itsAttr[0], value);
 }
 
-RealVariable::RealVariable(const std::string& name, RealVariable* parent)
-    : ValueDefinition(name, parent) {}
-
 RealVariable::~RealVariable() {}
 
 bool RealVariable::canReplaceBy(Object* object) {
     // Replace only by another variable.
     return (dynamic_cast<RealVariable*>(object) != 0);
 }
-
-RealVariable* RealVariable::clone(const std::string& name) { return new RealVariable(name, this); }
 
 double RealVariable::getReal() const { return Attributes::getReal(itsAttr[0]); }
 

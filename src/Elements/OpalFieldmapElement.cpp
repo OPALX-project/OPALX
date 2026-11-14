@@ -54,14 +54,7 @@ OpalFieldmapElement::OpalFieldmapElement()
     registerOwnership();
 }
 
-OpalFieldmapElement::OpalFieldmapElement(const std::string& name, OpalFieldmapElement* parent)
-    : OpalElement(name, parent) {}
-
 OpalFieldmapElement::~OpalFieldmapElement() {}
-
-OpalFieldmapElement* OpalFieldmapElement::clone(const std::string& name) {
-    return new OpalFieldmapElement(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ElementValues& values) {
     auto element = std::make_shared<FieldmapElementRep>(values.getName());

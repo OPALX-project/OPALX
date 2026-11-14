@@ -37,9 +37,6 @@ public:
     //  True, if [b]rhs[/b] is a string constant.
     virtual bool canReplaceBy(Object* object);
 
-    /// Make clone.
-    virtual StringConstant* clone(const std::string& name);
-
     /// Print the constant.
     virtual void print(std::ostream&) const;
 
@@ -53,9 +50,6 @@ private:
     // Not implemented.
     StringConstant(const StringConstant&);
     void operator=(const StringConstant&);
-
-    // Clone constructor.
-    StringConstant(const std::string& name, StringConstant* parent);
 };
 
 #endif  // OPAL_StringConstant_HH

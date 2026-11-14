@@ -158,17 +158,12 @@ void Beam::defineBuiltins() {
     }
 }
 
-Beam::Beam(const std::string& name, Beam* parent)
-    : Definition(name, parent), reference(parent->reference) {}
-
 Beam::~Beam() {}
 
 bool Beam::canReplaceBy(Object* object) {
     // Can replace only by another BEAM.
     return dynamic_cast<Beam*>(object) != 0;
 }
-
-Beam* Beam::clone(const std::string& name) { return new Beam(name, this); }
 
 void Beam::execute() {
     const bool photon = itsAttr[PARTICLE] && getParticleName() == photonParticleName;

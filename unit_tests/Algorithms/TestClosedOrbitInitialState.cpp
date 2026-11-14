@@ -73,7 +73,7 @@ TEST(ClosedOrbitInitialState, CofAttributesAreOnSingleCommand) {
         EXPECT_NE(command.findAttribute(name), nullptr) << name;
     EXPECT_TRUE(command.findAttribute("OUTPUT")->defaultUsed());
     EXPECT_TRUE(Attributes::getString(*command.findAttribute("OUTPUT")).empty());
-    std::unique_ptr<CofCmd> copy(command.clone("IC"));
+    std::unique_ptr<CofCmd> copy = opalx::test::copyOf(command, "IC");
     EXPECT_EQ(copy->getOpalName(), "IC");
     EXPECT_TRUE(copy->findAttribute("OUTPUT")->defaultUsed());
 }

@@ -71,9 +71,6 @@ public:
 
     virtual ~FieldSolverCmd();
 
-    /// Make clone.
-    virtual FieldSolverCmd* clone(const std::string& name);
-
     /// Find named FieldSolverCmd.
     static FieldSolverCmd* find(const std::string& name);
 
@@ -149,9 +146,6 @@ private:
     // Not implemented.
     FieldSolverCmd(const FieldSolverCmd&);
     void operator=(const FieldSolverCmd&);
-
-    // Clone constructor.
-    FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
 };
 
 inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }

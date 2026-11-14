@@ -52,9 +52,6 @@ protected:
     /// Constructor for exemplars.
     Action(int size, const char* name, const char* help);
 
-    /// Constructor for cloning.
-    Action(const std::string& name, Action* parent);
-
 private:
     // Not implemented.
     Action();

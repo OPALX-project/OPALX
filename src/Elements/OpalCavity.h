@@ -55,9 +55,6 @@ public:
 
     virtual ~OpalCavity();
 
-    /// Make clone.
-    virtual OpalCavity* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -68,9 +65,6 @@ private:
     // Not implemented.
     OpalCavity(const OpalCavity&);
     void operator=(const OpalCavity&);
-
-    // Clone constructor.
-    OpalCavity(const std::string& name, OpalCavity* parent);
 };
 
 #endif  // OPAL_OpalCavity_HH

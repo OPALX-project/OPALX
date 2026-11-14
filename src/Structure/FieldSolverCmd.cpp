@@ -123,14 +123,7 @@ FieldSolverCmd::FieldSolverCmd()
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
 
-FieldSolverCmd::FieldSolverCmd(const std::string& name, FieldSolverCmd* parent)
-    : Definition(name, parent) {}
-
 FieldSolverCmd::~FieldSolverCmd() {}
-
-FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
-    return new FieldSolverCmd(name, this);
-}
 
 void FieldSolverCmd::execute() { update(); }
 

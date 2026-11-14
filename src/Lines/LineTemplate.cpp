@@ -42,10 +42,6 @@ LineTemplate::LineTemplate(const std::string& name, Object* parent)
 
 LineTemplate::~LineTemplate() {}
 
-LineTemplate* LineTemplate::clone(const std::string& /*name*/) {
-    throw ParseError("LineTemplate::clone()", "You cannot use this object without attributes.");
-}
-
 Object* LineTemplate::makeInstance(const std::string& name, Statement& statement, const Parser*) {
     Line* instance = 0;
 

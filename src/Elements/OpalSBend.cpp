@@ -32,11 +32,7 @@ OpalSBend::OpalSBend()
     registerOwnership();
 }
 
-OpalSBend::OpalSBend(const std::string& name, OpalSBend* parent) : OpalBend(name, parent) {}
-
 OpalSBend::~OpalSBend() {}
-
-OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name, this); }
 
 std::shared_ptr<ElementBase> OpalSBend::build(const ElementValues& values) {
     auto element = std::make_shared<SBendRep>(values.getName());

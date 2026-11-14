@@ -43,9 +43,6 @@ public:
 
     virtual ~OpalQuadrupole();
 
-    /// Make clone.
-    virtual OpalQuadrupole* clone(const std::string& name);
-
     /// Print the object.
     virtual void print(std::ostream&) const;
 
@@ -59,9 +56,6 @@ private:
     // Not implemented.
     OpalQuadrupole(const OpalQuadrupole&);
     void operator=(const OpalQuadrupole&);
-
-    // Clone constructor.
-    OpalQuadrupole(const std::string& name, OpalQuadrupole* parent);
 };
 
 #endif  // OPAL_OpalQuadrupole_HH

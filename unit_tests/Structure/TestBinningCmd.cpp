@@ -218,9 +218,10 @@ TEST_F(BinningCmdTest, ExecuteThrowsOnUnknownParameter) {
     EXPECT_THROW(cmd.execute(), OpalException);
 }
 
-// CloneCopiesState:
-// clone(name) should copy attribute state and cached parameter type/name.
-TEST_F(BinningCmdTest, CloneCopiesState) {
+// CopyCopiesState:
+// The copy the parser makes for "NAME: OTHER;" has the same values once executed.
+TEST_F(BinningCmdTest, CopyCopiesState) {
+    opalx::test::keyword<BinningCmd>("BINNING");
     TestableBinningCmd original;
     original.setMaxBins(7);
     original.setDesiredWidth(0.3);
@@ -231,7 +232,8 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
 
     original.execute();  // ensure parameterType_m is updated
 
-    std::unique_ptr<BinningCmd> copy(original.clone("BINNING_COPY"));
+    std::unique_ptr<BinningCmd> copy = opalx::test::copyOf<BinningCmd>(original, "BINNING_COPY");
+    copy->execute();  // the parser executes every definition before storing it
 
     ASSERT_NE(copy, nullptr);
     EXPECT_EQ(copy->getOpalName(), "BINNING_COPY");

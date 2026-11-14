@@ -32,11 +32,7 @@ System::System()
     registerOwnership(AttributeHandler::COMMAND);
 }
 
-System::System(const std::string& name, System* parent) : Action(name, parent) {}
-
 System::~System() {}
-
-System* System::clone(const std::string& name) { return new System(name, this); }
 
 void System::execute() {
     if (ippl::Comm->rank() == 0) {

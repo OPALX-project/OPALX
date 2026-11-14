@@ -12,8 +12,6 @@ public:
     OpalConstantFocusing();
     ~OpalConstantFocusing() override;
 
-    OpalConstantFocusing* clone(const std::string& name) override;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -23,8 +21,6 @@ private:
 
     OpalConstantFocusing(const OpalConstantFocusing&);
     void operator=(const OpalConstantFocusing&);
-
-    OpalConstantFocusing(const std::string& name, OpalConstantFocusing* parent);
 };
 
 #endif  // OPAL_OpalConstantFocusing_HH

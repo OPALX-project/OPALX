@@ -31,11 +31,7 @@ OpalDrift::OpalDrift()
     registerOwnership();
 }
 
-OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent) : OpalElement(name, parent) {}
-
 OpalDrift::~OpalDrift() {}
-
-OpalDrift* OpalDrift::clone(const std::string& name) { return new OpalDrift(name, this); }
 
 bool OpalDrift::isDrift() const { return true; }
 

@@ -45,14 +45,6 @@ public:
 
     virtual ~Line();
 
-    /// Make clone.
-    //  The new object is an empty line, it will be filled by the parser.
-    virtual Line* clone(const std::string& name);
-
-    /// Make complete copy.
-    //  Copy also the line list.
-    virtual Line* copy(const std::string& name);
-
     /// Return line length.
     virtual double getLength() const;
 
@@ -80,9 +72,6 @@ public:
 protected:
     /// Exemplar constructor for LINE-compatible sequence statements.
     Line(const char* keyword, const char* help);
-
-    // Clone constructor for LINE-compatible sequence statements.
-    Line(const std::string& name, Line* parent);
 
     /// Parse a LINE-compatible definition.
     void parseDefinition(Statement& stat, bool allowModifiers);

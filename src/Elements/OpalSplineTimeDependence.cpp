@@ -50,15 +50,7 @@ OpalSplineTimeDependence::OpalSplineTimeDependence()
     registerOwnership();
 }
 
-OpalSplineTimeDependence* OpalSplineTimeDependence::clone(const std::string& name) {
-    return new OpalSplineTimeDependence(name, this);
-}
-
 void OpalSplineTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
-
-OpalSplineTimeDependence::OpalSplineTimeDependence(
-        const std::string& name, OpalSplineTimeDependence* parent)
-    : OpalElement(name, parent) {}
 
 void OpalSplineTimeDependence::update() {
     const double order = Attributes::getReal(itsAttr[ORDER]);

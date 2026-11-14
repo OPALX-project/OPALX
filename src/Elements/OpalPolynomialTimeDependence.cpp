@@ -40,15 +40,7 @@ OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
     registerOwnership();
 }
 
-OpalPolynomialTimeDependence* OpalPolynomialTimeDependence::clone(const std::string& name) {
-    return new OpalPolynomialTimeDependence(name, this);
-}
-
 void OpalPolynomialTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
-
-OpalPolynomialTimeDependence::OpalPolynomialTimeDependence(
-        const std::string& name, OpalPolynomialTimeDependence* parent)
-    : OpalElement(name, parent) {}
 
 void OpalPolynomialTimeDependence::update() {
     // getOpalName() comes from AbstractObjects/Object.h

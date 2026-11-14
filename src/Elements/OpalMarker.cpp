@@ -40,11 +40,7 @@ void OpalMarker::defineBuiltins() {
     }
 }
 
-OpalMarker::OpalMarker(const std::string& name, OpalMarker* parent) : OpalElement(name, parent) {}
-
 OpalMarker::~OpalMarker() {}
-
-OpalMarker* OpalMarker::clone(const std::string& name) { return new OpalMarker(name, this); }
 
 void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 

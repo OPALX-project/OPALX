@@ -38,10 +38,6 @@ public:
     LineTemplate();
     virtual ~LineTemplate();
 
-    /// Make clone.
-    //  Throw OpalException, since the template cannot be cloned.
-    virtual LineTemplate* clone(const std::string& name);
-
     /// Make line instance.
     //  The instance gets the name [b]name[/b], and its actual arguments
     //  are read from [b]stat[/b]. The parser is ignored.
@@ -60,8 +56,8 @@ private:
     LineTemplate(const LineTemplate&);
     void operator=(const LineTemplate&);
 
-    // Clone constructor.
-    LineTemplate(const std::string& name, Object* parent);
+    // A new line template named name with the keyword and attributes of the LINE model.
+    LineTemplate(const std::string& name, Object* model);
 
     // The contained beam line element list.
     MacroStream body;

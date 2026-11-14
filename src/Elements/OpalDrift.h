@@ -36,9 +36,6 @@ public:
 
     virtual ~OpalDrift();
 
-    /// Make clone.
-    virtual OpalDrift* clone(const std::string& name);
-
     /// Test for drift.
     //  Return true.
     virtual bool isDrift() const;
@@ -53,9 +50,6 @@ private:
     // Not implemented.
     OpalDrift(const OpalDrift&);
     void operator=(const OpalDrift&);
-
-    // Clone constructor.
-    OpalDrift(const std::string& name, OpalDrift* parent);
 };
 
 #endif  // OPAL_OpalDrift_HH

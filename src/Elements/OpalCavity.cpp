@@ -64,11 +64,7 @@ OpalCavity::OpalCavity()
     registerOwnership();
 }
 
-OpalCavity::OpalCavity(const std::string& name, OpalCavity* parent) : OpalElement(name, parent) {}
-
 OpalCavity::~OpalCavity() {}
-
-OpalCavity* OpalCavity::clone(const std::string& name) { return new OpalCavity(name, this); }
 
 std::shared_ptr<ElementBase> OpalCavity::build(const ElementValues& values) {
     auto element = std::make_shared<RFCavityRep>(values.getName());

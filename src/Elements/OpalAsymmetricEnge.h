@@ -26,7 +26,6 @@ public:
     virtual ~OpalAsymmetricEnge() = default;
 
     /** Inherited copy constructor */
-    virtual OpalAsymmetricEnge* clone(const std::string& name);
 
     /** Update the ScalingFFA with new parameters from UI parser */
     virtual void update();
@@ -35,8 +34,5 @@ private:
     // Not implemented.
     OpalAsymmetricEnge(const OpalAsymmetricEnge&);
     OpalAsymmetricEnge& operator=(const OpalAsymmetricEnge&);
-
-    // Clone constructor.
-    OpalAsymmetricEnge(const std::string& name, OpalAsymmetricEnge* parent);
 };
 #endif  // OPAL_OPALASYMMETRICENGE_H

@@ -53,7 +53,6 @@ public:
     virtual ~OpalScalingFFAMagnet();
 
     /** Inherited copy constructor */
-    virtual OpalScalingFFAMagnet* clone(const std::string& name);
 
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
@@ -65,9 +64,6 @@ private:
     // Not implemented.
     OpalScalingFFAMagnet(const OpalScalingFFAMagnet&);
     void operator=(const OpalScalingFFAMagnet&);
-
-    // Clone constructor.
-    OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent);
 
     static void setupNamedEndField(ScalingFFAMagnet& magnet, const ElementValues& values);
     static void setupDefaultEndField(ScalingFFAMagnet& magnet, const ElementValues& values);

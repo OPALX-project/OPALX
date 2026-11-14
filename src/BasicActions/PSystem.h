@@ -27,9 +27,6 @@ public:
 
     virtual ~PSystem();
 
-    /// Make clone.
-    virtual PSystem* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -40,9 +37,6 @@ private:
     // Not implemented.
     PSystem(const PSystem&);
     void operator=(const PSystem&);
-
-    // Clone constructor.
-    PSystem(const std::string& name, PSystem* parent);
 };
 
 #endif  // OPAL_PSystem_HH

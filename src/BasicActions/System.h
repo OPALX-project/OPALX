@@ -27,9 +27,6 @@ public:
 
     virtual ~System();
 
-    /// Make clone.
-    virtual System* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -40,9 +37,6 @@ private:
     // Not implemented.
     System(const System&);
     void operator=(const System&);
-
-    // Clone constructor.
-    System(const std::string& name, System* parent);
 };
 
 #endif  // OPAL_System_HH

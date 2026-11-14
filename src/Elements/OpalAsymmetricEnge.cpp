@@ -47,10 +47,3 @@ void OpalAsymmetricEnge::update() {
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     efmMan->setEndFieldModel(getOpalName(), efm);
 }
-
-OpalAsymmetricEnge::OpalAsymmetricEnge(const std::string& name, OpalAsymmetricEnge* parent)
-    : OpalElement(name, parent) {}
-
-OpalAsymmetricEnge* OpalAsymmetricEnge::clone(const std::string& name) {
-    return new OpalAsymmetricEnge(name, this);
-}

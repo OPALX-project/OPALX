@@ -27,9 +27,6 @@ public:
 
     virtual ~OpalRBend();
 
-    /// Make clone.
-    virtual OpalRBend* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -40,9 +37,6 @@ private:
     // Not implemented.
     OpalRBend(const OpalRBend&);
     void operator=(const OpalRBend&);
-
-    // Clone constructor.
-    OpalRBend(const std::string& name, OpalRBend* parent);
 };
 
 #endif  // OPAL_OpalRBend_HH

@@ -23,7 +23,6 @@ public:
     virtual ~OpalEnge() {}
 
     /** Inherited copy constructor */
-    virtual OpalEnge* clone(const std::string& name);
 
     /** Update the ScalingFFA with new parameters from UI parser */
     virtual void update();
@@ -32,8 +31,5 @@ private:
     // Not implemented.
     OpalEnge(const OpalEnge&);
     void operator=(const OpalEnge&);
-
-    // Clone constructor.
-    OpalEnge(const std::string& name, OpalEnge* parent);
 };
 #endif  // OPAL_OPALENGE_H

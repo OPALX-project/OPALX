@@ -27,9 +27,6 @@ public:
 
     virtual ~Value();
 
-    /// Make clone.
-    virtual Value* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -40,9 +37,6 @@ private:
     // Not implemented.
     Value(const Value&);
     void operator=(const Value&);
-
-    // Clone constructor.
-    Value(const std::string& name, Value* parent);
 };
 
 #endif  // OPAL_Value_HH

@@ -39,9 +39,6 @@ public:
 
     virtual ~OpalProbe();
 
-    /// Make clone.
-    virtual OpalProbe* clone(const std::string& name);
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -52,9 +49,6 @@ private:
     // Not implemented.
     OpalProbe(const OpalProbe&);
     void operator=(const OpalProbe&);
-
-    // Clone constructor.
-    OpalProbe(const std::string& name, OpalProbe* parent);
 };
 
 #endif  // OPAL_OpalProbe_HH

@@ -140,6 +140,12 @@ TEST_F(KeywordTableTest, KeywordsCannotBeUsedAsObjects) {
     EXPECT_THROW(parseOne("L1: LINE = (DRIFT);"), ParseError);
 }
 
+TEST_F(KeywordTableTest, MacroIsCalledOnlyWithItsArguments) {
+    run("M(): MACRO { };");
+    EXPECT_THROW(parseOne("M;"), ParseError);
+    EXPECT_THROW(parseOne("X: M;"), ParseError);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ippl::initialize(argc, argv);

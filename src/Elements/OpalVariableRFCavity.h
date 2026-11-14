@@ -35,7 +35,6 @@ public:
     };
 
     /** Copy constructor **/
-    OpalVariableRFCavity(const std::string& name, OpalVariableRFCavity* parent);
 
     /** Default constructor **/
     OpalVariableRFCavity();
@@ -44,13 +43,11 @@ public:
      *
      *  Call on a base class to instantiate an object of derived class's type
      **/
-    OpalVariableRFCavity* clone();
 
     /** Inherited copy constructor
      *
      *  Call on a base class to instantiate an object of derived class's type
      */
-    OpalVariableRFCavity* clone(const std::string& name) override;
 
     /** Destructor does nothing */
     ~OpalVariableRFCavity() override = default;

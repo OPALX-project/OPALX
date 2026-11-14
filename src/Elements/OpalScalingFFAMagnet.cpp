@@ -94,14 +94,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     registerOwnership();
 }
 
-OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent)
-    : OpalElement(name, parent) {}
-
 OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {}
-
-OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
-    return new OpalScalingFFAMagnet(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ElementValues& values) {
     auto magnet = std::make_shared<ScalingFFAMagnet>(values.getName());

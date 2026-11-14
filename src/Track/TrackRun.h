@@ -58,9 +58,6 @@ public:
 
     virtual ~TrackRun();
 
-    /// Make clone.
-    virtual TrackRun* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -86,9 +83,6 @@ private:
     // Not implemented.
     TrackRun(const TrackRun&);
     void operator=(const TrackRun&);
-
-    // Clone constructor.
-    TrackRun(const std::string& name, TrackRun* parent);
 
     void setRunMethod();
     std::string getRunMethodName() const;

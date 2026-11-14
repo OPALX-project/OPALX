@@ -71,7 +71,6 @@ public:
     using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
 
     virtual bool canReplaceBy(Object* object);
-    virtual Distribution* clone(const std::string& name);
     virtual void execute();
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
@@ -137,8 +136,6 @@ private:
     FRIEND_TEST(GaussTest, FullSigmaTest1);
     FRIEND_TEST(GaussTest, FullSigmaTest2);
 #endif
-
-    Distribution(const std::string& name, Distribution* parent);
 
     // Not implemented.
     Distribution(const Distribution&) = delete;
@@ -329,7 +326,6 @@ public:
     virtual ~Distribution();
 
     virtual bool canReplaceBy(Object* object);
-    virtual Distribution* clone(const std::string& name);
     virtual void execute();
     virtual void update();
 
@@ -366,7 +362,6 @@ private:
     FRIEND_TEST(GaussTest, FullSigmaTest2);
 #endif
 
-    Distribution(const std::string& name, Distribution* parent);
 
     // Not implemented.
     Distribution(const Distribution&) = delete;

@@ -109,11 +109,7 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "ENDTRACK");
 }
 
-TrackCmd::TrackCmd(const std::string& name, TrackCmd* parent) : Action(name, parent) {}
-
 TrackCmd::~TrackCmd() {}
-
-TrackCmd* TrackCmd::clone(const std::string& name) { return new TrackCmd(name, this); }
 
 std::vector<double> TrackCmd::getDT() const {
     std::vector<double> dTs = Attributes::getRealArray(itsAttr[DT]);

@@ -38,11 +38,7 @@ OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defin
     registerOwnership();
 }
 
-OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(name, parent) {}
-
 OpalProbe::~OpalProbe() {}
-
-OpalProbe* OpalProbe::clone(const std::string& name) { return new OpalProbe(name, this); }
 
 std::shared_ptr<ElementBase> OpalProbe::build(const ElementValues& values) {
     auto element = std::make_shared<ProbeRep>(values.getName());

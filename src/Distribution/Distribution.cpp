@@ -194,9 +194,6 @@ Distribution::Distribution()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Distribution::Distribution(const std::string& name, Distribution* parent)
-    : Definition(name, parent) {}
-
 Distribution::~Distribution() {}
 
 /**
@@ -220,8 +217,6 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
 
 /// Distribution can only be replaced by another distribution.
 bool Distribution::canReplaceBy(Object* object) { return dynamic_cast<Distribution*>(object) != 0; }
-
-Distribution* Distribution::clone(const std::string& name) { return new Distribution(name, this); }
 
 void Distribution::execute() {
     setAttributes();

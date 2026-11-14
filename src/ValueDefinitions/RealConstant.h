@@ -37,9 +37,6 @@ public:
     //  Always false for constants.
     virtual bool canReplaceBy(Object* object);
 
-    /// Make clone.
-    virtual RealConstant* clone(const std::string& name);
-
     /// Print the constant.
     virtual void print(std::ostream&) const;
 
@@ -53,9 +50,6 @@ private:
     // Not implemented.
     RealConstant(const RealConstant&);
     void operator=(const RealConstant&);
-
-    // Clone constructor.
-    RealConstant(const std::string& name, RealConstant* parent);
 };
 
 #endif  // OPAL_RealConstant_HH

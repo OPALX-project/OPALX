@@ -22,10 +22,6 @@ Quit::Quit()
              "The \"QUIT\" statement terminates program execution "
              "or reading of a called file.") {}
 
-Quit::Quit(const std::string& name, Quit* parent) : Action(name, parent) {}
-
 Quit::~Quit() {}
-
-Quit* Quit::clone(const std::string& name) { return new Quit(name, this); }
 
 void Quit::execute() {}

@@ -15,17 +15,10 @@ EmissionSourceList::EmissionSourceList()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-EmissionSourceList::EmissionSourceList(const std::string& name, EmissionSourceList* parent)
-    : Definition(name, parent) {}
-
 EmissionSourceList::~EmissionSourceList() {}
 
 bool EmissionSourceList::canReplaceBy(Object* object) {
     return dynamic_cast<EmissionSourceList*>(object) != nullptr;
-}
-
-EmissionSourceList* EmissionSourceList::clone(const std::string& name) {
-    return new EmissionSourceList(name, this);
 }
 
 void EmissionSourceList::execute() {}

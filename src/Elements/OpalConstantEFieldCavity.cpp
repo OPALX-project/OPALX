@@ -17,15 +17,7 @@ OpalConstantEFieldCavity::OpalConstantEFieldCavity()
     registerOwnership();
 }
 
-OpalConstantEFieldCavity::OpalConstantEFieldCavity(
-        const std::string& name, OpalConstantEFieldCavity* parent)
-    : OpalElement(name, parent) {}
-
 OpalConstantEFieldCavity::~OpalConstantEFieldCavity() {}
-
-OpalConstantEFieldCavity* OpalConstantEFieldCavity::clone(const std::string& name) {
-    return new OpalConstantEFieldCavity(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(const ElementValues& values) {
     auto element = std::make_shared<ConstantEFieldCavityRep>(values.getName());

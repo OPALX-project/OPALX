@@ -55,9 +55,3 @@ Table::Table(int size, const char* name, const char* help)
     : Object(size, name, help), dynamic(false), refill(false) {
     // Do not link table exemplar.
 }
-
-Table::Table(const std::string& name, Table* parent)
-    : Object(name, parent), dynamic(true), refill(true) {
-    // Link table to table directory.
-    OpalData::getInstance()->registerTable(this);
-}

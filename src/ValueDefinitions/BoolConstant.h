@@ -31,9 +31,6 @@ public:
     //  Always false for constants.
     virtual bool canReplaceBy(Object* object);
 
-    /// Make clone.
-    virtual BoolConstant* clone(const std::string& name);
-
     /// Print the constant.
     virtual void print(std::ostream&) const;
 
@@ -47,9 +44,6 @@ private:
     // Not implemented.
     BoolConstant(const BoolConstant&);
     void operator=(const BoolConstant&);
-
-    // Clone constructor.
-    BoolConstant(const std::string& name, BoolConstant* parent);
 };
 
 #endif  // OPAL_BoolConstant_HH

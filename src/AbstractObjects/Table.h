@@ -134,9 +134,6 @@ protected:
     /// Constructor for exemplars.
     Table(int size, const char* name, const char* help);
 
-    /// Constructor for clones.
-    Table(const std::string& name, Table* parent);
-
     /// Flag dynamic table.
     //  If true, the table is dynamic.  If it is also invalidated,
     //  it will be refilled when fill() is called.

@@ -57,14 +57,7 @@ OpalMultipole::OpalMultipole()
     registerOwnership();
 }
 
-OpalMultipole::OpalMultipole(const std::string& name, OpalMultipole* parent)
-    : OpalElement(name, parent) {}
-
 OpalMultipole::~OpalMultipole() {}
-
-OpalMultipole* OpalMultipole::clone(const std::string& name) {
-    return new OpalMultipole(name, this);
-}
 
 void OpalMultipole::print(std::ostream& os) const { OpalElement::print(os); }
 

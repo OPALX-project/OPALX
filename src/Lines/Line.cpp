@@ -95,19 +95,7 @@ Line::Line(const char* keyword, const char* help) : BeamSequence(SIZE, keyword, 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Line::Line(const std::string& name, Line* parent)
-    :  // Do not copy list members; they will be filled at parse time.
-      BeamSequence(name, parent) {}
-
 Line::~Line() {}
-
-Line* Line::clone(const std::string& name) { return new Line(name, this); }
-
-Line* Line::copy(const std::string& name) {
-    Line* clone      = new Line(name, this);
-    clone->members_m = members_m;
-    return clone;
-}
 
 double Line::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }
 

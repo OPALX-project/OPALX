@@ -38,12 +38,7 @@ OpalSolenoid::OpalSolenoid()
     registerOwnership();
 }
 
-OpalSolenoid::OpalSolenoid(const std::string& name, OpalSolenoid* parent)
-    : OpalElement(name, parent) {}
-
 OpalSolenoid::~OpalSolenoid() {}
-
-OpalSolenoid* OpalSolenoid::clone(const std::string& name) { return new OpalSolenoid(name, this); }
 
 std::shared_ptr<ElementBase> OpalSolenoid::build(const ElementValues& values) {
     auto element = std::make_shared<SolenoidRep>(values.getName());

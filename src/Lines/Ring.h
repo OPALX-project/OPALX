@@ -28,12 +28,6 @@ public:
 
     ~Ring() override = default;
 
-    /// Make an empty clone which is filled by the parser.
-    Ring* clone(const std::string& name) override;
-
-    /// Make complete copy, the member list included.
-    Ring* copy(const std::string& name) override;
-
     /// Parse a closed-topology sequence definition.
     void parse(Statement& stat) override;
 
@@ -41,8 +35,6 @@ protected:
     const char* getSequenceKeyword() const override;
 
 private:
-    Ring(const std::string& name, Ring* parent);
-
     Ring(const Ring&)           = delete;
     void operator=(const Ring&) = delete;
 };

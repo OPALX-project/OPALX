@@ -46,14 +46,7 @@ OpalTravelingWave::OpalTravelingWave()
     registerOwnership();
 }
 
-OpalTravelingWave::OpalTravelingWave(const std::string& name, OpalTravelingWave* parent)
-    : OpalElement(name, parent) {}
-
 OpalTravelingWave::~OpalTravelingWave() {}
-
-OpalTravelingWave* OpalTravelingWave::clone(const std::string& name) {
-    return new OpalTravelingWave(name, this);
-}
 
 std::shared_ptr<ElementBase> OpalTravelingWave::build(const ElementValues& values) {
     auto element = std::make_shared<TravelingWaveRep>(values.getName());

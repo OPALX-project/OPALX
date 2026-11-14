@@ -47,9 +47,6 @@ public:
 
     virtual ~OpalFieldmapElement();
 
-    /// Make clone.
-    virtual OpalFieldmapElement* clone(const std::string& name) override;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ElementValues& values);
 
@@ -60,9 +57,6 @@ private:
     // Not implemented.
     OpalFieldmapElement(const OpalFieldmapElement&);
     void operator=(const OpalFieldmapElement&);
-
-    // Clone constructor.
-    OpalFieldmapElement(const std::string& name, OpalFieldmapElement* parent);
 };
 
 #endif  // OPALX_OpalFieldmapElement_HH

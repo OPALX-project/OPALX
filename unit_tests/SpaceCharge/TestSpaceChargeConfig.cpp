@@ -200,7 +200,8 @@ namespace opalx::spacecharge {
             auto distributionObject =
                     opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
             Distribution& distribution = *distributionObject;
-            OpalData::getInstance()->define(distribution.clone("P3M_PLANE_TEST_DISTRIBUTION"));
+            OpalData::getInstance()->define(
+                    opalx::test::copyOf(distribution, "P3M_PLANE_TEST_DISTRIBUTION").release());
             TestableFieldSolverCmd command;
             command.setType("P3M");
             command.setCutoff(0.025);

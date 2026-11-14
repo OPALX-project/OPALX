@@ -33,9 +33,6 @@ public:
 
     virtual ~TrackEnd();
 
-    /// Make clone.
-    virtual TrackEnd* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -43,9 +40,6 @@ private:
     // Not implemented.
     TrackEnd(const TrackEnd&);
     void operator=(const TrackEnd&);
-
-    // Clone constructor.
-    TrackEnd(const std::string& name, TrackEnd* parent);
 };
 
 #endif  // OPAL_TrackEnd_HH

@@ -56,11 +56,7 @@ Select::Select()
     registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
-Select::Select(const std::string& name, Select* parent) : Action(name, parent) {}
-
 Select::~Select() {}
-
-Select* Select::clone(const std::string& name) { return new Select(name, this); }
 
 void Select::execute() {
     // The selection flags SELECT set on line members were read by nothing.

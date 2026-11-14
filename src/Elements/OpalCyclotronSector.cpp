@@ -39,11 +39,6 @@ OpalCyclotronSector::OpalCyclotronSector()
     itsAttr[TRIMCOIL] = Attributes::makeStringArray("TRIMCOIL", "Named trim-coil definitions.");
     registerOwnership();
 }
-OpalCyclotronSector::OpalCyclotronSector(const std::string& name, OpalCyclotronSector* parent)
-    : OpalElement(name, parent) {}
-OpalCyclotronSector* OpalCyclotronSector::clone(const std::string& name) {
-    return new OpalCyclotronSector(name, this);
-}
 std::shared_ptr<ElementBase> OpalCyclotronSector::build(const ElementValues& values) {
     auto element = std::make_shared<CyclotronSector>(values.getName());
     fill(*element, values);

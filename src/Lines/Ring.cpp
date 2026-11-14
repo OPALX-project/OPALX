@@ -14,16 +14,6 @@ Ring::Ring()
            "The \"RING\" statement defines a closed-topology beamline list.\n"
            "\t<name> : ring = (<list>)") {}
 
-Ring::Ring(const std::string& name, Ring* parent) : Line(name, parent) {}
-
-Ring* Ring::clone(const std::string& name) { return new Ring(name, this); }
-
-Ring* Ring::copy(const std::string& name) {
-    Ring* clone      = new Ring(name, this);
-    clone->members_m = members_m;
-    return clone;
-}
-
 void Ring::parse(Statement& stat) { parseDefinition(stat, false); }
 
 const char* Ring::getSequenceKeyword() const { return "RING"; }

@@ -77,8 +77,4 @@ double Element::getExit(ReferenceType ref) const {
     }
 }
 
-void Element::setShared(bool flag) { Object::setShared(flag); }
-
 Element::Element(int size, const char* name, const char* help) : Object(size, name, help) {}
-
-Element::Element(const std::string& name, Element* parent) : Object(name, parent) {}

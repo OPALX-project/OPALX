@@ -29,11 +29,7 @@ Title::Title()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Title::Title(const std::string& name, Title* parent) : Action(name, parent) {}
-
 Title::~Title() {}
-
-Title* Title::clone(const std::string& name) { return new Title(name, this); }
 
 void Title::execute() {
     std::string title = Attributes::getString(itsAttr[0]);

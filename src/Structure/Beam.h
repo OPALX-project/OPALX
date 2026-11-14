@@ -45,9 +45,6 @@ public:
     //  Can replace only by another BEAM.
     virtual bool canReplaceBy(Object* object);
 
-    /// Make clone.
-    virtual Beam* clone(const std::string& name);
-
     /// Check the BEAM data.
     virtual void execute();
 
@@ -140,9 +137,6 @@ private:
     // Not implemented.
     Beam(const Beam&);
     void operator=(const Beam&);
-
-    // Clone constructor.
-    Beam(const std::string& name, Beam* parent);
 
     // Validate the POLARIZATION attribute (length, magnitude, muon-only).
     void validatePolarization() const;

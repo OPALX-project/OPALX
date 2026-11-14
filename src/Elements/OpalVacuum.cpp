@@ -50,14 +50,7 @@ OpalVacuum::OpalVacuum()
     setElement(new VacuumRep("VACUUM"));
 }
 
-OpalVacuum::OpalVacuum(const std::string& name, OpalVacuum* parent)
-    : OpalElement(name, parent), parmatint_m(nullptr) {
-    setElement(new VacuumRep(name));
-}
-
 OpalVacuum::~OpalVacuum() { delete parmatint_m; }
-
-OpalVacuum* OpalVacuum::clone(const std::string& name) { return new OpalVacuum(name, this); }
 
 void OpalVacuum::update() {
     OpalElement::update();
