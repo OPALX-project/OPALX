@@ -22,6 +22,7 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
@@ -205,7 +206,7 @@ public:
         EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector<Beam*>{opBeam},
+                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});

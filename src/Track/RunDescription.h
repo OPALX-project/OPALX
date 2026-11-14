@@ -46,17 +46,6 @@ namespace opalx::run {
     };
 
     /**
-     * @brief The reference particle a BEAM defines (OPALX units: eV, eV/c, elementary charges).
-     */
-    struct ReferenceParticle {
-        double mass     = 0;
-        double charge   = 0;
-        double momentum = 0;
-        double gamma    = 0;
-        double beta     = 0;  ///< Not written by the text writer.
-    };
-
-    /**
      * @brief One EMISSIONSOURCE of a beam and the distribution it names.
      */
     struct SourceDescription {
@@ -70,7 +59,9 @@ namespace opalx::run {
 
     struct BeamDescription {
         ObjectDescription object;
-        ReferenceParticle reference;
+        /// The reference particle (OPALX units: eV, eV/c, elementary charges), from
+        /// Beam::getReference(). The writer writes its mass, charge, momentum and gamma.
+        PartData reference;
         double chargePerParticle = 0;  ///< Macro charge per particle (C).
         double massPerParticle   = 0;  ///< Macro mass per particle (GeV/c^2).
         std::string emissionSourceList;
@@ -90,6 +81,15 @@ namespace opalx::run {
         std::string emissionSourceListError;     ///< Why the SOURCES name could not be read.
         bool emissionSourceListFound = false;    ///< An EMISSIONSOURCELIST of that name exists.
         std::vector<SourceDescription> sources;  ///< The sources of that list, in order.
+
+        // Read through Beam's own functions for buildTracking(); not written either.
+        double charge        = 0;                ///< Beam::getCharge() (elementary charges).
+        double mass          = 0;                ///< Beam::getMass() (GeV/c^2).
+        std::size_t numAlloc = 0;                ///< NALLOC.
+        std::vector<double> polarization;        ///< Beam::getPolarization(), {0, 0, 0} if not set.
+        bool hasReferenceDirection = false;      ///< REFDIRECTION given.
+        std::vector<double> referenceDirection;  ///< REFDIRECTION as a unit vector.
+        std::string banner;  ///< The text Beam::print() writes, for the RUN log.
     };
 
     /**

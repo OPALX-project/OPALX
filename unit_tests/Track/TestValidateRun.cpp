@@ -50,11 +50,11 @@ namespace {
         run.fieldSolver           = ObjectDescription{"FIELDSOLVER", "FS1", {}};
 
         BeamDescription beam;
-        beam.object.name             = "B1";
-        beam.particleName            = "PROTON";
-        beam.reference.mass          = Physics::m_p * 1e9;
-        beam.reference.charge        = 1;
-        beam.reference.beta          = 0.4;
+        beam.object.name  = "B1";
+        beam.particleName = "PROTON";
+        beam.reference.setM(Physics::m_p * 1e9);
+        beam.reference.setQ(1);
+        beam.reference.setBeta(0.4);
         beam.emissionSourceList      = "SRC";
         beam.emissionSourceListFound = true;
         beam.hasEmissionSources      = true;

@@ -10,7 +10,7 @@
 #include "Algorithms/Matrix.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
-#include "Structure/Beam.h"
+#include "Track/RunDescription.h"
 #include "Utilities/Util.h"
 
 #undef doDEBUG
@@ -37,7 +37,8 @@ namespace cyclotron_probe::detail {
  */
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
-        std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
+        std::vector<double> qi, std::vector<double> mi,
+        const std::vector<opalx::run::BeamDescription>& beams,
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig)
     : dt_m(0),
@@ -68,11 +69,6 @@ PartBunch<T, Dim>::PartBunch(
     if (totalParticlesPerBeam.size() != num_containers) {
         throw OpalException(
                 "PartBunch::PartBunch", "totalParticlesPerBeam size must match num_containers.");
-    }
-    for (size_t i = 0; i < num_containers; ++i) {
-        if (beams[i] == nullptr) {
-            throw OpalException("PartBunch::PartBunch", "beams must not contain null pointers.");
-        }
     }
 
     // The initial geometry only provides a valid mesh and layout while particles are sampled or
@@ -119,7 +115,7 @@ PartBunch<T, Dim>::PartBunch(
     initialFieldLayout_m = fieldLayout.str();
 
     pcontainer_m = std::make_shared<ParticleContainer_t>(
-            cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[0]->hasPolarization(),
+            cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[0].hasPolarization,
             layoutType, overlapCutoff, particleBoundary);
     pcontainers_m.push_back(pcontainer_m);
     pcontainer_m->setBunchStateHandler(bunchState_m);
@@ -127,7 +123,7 @@ PartBunch<T, Dim>::PartBunch(
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
-                cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i]->hasPolarization(),
+                cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasPolarization,
                 layoutType, overlapCutoff, particleBoundary);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
@@ -141,10 +137,10 @@ PartBunch<T, Dim>::PartBunch(
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
-        containers[i]->setReference(beams[i]->getReference());
-        particleNames_m[i] = beams[i]->getParticleName();
-        containers[i]->Sp  = static_cast<short>(
-                ParticleProperties::getParticleType(beams[i]->getParticleName()));
+        containers[i]->setReference(beams[i].reference);
+        particleNames_m[i] = beams[i].particleName;
+        containers[i]->Sp =
+                static_cast<short>(ParticleProperties::getParticleType(beams[i].particleName));
     }
 
     // Pre-allocate per-rank capacity without bumping localNum_m. Subsequent emission /

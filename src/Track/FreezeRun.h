@@ -9,6 +9,7 @@
 
 #include "Track/RunDescription.h"
 
+class Beam;
 class BeamSequence;
 class Object;
 
@@ -18,7 +19,7 @@ namespace opalx::run {
      * @brief Copy everything the RUN command @p runCommand tracks with into a RunDescription.
      *
      * Reads the TRACK settings (Track::block), the RUN attributes, the beams, their emission
-     * sources and distributions, the field solver, the boundary geometry, the tracked line and
+     * sources and distributions, the field solver, the tracked line and
      * the OPTION values. Every attribute is evaluated now, so ":=" expressions take the values
      * valid at this RUN. An object that cannot be found is left out; TrackRun reports that error
      * itself.
@@ -42,6 +43,13 @@ namespace opalx::run {
      * @note Used by freeze() for the tracked line and by COF for its RING.
      */
     LineDescription describeLine(const BeamSequence& sequence);
+
+    /**
+     * @brief The values of @p beam that PartBunch reads: the reference particle, the PARTICLE
+     *        name and whether POLARIZATION is set. The other fields are left empty.
+     * @note For COF and the unit tests, which make a bunch without a RUN.
+     */
+    BeamDescription describeBeamForBunch(const Beam& beam);
 
 }  // namespace opalx::run
 

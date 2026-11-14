@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -73,8 +74,10 @@ namespace {
             static_cast<void>(sink);
             return std::make_unique<Bunch>(
                     std::vector<double>{1.25e-12, -2.5e-12}, std::vector<double>{0.511e-3, 0.938},
-                    std::vector<Beam*>{beam, beam}, std::vector<std::size_t>{16, 16}, 1.0, "LF2",
-                    storageConfig);
+                    std::vector{
+                            opalx::run::describeBeamForBunch(*beam),
+                            opalx::run::describeBeamForBunch(*beam)},
+                    std::vector<std::size_t>{16, 16}, 1.0, "LF2", storageConfig);
         }
 
         void populate(Bunch& bunch) {

@@ -60,7 +60,6 @@
 #include "Utilities/OpalException.h"
 
 #include "Lines/EmissionSourceList.h"
-#include "Structure/Beam.h"
 #include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
 #include "Structure/EmissionSource.h"
@@ -105,14 +104,13 @@ namespace opalx::run {
          * @note For now, for the moment calculation to give unbiased estimators of the
          * true moments, the macro weight needs to be 1.
          */
-        void requireUnitMacroWeight(const Beam& beam, const std::string& role) {
-            const double partsPerMacro =
-                    beam.getChargePerParticle() / (beam.getCharge() * Physics::q_e);
+        void requireUnitMacroWeight(const BeamDescription& beam, const std::string& role) {
+            const double partsPerMacro = beam.chargePerParticle / (beam.charge * Physics::q_e);
             if (std::abs(partsPerMacro - 1.0) > 1e-2) {
                 throw OpalException(
                         "TrackRun::execute",
                         "DECAY requires one physical particle per macroparticle, but " + role
-                                + " beam \"" + beam.getOpalName()
+                                + " beam \"" + beam.object.name
                                 + "\" has particles-per-macro = " + std::to_string(partsPerMacro)
                                 + ". Set BCHARGE = NALLOC * |CHARGE| * q_e.");
             }
@@ -122,25 +120,25 @@ namespace opalx::run {
          * @brief Builds a vector of processes for the given beam object
          */
         std::vector<std::unique_ptr<GlobalProcess>> makeGlobalProcessesForBeam(
-                const Beam& beam, std::size_t containerIndex) {
+                const BeamDescription& beam, std::size_t containerIndex) {
             std::vector<std::unique_ptr<GlobalProcess>> processes;
-            const std::vector<std::string> processNames = beam.getGlobalProcessNames();
+            const std::vector<std::string>& processNames = beam.globalProcesses;
             processes.reserve(processNames.size());
 
             for (const std::string& processName : processNames) {
                 if (processName == "DECAY") {
-                    const std::string particleName = beam.getParticleName();
+                    const std::string particleName = beam.particleName;
                     const ParticleType pType = ParticleProperties::getParticleType(particleName);
                     const double tau         = ParticleProperties::getParticleLifetime(pType);
                     const double mass        = ParticleProperties::getParticleMass(pType);
-                    const double parentQ     = beam.getCharge();
+                    const double parentQ     = beam.charge;
                     const int parentSign     = (parentQ > 0.0) - (parentQ < 0.0);
 
                     requireUnitMacroWeight(beam, "parent");
 
                     switch (pType) {
                         case ParticleType::MUON:
-                            if (!beam.hasPolarization()) {
+                            if (!beam.hasPolarization) {
                                 throw OpalException(
                                         "TrackRun::execute",
                                         "Muon decay requires spin tracking: the differential decay "
@@ -243,13 +241,13 @@ namespace opalx::run {
          * @param restored Planes and done flags from a checkpoint; empty for a fresh run.
          */
         std::vector<BeamStop> makeBeamStops(
-                const std::vector<Beam*>& beams, const TrackDescription& track, const bool isRing,
-                const std::vector<BeamStop>& restored) {
+                const std::vector<BeamDescription>& beams, const TrackDescription& track,
+                const bool isRing, const std::vector<BeamStop>& restored) {
             // validate() checked the combinations of TRACK ZSTOP, BEAM ZSTOP and UNTILMAXSTEPS.
             std::vector<BeamStop> stops(beams.size());
             for (std::size_t i = 0; i < beams.size(); ++i) {
-                stops[i].zStop         = beams[i]->getZStop();
-                stops[i].untilMaxSteps = beams[i]->getUntilMaxSteps();
+                stops[i].zStop         = beams[i].zStop;
+                stops[i].untilMaxSteps = beams[i].untilMaxSteps;
             }
             if (!isRing && track.zStopGiven) stops[0].zStop = track.zStop.back();
             for (std::size_t i = 0; i < stops.size() && i < restored.size(); ++i) {
@@ -268,13 +266,13 @@ namespace opalx::run {
          * @note Must be called after setupGlobalProcesses - reads processes from the containers.
          */
         void wireDaughterContainers(
-                PartBunch_t& bunch, const std::vector<Beam*>& beams,
+                PartBunch_t& bunch, const std::vector<BeamDescription>& beams,
                 const std::vector<std::string>& beamNames,
                 const std::vector<std::size_t>& decayRoots) {
             const auto& containers = bunch.getParticleContainers();
 
             for (std::size_t i = 0; i < beams.size(); ++i) {
-                const std::string daughterName = beams[i]->getDaughterBeamName();
+                const std::string& daughterName = beams[i].daughterBeam;
                 if (daughterName.empty()) {
                     continue;
                 }
@@ -287,13 +285,13 @@ namespace opalx::run {
 
                 // Use the physical rest mass from the Beam definition (in GeV), not the
                 // macro-particle mass from the container.
-                const double daughterMass = beams[daughterIdx]->getMass();
+                const double daughterMass = beams[daughterIdx].mass;
                 for (const auto& proc : containers[i]->getGlobalProcesses()) {
                     auto* decayProc = dynamic_cast<Decay*>(proc.get());
                     if (decayProc) {
-                        requireUnitMacroWeight(*beams[daughterIdx], "daughter");
-                        const double parentCharge   = beams[i]->getCharge();
-                        const double daughterCharge = beams[daughterIdx]->getCharge();
+                        requireUnitMacroWeight(beams[daughterIdx], "daughter");
+                        const double parentCharge   = beams[i].charge;
+                        const double daughterCharge = beams[daughterIdx].charge;
                         if (daughterCharge != parentCharge) {
                             std::ostringstream msg;
                             msg << "Daughter beam \"" << daughterName
@@ -309,9 +307,9 @@ namespace opalx::run {
                         // polarization from the decay, so its container must have spin storage -
                         // which is enabled by setting POLARIZATION on the daughter muon BEAM.
                         const ParticleType daughterType = ParticleProperties::getParticleType(
-                                beams[daughterIdx]->getParticleName());
+                                beams[daughterIdx].particleName);
                         if (daughterType == ParticleType::MUON
-                            && !beams[daughterIdx]->hasPolarization()) {
+                            && !beams[daughterIdx].hasPolarization) {
                             throw OpalException(
                             "TrackRun::wireDaughterContainers",
                             "Decay produces muons in daughter beam \"" + daughterName
@@ -341,8 +339,8 @@ namespace opalx::run {
         /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
         /// optional per-distribution NPARTDIST values on the emission sources.
         size_t computeTotalAllocationForBunch(
-                Beam* beam, const std::vector<EmissionSource*>& sources) {
-            size_t beamAllocSize = beam->getNumAlloc();
+                const BeamDescription& beam, const std::vector<EmissionSource*>& sources) {
+            size_t beamAllocSize = beam.numAlloc;
 
             size_t totalFromDists = 0;
             for (EmissionSource* src : sources) {
@@ -373,9 +371,9 @@ namespace opalx::run {
         /// Returns the reference momentum [beta*gamma] set on BEAM for a file distribution
         /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
         std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
-                PartBunch_t& bunch, const std::vector<EmissionSource*>& sources, Beam* beam,
-                bool hasInitialOrbit, std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers,
-                size_t index) {
+                PartBunch_t& bunch, const std::vector<EmissionSource*>& sources,
+                const BeamDescription& beam, bool hasInitialOrbit,
+                std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
             IpplTimings::startTimer(samplingTime);
@@ -383,7 +381,7 @@ namespace opalx::run {
             // Common containers / parameters used by all samplers.
             auto pc               = bunch.getParticleContainer(index);
             Vector_t<int, Dim> nr = bunch.nr_m;
-            const double avrgpz   = beam->getMomentum() / beam->getMass();
+            const double avrgpz   = beam.reference.getP() * Units::eV2GeV / beam.mass;
 
             emittingSamplers.clear();
             bool hasFileSource = false;
@@ -410,7 +408,7 @@ namespace opalx::run {
                 if (usesFileMomentum) {
                     hasFileSource = true;
                 } else {
-                    if (!beam->hasExplicitEnergy()) {
+                    if (!beam.hasExplicitEnergy) {
                         throw OpalException(
                                 "TrackRun::setupDistributionsAndSamplers()",
                                 "The energy hasn't been set. "
@@ -464,8 +462,7 @@ namespace opalx::run {
                     // cathode-energy increment. For ASTRA, the normalized half-sphere samples are
                     // stretched to this magnitude in the sampler, then the P0 offset is added to
                     // every sampled momentum.
-                    const double thermalP =
-                            Util::getBetaGamma(eKin, beam->getMass() * Units::GeV2eV);
+                    const double thermalP = Util::getBetaGamma(eKin, beam.mass * Units::GeV2eV);
                     if (emitModel == "NONE") {
                         P0[2] += thermalP;
                     } else if (emitModel == "ASTRA") {
@@ -475,7 +472,7 @@ namespace opalx::run {
                 sampler->setEmissionOffsets(R0, P0, t0, emitModel, emissionMomentumMagnitude);
 
                 // Initial polarization from BEAM (ignored if container has no spin attribute).
-                const std::vector<double> pol = beam->getPolarization();
+                const std::vector<double>& pol = beam.polarization;
                 sampler->setInitialPolarization({pol[0], pol[1], pol[2]});
 
                 const size_t Ndist = opalDist->getNumParticles();
@@ -507,16 +504,16 @@ namespace opalx::run {
                   << endl;
             IpplTimings::stopTimer(samplingTime);
 
-            if (beam->hasReferenceDirection() && !hasFileSource) {
+            if (beam.hasReferenceDirection && !hasFileSource) {
                 throw OpalException(
                         "TrackRun::setupDistributionsAndSamplers()",
-                        "\"REFDIRECTION\" on beam \"" + beam->getOpalName()
+                        "\"REFDIRECTION\" on beam \"" + beam.object.name
                                 + "\" needs a FROMFILE or EMITTEDFROMFILE distribution.");
             }
-            if (!hasFileSource || !beam->hasExplicitEnergy()) {
+            if (!hasFileSource || !beam.hasExplicitEnergy) {
                 return std::nullopt;
             }
-            const std::vector<double> dir = beam->getReferenceDirection();
+            const std::vector<double>& dir = beam.referenceDirection;
             return Vector_t<double, 3>(avrgpz * dir[0], avrgpz * dir[1], avrgpz * dir[2]);
         }
 
@@ -578,20 +575,16 @@ namespace opalx::run {
         const std::vector<std::string>& beamNames = track.beamNames;
 
         // Create vector of BEAMs (validate() checked that they exist).
-        std::vector<Beam*> beams;
-        beams.reserve(beamNames.size());
-        for (const auto& name : beamNames) {
-            beams.push_back(Beam::find(name));
-        }
+        const std::vector<BeamDescription>& beams = description.beams;
         // Decay chains: a beam named as another beam's DAUGHTERBEAM uses the reference particle of
         // the first beam of its chain. It has no momentum and no emission sources of its own.
         std::vector<std::size_t> decayRoots;
         {
             std::vector<std::string> daughterNames;
             std::vector<bool> hasDecay;
-            for (const auto* b : beams) {
-                daughterNames.push_back(b->getDaughterBeamName());
-                const std::vector<std::string> processes = b->getGlobalProcessNames();
+            for (const BeamDescription& b : beams) {
+                daughterNames.push_back(b.daughterBeam);
+                const std::vector<std::string>& processes = b.globalProcesses;
                 hasDecay.push_back(
                         std::find(processes.begin(), processes.end(), "DECAY") != processes.end());
             }
@@ -603,8 +596,8 @@ namespace opalx::run {
         }
         *gmsg << endl;
         // Print the BEAM banner for each resolved beam.
-        for (Beam* b : beams) {
-            *gmsg << level1 << *b << endl;
+        for (const BeamDescription& b : beams) {
+            *gmsg << level1 << b.banner << endl;
         }
 
         // Vectors for each species
@@ -619,14 +612,14 @@ namespace opalx::run {
 
         // Fill macro quantities and emissionSourceList per container (beam)
         for (size_t i = 0; i < beams.size(); ++i) {
-            Beam* b = beams[i];
+            const BeamDescription& b = beams[i];
 
-            const double macrocharge = b->getChargePerParticle();
-            const double macromass   = b->getMassPerParticle();
+            const double macrocharge = b.chargePerParticle;
+            const double macromass   = b.massPerParticle;
             macrocharges.push_back(macrocharge);
             macromasses.push_back(macromass);
 
-            const double part_per_macro_ratio = macrocharge / (b->getCharge() * Physics::q_e);
+            const double part_per_macro_ratio = macrocharge / (b.charge * Physics::q_e);
             *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
                   << " macro charge per particle [C]: " << macrocharge << endl;
             *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
@@ -639,12 +632,12 @@ namespace opalx::run {
                 // A decay daughter beam gets particles only from the decay.
                 emissionSourcesLists.emplace_back();
             } else {
-                EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
+                EmissionSourceList* esl = EmissionSourceList::find(b.emissionSourceList);
                 const auto& sources     = esl->fetchSources();
                 emissionSourcesLists.emplace_back(sources.begin(), sources.end());
             }
 
-            globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
+            globalProcessesLists[i] = makeGlobalProcessesForBeam(b, i);
         }
 
         // validate() refused emitting or delayed sources and DECAY for a restart.
@@ -697,15 +690,15 @@ namespace opalx::run {
         // Set total particles per container (beam)
         std::vector<size_t> totalParticlesPerBeam(beams.size());
         for (size_t i = 0; i < beams.size(); ++i) {
-            Beam* b                  = beams[i];
-            totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
+            totalParticlesPerBeam[i] =
+                    computeTotalAllocationForBunch(beams[i], emissionSourcesLists[i]);
         }
 
         // Create PartBunch with multiple particle containers.
         objects.bunch = std::make_unique<PartBunch_t>(
                 macrocharges,                     // Macro charge [C]
                 macromasses,                      // Macro Mass [GeV]
-                beams,                            // Beam objects per container
+                beams,                            // Beam descriptions per container
                 totalParticlesPerBeam,            // Per-beam particle counts for allocation
                 Options::loadBalancingThreshold,  // Load balancing threshold
                 "LF2",                            // Integrator
@@ -814,7 +807,7 @@ namespace opalx::run {
             const double roundedTurns    = std::round(run.getReal("TURNS"));
             const auto turns             = static_cast<unsigned long long>(roundedTurns);
             directedTurns                = turns;
-            const double beta            = description.beams.front().reference.beta;
+            const double beta            = beams.front().reference.getBeta();
             const double distancePerStep = Physics::c * std::abs(track.dT.front()) * beta;
             const double pathLength      = roundedTurns * ringPeriod;
             const double estimatedSteps  = std::ceil(pathLength / distancePerStep);
@@ -854,8 +847,7 @@ namespace opalx::run {
         setup.lineDirection = Quaternion(turn[0], turn[1], turn[2], turn[3]);
         if (track.initialOrbit) {
             track.initialOrbit->validate(
-                    description.line.name, beams.front()->getParticleName(),
-                    beams.front()->getReference());
+                    description.line.name, beams.front().particleName, beams.front().reference);
             for (const auto& samplers : emittingSamplersList)
                 for (const auto& sampler : samplers)
                     if (!sampler->isEmissionDone(track.initialOrbit->time))
@@ -881,7 +873,7 @@ namespace opalx::run {
             settings.sector       = run.getString("TUNESECTOR");
             settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
                     run.getString("TUNEINTEGRATOR"));
-            setup.tuneInitial  = beams.front()->getTuneInitial();
+            setup.tuneInitial  = beams.front().tuneInitial;
             setup.tuneSettings = settings;
         }
         return setup;

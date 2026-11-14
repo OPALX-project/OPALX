@@ -158,10 +158,10 @@ namespace opalx::run {
 
         for (const BeamDescription& beam : d.beams) {
             os << "\n[beam " << beam.object.name << "]\n";
-            os << "reference.mass = " << number(beam.reference.mass) << "\n"
-               << "reference.charge = " << number(beam.reference.charge) << "\n"
-               << "reference.momentum = " << number(beam.reference.momentum) << "\n"
-               << "reference.gamma = " << number(beam.reference.gamma) << "\n"
+            os << "reference.mass = " << number(beam.reference.getM()) << "\n"
+               << "reference.charge = " << number(beam.reference.getQ()) << "\n"
+               << "reference.momentum = " << number(beam.reference.getP()) << "\n"
+               << "reference.gamma = " << number(beam.reference.getGamma()) << "\n"
                << "chargePerParticle = " << number(beam.chargePerParticle) << "\n"
                << "massPerParticle = " << number(beam.massPerParticle) << "\n"
                << "emissionSourceList = " << beam.emissionSourceList << "\n";

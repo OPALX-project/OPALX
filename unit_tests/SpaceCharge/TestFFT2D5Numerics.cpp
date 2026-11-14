@@ -38,6 +38,7 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -374,7 +375,7 @@ namespace {
             bunch_m = std::make_shared<PartBunch_t>(
                     /*qi=*/std::vector{1.0},
                     /*mi=*/std::vector{1.0},
-                    /*beams=*/std::vector{testBeam},
+                    /*beams=*/std::vector{opalx::run::describeBeamForBunch(*testBeam)},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2",
@@ -450,7 +451,7 @@ namespace {
             bunch_m        = std::make_shared<PartBunch_t>(
                     /*qi=*/std::vector{1.0},
                     /*mi=*/std::vector{1.0},
-                    /*beams=*/std::vector{testBeam},
+                    /*beams=*/std::vector{opalx::run::describeBeamForBunch(*testBeam)},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2",

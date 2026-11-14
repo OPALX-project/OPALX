@@ -88,7 +88,7 @@ public:
     inline void setQ(double q) { charge = q; }
 
     /// The magnetic moment anomaly G = (g - 2) / 2 for this species.
-    /// Zero by default; populated by Beam::update() when PARTICLE is set.
+    /// Zero by default; set by Beam::getReference() when PARTICLE is set.
     inline double getAnomaly() const { return anomaly; }
     inline void setAnomaly(double a) { anomaly = a; }
 

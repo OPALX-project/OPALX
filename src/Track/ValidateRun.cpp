@@ -265,8 +265,8 @@ namespace opalx::run {
                     return "Explicit RING TURNS restart requires persisted return-plane counters "
                            "and is not supported yet.";
                 }
-                const double distancePerStep =
-                        Physics::c * std::abs(track.dT.front()) * beams.front()->reference.beta;
+                const double distancePerStep = Physics::c * std::abs(track.dT.front())
+                                               * beams.front()->reference.getBeta();
                 if (!(distancePerStep > 0.0)) {
                     return "A RING tracked with TURNS requires positive circumference, DT, and "
                            "reference velocity.";
@@ -367,8 +367,8 @@ namespace opalx::run {
             if (beams.size() != 1) {
                 errors.push_back("SINGLEGAP currently requires one container.");
             } else if (
-                    beam.hasPolarization || beam.reference.charge != 1 || restart
-                    || std::abs(beam.reference.mass / (Physics::m_p * 1e9) - 1) > 1e-12) {
+                    beam.hasPolarization || beam.reference.getQ() != 1 || restart
+                    || std::abs(beam.reference.getM() / (Physics::m_p * 1e9) - 1) > 1e-12) {
                 errors.push_back(
                         "SINGLEGAP requires an unpolarized positive proton and does not support "
                         "restart.");

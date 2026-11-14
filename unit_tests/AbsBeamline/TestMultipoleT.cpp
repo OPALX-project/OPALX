@@ -24,6 +24,7 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
@@ -261,7 +262,10 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector{1.0e-9, 2.0e-9}, std::vector{0.511e-3, 0.938},
-            std::vector{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
+            std::vector{
+                    opalx::run::describeBeamForBunch(*testBeam),
+                    opalx::run::describeBeamForBunch(*testBeam)},
+            std::vector<size_t>{1, 1}, 1.0, "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 

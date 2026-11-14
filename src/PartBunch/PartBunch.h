@@ -26,7 +26,9 @@
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
 
-class Beam;
+namespace opalx::run {
+    struct BeamDescription;
+}  // namespace opalx::run
 
 extern Inform* gmsg;
 
@@ -105,14 +107,16 @@ public:
      *
      * @param qi                     Macrocharge per container (C).
      * @param mi                     Macromass per container (GeV/c²).
-     * @param beams                  One @c Beam per container (reference particle, species).
+     * @param beams                  One beam per container: reference particle, PARTICLE name
+     *                               and whether it tracks spin (POLARIZATION).
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
      * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
      */
     PartBunch(
-            std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
+            std::vector<double> qi, std::vector<double> mi,
+            const std::vector<opalx::run::BeamDescription>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
             opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig);
 

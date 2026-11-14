@@ -20,6 +20,7 @@
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/MeshGenerator.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/Options.h"
 
 #include "gtest/gtest.h"
@@ -100,14 +101,12 @@ protected:
 
         auto beam = std::make_shared<Beam>();
         Beam::defineBuiltins();
-
-        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
 
         auto bunch = std::make_shared<PartBunch_t>(
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector<Beam*>{opBeam},
+                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});

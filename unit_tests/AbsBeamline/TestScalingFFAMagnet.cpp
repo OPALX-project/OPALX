@@ -20,6 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Structure/Beam.h"
+#include "Track/FreezeRun.h"
 
 #include "gtest/gtest.h"
 
@@ -633,7 +634,7 @@ TEST_F(ScalingFFAMagnetTest, SuperposesParticleAndReferenceFieldsWithoutErasingO
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {positions.size()}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {positions.size()}, 1., "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{});
     const auto pc = bunch.getParticleContainer();
     pc->createParticles(positions.size());
@@ -698,7 +699,8 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {2}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {2}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     const auto pc = bunch.getParticleContainer();
     pc->createParticles(2);
     const auto R = pc->R.getView(), B = pc->B.getView();

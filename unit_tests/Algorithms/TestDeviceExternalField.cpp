@@ -20,6 +20,7 @@
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
@@ -66,7 +67,8 @@ TEST_F(DeviceExternalFieldTest, OrderedCandidatesPreserveOccurrencesAndRejectUnk
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -105,7 +107,8 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     const auto particles = bunch.getParticleContainer();
     particles->createParticles(3);
     FlaggedBeamline line;
@@ -194,7 +197,8 @@ TEST_F(DeviceExternalFieldTest, ThinMagnetDeviceImpulseEnergyAndSpectators) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -242,7 +246,8 @@ TEST_F(DeviceExternalFieldTest, DeviceFieldsMatchPlacedHostBendsWithFringesAndMu
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     for (int kind = 0; kind < 3; ++kind) {
         FlaggedBeamline line;
         DefaultVisitor visitor(line, false, false);
@@ -323,7 +328,8 @@ TEST_F(DeviceExternalFieldTest, UniformRFCavityGeometryUsesItsWidthAndRejectsMag
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -371,7 +377,8 @@ TEST_F(DeviceExternalFieldTest, RejectsUnimplementedDeviceFieldInsteadOfHostFall
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -408,7 +415,8 @@ TEST_F(DeviceExternalFieldTest,
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -466,7 +474,8 @@ TEST_F(DeviceExternalFieldTest, CyclotronSectorRetainsItsMappedTrackingPath) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -491,7 +500,8 @@ TEST_F(DeviceExternalFieldTest, EligibilityRejectsHigherBendComponentsButAllowsZ
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     for (unsigned kind = 0; kind < 2; ++kind) {
         FlaggedBeamline line;
         DefaultVisitor visitor(line, false, false);
@@ -534,7 +544,8 @@ TEST_F(DeviceExternalFieldTest, ScalingFFASpiralSupportMatchesElementAndAccumula
     const double pi = std::acos(-1.), radius = 4.42;
     for (double sign : {1., -1.}) {
         PartBunch_t bunch(
-                {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+                {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+                opalx::spacecharge::CartesianDomainConfig3D{});
         OpalBeamline lattice;
         for (unsigned i = 0; i < 2; ++i) {
             ScalingFFAMagnet magnet("ffa" + std::to_string(i));

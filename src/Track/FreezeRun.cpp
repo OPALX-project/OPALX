@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <sstream>
 #include <string>
 
 #include "AbsBeamline/ElementBase.h"
@@ -198,15 +199,23 @@ namespace opalx::run {
 
         BeamDescription describeBeam(const Beam& beam) {
             BeamDescription d;
-            d.object                  = describeObject(beam);
-            const PartData& reference = beam.getReference();
-            d.reference.mass          = reference.getM();
-            d.reference.charge        = reference.getQ();
-            d.reference.momentum      = reference.getP();
-            d.reference.gamma         = reference.getGamma();
-            d.reference.beta          = reference.getBeta();
-            d.chargePerParticle       = beam.getChargePerParticle();
-            d.massPerParticle         = beam.getMassPerParticle();
+            d.object            = describeObject(beam);
+            d.reference         = beam.getReference();
+            d.chargePerParticle = beam.getChargePerParticle();
+            d.massPerParticle   = beam.getMassPerParticle();
+            d.charge            = beam.getCharge();
+            d.mass              = beam.getMass();
+            d.numAlloc          = beam.getNumAlloc();
+            tryRead([&] {
+                d.polarization = beam.getPolarization();
+            });
+            tryRead([&] {
+                d.hasReferenceDirection = beam.hasReferenceDirection();
+                d.referenceDirection    = beam.getReferenceDirection();
+            });
+            std::ostringstream banner;
+            beam.print(banner);
+            d.banner = banner.str();
             tryRead(
                     [&] {
                         d.emissionSourceList = beam.getEmissionSourceListName();
@@ -329,6 +338,14 @@ namespace opalx::run {
 
         if (const BeamSequence* use = track->use) run.line = describeLine(*use);
         return run;
+    }
+
+    BeamDescription describeBeamForBunch(const Beam& beam) {
+        BeamDescription d;
+        d.reference       = beam.getReference();
+        d.particleName    = beam.getParticleName();
+        d.hasPolarization = beam.hasPolarization();
+        return d;
     }
 
     LineDescription describeLine(const BeamSequence& sequence) {

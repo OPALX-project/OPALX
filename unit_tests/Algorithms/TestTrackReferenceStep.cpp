@@ -8,6 +8,7 @@
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
@@ -122,7 +123,8 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -151,7 +153,8 @@ TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConser
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
@@ -191,7 +194,8 @@ TEST_F(TrackReferenceStepTest, ResolvedTrialsDoNotRecordMonitors) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;

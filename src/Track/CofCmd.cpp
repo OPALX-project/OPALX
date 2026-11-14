@@ -403,7 +403,9 @@ namespace {
             const Controls& c, const RunSettings& s) {
         // COF needs only empty particle storage for element initialization, not a solver.
         const opalx::spacecharge::CartesianDomainConfig3D domain;
-        PartBunch_t bunch({beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", domain);
+        PartBunch_t bunch(
+                {beam.getCharge()}, {beam.getMass()}, {opalx::run::describeBeamForBunch(beam)}, {0},
+                1, "LF2", domain);
         OpalBeamline lattice(
                 Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
                 Quaternion(
