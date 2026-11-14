@@ -38,6 +38,7 @@ namespace opalx::spacecharge {
                     .backendSolves = 3, .redistributions = 1, .reportedBins = 7});
             RecordingAlgorithm* observer = algorithm.get();
             SpaceChargeSolver solver(std::move(algorithm), 2);
+            EXPECT_FALSE(solver.usesFFT2D5());
 
             const std::vector<std::uint8_t> activity{1, 0};
             SpaceChargeSolveContext context(activity, {});

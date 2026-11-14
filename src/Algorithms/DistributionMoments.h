@@ -59,6 +59,10 @@ public:
     }
     bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
     double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
+    /// Selected by the FFT2D5 factory only. Keep both centered/raw two-pass moments;
+    /// reduce each symmetric matrix's 21 independent entries and mirror on the host.
+    void setCompactSymmetricReduction(bool enabled) { compactSymmetricReduction_m = enabled; }
+    bool usesCompactSymmetricReduction() const { return compactSymmetricReduction_m; }
     void compute(
             const std::vector<OpalParticle>::const_iterator&,
             const std::vector<OpalParticle>::const_iterator&);
@@ -194,8 +198,9 @@ private:
     double meanGammaZ_m;
 
     // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of Mview(k).
-    bool rescaleToReference_m = false;
-    double referenceMassGeV_m = 0.0;
+    bool rescaleToReference_m        = false;
+    double referenceMassGeV_m        = 0.0;
+    bool compactSymmetricReduction_m = false;
 
     Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;

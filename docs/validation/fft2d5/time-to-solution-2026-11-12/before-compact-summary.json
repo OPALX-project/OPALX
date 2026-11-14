@@ -1,0 +1,12 @@
+{
+  "steps": 99,
+  "window_start_ns": 396720542027457,
+  "window_end_ns": 396721873445411,
+  "profiled_window_ms_per_step": 13.448666202020203,
+  "kernel_execution_ms_per_step": 9.445437040404041,
+  "kernel_active_ms_per_step": 9.445434727272726,
+  "kernel_busy_percent": 70.23324532996345,
+  "kernel_count_per_step": 308.1212121212121,
+  "scope": "Second path-segment build through last traced kernel; 99 steps. Kernel-only trace; remainder unclassified, synchronization count unavailable. Other includes ROCm copy/fill kernels; means-only sum grouped with beam moments.",
+  "binary_sha256": "62d661cc59c6f2c5b6bf9238dd064139c4dca3831ed56a460b17c94a2351b1f3"
+}
