@@ -230,8 +230,8 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
 }
 
 void StatWriter::write(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], int reportedBinCount,
-        const losses_t& losses, const double& azimuth, const size_t npOutside,
+        PartBunch_t& beam, const opalx::moments::BeamMoments& moments, Vector_t<double, 3> FDext[],
+        int reportedBinCount, const losses_t& losses, const double& azimuth, const size_t npOutside,
         size_t particleContainerIndex) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
@@ -266,31 +266,27 @@ void StatWriter::write(
     Vector_t<double, 3> meanR(0.0);
     Vector_t<double, 3> maxR(0.0);
     Vector_t<double, 3> rmsRP(0.0);
-    double energy          = 0.0;
-    double dE              = 0.0;
-    double dx              = 0.0;
-    double ddx             = 0.0;
-    double dy              = 0.0;
-    double ddy             = 0.0;
-    double debyeLength     = 0.0;
-    double plasmaParameter = 0.0;
+    double energy = 0.0;
+    double dE     = 0.0;
+    double dx     = 0.0;
+    double ddx    = 0.0;
+    double dy     = 0.0;
+    double ddy    = 0.0;
 
     if (numParticles > 0) {
-        energy          = pc->getMeanKineticEnergy();
-        rmsR            = pc->getRmsR();
-        rmsP            = pc->getRmsP();
-        normEmit        = pc->getNormEmit();
-        meanR           = pc->getMeanR();
-        maxR            = pc->getMaxR();
-        rmsRP           = pc->getRmsRP();
-        dE              = pc->getStdKineticEnergy();
-        dx              = pc->getDx();
-        ddx             = pc->getDDx();
-        dy              = pc->getDy();
-        ddy             = pc->getDDy();
-        debyeLength     = pc->getDebyeLength();
-        plasmaParameter = pc->getPlasmaParameter();
-        temperature     = pc->getRestFrameTemperature();
+        energy      = moments.meanKineticEnergy();
+        rmsR        = moments.rmsR();
+        rmsP        = moments.rmsP();
+        normEmit    = moments.normalizedEmittance();
+        meanR       = moments.meanR();
+        maxR        = moments.maxR();
+        rmsRP       = moments.correlationRP();
+        dE          = moments.stdKineticEnergy();
+        dx          = moments.covariance(0, 5);
+        ddx         = moments.covariance(1, 5);
+        dy          = moments.covariance(2, 5);
+        ddy         = moments.covariance(3, 5);
+        temperature = moments.restFrameTemperature();
     }
 
     columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
@@ -351,8 +347,9 @@ void StatWriter::write(
     columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue("DebyeLength", debyeLength);          // 43 Debye length
-    columns_m.addColumnValue("plasmaParameter", plasmaParameter);  // 43 plasma parameter
+    // Debye length and plasma parameter are not computed; the columns keep the file layout.
+    columns_m.addColumnValue("DebyeLength", 0.0);      // 43 Debye length
+    columns_m.addColumnValue("plasmaParameter", 0.0);  // 43 plasma parameter
     columns_m.addColumnValue("temperature_x", temperature(0));
     columns_m.addColumnValue("temperature_y", temperature(1));
     columns_m.addColumnValue("temperature_s", temperature(2));
@@ -360,12 +357,14 @@ void StatWriter::write(
     columns_m.addColumnValue("nBins", reportedBinCount);
 
     if (pc->hasSpin()) {
-        const Vector_t<double, 3> meanPol = pc->getMeanPol();
-        const Vector_t<double, 3> rmsPol  = pc->getRmsPol();
+        const bool hasParticles           = numParticles > 0;
+        const Vector_t<double, 3> meanPol = hasParticles ? moments.meanPolarization() : 0.0;
+        const Vector_t<double, 3> rmsPol  = hasParticles ? moments.rmsPolarization() : 0.0;
         columns_m.addColumnValue("mean_polx", meanPol(0));
         columns_m.addColumnValue("mean_poly", meanPol(1));
         columns_m.addColumnValue("mean_polz", meanPol(2));
-        columns_m.addColumnValue("mean_pol_mag", pc->getMeanPolMagnitude());
+        columns_m.addColumnValue(
+                "mean_pol_mag", hasParticles ? moments.meanPolarizationMagnitude() : 0.0);
         columns_m.addColumnValue("rms_polx", rmsPol(0));
         columns_m.addColumnValue("rms_poly", rmsPol(1));
         columns_m.addColumnValue("rms_polz", rmsPol(2));
@@ -442,10 +441,10 @@ void StatWriter::write(
                 columns_m.addColumnValue("P0_s", 0.0);
             }
         }
-        Vector_t<double, 3> halo = beam.get_halo();
-        columns_m.addColumnValue("halo_x", halo(0));
-        columns_m.addColumnValue("halo_y", halo(1));
-        columns_m.addColumnValue("halo_z", halo(2));
+        // The halo parameter is not computed; the columns keep the file layout.
+        columns_m.addColumnValue("halo_x", 0.0);
+        columns_m.addColumnValue("halo_y", 0.0);
+        columns_m.addColumnValue("halo_z", 0.0);
 
         columns_m.addColumnValue("azimuth", azimuth);
     }

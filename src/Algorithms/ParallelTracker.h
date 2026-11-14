@@ -485,16 +485,39 @@ private:
      * @param step     Step index (reserved for diagnostics; may be unused in body).
      * @param psDump   If true, write phase-space snapshot when applicable.
      * @param statDump If true, write statistics (e.g. SDDS).
+     * @param computed Moments already computed at this particle state, reused where they hold
+     *        the groups the outputs read.
      */
-    void writePhaseSpace(const long long step, bool psDump, bool statDump);
+    void writePhaseSpace(
+            const long long step, bool psDump, bool statDump,
+            std::span<const opalx::moments::BeamMoments> computed = {});
 
     /**
      * @brief Log per-container stats and trigger dumps according to dump flags.
      * @param step     Current integration step index.
      * @param psDump   Forwarded to writePhaseSpace when logging occurs.
      * @param statDump Forwarded to writePhaseSpace when logging occurs.
+     * @param computed See writePhaseSpace().
      */
-    void dumpStats(long long step, bool psDump, bool statDump);
+    void dumpStats(
+            long long step, bool psDump, bool statDump,
+            std::span<const opalx::moments::BeamMoments> computed = {});
+
+    /// @brief Whether this step prints the per-container step line (STEPINFOFREQ).
+    [[nodiscard]] bool stepLogDue() const;
+
+    /// @brief Moment groups the outputs due now (and the step line if @p stepLog) read for @p pc.
+    [[nodiscard]] opalx::moments::Request outputMomentsDue(
+            const ParticleContainer_t& pc, bool psDump, bool statDump, bool stepLog) const;
+
+    /**
+     * @brief Moments of every non-empty container holding what outputMomentsDue() lists; empty
+     *        containers get an empty value. Entries of @p computed that already hold it are
+     *        reused. Collective.
+     */
+    [[nodiscard]] std::vector<opalx::moments::BeamMoments> momentsOfContainers(
+            bool psDump, bool statDump, bool stepLog,
+            std::span<const opalx::moments::BeamMoments> computed) const;
 
     /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
     void prepareSections();

@@ -26,11 +26,12 @@ H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart) : h5wrapper_m(h5wrapp
 }
 
 void H5Writer::writePhaseSpace(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex) {
+        PartBunch_t& beam, const opalx::moments::BeamMoments& moments, Vector_t<double, 3> FDext[],
+        size_t particleContainerIndex) {
     std::map<std::string, double> additionalAttributes = {
             std::make_pair("B-ref_x", FDext[0](0)), std::make_pair("B-ref_z", FDext[0](1)),
             std::make_pair("B-ref_y", FDext[0](2)), std::make_pair("E-ref_x", FDext[1](0)),
             std::make_pair("E-ref_z", FDext[1](1)), std::make_pair("E-ref_y", FDext[1](2))};
 
-    h5wrapper_m->writeStep(&beam, additionalAttributes, particleContainerIndex);
+    h5wrapper_m->writeStep(&beam, moments, additionalAttributes, particleContainerIndex);
 }

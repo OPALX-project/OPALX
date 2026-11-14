@@ -108,8 +108,8 @@ namespace {
             auto dt_host = pc->dt.getHostMirror();
             auto E_host  = pc->E.getHostMirror();
 
-            const auto rmin = bunch->rmin_m;
-            const auto rmax = bunch->rmax_m;
+            const auto rmin = bunch->cartesianDomain().lower();
+            const auto rmax = bunch->cartesianDomain().upper();
 
             std::uniform_real_distribution<double> unifR_x(rmin[0] + 0.1, rmax[0] - 0.1);
             std::uniform_real_distribution<double> unifR_y(rmin[1] + 0.1, rmax[1] - 0.1);
@@ -144,6 +144,17 @@ namespace {
             ippl::Comm->barrier();
             Kokkos::fence();
             pc->update();
+        }
+
+        /// Snapshots for every container holding what the statistics and H5 outputs read.
+        std::vector<opalx::moments::BeamMoments> outputMoments() const {
+            std::vector<opalx::moments::BeamMoments> moments;
+            for (const auto& pc : bunch->getParticleContainers()) {
+                moments.push_back(
+                        opalx::moments::compute(
+                                *pc, DataSink::requiredMoments(true, true, pc->hasSpin())));
+            }
+            return moments;
         }
 
         static std::array<Vector_t<double, 3>, 2> zeroFdPair() {
@@ -319,7 +330,7 @@ namespace {
         fdTooSmall.push_back(zeroFdPair());
 
         const double azimuth = 0.0;
-        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, 1, azimuth), OpalException);
+        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, outputMoments(), 1, azimuth), OpalException);
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_NoThrowWithMatchingFdextAndHdf5Off) {
@@ -332,7 +343,7 @@ namespace {
         fd[1] = zeroFdPair();
 
         const double azimuth = 0.0;
-        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, 1, azimuth));
+        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, outputMoments(), 1, azimuth));
     }
 
     // When HDF5 is disabled, dumpH5 returns before validating fdext size.
@@ -345,7 +356,7 @@ namespace {
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
-        EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall));
+        EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()));
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHdf5On) {
@@ -365,7 +376,7 @@ namespace {
             DataSink ds(wrappers, false, 2);
             std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
             fdTooSmall.push_back(zeroFdPair());
-            EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall), OpalException);
+            EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()), OpalException);
         }
 
         for (H5PartWrapper* w : wrappers) {
@@ -402,14 +413,14 @@ namespace {
 
             bunch->setdT(1.0e-12);
             bunch->setT(1.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
             bunch->setT(2.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
 
             bunch->setT(1.0e-12);
             ds.rewindToCheckpoint(*bunch);
             bunch->setT(2.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
         }
         w0.reset();
         w1.reset();

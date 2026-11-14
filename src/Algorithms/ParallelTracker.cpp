@@ -912,17 +912,28 @@ void ParallelTracker::execute() {
                   << " particles outside a transverse aperture for deletion." << endl;
             }
 
+            bool const psDump = Options::psDumpFreq > 0
+                                && ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
+                                    == Options::psDumpFreq);
+            bool const statDump = Options::statDumpFreq > 0
+                                  && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
+                                      == Options::statDumpFreq);
+
+            // The outlier box and the outputs of this step read one computation per container,
+            // unless particles are deleted in between.
             const double sigmas = Options::boundpDestroy;
+            std::vector<opalx::moments::BeamMoments> stepMoments(particleContainersStep.size());
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
                 if (!pc || !itsBunch_m->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
                     continue;
                 }
-                const auto moments =
-                        opalx::moments::compute(*pc, Moment::MeanPosition | Moment::Spread);
-                const Vector_t<double, 3> halfWidth = sigmas * moments.rmsR();
+                stepMoments[i] = opalx::moments::compute(
+                        *pc, Moment::MeanPosition | Moment::Spread
+                                     | outputMomentsDue(*pc, psDump, statDump, stepLogDue()));
+                const Vector_t<double, 3> halfWidth = sigmas * stepMoments[i].rmsR();
                 const size_t nMarked                = pc->markParticlesOutside(
-                        moments.meanR() - halfWidth, moments.meanR() + halfWidth);
+                        stepMoments[i].meanR() - halfWidth, stepMoments[i].meanR() + halfWidth);
                 nStepMarked += nMarked;
                 if (nMarked > 0) {
                     m << level2 << "Marked " << nMarked << " particles outside " << sigmas
@@ -935,6 +946,7 @@ void ParallelTracker::execute() {
                 deleteInvalidParticles(
                         true, m,
                         "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
+                stepMoments.assign(particleContainersStep.size(), {});
             }
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
@@ -964,13 +976,7 @@ void ParallelTracker::execute() {
             if (probeRecorder && itsBunch_m->getGlobalTrackStep() % 100 == 0) probeRecorder->save();
 
             // Dump phase space and statistics at configured intervals
-            bool const psDump = Options::psDumpFreq > 0
-                                && ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
-                                    == Options::psDumpFreq);
-            bool const statDump = Options::statDumpFreq > 0
-                                  && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
-                                      == Options::statDumpFreq);
-            dumpStats(step, psDump, statDump);
+            dumpStats(step, psDump, statDump, stepMoments);
 
             if (Options::printRankDistrFreq > 0
                 && (itsBunch_m->getGlobalTrackStep() % Options::printRankDistrFreq) + 1
@@ -2515,14 +2521,48 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
     changeDT();
 }
 
+bool ParallelTracker::stepLogDue() const {
+    return Options::stepInfoFreq > 0
+           && itsBunch_m->getGlobalTrackStep() % Options::stepInfoFreq == 0;
+}
+
+opalx::moments::Request ParallelTracker::outputMomentsDue(
+        const ParticleContainer_t& pc, bool psDump, bool statDump, bool stepLog) const {
+    const opalx::moments::Request log =
+            stepLog ? opalx::moments::Request(Moment::MeanMomentum) : opalx::moments::Request{};
+    return log | DataSink::requiredMoments(psDump, statDump, pc.hasSpin());
+}
+
+std::vector<opalx::moments::BeamMoments> ParallelTracker::momentsOfContainers(
+        bool psDump, bool statDump, bool stepLog,
+        std::span<const opalx::moments::BeamMoments> computed) const {
+    const auto& containers = itsBunch_m->getParticleContainers();
+    std::vector<opalx::moments::BeamMoments> moments(containers.size());
+    for (size_t i = 0; i < containers.size(); ++i) {
+        if (!containers[i] || containers[i]->getTotalNum() == 0) {
+            continue;
+        }
+        const opalx::moments::Request request =
+                outputMomentsDue(*containers[i], psDump, statDump, stepLog);
+        if (request.empty()) {
+            continue;
+        }
+        const bool reuse = i < computed.size() && computed[i].available().contains(request);
+        moments[i]       = reuse ? computed[i] : opalx::moments::compute(*containers[i], request);
+    }
+    return moments;
+}
+
 /**
  * @copybrief ParallelTracker::dumpStats
  */
-void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
+void ParallelTracker::dumpStats(
+        long long step, bool psDump, bool statDump,
+        std::span<const opalx::moments::BeamMoments> computed) {
     OPALTimer::Timer myt2;
     const size_t totalAll      = itsBunch_m->getTotalNumAllContainers();
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
-    const bool printStepInfo = Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
+    const bool printStepInfo   = stepLogDue();
 
     if (totalAll == 0 && printStepInfo) {
         *gmsg << level1 << "* " << myt2.time() << " "
@@ -2531,6 +2571,9 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
               << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
     }
 
+    // One request per container covers the step log and every output due now.
+    const auto moments = momentsOfContainers(psDump, statDump, printStepInfo, computed);
+
     bool anyLogged         = false;
     const auto& containers = itsBunch_m->getParticleContainers();
     for (size_t ci = 0; ci < containers.size(); ++ci) {
@@ -2538,7 +2581,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         if (!pc || pc->getTotalNum() == 0) {
             continue;
         }
-        pc->updateMoments();
         const double sPos = pc->get_sPos();
         if (std::isnan(sPos) || std::isinf(sPos)) {
             throw OpalException(
@@ -2556,13 +2598,13 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
                 *gmsg << "at " << Util::getLengthString(sPos) << ", ";
             }
             *gmsg << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
-                  << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
+                  << "E=" << Util::getEnergyString(moments[ci].meanKineticEnergy()) << endl;
         }
         anyLogged = true;
     }
 
     if (anyLogged || statDump) {
-        writePhaseSpace(step, psDump, statDump);
+        writePhaseSpace(step, psDump, statDump, moments);
     }
 }
 
@@ -2594,17 +2636,15 @@ void ParallelTracker::setTime() {
 /**
  * @copybrief ParallelTracker::writePhaseSpace
  */
-void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
+void ParallelTracker::writePhaseSpace(
+        const long long /*step*/, bool psDump, bool statDump,
+        std::span<const opalx::moments::BeamMoments> computed) {
     Inform m("ParallelTracker::writePhaseSpace");
     Vector_t<double, 3> externalE, externalB;
 
-    Vector_t<double, 3> rmin, rmax;
-    itsBunch_m->get_bounds(rmin, rmax);
-    m << level5 << "Bunch bounds in REFERENCE frame: rmin = " << rmin << ", rmax = " << rmax
-      << endl;
-
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     std::vector<std::array<Vector_t<double, 3>, 2>> fdByContainer(nContainers);
+    const auto moments = momentsOfContainers(psDump, statDump, false, computed);
 
     if (psDump || statDump) {
         for (size_t i = 0; i < nContainers; ++i) {
@@ -2629,12 +2669,12 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     if (statDump) {
         const int reportedBinCount =
                 spaceChargeSolver_m == nullptr ? 1 : spaceChargeSolver_m->reportedBinCount();
-        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, reportedBinCount, -1.0);
+        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, moments, reportedBinCount, -1.0);
         *gmsg << level3 << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
-        itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
+        itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer, moments);
         *gmsg << level3 << "* Wrote beam phase space." << endl;
     }
 }

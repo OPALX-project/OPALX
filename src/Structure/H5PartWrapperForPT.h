@@ -36,8 +36,14 @@ public:
 
     virtual void writeHeader();
     virtual void writeStep(
-            PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes,
+            PartBunch_t*, const opalx::moments::BeamMoments& moments,
+            const std::map<std::string, double>& additionalStepAttributes,
             size_t particleContainerIndex = 0);
+
+    /// Moment groups the step header reads.
+    static constexpr opalx::moments::Request requiredMoments =
+            opalx::moments::Moment::Bounds | opalx::moments::Moment::MeanPosition
+            | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
 
     virtual bool predecessorIsSameFlavour() const;
 
@@ -46,7 +52,8 @@ private:
     void readStepData(PartBunch_t*, h5_ssize_t, h5_ssize_t);
 
     void writeStepHeader(
-            PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex);
+            PartBunch_t*, const opalx::moments::BeamMoments& moments,
+            const std::map<std::string, double>&, size_t particleContainerIndex);
     void writeStepData(PartBunch_t*, size_t particleContainerIndex);
 
     IpplTimings::TimerRef h5TotalStepTimer_m;

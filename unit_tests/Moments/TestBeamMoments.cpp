@@ -25,6 +25,7 @@
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
+#include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
@@ -310,6 +311,22 @@ TEST_F(BeamMomentsTest, RequestContract) {
     const BeamMoments all = compute(*pc, opalx::moments::allMoments);
     EXPECT_FALSE(all.available().contains(Moment::Polarization));
     EXPECT_THROW(static_cast<void>(all.meanPolarization()), OpalException);
+}
+
+TEST_F(BeamMomentsTest, OutputRequestsAreWhatComputeProvides) {
+    // The tracker reuses one value for every output of a step only if the value holds the full
+    // request, so an output must not ask for a group compute() leaves out (polarization without
+    // spin).
+    for (const bool spin : {false, true}) {
+        auto pc = makeContainer(correlatedSet(20, 31, 1.0), spin);
+        for (const bool psDump : {false, true}) {
+            for (const bool statDump : {false, true}) {
+                const Request request = DataSink::requiredMoments(psDump, statDump, pc->hasSpin());
+                EXPECT_TRUE(compute(*pc, request).available().contains(request))
+                        << "spin " << spin << ", ps " << psDump << ", stat " << statDump;
+            }
+        }
+    }
 }
 
 TEST_F(BeamMomentsTest, SharedSumsDoNotDependOnTheRequest) {

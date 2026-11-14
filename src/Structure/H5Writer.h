@@ -49,7 +49,8 @@ public:
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
     void writePhaseSpace(
-            PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
+            PartBunch_t& beam, const opalx::moments::BeamMoments& moments,
+            Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
 
 private:
     H5PartWrapper* h5wrapper_m;
