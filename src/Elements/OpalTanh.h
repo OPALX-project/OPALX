@@ -6,6 +6,8 @@
 
 /** OpalTanh provides user interface information for the Tanh end field model
  */
+class ElementValues;
+
 class OpalTanh : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
@@ -23,8 +25,11 @@ public:
 
     /** Inherited copy constructor */
 
-    /** Update the ScalingFFA with new parameters from UI parser */
-    virtual void update();
+    /**
+     * @brief Make the model of input object @p values and register it under its name, where
+     *        the elements look it up. Called by buildElements() at RUN.
+     */
+    static void registerModel(const ElementValues& values);
 
 private:
     // Not implemented.

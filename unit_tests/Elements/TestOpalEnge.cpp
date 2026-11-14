@@ -41,7 +41,7 @@ TEST_F(TestOpalEnge, TestSetup) {
     Attributes::setReal(ui.itsAttr[OpalEnge::LENGTH], 4);
     Attributes::setReal(ui.itsAttr[OpalEnge::FRINGE_LENGTH], 2);
     Attributes::setRealArray(ui.itsAttr[OpalEnge::COEFFICIENTS], {0.0, 1.0, 2.0});
-    ui.update();
+    opalx::test::registerModel(ui);
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ENGE"));
     auto efm  = efmMan->getEndFieldModel("ENGE");

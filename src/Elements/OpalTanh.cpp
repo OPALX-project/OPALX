@@ -1,5 +1,6 @@
 
 #include "Elements/OpalTanh.h"
+#include "Elements/ElementValues.h"
 
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
@@ -20,12 +21,11 @@ OpalTanh::OpalTanh()
     registerOwnership();
 }
 
-void OpalTanh::update() {
-    // getOpalName() comes from AbstractObjects/Object.h
-    double x0     = Attributes::getReal(itsAttr[LENGTH]) / 2.0;
-    double lambda = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
+void OpalTanh::registerModel(const ElementValues& values) {
+    double x0     = values.getReal("LENGTH") / 2.0;
+    double lambda = values.getReal("FRINGE_LENGTH");
     auto efm      = std::make_shared<endfieldmodel::Tanh>(x0, lambda, 10);
 
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    efmMan->setEndFieldModel(getOpalName(), efm);
+    efmMan->setEndFieldModel(values.getName(), efm);
 }

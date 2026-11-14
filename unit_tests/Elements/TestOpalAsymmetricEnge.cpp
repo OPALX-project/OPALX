@@ -46,7 +46,7 @@ TEST_F(TestOpalAsymmetricEnge, TestSetup) {
     Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::END_HALF_LENGTH], 9);
     Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::END_FRINGE_LENGTH], 11);
     Attributes::setRealArray(ui.itsAttr[OpalAsymmetricEnge::END_COEFFICIENTS], {12.0, 17.0, 21.0});
-    ui.update();
+    opalx::test::registerModel(ui);
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ASYMMETRIC_ENGE"));
     auto efm = efmMan->getEndFieldModel("ASYMMETRIC_ENGE");

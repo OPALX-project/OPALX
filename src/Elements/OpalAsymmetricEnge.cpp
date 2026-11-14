@@ -1,5 +1,6 @@
 
 #include "Elements/OpalAsymmetricEnge.h"
+#include "Elements/ElementValues.h"
 
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
@@ -33,17 +34,16 @@ OpalAsymmetricEnge::OpalAsymmetricEnge()
     registerOwnership();
 }
 
-void OpalAsymmetricEnge::update() {
-    // getOpalName() comes from AbstractObjects/Object.h
-    double x0Start                = Attributes::getReal(itsAttr[START_HALF_LENGTH]);
-    double lambdaStart            = Attributes::getReal(itsAttr[START_FRINGE_LENGTH]);
-    std::vector<double> aVecStart = Attributes::getRealArray(itsAttr[START_COEFFICIENTS]);
-    double x0End                  = Attributes::getReal(itsAttr[END_HALF_LENGTH]);
-    double lambdaEnd              = Attributes::getReal(itsAttr[END_FRINGE_LENGTH]);
-    std::vector<double> aVecEnd   = Attributes::getRealArray(itsAttr[END_COEFFICIENTS]);
+void OpalAsymmetricEnge::registerModel(const ElementValues& values) {
+    double x0Start                = values.getReal("START_HALF_LENGTH");
+    double lambdaStart            = values.getReal("START_FRINGE_LENGTH");
+    std::vector<double> aVecStart = values.getRealArray("START_COEFFICIENTS");
+    double x0End                  = values.getReal("END_HALF_LENGTH");
+    double lambdaEnd              = values.getReal("END_FRINGE_LENGTH");
+    std::vector<double> aVecEnd   = values.getRealArray("END_COEFFICIENTS");
 
     auto efm = std::make_shared<endfieldmodel::AsymmetricEnge>(
             aVecStart, x0Start, lambdaStart, aVecEnd, x0End, lambdaEnd);
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    efmMan->setEndFieldModel(getOpalName(), efm);
+    efmMan->setEndFieldModel(values.getName(), efm);
 }

@@ -12,6 +12,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Elements/ElementValues.h"
+#include "Elements/OpalAsymmetricEnge.h"
 #include "Elements/OpalBox.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
@@ -19,18 +20,23 @@
 #include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
+#include "Elements/OpalEnge.h"
 #include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
 #include "Elements/OpalScalingFFAMagnet.h"
+#include "Elements/OpalSinusoidalTimeDependence.h"
 #include "Elements/OpalSolenoid.h"
+#include "Elements/OpalSplineTimeDependence.h"
+#include "Elements/OpalTanh.h"
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
@@ -117,7 +123,41 @@ namespace opalx::run {
         return built;
     }
 
+    namespace {
+
+        using RegisterModel = void (*)(const ElementValues&);
+
+        /// The keywords of time dependences and end-field models, with their registerModel().
+        const std::map<std::string, RegisterModel>& modelKeywords() {
+            static const std::map<std::string, RegisterModel> table = {
+                    {"POLYNOMIAL_TIME_DEPENDENCE", &OpalPolynomialTimeDependence::registerModel},
+                    {"SINUSOIDAL_TIME_DEPENDENCE", &OpalSinusoidalTimeDependence::registerModel},
+                    {"SPLINE_TIME_DEPENDENCE", &OpalSplineTimeDependence::registerModel},
+                    {"ENGE", &OpalEnge::registerModel},
+                    {"TANH", &OpalTanh::registerModel},
+                    {"ASYMMETRIC_ENGE", &OpalAsymmetricEnge::registerModel},
+            };
+            return table;
+        }
+
+    }  // namespace
+
+    bool isModelKeyword(const std::string& keyword) { return modelKeywords().count(keyword) != 0; }
+
+    void registerModels(const std::vector<ObjectDescription>& models) {
+        for (const ObjectDescription& model : models) {
+            const auto found = modelKeywords().find(model.keyword);
+            if (found == modelKeywords().end()) {
+                throw LogicalError(
+                        "opalx::run::registerModels",
+                        "\"" + model.keyword + "\" is not a time dependence or end-field model.");
+            }
+            found->second(ElementValues(model));
+        }
+    }
+
     std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line) {
+        registerModels(line.models);
         std::vector<std::shared_ptr<ElementBase>> elements;
         elements.reserve(line.elements.size());
         for (const ElementDescription& element : line.elements) {

@@ -83,6 +83,12 @@ namespace opalx::test {
         return opalx::run::buildElement(element);
     }
 
+    /// Register the time dependence or end-field model of input object @p object, as a RUN
+    /// does (opalx::run::registerModels()).
+    inline void registerModel(const Object& object) {
+        opalx::run::registerModels({opalx::run::describeObject(object)});
+    }
+
 }  // namespace opalx::test
 
 #endif  // OPALX_UNIT_TESTS_KEYWORD_OBJECTS_H

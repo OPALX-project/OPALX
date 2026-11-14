@@ -29,7 +29,7 @@ TEST(TestOpalTanh, TestSetup) {
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalTanh::LENGTH], 4);
     Attributes::setReal(ui.itsAttr[OpalTanh::FRINGE_LENGTH], 2);
-    ui.update();
+    opalx::test::registerModel(ui);
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("TANH"));
     auto efm = efmMan->getEndFieldModel("TANH");

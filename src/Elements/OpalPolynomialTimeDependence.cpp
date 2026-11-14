@@ -17,6 +17,7 @@
 #include <string>
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
+#include "Elements/ElementValues.h"
 
 const std::string OpalPolynomialTimeDependence::doc_string =
         "The \"POLYNOMIAL_TIME_DEPENDENCE\" element defines "
@@ -42,21 +43,22 @@ OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
 
 void OpalPolynomialTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-void OpalPolynomialTimeDependence::update() {
-    // getOpalName() comes from AbstractObjects/Object.h
-    if (itsAttr[COEFFICIENTS] && (itsAttr[P0] || itsAttr[P1] || itsAttr[P2] || itsAttr[P3])) {
+void OpalPolynomialTimeDependence::registerModel(const ElementValues& values) {
+    if (values.hasValue("COEFFICIENTS")
+        && (values.hasValue("P0") || values.hasValue("P1") || values.hasValue("P2")
+            || values.hasValue("P3"))) {
         // Only use P0..P3 or COEFFICIENTS, not both
         throw std::invalid_argument(
                 "OpalPolynomialTimeDependence::Update: "
                 "Use P0..P3 or COEFFICIENTS to specify the coefficients, not both.");
     }
-    std::vector<double> polynomial_coefficients = Attributes::getRealArray(itsAttr[COEFFICIENTS]);
+    std::vector<double> polynomial_coefficients = values.getRealArray("COEFFICIENTS");
     if (polynomial_coefficients.empty()) {
-        polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P0]));
-        polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P1]));
-        polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P2]));
-        polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P3]));
+        polynomial_coefficients.push_back(values.getReal("P0"));
+        polynomial_coefficients.push_back(values.getReal("P1"));
+        polynomial_coefficients.push_back(values.getReal("P2"));
+        polynomial_coefficients.push_back(values.getReal("P3"));
     }
     AbstractTimeDependence::setTimeDependence(
-            getOpalName(), std::make_shared<PolynomialTimeDependence>(polynomial_coefficients));
+            values.getName(), std::make_shared<PolynomialTimeDependence>(polynomial_coefficients));
 }

@@ -40,8 +40,11 @@ public:
 
     /** Inherited copy constructor */
 
-    /** Receive parameters from the parser and hand them off to the OpalSinusoidalTimeDependence*/
-    void update() override;
+    /**
+     * @brief Make the model of input object @p values and register it under its name, where
+     *        the elements look it up. Called by buildElements() at RUN.
+     */
+    static void registerModel(const ElementValues& values);
 
     /** Calls print on the OpalElement */
     void print(std::ostream&) const override;

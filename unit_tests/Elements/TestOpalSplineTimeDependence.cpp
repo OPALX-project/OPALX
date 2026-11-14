@@ -45,7 +45,7 @@ TEST(TestOpalSplineTimeDependence, UserInterface) {
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::VALUES], {5, 6, 7, 8});
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SplineTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get());
@@ -63,7 +63,7 @@ TEST(TestOpalSplineTimeDependence, DefaultValues) {
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 1);
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SplineTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get());
@@ -83,5 +83,5 @@ TEST(TestOpalSplineTimeDependence, UserInterfaceBadOrder) {
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::VALUES], {5, 6, 7, 8});
     // Update the object
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::registerModel(ui));
 }

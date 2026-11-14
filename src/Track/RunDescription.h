@@ -109,6 +109,8 @@ namespace opalx::run {
         double length = 0;
         std::array<double, 3> origin{0.0, 0.0, 0.0};          ///< Start position (m). Not written.
         std::array<double, 4> direction{1.0, 0.0, 0.0, 0.0};  ///< Start direction. Not written.
+        /// The time dependences and end-field models of the input, by name; elements name them.
+        std::vector<ObjectDescription> models;
     };
 
     /**

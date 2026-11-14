@@ -193,6 +193,10 @@ namespace opalx::run {
                << "reflected = " << flag(element.reflected) << "\n";
             writeObject(element.object, os);
         }
+        for (const ObjectDescription& model : d.line.models) {
+            os << "\n[model " << model.name << "]\n";
+            writeObject(model, os);
+        }
     }
 
     std::string dumpFileName(const RunDescription& description) {

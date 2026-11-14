@@ -43,11 +43,10 @@ OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence()
 
 void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-void OpalSinusoidalTimeDependence::update() {
+void OpalSinusoidalTimeDependence::registerModel(const ElementValues& values) {
     AbstractTimeDependence::setTimeDependence(
-            getOpalName(), std::make_shared<SinusoidalTimeDependence>(
-                                   Attributes::getRealArray(itsAttr[FREQUENCIES]),
-                                   Attributes::getRealArray(itsAttr[PHASE_OFFSETS]),
-                                   Attributes::getRealArray(itsAttr[AMPLITUDES]),
-                                   Attributes::getRealArray(itsAttr[DC_OFFSETS])));
+            values.getName(),
+            std::make_shared<SinusoidalTimeDependence>(
+                    values.getRealArray("FREQUENCIES"), values.getRealArray("PHASE_OFFSETS"),
+                    values.getRealArray("AMPLITUDES"), values.getRealArray("DC_OFFSETS")));
 }

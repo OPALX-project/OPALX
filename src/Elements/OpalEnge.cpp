@@ -3,6 +3,7 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "Attributes/Attributes.h"
+#include "Elements/ElementValues.h"
 #include "Physics/Units.h"
 
 extern Inform* gmsg;
@@ -21,13 +22,12 @@ OpalEnge::OpalEnge()
     registerOwnership();
 }
 
-void OpalEnge::update() {
-    // getOpalName() comes from AbstractObjects/Object.h
-    double x0                = Attributes::getReal(itsAttr[LENGTH]) / 2.0;
-    double lambda            = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
-    std::vector<double> aVec = Attributes::getRealArray(itsAttr[COEFFICIENTS]);
+void OpalEnge::registerModel(const ElementValues& values) {
+    double x0                = values.getReal("LENGTH") / 2.0;
+    double lambda            = values.getReal("FRINGE_LENGTH");
+    std::vector<double> aVec = values.getRealArray("COEFFICIENTS");
 
     auto efm    = std::make_shared<endfieldmodel::Enge>(aVec, x0, lambda);
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    efmMan->setEndFieldModel(getOpalName(), efm);
+    efmMan->setEndFieldModel(values.getName(), efm);
 }

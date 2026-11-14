@@ -343,6 +343,16 @@ namespace opalx::run {
             std::vector<std::string> path{line->getOpalName()};
             addMembers(*line, false, description.elements, path);
         }
+        struct AddModel : ObjectFunction {
+            explicit AddModel(std::vector<ObjectDescription>& models) : models_m(models) {}
+            void operator()(Object* object) const override {
+                if (isModelKeyword(object->getKeyword())) {
+                    models_m.push_back(describeObject(*object));
+                }
+            }
+            std::vector<ObjectDescription>& models_m;
+        } addModel(description.models);
+        OpalData::getInstance()->apply(addModel);
         return description;
     }
 

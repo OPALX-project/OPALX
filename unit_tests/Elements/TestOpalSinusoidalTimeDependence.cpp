@@ -31,7 +31,7 @@ TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::AMPLITUDES], {5, 6});
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::DC_OFFSETS], {7, 8});
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SinusoidalTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SINUSOIDAL_TIME_DEPENDENCE").get());

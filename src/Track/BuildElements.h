@@ -46,6 +46,16 @@ namespace opalx::run {
      */
     std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line);
 
+    /// True if @p keyword defines a time dependence or an end-field model (ENGE, TANH, ...).
+    bool isModelKeyword(const std::string& keyword);
+
+    /**
+     * @brief Make each time dependence and end-field model of @p models and register it under
+     *        its name (AbstractTimeDependence, EndFieldModelManager), where the elements look
+     *        it up. buildElements() calls it for the models of the line.
+     */
+    void registerModels(const std::vector<ObjectDescription>& models);
+
     /**
      * @brief Circumference of a RING: the sum of the arc lengths of its elements, markers left
      *        out.
