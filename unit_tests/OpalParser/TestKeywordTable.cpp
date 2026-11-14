@@ -96,8 +96,7 @@ TEST_F(KeywordTableTest, InputObjectsUseKeywordsAndOtherObjects) {
     EXPECT_DOUBLE_EQ(real("Q1", "K1"), 1.5);
     EXPECT_DOUBLE_EQ(real("Q2", "K1"), 2.5);
     EXPECT_DOUBLE_EQ(real("Q2", "L"), 0.1);  // taken from Q1
-    EXPECT_EQ(
-            OpalData::getInstance()->find("Q2")->getParent(), OpalData::getInstance()->find("Q1"));
+    EXPECT_EQ(OpalData::getInstance()->find("Q2")->getKeyword(), "QUADRUPOLE");
 }
 
 TEST_F(KeywordTableTest, InputObjectsCanBeRedefinedButKeywordsCannot) {

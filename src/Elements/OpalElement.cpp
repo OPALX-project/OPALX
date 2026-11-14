@@ -495,8 +495,6 @@ void OpalElement::printAttribute(
 }
 
 void OpalElement::registerOwnership() const {
-    if (getParent() != 0) return;
-
     const unsigned int end = itsSize;
     const std::string name = getOpalName();
     for (unsigned int i = COMMON; i < end; ++i) {

@@ -449,17 +449,7 @@ void OpalData::define(Object* newObject) {
 void OpalData::erase(const std::string& name) {
     Object* oldObject = p->mainDirectory.find(name);
 
-    if (oldObject != nullptr) {
-        // Relink all children of "this" to "this->getParent()".
-        for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
-            Object* child = &*i->second;
-            if (child->getParent() == oldObject) {
-                child->setParent(oldObject->getParent());
-            }
-        }
-        // Remove the object.
-        p->mainDirectory.erase(name);
-    }
+    if (oldObject != nullptr) p->mainDirectory.erase(name);
 }
 
 Object* OpalData::find(const std::string& name) {

@@ -28,6 +28,7 @@
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
+#include "ValueDefinitions/RealConstant.h"
 
 #include <cmath>
 #include <ctime>
@@ -263,7 +264,7 @@ void OpalParser::parseAssign(Statement& stat) const {
             } else {
                 throw ParseError("OpalParser::parseAssign()", "Invalid <type> field.");
             }
-        } else if (object->isTreeMember(realConstant)) {
+        } else if (dynamic_cast<RealConstant*>(object) != nullptr) {
             throw ParseError(
                     "OpalParser::parseAssign()",
                     "You cannot redefine the constant \"" + objName + "\".");
@@ -286,7 +287,7 @@ void OpalParser::parseAssign(Statement& stat) const {
 
     if (object != 0) {
         if (Attribute* attr = object->findAttribute(attrName)) {
-            if (stat.delimiter('=') || object->isTreeMember(realConstant)) {
+            if (stat.delimiter('=') || dynamic_cast<RealConstant*>(object) != nullptr) {
                 if (index > 0) {
                     attr->parseComponent(stat, true, index);
                 } else {

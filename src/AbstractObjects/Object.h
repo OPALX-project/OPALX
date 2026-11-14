@@ -37,10 +37,8 @@ class TokenStream;
 //  All known Objects use standard C++ memory management.
 //
 //  Objects are linked by name to the OPAL directory, which resides in
-//  the global object [b]OpalData[/b].  Each Object has a pointer pointing
-//  to its parent object.  This may be an exemplar object, or a previously
-//  generated command or definition object.  This mechanism allows to find
-//  easily whether an Object belongs to a given class (see isTreeMember()).
+//  the global object [b]OpalData[/b]. getKeyword() gives the input keyword
+//  an object was made from.
 
 class Object {
 public:
@@ -162,31 +160,14 @@ public:
     /// True, if [b]this[/b] is flagged by setFlag(true).
     bool isFlagged() const;
 
-    /// Return the object's base type object.
-    //  Return the top-most ancestor of this object, i. e. the built-in
-    //  object from which [b]this[/b] is ultimately derived.
-    const Object* getBaseObject() const;
-
     /// Return object name.
     const std::string& getOpalName() const;
 
     /// The input keyword this object was made from, e.g. "QUADRUPOLE" (also for `Q2: Q1`).
     const std::string& getKeyword() const;
 
-    /// Return parent pointer.
-    Object* getParent() const;
-
-    /// Test for tree membership.
-    //  Return true, if [b]this[/b] has been directly or indirectly derived
-    //  from [b]subTree[/b].
-    bool isTreeMember(const Object* subTree) const;
-
     /// Set object name.
     void setOpalName(const std::string& name);
-
-    /// Set parent object.
-    //  This method should normally be called only from Directory.
-    void setParent(Object*);
 
     /// Clear the occurrence counter.
     void clear();
@@ -242,9 +223,6 @@ private:
     Object();
     Object(const Object& object);
     void operator=(const Object&);
-
-    // Pointer to the parent object.
-    Object* itsParent;
 
     // The object name.
     std::string itsName;

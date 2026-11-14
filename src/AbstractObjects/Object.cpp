@@ -166,8 +166,6 @@ void Object::registerReference(Invalidator* ref) { references.insert(ref); }
 void Object::unregisterReference(Invalidator* ref) { references.erase(ref); }
 
 void Object::registerOwnership(const AttributeHandler::OwnerType& itsClass) const {
-    if (getParent() != 0) return;
-
     const unsigned int end = itsAttr.size();
     const std::string name = getOpalName();
     for (unsigned int i = 0; i < end; ++i) {
@@ -256,32 +254,11 @@ void Object::setFlag(bool flag) { flagged = flag; }
 
 bool Object::isFlagged() const { return flagged; }
 
-const Object* Object::getBaseObject() const {
-    const Object* base = this;
-    while (base->itsParent != 0)
-        base = base->itsParent;
-    return base;
-}
-
 const std::string& Object::getOpalName() const { return itsName; }
 
 const std::string& Object::getKeyword() const { return keyword_m; }
 
-Object* Object::getParent() const { return itsParent; }
-
-bool Object::isTreeMember(const Object* classObject) const {
-    const Object* object = this;
-
-    while (object != 0 && object != classObject) {
-        object = object->itsParent;
-    }
-
-    return object != 0;
-}
-
 void Object::setOpalName(const std::string& name) { itsName = name; }
-
-void Object::setParent(Object* parent) { itsParent = parent; }
 
 void Object::clear() { occurrence = 0; }
 
@@ -291,7 +268,6 @@ int Object::occurrenceCount() { return occurrence; }
 
 Object::Object(int size, const char* name, const char* help)
     : itsAttr(size),
-      itsParent(0),
       itsName(name),
       keyword_m(name),
       itsHelp(help),
@@ -307,7 +283,6 @@ Object::Object(int size, const char* name, const char* help)
 
 Object::Object(const std::string& name, Object* parent)
     : itsAttr(parent->itsAttr),
-      itsParent(parent),
       itsName(name),
       keyword_m(parent->keyword_m),
       itsHelp(parent->itsHelp),
