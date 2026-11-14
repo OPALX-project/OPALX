@@ -62,7 +62,7 @@ OpalLaser::OpalLaser()
 
 OpalLaser::~OpalLaser() {}
 
-std::shared_ptr<ElementBase> OpalLaser::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalLaser::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<LaserRep>(values.getName());
     fill(*element, values);
     return element;

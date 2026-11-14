@@ -66,7 +66,7 @@ OpalCavity::OpalCavity()
 
 OpalCavity::~OpalCavity() {}
 
-std::shared_ptr<ElementBase> OpalCavity::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalCavity::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<RFCavityRep>(values.getName());
     fill(*element, values);
     return element;

@@ -96,7 +96,8 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
 OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {}
 
-std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(
+        const ObjectValues& values, double /*p0*/) {
     auto magnet = std::make_shared<ScalingFFAMagnet>(values.getName());
     magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     fill(*magnet, values);

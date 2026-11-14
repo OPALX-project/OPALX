@@ -56,7 +56,7 @@ OpalFieldmapElement::OpalFieldmapElement()
 
 OpalFieldmapElement::~OpalFieldmapElement() {}
 
-std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<FieldmapElementRep>(values.getName());
     fill(*element, values);
     return element;

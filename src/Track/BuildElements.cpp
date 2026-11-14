@@ -102,7 +102,7 @@ namespace opalx::run {
         return ElementBase::getTypeString(kindOf(keyword, keyword).type);
     }
 
-    std::shared_ptr<ElementBase> buildElement(const ElementDescription& element) {
+    std::shared_ptr<ElementBase> buildElement(const ElementDescription& element, double p0) {
         const ObjectDescription& input = element.object;
         const ElementKind& kind        = kindOf(input.keyword, input.name);
         for (const AttributeEntry& entry : input.attributes) {
@@ -113,7 +113,7 @@ namespace opalx::run {
                             + " could not be evaluated: " + entry.error);
         }
 
-        std::shared_ptr<ElementBase> built = kind.build(ObjectValues(input));
+        std::shared_ptr<ElementBase> built = kind.build(ObjectValues(input), p0);
         if (built->getType() != kind.type) {
             throw LogicalError(
                     "opalx::run::buildElement",
@@ -127,7 +127,8 @@ namespace opalx::run {
 
         using RegisterModel = void (*)(const ObjectValues&);
 
-        /// The keywords of time dependences and end-field models, with their registerModel().
+        /// The keywords of time dependences, end-field models and trim coils, with their
+        /// registerModel().
         const std::map<std::string, RegisterModel>& modelKeywords() {
             static const std::map<std::string, RegisterModel> table = {
                     {"POLYNOMIAL_TIME_DEPENDENCE", &OpalPolynomialTimeDependence::registerModel},
@@ -136,6 +137,7 @@ namespace opalx::run {
                     {"ENGE", &OpalEnge::registerModel},
                     {"TANH", &OpalTanh::registerModel},
                     {"ASYMMETRIC_ENGE", &OpalAsymmetricEnge::registerModel},
+                    {"TRIMCOIL", &OpalTrimCoil::registerModel},
             };
             return table;
         }
@@ -150,18 +152,20 @@ namespace opalx::run {
             if (found == modelKeywords().end()) {
                 throw LogicalError(
                         "opalx::run::registerModels",
-                        "\"" + model.keyword + "\" is not a time dependence or end-field model.");
+                        "\"" + model.keyword
+                                + "\" is not a time dependence, end-field model or trim coil.");
             }
             found->second(ObjectValues(model));
         }
     }
 
-    std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line) {
+    std::vector<std::shared_ptr<ElementBase>> buildElements(
+            const LineDescription& line, double p0) {
         registerModels(line.models);
         std::vector<std::shared_ptr<ElementBase>> elements;
         elements.reserve(line.elements.size());
         for (const ElementDescription& element : line.elements) {
-            std::shared_ptr<ElementBase> built = buildElement(element);
+            std::shared_ptr<ElementBase> built = buildElement(element, p0);
             const std::string& name            = built->getName();
             if (line.topology == "RING" && !(name.size() > 0 && name.front() == '#')) {
                 built->setBeamlineMembership(BeamlineTopology::RING, line.name);

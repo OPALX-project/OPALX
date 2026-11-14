@@ -36,7 +36,7 @@ public:
      *        Scraping only happens for z in [0, L) outside the aperture, so a
      *        collimator missing either would silently transmit everything.
      */
-    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
     /// Set the fields of @p element from @p values.

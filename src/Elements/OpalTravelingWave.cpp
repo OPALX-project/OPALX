@@ -48,7 +48,7 @@ OpalTravelingWave::OpalTravelingWave()
 
 OpalTravelingWave::~OpalTravelingWave() {}
 
-std::shared_ptr<ElementBase> OpalTravelingWave::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalTravelingWave::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<TravelingWaveRep>(values.getName());
     fill(*element, values);
     return element;

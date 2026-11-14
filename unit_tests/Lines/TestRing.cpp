@@ -67,7 +67,9 @@ protected:
 
     /// The elements built for the occurrences of the parsed LINE or RING @p name.
     std::vector<std::shared_ptr<ElementBase>> build(const std::string& name) {
-        return opalx::run::buildElements(opalx::run::describeLine(*BeamSequence::find(name)));
+        return opalx::run::buildElements(
+                opalx::run::describeLine(*BeamSequence::find(name)),
+                OpalData::getInstance()->getP0());
     }
 
     std::ostringstream output_m;

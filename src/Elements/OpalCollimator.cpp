@@ -32,7 +32,7 @@ OpalCollimator::OpalCollimator()
 
 OpalCollimator::~OpalCollimator() {}
 
-std::shared_ptr<ElementBase> OpalCollimator::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalCollimator::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<CollimatorRep>(values.getName());
     fill(*element, values);
     return element;

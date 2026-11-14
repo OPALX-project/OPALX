@@ -13,7 +13,7 @@ public:
     ~OpalLaser() override;
 
     /// Build the runtime element of one occurrence from its attribute values.
-    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
     /// Set the fields of @p element from @p values.

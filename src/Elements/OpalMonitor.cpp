@@ -30,7 +30,7 @@ OpalMonitor::OpalMonitor()
 
 OpalMonitor::~OpalMonitor() {}
 
-std::shared_ptr<ElementBase> OpalMonitor::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalMonitor::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<MonitorRep>(values.getName());
     fill(*element, values);
     return element;

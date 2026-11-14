@@ -411,7 +411,9 @@ namespace {
                 Quaternion(
                         line.direction[0], line.direction[1], line.direction[2],
                         line.direction[3]));
-        const auto ordered = addRingElements(line, opalx::run::buildElements(line), lattice, bunch);
+        const auto ordered = addRingElements(
+                line, opalx::run::buildElements(line, OpalData::getInstance()->getP0()), lattice,
+                bunch);
         lattice.prepareSections();
         int rank = 0;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);

@@ -3,6 +3,7 @@
 #include "AbsBeamline/CyclotronSector.h"
 #include "AbstractObjects/Definition.h"
 #include "Elements/OpalElement.h"
+#include "Track/ObjectValues.h"
 
 /** @brief Named PSI mirrored trim-coil definition, separate from beamline elements.
  * Supports TYPE="PSI-BFIELD-MIRRORED" only. RMIN/RMAX [m] are shape radii,
@@ -14,14 +15,21 @@ class OpalTrimCoil : public Definition {
 public:
     OpalTrimCoil();
     /// Validate the definition without allocating a tracking element.
-    void execute() override { model(); }
+    void execute() override;
     bool canReplaceBy(Object* object) override {
         return dynamic_cast<OpalTrimCoil*>(object) != nullptr;
     }
-    /** @return Validated parameters by value, suitable for copying into a device view.
+    /** @return Validated parameters of a TRIMCOIL description, by value, suitable for copying
+     *          into a device view.
      * @throws OpalException For unsupported TYPE, nonfinite values, or invalid radii/slope.
      */
-    CyclotronTrimCoil model() const;
+    static CyclotronTrimCoil model(const ObjectValues& values);
+
+    /// Make the trim coil of @p values and keep it under its name for find(). Called at RUN.
+    static void registerModel(const ObjectValues& values);
+
+    /// The trim coil registered under @p name. @throws OpalException if there is none.
+    static const CyclotronTrimCoil& find(const std::string& name);
 
 private:
     enum { TYPE, RMIN, RMAX, BMAX, SLPTC, SIZE };
@@ -45,7 +53,7 @@ public:
      * @throws OpalException For invalid symmetry/bounds or an unknown trim-coil name.
      * Map loading and trim-coil validation errors are propagated.
      */
-    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
     /// Set the fields of @p element from @p values.

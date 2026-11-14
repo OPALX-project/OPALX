@@ -42,7 +42,7 @@ public:
      * @throw OpalException if WIDTH, HEIGHT or L is not > 0, or if APERTURE is
      *        given. A box has no aperture: it removes particles inside its body.
      */
-    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
     /// Set the fields of @p element from @p values.

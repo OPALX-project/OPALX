@@ -40,7 +40,7 @@ OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defin
 
 OpalProbe::~OpalProbe() {}
 
-std::shared_ptr<ElementBase> OpalProbe::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalProbe::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<ProbeRep>(values.getName());
     fill(*element, values);
     return element;

@@ -101,7 +101,7 @@ void TrackRun::execute() {
     // as text and stop: nothing is tracked and no other output is written.
     opalx::run::RunDescription description = opalx::run::freeze(*this, ++opal_m->numberOfRuns);
     std::vector<std::shared_ptr<ElementBase>> elements =
-            opalx::run::buildElements(description.line);
+            opalx::run::buildElements(description.line, description.context.p0);
     if (description.line.topology == "RING") {
         description.line.length = opalx::run::ringLength(elements);
     }

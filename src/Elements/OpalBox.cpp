@@ -37,7 +37,7 @@ OpalBox::OpalBox()
 
 OpalBox::~OpalBox() {}
 
-std::shared_ptr<ElementBase> OpalBox::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalBox::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<BoxRep>(values.getName());
     fill(*element, values);
     return element;

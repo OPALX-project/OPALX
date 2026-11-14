@@ -63,7 +63,7 @@ OpalMultipoleT::OpalMultipoleT()
 
 void OpalMultipoleT::print(std::ostream& os) const { OpalElement::print(os); }
 
-std::shared_ptr<ElementBase> OpalMultipoleT::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalMultipoleT::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<MultipoleT>(values.getName());
     fill(*element, values);
     return element;

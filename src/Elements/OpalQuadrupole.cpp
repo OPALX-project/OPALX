@@ -51,13 +51,13 @@ OpalQuadrupole::~OpalQuadrupole() {}
 
 void OpalQuadrupole::print(std::ostream& os) const { OpalElement::print(os); }
 
-std::shared_ptr<ElementBase> OpalQuadrupole::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalQuadrupole::build(const ObjectValues& values, double p0) {
     auto element = std::make_shared<MultipoleRep>(values.getName());
-    fill(*element, values);
+    fill(*element, values, p0);
     return element;
 }
 
-void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values) {
+void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     MultipoleRep* mult = dynamic_cast<MultipoleRep*>(&element);
@@ -70,7 +70,7 @@ void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values) {
     // Multipole is a physical gradient [T/m]. Convert with Brho = P0/c, exactly
     // as OpalSBend does for its K1..K3 (OpalSBend.cpp:71-76). Without this the
     // quad is over-focused by 1/Brho.
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double factor = p0 / Physics::c;
     double k1     = values.getReal("K1") * factor;
     double dk1    = values.getReal("DK1") * factor;
     double k1s    = values.getReal("K1S") * factor;

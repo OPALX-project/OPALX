@@ -34,13 +34,13 @@ OpalRBend::OpalRBend()
 
 OpalRBend::~OpalRBend() {}
 
-std::shared_ptr<ElementBase> OpalRBend::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalRBend::build(const ObjectValues& values, double p0) {
     auto element = std::make_shared<RBendRep>(values.getName());
-    fill(*element, values);
+    fill(*element, values, p0);
     return element;
 }
 
-void OpalRBend::fill(ElementBase& element, const ObjectValues& values) {
+void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     // Geometry, field profile and calibration are independent RBEND settings.
@@ -82,7 +82,7 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values) {
 
     // Field coefficients use the configured reference-orbit curvature. DESIGNENERGY
     // changes their rigidity at initialization, once the particle species is known.
-    double factor                    = OpalData::getInstance()->getP0() / Physics::c;
+    double factor                    = p0 / Physics::c;
     double k0                        = values.hasValue("K0") ? values.getReal("K0")
                                        : length ? (geometry.hasPoleFaceAngles() ? angle / geometry.getArcLength()
                                                                                 : 2 * sin(angle / 2) / length)
@@ -94,7 +94,7 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values) {
             factor * values.getReal("K0S"), factor * values.getReal("K1S"),
             factor * values.getReal("K2S") / 2.0, factor * values.getReal("K3S") / 6.0};
     bend->setFieldComponents(normal, skew);
-    bend->setReferenceMomentum(OpalData::getInstance()->getP0());
+    bend->setReferenceMomentum(p0);
 
     // Set the bend angle.
     if (values.hasValue("ANGLE")) {

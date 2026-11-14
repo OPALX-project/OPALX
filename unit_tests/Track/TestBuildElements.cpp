@@ -64,20 +64,22 @@ namespace {
 
 }  // namespace
 
+/// The input variable P0 (eV/c) the tests build with.
+constexpr double kP0 = 2.0e8;
+
 TEST_F(BuildElementsTest, ElementHasTheValuesOfTheInputObject) {
-    const auto built = buildElement(quadrupole("Q1"));
+    const auto built = buildElement(quadrupole("Q1"), kP0);
     const auto* got  = dynamic_cast<const Multipole*>(built.get());
     ASSERT_NE(got, nullptr);
     EXPECT_EQ(got->getName(), "Q1");
     EXPECT_EQ(got->getGeometry().getElementLength(), 0.1);
     EXPECT_EQ(got->getElementPosition(), 0.3);
     // K1 is a normalised strength; the element stores K1 * P0 / c.
-    EXPECT_DOUBLE_EQ(
-            got->getNormalComponent(1), 2.5 * OpalData::getInstance()->getP0() / Physics::c);
+    EXPECT_DOUBLE_EQ(got->getNormalComponent(1), 2.5 * kP0 / Physics::c);
 }
 
 TEST_F(BuildElementsTest, AttributesTheInputDidNotSetKeepTheKeywordDefault) {
-    const auto built = buildElement(quadrupole("Q2", false));
+    const auto built = buildElement(quadrupole("Q2", false), kP0);
     const auto* got  = dynamic_cast<const Multipole*>(built.get());
     ASSERT_NE(got, nullptr);
     EXPECT_EQ(got->getNormalComponent(1), 0.0);         // K1 has no default
@@ -87,13 +89,13 @@ TEST_F(BuildElementsTest, AttributesTheInputDidNotSetKeepTheKeywordDefault) {
 TEST_F(BuildElementsTest, UnknownKeywordOrFailedAttributeThrows) {
     ElementDescription unknown = quadrupole("Q3");
     unknown.object.keyword     = "NOT_A_KEYWORD";
-    EXPECT_THROW(buildElement(unknown), OpalException);
+    EXPECT_THROW(buildElement(unknown, kP0), OpalException);
 
     ElementDescription failed = quadrupole("Q4");
     for (AttributeEntry& entry : failed.object.attributes) {
         if (entry.name == "K1") entry.error = "Can't find variable 'X'";
     }
-    EXPECT_THROW(buildElement(failed), OpalException);
+    EXPECT_THROW(buildElement(failed, kP0), OpalException);
 }
 
 TEST_F(BuildElementsTest, RingElementsGetTheRingMembership) {
@@ -106,7 +108,7 @@ TEST_F(BuildElementsTest, RingElementsGetTheRingMembership) {
     line.name        = "R1";
     line.topology    = "RING";
     line.elements    = {marker, quadrupole("Q5")};
-    const auto built = buildElements(line);
+    const auto built = buildElements(line, kP0);
     ASSERT_EQ(built.size(), 2u);
     EXPECT_EQ(built[0]->getBeamlineMembership().topology, BeamlineTopology::LINE);
     EXPECT_EQ(built[1]->getBeamlineMembership().topology, BeamlineTopology::RING);

@@ -81,7 +81,9 @@ namespace opalx::test {
     inline std::shared_ptr<ElementBase> buildFrom(const Object& object) {
         opalx::run::ElementDescription element;
         element.object = opalx::run::describeObject(object);
-        return opalx::run::buildElement(element);
+        // P0 as a RUN reads it; 0 if the test did not define it (RealVariable::defineBuiltins()).
+        OpalData* opal = OpalData::getInstance();
+        return opalx::run::buildElement(element, opal->find("P0") ? opal->getP0() : 0.0);
     }
 
     /// Register the time dependence or end-field model of input object @p object, as a RUN

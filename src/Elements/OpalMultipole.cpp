@@ -61,13 +61,13 @@ OpalMultipole::~OpalMultipole() {}
 
 void OpalMultipole::print(std::ostream& os) const { OpalElement::print(os); }
 
-std::shared_ptr<ElementBase> OpalMultipole::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalMultipole::build(const ObjectValues& values, double p0) {
     auto element = std::make_shared<MultipoleRep>(values.getName());
-    fill(*element, values);
+    fill(*element, values, p0);
     return element;
 }
 
-void OpalMultipole::fill(ElementBase& element, const ObjectValues& values) {
+void OpalMultipole::fill(ElementBase& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     // Get pointer to MultipoleRep object to set length
@@ -117,7 +117,7 @@ void OpalMultipole::fill(ElementBase& element, const ObjectValues& values) {
     // KN/KS are NORMALISED strengths [m^-(n+1)]; the components stored/applied by
     // Multipole are physical field coefficients [T/m^n]. Convert with Brho = P0/c,
     // one factor for every order, exactly as OpalSBend does (OpalSBend.cpp:71-76).
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double factor = p0 / Physics::c;
 
     // Loop over components (0=Dipole, 1=Quadrupole, ...) populating the device
     // coefficient views read by Multipole::apply().

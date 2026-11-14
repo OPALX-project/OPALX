@@ -64,7 +64,8 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
 
 OpalVerticalFFAMagnet::~OpalVerticalFFAMagnet() {}
 
-std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(
+        const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<VerticalFFAMagnet>(values.getName());
     element->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     fill(*element, values);

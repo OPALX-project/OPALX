@@ -53,7 +53,7 @@ public:
     ~OpalVariableRFCavity() override = default;
 
     /// Build the runtime element of one occurrence from its attribute values.
-    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
     // Not implemented.
     OpalVariableRFCavity(const OpalVariableRFCavity&) = delete;

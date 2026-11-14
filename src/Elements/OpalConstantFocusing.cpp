@@ -20,7 +20,8 @@ OpalConstantFocusing::OpalConstantFocusing()
 
 OpalConstantFocusing::~OpalConstantFocusing() {}
 
-std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalConstantFocusing::build(
+        const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<ConstantFocusingRep>(values.getName());
     fill(*element, values);
     return element;

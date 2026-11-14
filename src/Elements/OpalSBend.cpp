@@ -34,13 +34,13 @@ OpalSBend::OpalSBend()
 
 OpalSBend::~OpalSBend() {}
 
-std::shared_ptr<ElementBase> OpalSBend::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalSBend::build(const ObjectValues& values, double p0) {
     auto element = std::make_shared<SBendRep>(values.getName());
-    fill(*element, values);
+    fill(*element, values, p0);
     return element;
 }
 
-void OpalSBend::fill(ElementBase& element, const ObjectValues& values) {
+void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
@@ -70,7 +70,7 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values) {
     // the geometry above (makeSBend treats L as the arc), so the field bends the orbit on
     // exactly the placed arc at any angle. (The legacy chord form 2 sin(angle/2) / L
     // belonged to the OPAL convention where L was the chord.)
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double factor = p0 / Physics::c;
     double k0     = values.hasValue("K0") ? values.getReal("K0") : length ? angle / length : angle;
     const std::vector<double> normal = {
             factor * k0, factor * values.getReal("K1"), factor * values.getReal("K2") / 2.0,

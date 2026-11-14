@@ -19,7 +19,8 @@ OpalConstantEFieldCavity::OpalConstantEFieldCavity()
 
 OpalConstantEFieldCavity::~OpalConstantEFieldCavity() {}
 
-std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(const ObjectValues& values) {
+std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(
+        const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<ConstantEFieldCavityRep>(values.getName());
     fill(*element, values);
     return element;
