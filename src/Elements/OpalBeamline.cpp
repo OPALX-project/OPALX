@@ -321,7 +321,8 @@ namespace {
         bool priorEmpty = true;
 
         in.get(testBit);
-        while (!in.eof()) {
+        // good() also ends the loop if the input file could not be opened.
+        while (in.good()) {
             in.putback(testBit);
 
             std::getline(in, str);
