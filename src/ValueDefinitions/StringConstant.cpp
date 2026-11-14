@@ -212,11 +212,11 @@ void StringConstant::defineBuiltins() {
     CREATE_STRINGCONSTANT("LF2");
     CREATE_STRINGCONSTANT("MTS");
 
-    // OpalVacuum / GAS
+    // GAS of the removed VACUUM element; kept so old inputs still parse.
     CREATE_STRINGCONSTANT("H2");
     // additionally: AIR
 
-    // BoundaryGeometry / TOPO
+    // TOPO of the removed BOUNDARYGEOMETRY command; kept so old inputs still parse.
     CREATE_STRINGCONSTANT("RECTANGULAR");
     CREATE_STRINGCONSTANT("BOXCORNER");
     CREATE_STRINGCONSTANT("ELLIPTIC");

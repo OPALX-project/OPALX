@@ -56,7 +56,6 @@ set (HDRS
     OpalRBend.h
     OpalSBend.h
     OpalScalingFFAMagnet.h
-    OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
     OpalLaser.h
