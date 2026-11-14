@@ -368,7 +368,7 @@ namespace opalx::spacecharge {
         pc->scaleDtByCharge();
         const auto r       = pc->R.getView();
         const auto p       = pc->P.getView();
-        const auto meanPs  = pc->getMeanP().data_m[2];
+        const auto meanPs  = moments::compute(*pc, moments::Moment::MeanMomentum).meanP()[2];
         const auto dt      = pc->dt.getView();
         const auto invalid = pc->InvalidMask.getView();
         if (config_m.scatterLongitudinally) {
@@ -718,21 +718,21 @@ namespace opalx::spacecharge {
                 usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
         const auto projectedSegment =
                 usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
-        const auto r                   = pc->R.getView();
-        const auto p                   = pc->P.getView();
-        const auto ref                 = solveReferencePath_m;
-        const auto meanPs              = pc->getMeanP().data_m[2];
-        const auto e                   = pc->E.getView();
-        const auto b                   = pc->B.getView();
-        const auto invalid             = pc->InvalidMask.getView();
-        const auto dr                  = fieldStorage_m->spacing();
-        const auto invDr               = 1.0 / dr;
-        const int nGhost               = fieldStorage_m->chargeDensity().getNghost();
-        const auto& layout             = fieldStorage_m->chargeDensity().getLayout();
-        const auto lDom                = layout.getLocalNDIndex();
-        const auto origin              = fieldStorage_m->origin();
-        const auto gammaB              = Kokkos::sqrt(1.0 + meanPs * meanPs);
-        const auto betaB               = meanPs / gammaB;
+        const auto r       = pc->R.getView();
+        const auto p       = pc->P.getView();
+        const auto ref     = solveReferencePath_m;
+        const auto meanPs  = moments::compute(*pc, moments::Moment::MeanMomentum).meanP()[2];
+        const auto e       = pc->E.getView();
+        const auto b       = pc->B.getView();
+        const auto invalid = pc->InvalidMask.getView();
+        const auto dr      = fieldStorage_m->spacing();
+        const auto invDr   = 1.0 / dr;
+        const int nGhost   = fieldStorage_m->chargeDensity().getNghost();
+        const auto& layout = fieldStorage_m->chargeDensity().getLayout();
+        const auto lDom    = layout.getLocalNDIndex();
+        const auto origin  = fieldStorage_m->origin();
+        const auto gammaB  = Kokkos::sqrt(1.0 + meanPs * meanPs);
+        const auto betaB   = meanPs / gammaB;
         const auto lineDensityGradient = lineDensityGradient_m;
         const auto eField              = fieldStorage_m->electricField().getView();
         const T gBy4PiEpsilon0         = longitudinalCoupling();

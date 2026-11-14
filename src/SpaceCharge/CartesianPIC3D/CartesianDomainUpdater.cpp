@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
 
+#include "Moments/BeamMoments.h"
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "Utilities/OpalException.h"
 
@@ -150,7 +151,6 @@ namespace opalx::spacecharge {
         updateMeshGeometry(bounds, fieldStorage);
 
         updateLayoutsAndMigrate(fieldStorage, frame);
-        updateMoments(beamFrame);
 
         // Fixed bounds keep the extents, so rebuildGlobalLayoutInPlace() keeps an ORB layout.
         // solve() rejects ORB for bunch bounds, so only PERIODICBOX gets here with ORB enabled.
@@ -173,34 +173,12 @@ namespace opalx::spacecharge {
     }
 
     CartesianBounds CartesianDomainUpdater::computeBounds(bool primaryOnly) {
-        CartesianBounds bounds;
-        bool foundNonEmpty     = false;
-        const std::size_t last = primaryOnly ? 1 : particles_m.size();
-        for (std::size_t index = 0; index < last; ++index) {
-            ParticleContainer& particles = *particles_m[index];
-            if (particles.getTotalNum() == 0) {
-                continue;
-            }
-            particles.computeMinMaxR();
-            const auto lower = particles.getMinR();
-            const auto upper = particles.getMaxR();
-            if (!foundNonEmpty) {
-                bounds.lower  = lower;
-                bounds.upper  = upper;
-                foundNonEmpty = true;
-                continue;
-            }
-            for (unsigned dimension = 0; dimension < 3; ++dimension) {
-                bounds.lower[dimension] = std::min(bounds.lower[dimension], lower[dimension]);
-                bounds.upper[dimension] = std::max(bounds.upper[dimension], upper[dimension]);
-            }
-        }
-        if (!foundNonEmpty) {
-            primary().computeMinMaxR();
-            bounds.lower = primary().getMinR();
-            bounds.upper = primary().getMaxR();
-        }
-        return bounds;
+        const std::size_t count = primaryOnly ? 1 : particles_m.size();
+        const std::vector<const ParticleContainer*> containers(
+                particles_m.begin(), particles_m.begin() + count);
+        // Empty containers add nothing; without any particle the box is a point at the origin.
+        const auto moments = opalx::moments::compute(containers, opalx::moments::Moment::Bounds);
+        return {moments.minR(), moments.maxR()};
     }
 
     void CartesianDomainUpdater::updateLayoutsAndMigrate(
@@ -238,13 +216,6 @@ namespace opalx::spacecharge {
             }
             particles.update();
             particles.markMomentsDirty();
-        }
-    }
-
-    void CartesianDomainUpdater::updateMoments(bool primaryOnly) {
-        const std::size_t last = primaryOnly ? 1 : particles_m.size();
-        for (std::size_t index = 0; index < last; ++index) {
-            particles_m[index]->updateMoments();
         }
     }
 

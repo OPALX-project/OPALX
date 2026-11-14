@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../TemporaryDirectory.h"
+#include "Moments/BeamMoments.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
@@ -223,8 +224,6 @@ namespace opalx::spacecharge {
                 Kokkos::deep_copy(particles.P.getView(), momenta);
                 Kokkos::deep_copy(particles.dt.getView(), 1.0e-12);
                 Kokkos::deep_copy(particles.InvalidMask.getView(), false);
-                particles.markMomentsDirty();
-                particles.updateMoments();
             }
 
             SpaceChargeStepState alignedStep(const double originZ) const {
@@ -232,7 +231,11 @@ namespace opalx::spacecharge {
                 step.timeStep = 1.0e-12;
                 const CoordinateSystemTrafo trackerToSolve(
                         Vector(0.0, 0.0, originZ),
-                        getQuaternion(particles_m->getMeanP(), Vector(0.0, 0.0, 1.0)));
+                        getQuaternion(
+                                opalx::moments::compute(
+                                        *particles_m, opalx::moments::Moment::MeanMomentum)
+                                        .meanP(),
+                                Vector(0.0, 0.0, 1.0)));
                 step.frames = {trackerToSolve, trackerToSolve.inverted()};
                 return step;
             }
@@ -406,7 +409,6 @@ namespace opalx::spacecharge {
 
             const SpaceChargeSolveResult result = solver.solve(context);
             EXPECT_EQ(result.backendSolves, 4u);
-            EXPECT_FALSE(particles_m->isMomentsDirty());
             const auto restored = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), particles_m->R.getView());
             for (std::size_t index = 0; index < 2; ++index) {
@@ -414,7 +416,10 @@ namespace opalx::spacecharge {
                     EXPECT_NEAR(restored(index)[dimension], positions(index)[dimension], 1.0e-14);
                 }
             }
-            EXPECT_NEAR(particles_m->getMeanR()[2], 0.5, 1.0e-14);
+            EXPECT_NEAR(
+                    opalx::moments::compute(*particles_m, opalx::moments::Moment::MeanPosition)
+                            .meanR()[2],
+                    0.5, 1.0e-14);
         }
 
         TEST_F(FFT2D5AlgorithmTest, LabPathFieldsSurviveReferenceFrameChanges) {
@@ -783,8 +788,6 @@ namespace opalx::spacecharge {
                     Kokkos::deep_copy(particles_m->P.getView(), momenta);
                     Kokkos::deep_copy(particles_m->InvalidMask.getView(), mask);
                     Kokkos::deep_copy(particles_m->dt.getView(), step.timeStep);
-                    particles_m->markMomentsDirty();
-                    particles_m->updateMoments();
                     ASSERT_NO_THROW(static_cast<void>(solver.solve(context)));
                     // create_mirror always allocates; create_mirror_view could alias on CPU.
                     auto expectedE   = Kokkos::create_mirror(particles_m->E.getView());

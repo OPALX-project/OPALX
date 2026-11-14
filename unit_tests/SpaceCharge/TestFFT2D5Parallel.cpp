@@ -79,8 +79,6 @@ namespace opalx::spacecharge {
                         }
                         Kokkos::deep_copy(pc.dt.getView(), dt);
                         Kokkos::deep_copy(pc.InvalidMask.getView(), false);
-                        pc.markMomentsDirty();
-                        pc.updateMoments();
                         FFT2D5Config cfg;
                         cfg.grid.meshSize      = {nx, nx, nz};
                         cfg.grid.decomposition = {false, false, true};

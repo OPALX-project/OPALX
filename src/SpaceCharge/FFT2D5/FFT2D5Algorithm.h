@@ -21,6 +21,7 @@
 #include <memory>
 #include <span>
 #include <vector>
+#include "Moments/BeamMoments.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/FFT2D5/FFT2D5FieldStorage.h"
 #include "SpaceCharge/FFT2D5/ReferencePath.h"

@@ -132,7 +132,6 @@ namespace opalx::spacecharge {
                     Kokkos::deep_copy(particles.dt.getView(), dt);
                     pose.transformBunchTo(particles.R.getView(), particles.getLocalNum());
                     pose.rotateBunchTo(particles.P.getView(), particles.getLocalNum());
-                    particles.updateMoments();
 
                     secondary.createParticles(1);
                     secondary.setM(Physics::m_e);
@@ -276,7 +275,6 @@ namespace opalx::spacecharge {
                 for (std::size_t i = 0; i < particles.getLocalNum(); ++i)
                     positions(i)[2] += zShift;
                 Kokkos::deep_copy(particles.R.getView(), positions);
-                particles.updateMoments();
             }
 
             static CartesianPIC3DConfig binnedP3MConfig(std::size_t maximumBins) {
@@ -295,8 +293,6 @@ namespace opalx::spacecharge {
                 for (std::size_t i = 0; i < momenta.size(); ++i)
                     momentum(i) = Vector(0.0, 0.0, momenta[i]);
                 Kokkos::deep_copy(particles.P.getView(), momentum);
-                particles.markMomentsDirty();
-                particles.updateMoments();
             }
         };
 
@@ -354,7 +350,6 @@ namespace opalx::spacecharge {
                     for (std::size_t i = 0; i < run->particles.getLocalNum(); ++i)
                         positions(i)[2] += planeZ;
                     Kokkos::deep_copy(run->particles.R.getView(), positions);
-                    run->particles.updateMoments();
                 }
 
                 for (std::size_t step : {0u, 1u}) {
@@ -453,8 +448,6 @@ namespace opalx::spacecharge {
             for (std::size_t i = 0; i < placed.size(); ++i)
                 positions(i) = placed[i];
             Kokkos::deep_copy(run.particles.R.getView(), positions);
-            run.particles.markMomentsDirty();
-            run.particles.updateMoments();
 
             EXPECT_EQ(run.solve().backendSolves, 1u);
 
@@ -667,7 +660,6 @@ namespace opalx::spacecharge {
                     positions(i) *= scale;
                 }
                 Kokkos::deep_copy(particles.R.getView(), positions);
-                particles.updateMoments();
             };
             // Beam-frame cutoff from the particle bounds, as CartesianDomainUpdater derives it.
             auto beamFrameCutoff = [&](Particles& particles) {
@@ -820,8 +812,6 @@ namespace opalx::spacecharge {
                     for (std::size_t i = 0; i < initial.size(); ++i)
                         positions(i) = initial[i];
                     Kokkos::deep_copy(run->particles.R.getView(), positions);
-                    run->particles.markMomentsDirty();
-                    run->particles.updateMoments();
                 }
                 const double pathTranslation = 825.;
                 const CoordinateSystemTrafo solveToTracker(
@@ -869,8 +859,6 @@ namespace opalx::spacecharge {
                 originalR(i)[2] = (static_cast<double>(i) - 1.5) * 1e-12;
             for (auto* run : {&centred, &translated}) {
                 Kokkos::deep_copy(run->particles.R.getView(), originalR);
-                run->particles.markMomentsDirty();
-                run->particles.updateMoments();
             }
             const double pathTranslation = 825.;
             const double coordinateSpacing =
@@ -959,8 +947,6 @@ namespace opalx::spacecharge {
                 EXPECT_EQ(algorithm.solve(context).backendSolves, 0u);
                 EXPECT_EQ(primary.getTotalNum(), primaryCount);
                 EXPECT_EQ(secondary.getTotalNum(), 16u);
-                EXPECT_FALSE(primary.isMomentsDirty());
-                EXPECT_FALSE(secondary.isMomentsDirty());
                 const auto restoredR = Kokkos::create_mirror_view_and_copy(
                         Kokkos::HostSpace(), primary.R.getView());
                 const auto restoredP = Kokkos::create_mirror_view_and_copy(

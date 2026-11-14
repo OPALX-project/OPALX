@@ -113,7 +113,6 @@ namespace opalx::spacecharge {
             const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
             leaveSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
             particles.markMomentsDirty();
-            particles.updateMoments();
         }
     }
 
@@ -392,7 +391,6 @@ namespace opalx::spacecharge {
                 usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
         const auto projectedSegment =
                 usePreparedProjections ? projectedSegments_m[container] : SegmentIndexView_t();
-        pc->updateMoments();
         if (pc->getTotalNum() > 0 && pc->getChargePerParticle() == 0.0) {
             throw OpalException(
                     "FFT2D5Algorithm::scatterToGrid",
