@@ -131,6 +131,86 @@ protected:
     void TearDown() override { bunchStateHandler.reset(); }
 };
 
+TEST_F(DistributionMomentsTest, CompactSymmetricMatchesDenseAcrossMPIAndMassModes) {
+    const size_t rank = ippl::Comm->rank();
+    // Empty globally, rank-zero-only ownership, then uneven ownership and a larger reduction.
+    for (int ownership = 0; ownership < 4; ++ownership) {
+        const size_t local = ownership == 0   ? 0
+                             : ownership == 1 ? (rank == 0 ? 17 : 0)
+                                              : (ownership == 2 ? 31 : 4097) + 7 * rank;
+        size_t total       = local;
+        ippl::Comm->allreduce(total, 1, std::plus<size_t>());
+        for (bool attributes : {false, true}) {
+            for (bool referenceMass : {false, true}) {
+                Kokkos::View<Vec3*> r("compact-test-r", local), p("compact-test-p", local);
+                Kokkos::View<double*> mass("compact-test-m", attributes ? local : 1);
+                auto rh = Kokkos::create_mirror_view(r);
+                auto ph = Kokkos::create_mirror_view(p);
+                auto mh = Kokkos::create_mirror_view(mass);
+                for (size_t i = 0; i < local; ++i) {
+                    const double t = static_cast<double>(i + 19 * rank);
+                    // Off-center, nonuniform data with cross correlations in all six coordinates.
+                    rh(i) =
+                            Vec3(3. + .02 * std::sin(t), -2. + .03 * std::cos(.7 * t),
+                                 7. + .04 * std::sin(.3 * t));
+                    ph(i) =
+                            Vec3(.02 + .004 * std::cos(.4 * t), -.03 + .006 * std::sin(.9 * t),
+                                 .4 + .01 * std::cos(.2 * t));
+                    if (attributes) mh(i) = Physics::m_e * (1. + .05 * (i % 3));
+                }
+                if (!attributes) mh(0) = Physics::m_e;
+                Kokkos::deep_copy(r, rh);
+                Kokkos::deep_copy(p, ph);
+                Kokkos::deep_copy(mass, mh);
+                DistributionMoments dense, compact;
+                auto denseState   = bunchStateHandler->registerContainer();
+                auto compactState = bunchStateHandler->registerContainer();
+                dense.setContainerState(denseState);
+                compact.setContainerState(compactState);
+                ASSERT_FALSE(dense.usesCompactSymmetricReduction());
+                compact.setCompactSymmetricReduction(true);
+                dense.setEnergyReferenceMass(Physics::m_p, referenceMass);
+                compact.setEnergyReferenceMass(Physics::m_p, referenceMass);
+                dense.computeMoments(r, p, mass, total, local);
+                compact.computeMoments(r, p, mass, total, local);
+                const auto check = [](double a, double b) {
+                    if (std::isnan(a))
+                        EXPECT_TRUE(std::isnan(b));
+                    else
+                        EXPECT_NEAR(a, b, 2.e-13 + 2.e-12 * std::abs(a));
+                };
+                const auto cm = compact.getMoments6x6();
+                const auto dm = dense.getMoments6x6();
+                for (int i = 0; i < 6; ++i) {
+                    EXPECT_DOUBLE_EQ(compact.getMeans()[i], dense.getMeans()[i]);
+                    for (int j = 0; j < 6; ++j) {
+                        check(dm(i, j), cm(i, j));
+                        EXPECT_DOUBLE_EQ(cm(i, j), cm(j, i));
+                    }
+                }
+                for (int d = 0; d < 3; ++d) {
+                    check(dense.getStandardDeviationPosition()[d],
+                          compact.getStandardDeviationPosition()[d]);
+                    check(dense.getStandardDeviationMomentum()[d],
+                          compact.getStandardDeviationMomentum()[d]);
+                    check(dense.getNormalizedEmittance()[d], compact.getNormalizedEmittance()[d]);
+                    check(dense.getGeometricEmittance()[d], compact.getGeometricEmittance()[d]);
+                    check(dense.getStandardDeviationRP()[d], compact.getStandardDeviationRP()[d]);
+                    check(dense.getHalo()[d], compact.getHalo()[d]);
+                    check(dense.getRestFrameTemperature()[d], compact.getRestFrameTemperature()[d]);
+                }
+                EXPECT_DOUBLE_EQ(dense.getMeanKineticEnergy(), compact.getMeanKineticEnergy());
+                check(dense.getStdKineticEnergy(), compact.getStdKineticEnergy());
+                check(dense.getDx(), compact.getDx());
+                check(dense.getDDx(), compact.getDDx());
+                check(dense.getDy(), compact.getDy());
+                check(dense.getDDy(), compact.getDDy());
+                EXPECT_FALSE(compactState->momentsDirty);
+            }
+        }
+    }
+}
+
 TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion) {
     // Deterministic small data set (units: R in m, P in beta*gamma, M in GeV/c^2).
     const std::vector<Vec3> R = {
@@ -227,7 +307,9 @@ TEST_F(DistributionMomentsTest, RestFrameTemperature_RecoversBoostedAnisotropicS
     for (size_t i = 0; i < nHalf; ++i) {
         uRest.push_back(Vec3(-uRest[i](0), -uRest[i](1), -uRest[i](2)));
     }
-    const size_t N = uRest.size();
+    const size_t N    = uRest.size();
+    const size_t rank = ippl::Comm->rank(), ranks = ippl::Comm->size();
+    const size_t nLocal = rank < N ? 1 + (N - 1 - rank) / ranks : 0;
 
     // The macro-particle mass in M differs from the species mass, which must be used.
     const double massGeV = Physics::m_p;
@@ -247,32 +329,37 @@ TEST_F(DistributionMomentsTest, RestFrameTemperature_RecoversBoostedAnisotropicS
             const Vec3 beta(
                     betaBoost * direction(0), betaBoost * direction(1), betaBoost * direction(2));
 
-            Kokkos::View<Vec3*> Rview_d("Rview_d", N);
-            Kokkos::View<Vec3*> Pview_d("Pview_d", N);
+            Kokkos::View<Vec3*> Rview_d("Rview_d", nLocal);
+            Kokkos::View<Vec3*> Pview_d("Pview_d", nLocal);
             Kokkos::View<double*> Mview_d("Mview_d", 1);
             auto Rview_h = Kokkos::create_mirror_view(Rview_d);
             auto Pview_h = Kokkos::create_mirror_view(Pview_d);
             auto Mview_h = Kokkos::create_mirror_view(Mview_d);
-            for (size_t i = 0; i < N; ++i) {
-                Rview_h(i) = Vec3(1.0e-3 * i, -2.0e-3 * i * i, 3.0e-3 * (N - i));
-                Pview_h(i) = boostToLab(uRest[i], beta);
+            for (size_t i = 0; i < nLocal; ++i) {
+                const size_t global = rank + i * ranks;
+                Rview_h(i) =
+                        Vec3(1.0e-3 * global, -2.0e-3 * global * global, 3.0e-3 * (N - global));
+                Pview_h(i) = boostToLab(uRest[global], beta);
             }
             Mview_h(0) = 1.0e3 * massGeV;
             Kokkos::deep_copy(Rview_d, Rview_h);
             Kokkos::deep_copy(Pview_d, Pview_h);
             Kokkos::deep_copy(Mview_d, Mview_h);
 
-            DistributionMoments dm;
-            auto containerState = bunchStateHandler->registerContainer();
-            dm.setContainerState(containerState);
-            dm.setEnergyReferenceMass(massGeV, true);
-            dm.computeMoments(Rview_d, Pview_d, Mview_d, /*Np=*/N, /*Nlocal=*/N);
+            for (bool compact : {false, true}) {
+                DistributionMoments dm;
+                auto containerState = bunchStateHandler->registerContainer();
+                dm.setContainerState(containerState);
+                dm.setCompactSymmetricReduction(compact);
+                dm.setEnergyReferenceMass(massGeV, true);
+                dm.computeMoments(Rview_d, Pview_d, Mview_d, /*Np=*/N, nLocal);
 
-            const Vec3 temperature = dm.getRestFrameTemperature();
-            for (int d = 0; d < 3; ++d) {
-                EXPECT_NEAR(temperature(d), expected(d), 1e-8 * expected(d))
-                        << "gamma = " << gammaBoost << ", direction = " << direction
-                        << ", component " << d;
+                const Vec3 temperature = dm.getRestFrameTemperature();
+                for (int d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(temperature(d), expected(d), 1e-8 * expected(d))
+                            << "gamma = " << gammaBoost << ", direction = " << direction
+                            << ", component " << d << ", compact = " << compact;
+                }
             }
         }
     }

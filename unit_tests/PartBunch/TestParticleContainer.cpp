@@ -400,6 +400,63 @@ namespace {
         EXPECT_EQ(totalAfter + destroyed, totalBefore);
     }
 
+    TEST_F(ParticleContainerTest, DeferredMomentsPreserveNearThresholdLossesAndSurvivorStatistics) {
+        Options::useQMAttributes = false;
+        for (double offset : {-1.e-10, 1.e-10}) {
+            auto eager    = makeContainer();
+            auto deferred = makeContainer();
+            // Compare dense/eager with FFT2D5 compact/deferred, including an empty MPI rank.
+            deferred->setCompactSymmetricMoments(true);
+            const std::vector<std::array<double, 3>> positions =
+                    ippl::Comm->rank() == 0
+                            ? std::vector<std::array<double, 3>>{{-0.1, 0., 0.},  {0.1, 0., 0.},
+                                                                 {-0.05, 0., 0.}, {0.05, 0., 0.},
+                                                                 {0., 0., 0.},    {1.5, 0., 0.}}
+                            : std::vector<std::array<double, 3>>{};
+            for (auto pc : {eager, deferred}) {
+                pc->createParticles(positions.size());
+                auto initialR = pc->R.getHostMirror();
+                for (size_t i = 0; i < positions.size(); ++i)
+                    initialR(i) =
+                            Vector_t<double, 3>(positions[i][0], positions[i][1], positions[i][2]);
+                Kokkos::deep_copy(pc->R.getView(), initialR);
+                Kokkos::deep_copy(pc->P.getView(), Vector_t<double, 3>(0., 0., 0.1));
+                Kokkos::deep_copy(pc->dt.getView(), 1.e-12);
+                pc->setM(1.0);
+                pc->markMomentsDirty();
+                pc->updateMoments();
+                auto r = pc->R.getHostMirror();
+                Kokkos::deep_copy(r, pc->R.getView());
+                if (pc->getLocalNum() > 0) r(pc->getLocalNum() - 1)[0] = 3.5;
+                Kokkos::deep_copy(pc->R.getView(), r);
+                pc->markMomentsDirty();
+            }
+            eager->updateMoments();
+            const double sigma = (3.5 - eager->getMeanR()[0]) / eager->getRmsR()[0] * (1. + offset);
+            EXPECT_TRUE(deferred->isMomentsDirty());
+            const auto expected = eager->markParticlesOutside(sigma);
+            EXPECT_EQ(expected, offset < 0 ? 1u : 0u);
+            EXPECT_EQ(deferred->markParticlesOutside(sigma), expected);
+            EXPECT_FALSE(deferred->isMomentsDirty());
+            auto expectedMask = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), eager->InvalidMask.getView());
+            auto actualMask = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), deferred->InvalidMask.getView());
+            for (size_t i = 0; i < eager->getLocalNum(); ++i)
+                EXPECT_EQ(actualMask(i), expectedMask(i));
+            EXPECT_EQ(eager->deleteInvalidParticles(), expected);
+            EXPECT_EQ(deferred->deleteInvalidParticles(), expected);
+            eager->updateMoments();
+            deferred->updateMoments();
+            EXPECT_EQ(eager->getTotalNum(), deferred->getTotalNum());
+            for (size_t i = 0; i < 6; ++i) {
+                EXPECT_EQ(eager->getMeans()[i], deferred->getMeans()[i]);
+                for (size_t j = 0; j < 6; ++j)
+                    EXPECT_EQ(eager->getCovMatrix()(i, j), deferred->getCovMatrix()(i, j));
+            }
+        }
+    }
+
     // ================================================================
     // allocateParticles — pre-allocates capacity, throws on non-empty container
     // ================================================================

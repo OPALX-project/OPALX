@@ -19,6 +19,8 @@
  */
 #include "Algorithms/ParallelTracker.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "SpaceCharge/FFT2D5/MomentUpdatePolicy.h"
+#include "SpaceCharge/FFT2D5/NoOpTransformPolicy.h"
 
 #include <algorithm>
 #include <array>
@@ -217,6 +219,7 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  * @copybrief ParallelTracker::execute
  */
 void ParallelTracker::execute() {
+    skipNoOpTransforms_m = false;
     Inform m("ParallelTracker::execute");
     terminalStepDt_m = 0;
     cyclotronBunchLattice_m.reset();
@@ -803,6 +806,8 @@ void ParallelTracker::execute() {
                 }
             }
 
+            const bool deferTrackerMoments = deferFFT2D5Moments();
+            skipNoOpTransforms_m           = deferTrackerMoments;
             if (boundaryControlled_m) {
                 prepareBoundaryStep(pusher, oths, *boundarySchedule);
             } else {
@@ -827,7 +832,7 @@ void ParallelTracker::execute() {
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
                     resetFields();
                     m << level4 << "E and B fields reset at step " << step << "." << endl;
-                    computeSpaceChargeFields();
+                    computeSpaceChargeFields(deferTrackerMoments);
                     m << level4 << "Midpoint space charge field computation done at step " << step
                       << "." << endl;
                 }
@@ -837,8 +842,10 @@ void ParallelTracker::execute() {
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after emission." << endl;
+                if (!deferTrackerMoments) {
+                    itsBunch_m->updateAllParticleMoments();
+                    m << level5 << "Particle moments updated after emission." << endl;
+                }
 
                 // External field computation
                 computeExternalFields(oths);
@@ -862,8 +869,10 @@ void ParallelTracker::execute() {
                 throw;
             }
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after timeIntegration2." << endl;
+            if (!deferTrackerMoments) {
+                itsBunch_m->updateAllParticleMoments();
+                m << level5 << "Particle moments updated after timeIntegration2." << endl;
+            }
 
             // Apply global processes (e.g. decay) and mark afftected particles for deletion
             const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
@@ -1516,16 +1525,39 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
     return progress;
 }
 
+bool ParallelTracker::deferFFT2D5Moments() const {
+    if (spaceChargeSolver_m == nullptr || !spaceChargeSolver_m->usesFFT2D5()) return false;
+
+    bool emissionActive = false;
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (sampler && !sampler->isEmissionDone(itsBunch_m->getT())) emissionActive = true;
+        }
+    }
+    const auto pc = itsBunch_m->getParticleContainer();
+    const opalx::spacecharge::fft2d5_detail::MomentUpdateEligibility eligibility{
+            .fft2d5             = true,
+            .midpoint           = spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT,
+            .boundaryControlled = boundaryControlled_m,
+            .emissionActive     = emissionActive,
+            .globalProcesses    = !pc->getGlobalProcesses().empty(),
+            .spinEnabled        = pc->hasSpin(),
+            .solveActive        = itsBunch_m->getTotalNumAllContainers()
+                           > static_cast<size_t>(Options::minBinEmitted),
+            .containerCount = itsBunch_m->getNumParticleContainers()};
+    bool eligible = eligibility.mayDefer();
+    // A rank with no local particles must follow the same collective sequence as its peers.
+    ippl::Comm->allreduce(eligible, 1, std::logical_and<bool>());
+    return eligible;
+}
+
 /**
  * @copybrief ParallelTracker::computeSpaceChargeFields
  *
- * @par Frame of reference
- * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
- * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside the selected algorithm: temporary solver-specific frames are restored on success.
- * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
+ * Particle arrays enter and return in tracker axes. FFT2D5 may leave moments dirty
+ * for its eligible coasting tracker; all field and particle frame operations are retained.
  */
-void ParallelTracker::computeSpaceChargeFields() {
+void ParallelTracker::computeSpaceChargeFields(bool deferTrackerMoments) {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
@@ -1542,7 +1574,7 @@ void ParallelTracker::computeSpaceChargeFields() {
         return;
     }
 
-    itsBunch_m->calcBeamParameters();
+    itsBunch_m->calcBeamParameters(spaceChargeSolver_m->usesFFT2D5());
     const auto frames   = makeSpaceChargeFrameTransforms();
     const auto emission = spaceChargeEmissionProgress();
 
@@ -1561,7 +1593,8 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.active,
             emission.fraction,
             ippl::Comm->size(),
-            frames};
+            frames,
+            deferTrackerMoments};
     SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
     spaceChargeSolver_m->solve(context);
     m << level3 << "Compute space-charge fields done." << endl;
@@ -1600,14 +1633,17 @@ void ParallelTracker::computeExternalFields(
                 if (!spatialRing_m || element->getType() != ElementType::MONITOR)
                     element->apply(pc);
             },
-            spatialRing_m);
+            spatialRing_m, opalx::spacecharge::fft2d5_detail::FrameOperation::Fields);
 
     if (spatialRing_m && !boundaryControlled_m) {
         // Monitors predict a crossing during dt; unlike field support, their
         // selection must include nearby planes outside the current midpoint.
-        forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
-            if (element->getType() == ElementType::MONITOR) element->apply(pc);
-        });
+        forEachElementInBunchFrame(
+                oths,
+                [](const auto& element, const auto& pc) {
+                    if (element->getType() == ElementType::MONITOR) element->apply(pc);
+                },
+                false, opalx::spacecharge::fft2d5_detail::FrameOperation::Monitors);
     }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
@@ -1630,6 +1666,16 @@ void ParallelTracker::forEachElementInBunchFrame(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func,
         bool spatialCandidates) {
+    forEachElementInBunchFrame(
+            oths, func, spatialCandidates, opalx::spacecharge::fft2d5_detail::FrameOperation::All);
+}
+
+void ParallelTracker::forEachElementInBunchFrame(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        const std::function<void(
+                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
+                func,
+        bool spatialCandidates, opalx::spacecharge::fft2d5_detail::FrameOperation operation) {
     const auto cyclotronSectors =
             ringPeriod_m > 0 ? itsOpalBeamline_m.getElementByType(ElementType::CYCLOTRONSECTOR)
                              : ElementList{};
@@ -1721,13 +1767,11 @@ void ParallelTracker::forEachElementInBunchFrame(
                     (itsOpalBeamline_m.getMisalignment(element)
                      * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo()));
 
-            CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            pc->transformBunch(refToLocalCSTrafo);
-
-            func(element, pc);
-
-            pc->transformBunch(localToRefCSTrafo);
+            opalx::spacecharge::fft2d5_detail::inElementFrame(
+                    *element, *pc, refToLocalCSTrafo, operation, spatialRing_m,
+                    skipNoOpTransforms_m, [&] {
+                        func(element, pc);
+                    });
         }
     }
 }
@@ -1741,12 +1785,14 @@ size_t ParallelTracker::applyElementApertures(
     if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
     forEachElementInBunchFrame(
-            oths, [&localMarked](
-                          const std::shared_ptr<ElementBase>& element,
-                          const std::shared_ptr<ParticleContainer_t>& pc) {
+            oths,
+            [&localMarked](
+                    const std::shared_ptr<ElementBase>& element,
+                    const std::shared_ptr<ParticleContainer_t>& pc) {
                 // Marks are flushed by the single end-of-step deletion in execute().
                 localMarked += element->markOutsideAperture(pc);
-            });
+            },
+            false, opalx::spacecharge::fft2d5_detail::FrameOperation::Apertures);
 
     size_t globalMarked = 0;
     ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
@@ -1772,17 +1818,21 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
-        CoordinateSystemTrafo refToGun =
-                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
-        pc->transformBunch(refToGun);
-        if (ci < emittingSamplers_m.size()) {
-            for (const auto& sampler : emittingSamplers_m[ci]) {
-                if (sampler) {
-                    sampler->emitParticles(t, dt);
+        // Eligibility was converged across MPI ranks before this step. Active emitters,
+        // including ranks with zero new particles, retain their original collective sequence.
+        if (!skipNoOpTransforms_m) {
+            CoordinateSystemTrafo refToGun =
+                    itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
+            pc->transformBunch(refToGun);
+            if (ci < emittingSamplers_m.size()) {
+                for (const auto& sampler : emittingSamplers_m[ci]) {
+                    if (sampler) {
+                        sampler->emitParticles(t, dt);
+                    }
                 }
             }
+            pc->transformBunch(refToGun.inverted());
         }
-        pc->transformBunch(refToGun.inverted());
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());

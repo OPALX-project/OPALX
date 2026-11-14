@@ -34,6 +34,7 @@ namespace opalx::spacecharge {
         static_assert(
                 std::variant_size_v<SpaceChargeConfig> == 2, "Add construction for this algorithm");
         std::unique_ptr<SpaceChargeAlgorithm> algorithm;
+        const bool fft2d5 = std::holds_alternative<FFT2D5Config>(config);
         if (auto* selected = std::get_if<CartesianPIC3DConfig>(&config)) {
             if (selected->backend == PoissonSolverType::ConjugateGradient) {
                 throw OpalException(
@@ -49,7 +50,11 @@ namespace opalx::spacecharge {
             algorithm = std::make_unique<FFT2D5Algorithm>(
                     std::get<FFT2D5Config>(std::move(config)), particles, bunchState);
         }
-        return std::make_unique<SpaceChargeSolver>(std::move(algorithm), particles.size());
+        auto solver =
+                std::make_unique<SpaceChargeSolver>(std::move(algorithm), particles.size(), fft2d5);
+        for (auto* container : particles)
+            container->setCompactSymmetricMoments(fft2d5);
+        return solver;
     }
 
 }  // namespace opalx::spacecharge
