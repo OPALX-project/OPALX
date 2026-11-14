@@ -269,11 +269,9 @@ void OpalElement::parse(Statement& stat) {
 
 void OpalElement::print(std::ostream& os) const {
     std::string head = getOpalName();
-
-    Object* parent = getParent();
-    if (parent != 0 && !parent->getOpalName().empty()) {
+    if (getKeyword() != getOpalName()) {
         if (!getOpalName().empty()) head += ':';
-        head += parent->getOpalName();
+        head += getKeyword();
     }
 
     os << head;

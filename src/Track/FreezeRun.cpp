@@ -36,16 +36,6 @@ namespace opalx::run {
 
     namespace {
 
-        /// Keyword an object was made from: the prototype at the root of its parent chain.
-        /// For `Q2: Q1` the parent of Q2 is Q1, whose parent is the QUADRUPOLE prototype.
-        std::string keywordOf(const Object& object) {
-            const Object* parent = object.getParent();
-            if (parent == nullptr) return object.getOpalName();
-            while (parent->getParent() != nullptr)
-                parent = parent->getParent();
-            return parent->getOpalName();
-        }
-
         AttributeValue evaluate(const Attribute& attribute) {
             const std::string& type = attribute.getType();
             if (type == "real") return Attributes::getReal(attribute);
@@ -268,11 +258,11 @@ namespace opalx::run {
 
     ObjectDescription describeObject(const Object& object) {
         ObjectDescription description;
-        description.keyword = keywordOf(object);
+        description.keyword = object.getKeyword();
         description.name    = object.getOpalName();
         description.attributes.reserve(object.itsAttr.size());
         for (const Attribute& attribute : object.itsAttr) {
-            if (attribute) description.attributes.push_back(describeAttribute(attribute));
+            description.attributes.push_back(describeAttribute(attribute));
         }
         return description;
     }

@@ -145,10 +145,9 @@ void Object::parseShortcut(Statement& stat, bool eval) {
 
 void Object::print(std::ostream& msg) const {
     std::string head = getOpalName();
-    Object* parent   = getParent();
-    if (parent != 0 && !parent->getOpalName().empty()) {
+    if (getKeyword() != getOpalName()) {
         if (!getOpalName().empty()) head += ':';
-        head += parent->getOpalName();
+        head += getKeyword();
     }
 
     msg << head;
@@ -266,6 +265,8 @@ const Object* Object::getBaseObject() const {
 
 const std::string& Object::getOpalName() const { return itsName; }
 
+const std::string& Object::getKeyword() const { return keyword_m; }
+
 Object* Object::getParent() const { return itsParent; }
 
 bool Object::isTreeMember(const Object* classObject) const {
@@ -289,7 +290,13 @@ int Object::increment() { return ++occurrence; }
 int Object::occurrenceCount() { return occurrence; }
 
 Object::Object(int size, const char* name, const char* help)
-    : itsAttr(size), itsParent(0), itsName(name), itsHelp(help), occurrence(0), sharedFlag(false) {
+    : itsAttr(size),
+      itsParent(0),
+      itsName(name),
+      keyword_m(name),
+      itsHelp(help),
+      occurrence(0),
+      sharedFlag(false) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
@@ -302,6 +309,7 @@ Object::Object(const std::string& name, Object* parent)
     : itsAttr(parent->itsAttr),
       itsParent(parent),
       itsName(name),
+      keyword_m(parent->keyword_m),
       itsHelp(parent->itsHelp),
       occurrence(0),
       sharedFlag(false) {

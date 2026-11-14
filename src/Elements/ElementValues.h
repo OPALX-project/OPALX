@@ -41,11 +41,10 @@ public:
 
 private:
     /**
-     * @brief The entry of @p attribute, or nullptr if it has no value (describeObject() leaves
-     *        those out).
+     * @brief The entry of @p attribute. describeObject() records every attribute of the keyword.
      * @throws LogicalError if the keyword has no attribute of that name.
      */
-    const opalx::run::AttributeEntry* entry(const std::string& attribute) const;
+    const opalx::run::AttributeEntry& entry(const std::string& attribute) const;
 
     /// The value of @p attribute as a @p T, or @p none if it has no value.
     template <class T>

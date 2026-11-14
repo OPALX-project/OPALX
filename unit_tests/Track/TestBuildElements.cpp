@@ -89,8 +89,10 @@ TEST_F(BuildElementsTest, UnknownKeywordOrFailedAttributeThrows) {
     unknown.object.keyword     = "NOT_A_KEYWORD";
     EXPECT_THROW(buildElement(unknown), OpalException);
 
-    ElementDescription failed         = quadrupole("Q4");
-    failed.object.attributes[1].error = "Can't find variable 'X'";
+    ElementDescription failed = quadrupole("Q4");
+    for (AttributeEntry& entry : failed.object.attributes) {
+        if (entry.name == "K1") entry.error = "Can't find variable 'X'";
+    }
     EXPECT_THROW(buildElement(failed), OpalException);
 }
 

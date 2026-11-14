@@ -54,12 +54,11 @@ namespace opalx::run {
             os << "keyword = " << object.keyword << "\n";
             os << "name = " << object.name << "\n";
             for (const AttributeEntry& a : object.attributes) {
+                if (!a.hasValue) continue;
                 os << "attr " << a.name << " (" << a.type << ", "
                    << (a.defaultUsed ? "default" : "set") << ") = ";
                 if (!a.error.empty()) {
                     os << "<error: " << a.error << ">";
-                } else if (!a.hasValue) {
-                    os << "<none>";
                 } else {
                     os << text(a.value);
                 }

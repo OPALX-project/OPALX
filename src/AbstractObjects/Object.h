@@ -170,6 +170,9 @@ public:
     /// Return object name.
     const std::string& getOpalName() const;
 
+    /// The input keyword this object was made from, e.g. "QUADRUPOLE" (also for `Q2: Q1`).
+    const std::string& getKeyword() const;
+
     /// Return parent pointer.
     Object* getParent() const;
 
@@ -245,6 +248,9 @@ private:
 
     // The object name.
     std::string itsName;
+
+    /// The input keyword this object was made from.
+    std::string keyword_m;
 
     // The help text.
     std::string itsHelp;
