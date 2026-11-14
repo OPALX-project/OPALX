@@ -4,7 +4,7 @@
 #include <Kokkos_Random.hpp>
 #include <cmath>
 #include <memory>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
@@ -68,9 +68,9 @@ public:
      * @brief Constructor for the Gaussian sampler.
      *
      * @param pc Shared pointer to the particle container.
-     * @param opalDist Borrowed distribution object.
+     * @param opalDist Values of the distribution; the sampler keeps a copy.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
+    Gaussian(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist);
 
     /**
      * @brief Constructor for the Gaussian sampler without a distribution object.

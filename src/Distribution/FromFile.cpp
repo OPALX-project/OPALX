@@ -7,15 +7,15 @@
 #include <memory>
 #include <sstream>
 #include "AbstractObjects/OpalData.h"
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
-FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist), numParticles_m(0) {
     // Get filename from distribution
-    filename_m = opalDist->getFilename();
+    filename_m = opalDist.getFilename();
 
     if (filename_m.empty()) {
         throw OpalException(

@@ -2,19 +2,25 @@
 #define OPALX_SAMPLING_BASE_H
 
 #include <memory>
-#include "Distribution.h"
+#include <optional>
+#include "Distribution/DistributionSettings.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "PartBunch/ParticleContainer.hpp"
+#include "Random/Distribution.h"
+#include "Random/InverseTransformSampling.h"
+#include "Random/NormalDistribution.h"
+#include "Random/Randn.h"
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using Distribution_t      = Distribution;
 
 using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
 
 class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
-    Distribution_t* opalDist_m = nullptr;
+    /// Copy of the distribution values; empty for a sampler made without a distribution.
+    std::optional<DistributionSettings> opalDist_m;
     std::string samplingMethod_m;
     /// Emission-source state passed in by TrackRun. R0 and P0 are final offsets:
     /// samplers generate their mathematical shape first, then add these offsets during sampling.
@@ -34,7 +40,7 @@ protected:
     bool hasEmittedOnce_m = false;
 
 public:
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* dist)
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& dist)
         : pc_m(pc), opalDist_m(dist) {}
 
     SamplingBase(std::shared_ptr<ParticleContainer_t> pc) : pc_m(pc) {}

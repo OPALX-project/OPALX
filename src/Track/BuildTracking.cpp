@@ -31,7 +31,7 @@
 
 #include "BasicActions/Option.h"
 
-#include "Distribution/Distribution.h"
+#include "Distribution/DistributionSettings.h"
 
 #include "Distribution/EmittedFromFile.h"
 
@@ -348,13 +348,14 @@ namespace opalx::run {
         /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
         /// optional per-distribution NPARTDIST values on the emission sources.
         size_t computeTotalAllocationForBunch(
-                const BeamDescription& beam, const std::vector<ObjectValues>& sources) {
+                const BeamDescription& beam, const std::vector<ObjectValues>& sources,
+                const std::vector<ObjectDescription>& distributions) {
             size_t beamAllocSize = beam.numAlloc;
 
             size_t totalFromDists = 0;
             for (const ObjectValues& src : sources) {
-                auto* dist = Distribution::find(EmissionSource::getDistributionName(src));
-                totalFromDists += dist->getNumParticles();
+                totalFromDists += DistributionSettings::numParticles(ObjectValues(
+                        named(distributions, EmissionSource::getDistributionName(src))));
             }
 
             if (totalFromDists > 0) {
@@ -381,8 +382,9 @@ namespace opalx::run {
         /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
         std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
                 PartBunch_t& bunch, const std::vector<ObjectValues>& sources,
-                const BeamDescription& beam, bool hasInitialOrbit,
-                std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index) {
+                const std::vector<ObjectDescription>& distributions, const BeamDescription& beam,
+                bool hasInitialOrbit, std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers,
+                size_t index) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
             IpplTimings::startTimer(samplingTime);
@@ -396,20 +398,16 @@ namespace opalx::run {
             bool hasFileSource = false;
 
             for (const ObjectValues& src : sources) {
-                // Distribution objects are registry-owned; samplers only borrow them.
-                Distribution* opalDist =
-                        Distribution::find(EmissionSource::getDistributionName(src));
-
-                // Ensure distribution parameters and reference momentum are up to date.
-                opalDist->setDistType();
-                opalDist->setDist();
-                opalDist->setAvrgPz(avrgpz);
+                const DistributionSettings opalDist(
+                        ObjectValues(
+                                named(distributions, EmissionSource::getDistributionName(src))),
+                        avrgpz);
 
                 // File-based distributions carry absolute momenta. PC/ENERGY/GAMMA on the BEAM is
                 // optional for them and only sets the reference momentum (see the return value).
                 const bool usesFileMomentum =
-                        opalDist->getType() == DistributionType::FROMFILE
-                        || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+                        opalDist.getType() == DistributionType::FROMFILE
+                        || opalDist.getType() == DistributionType::EMITTEDFROMFILE;
                 if (usesFileMomentum && hasInitialOrbit)
                     throw OpalException(
                             "INITIALORBIT",
@@ -428,7 +426,7 @@ namespace opalx::run {
 
                 // Build a sampler instance for this emission source.
                 std::shared_ptr<SamplingBase> sampler;
-                switch (opalDist->getType()) {
+                switch (opalDist.getType()) {
                     case DistributionType::UNIFORM:
                         sampler = std::make_shared<Uniform>(pc, opalDist);
                         break;
@@ -462,8 +460,8 @@ namespace opalx::run {
                 const double t0             = EmissionSource::getT0(src);
                 const std::string emitModel = EmissionSource::getEmissionModel(src);
                 const bool generatedEmission =
-                        opalDist->emitting_m && opalDist->getType() != DistributionType::FROMFILE
-                        && opalDist->getType() != DistributionType::EMITTEDFROMFILE;
+                        opalDist.emitting_m && opalDist.getType() != DistributionType::FROMFILE
+                        && opalDist.getType() != DistributionType::EMITTEDFROMFILE;
                 const double eKin                = EmissionSource::getKineticEnergy(src);
                 double emissionMomentumMagnitude = 0.0;
                 if (generatedEmission && eKin > 0.0) {
@@ -485,7 +483,7 @@ namespace opalx::run {
                 const std::vector<double>& pol = beam.polarization;
                 sampler->setInitialPolarization({pol[0], pol[1], pol[2]});
 
-                const size_t Ndist = opalDist->getNumParticles();
+                const size_t Ndist = opalDist.getNumParticles();
                 size_t Nmutable    = Ndist;
 
                 // Always call generateParticles once per source; time-independent samplers
@@ -501,11 +499,11 @@ namespace opalx::run {
                 // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
                 // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
                 // during tracking.
-                if (opalDist->emitting_m || t0 > 0.0
-                    || opalDist->getType() == DistributionType::EMITTEDFROMFILE) {
+                if (opalDist.emitting_m || t0 > 0.0
+                    || opalDist.getType() == DistributionType::EMITTEDFROMFILE) {
                     emittingSamplers.push_back(sampler);
                     *gmsg << level2 << "* Configured emitting source of type "
-                          << opalDist->getTypeofDistribution() << " with NPARTDIST = " << Ndist
+                          << opalDist.getTypeofDistribution() << " with NPARTDIST = " << Ndist
                           << ", t0 = " << t0 << endl;
                 }
             }
@@ -706,8 +704,8 @@ namespace opalx::run {
         // Set total particles per container (beam)
         std::vector<size_t> totalParticlesPerBeam(beams.size());
         for (size_t i = 0; i < beams.size(); ++i) {
-            totalParticlesPerBeam[i] =
-                    computeTotalAllocationForBunch(beams[i], emissionSourcesLists[i]);
+            totalParticlesPerBeam[i] = computeTotalAllocationForBunch(
+                    beams[i], emissionSourcesLists[i], description.distributions);
         }
 
         // Create PartBunch with multiple particle containers.
@@ -769,8 +767,8 @@ namespace opalx::run {
         } else {
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 beamReferenceMomenta[i] = setupDistributionsAndSamplers(
-                        bunch, emissionSourcesLists[i], beams[i], track.initialOrbit.has_value(),
-                        emittingSamplersList[i], i);
+                        bunch, emissionSourcesLists[i], description.distributions, beams[i],
+                        track.initialOrbit.has_value(), emittingSamplersList[i], i);
             }
         }
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(

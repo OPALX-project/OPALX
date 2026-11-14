@@ -7,10 +7,10 @@
 /**
  * @brief Constructs the MultiVariateGaussian class.
  * @param pc Shared pointer to the particle container.
- * @param opalDist Borrowed distribution.
+ * @param opalDist Values of the distribution; the sampler keeps a copy.
  */
 MultiVariateGaussian::MultiVariateGaussian(
-        std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+        std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist) {
     setSigmaR(opalDist_m->getSigmaR());
     setSigmaP(opalDist_m->getSigmaP());

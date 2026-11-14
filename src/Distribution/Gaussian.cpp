@@ -1,7 +1,7 @@
 #include "Gaussian.h"
 #include <algorithm>
 #include <memory>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
 
@@ -9,17 +9,17 @@
  * @brief Constructs a Gaussian sampler.
  *
  * @param pc Shared pointer to the particle container.
- * @param opalDist Borrowed distribution object.
+ * @param opalDist Values of the distribution; the sampler keeps a copy.
  */
-Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
-    setSigmaP(opalDist->getSigmaP());
-    setSigmaR(opalDist->getSigmaR());
-    setAvrgpz(opalDist->getAvrgpz());
-    setCutoffR(opalDist->getCutoffR());
-    setCutoffP(opalDist->getCutoffP());
+    setSigmaP(opalDist.getSigmaP());
+    setSigmaR(opalDist.getSigmaR());
+    setAvrgpz(opalDist.getAvrgpz());
+    setCutoffR(opalDist.getCutoffR());
+    setCutoffP(opalDist.getCutoffP());
 }
 
 Gaussian::Gaussian(
