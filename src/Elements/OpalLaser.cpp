@@ -12,7 +12,7 @@
 
 namespace {
     double getRequiredPositiveReal(
-            const ElementValues& values, const std::string& name, const std::string& where) {
+            const ObjectValues& values, const std::string& name, const std::string& where) {
         if (!values.hasValue(name)) {
             throw OpalException(where, "\"" + name + "\" must be set.");
         }
@@ -26,7 +26,7 @@ namespace {
     }
 
     Vector_t<double, 3> getVector3(
-            const ElementValues& values, const std::string& name, const std::string& where,
+            const ObjectValues& values, const std::string& name, const std::string& where,
             const std::string& semanticName) {
         if (!values.hasValue(name)) {
             throw OpalException(where, "\"" + name + "\" must be set.");
@@ -62,13 +62,13 @@ OpalLaser::OpalLaser()
 
 OpalLaser::~OpalLaser() {}
 
-std::shared_ptr<ElementBase> OpalLaser::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalLaser::build(const ObjectValues& values) {
     auto element = std::make_shared<LaserRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalLaser::fill(ElementBase& element, const ElementValues& values) {
+void OpalLaser::fill(ElementBase& element, const ObjectValues& values) {
     constexpr const char* where = "OpalLaser::build";
 
     setCommonFields(element, values);

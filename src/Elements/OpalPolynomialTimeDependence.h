@@ -22,7 +22,7 @@
  *  PolynomialTimeDependence
  */
 
-class ElementValues;
+class ObjectValues;
 
 class OpalPolynomialTimeDependence : public OpalElement {
 public:
@@ -48,7 +48,7 @@ public:
      * @brief Make the model of input object @p values and register it under its name, where
      *        the elements look it up. Called by buildElements() at RUN.
      */
-    static void registerModel(const ElementValues& values);
+    static void registerModel(const ObjectValues& values);
 
     /** Calls print on the OpalElement */
     void print(std::ostream&) const override;

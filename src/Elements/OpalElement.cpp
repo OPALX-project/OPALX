@@ -97,7 +97,7 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
 
 OpalElement::~OpalElement() {}
 
-std::pair<ApertureType, std::vector<double>> OpalElement::getApert(const ElementValues& values) {
+std::pair<ApertureType, std::vector<double>> OpalElement::getApert(const ObjectValues& values) {
     std::pair<ApertureType, std::vector<double>> retvalue(
             ApertureType::ELLIPTICAL, std::vector<double>({1e6, 1e6}));
     if (!values.hasValue("APERTURE")) {
@@ -397,7 +397,7 @@ void OpalElement::validatePlacement(const std::string& name, bool hasElemEdge, b
     }
 }
 
-void OpalElement::setCommonFields(ElementBase& element, const ElementValues& values) {
+void OpalElement::setCommonFields(ElementBase& element, const ObjectValues& values) {
     ElementBase* base = &element;
 
     auto apert = getApert(values);

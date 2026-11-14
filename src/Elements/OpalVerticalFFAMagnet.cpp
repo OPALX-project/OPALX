@@ -64,14 +64,14 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
 
 OpalVerticalFFAMagnet::~OpalVerticalFFAMagnet() {}
 
-std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalVerticalFFAMagnet::build(const ObjectValues& values) {
     auto element = std::make_shared<VerticalFFAMagnet>(values.getName());
     element->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     fill(*element, values);
     return element;
 }
 
-void OpalVerticalFFAMagnet::fill(ElementBase& element, const ElementValues& values) {
+void OpalVerticalFFAMagnet::fill(ElementBase& element, const ObjectValues& values) {
     VerticalFFAMagnet* magnet = dynamic_cast<VerticalFFAMagnet*>(&element);
     magnet->setB0(values.getReal("B0"));
     int maxOrder = floor(values.getReal("MAX_HORIZONTAL_POWER"));

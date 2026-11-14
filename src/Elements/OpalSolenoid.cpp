@@ -40,13 +40,13 @@ OpalSolenoid::OpalSolenoid()
 
 OpalSolenoid::~OpalSolenoid() {}
 
-std::shared_ptr<ElementBase> OpalSolenoid::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalSolenoid::build(const ObjectValues& values) {
     auto element = std::make_shared<SolenoidRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalSolenoid::fill(ElementBase& element, const ElementValues& values) {
+void OpalSolenoid::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     SolenoidRep* sol = dynamic_cast<SolenoidRep*>(&element);

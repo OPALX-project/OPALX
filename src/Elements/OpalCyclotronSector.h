@@ -45,11 +45,11 @@ public:
      * @throws OpalException For invalid symmetry/bounds or an unknown trim-coil name.
      * Map loading and trim-coil validation errors are propagated.
      */
-    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ElementValues& values);
+    static void fill(ElementBase& element, const ObjectValues& values);
 
     enum { FMAPFN = COMMON, SYM, RMIN, RMAX, VMIN, VMAX, BSCALE, TRIMCOIL, SIZE };
 };

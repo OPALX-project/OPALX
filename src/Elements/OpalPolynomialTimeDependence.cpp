@@ -17,7 +17,7 @@
 #include <string>
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
-#include "Elements/ElementValues.h"
+#include "Track/ObjectValues.h"
 
 const std::string OpalPolynomialTimeDependence::doc_string =
         "The \"POLYNOMIAL_TIME_DEPENDENCE\" element defines "
@@ -43,7 +43,7 @@ OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
 
 void OpalPolynomialTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-void OpalPolynomialTimeDependence::registerModel(const ElementValues& values) {
+void OpalPolynomialTimeDependence::registerModel(const ObjectValues& values) {
     if (values.hasValue("COEFFICIENTS")
         && (values.hasValue("P0") || values.hasValue("P1") || values.hasValue("P2")
             || values.hasValue("P3"))) {

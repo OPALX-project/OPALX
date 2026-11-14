@@ -17,7 +17,7 @@
 #include <string>
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
-#include "Elements/ElementValues.h"
+#include "Track/ObjectValues.h"
 #include "Utilities/OpalException.h"
 
 const std::string OpalSplineTimeDependence::doc_string =
@@ -53,7 +53,7 @@ OpalSplineTimeDependence::OpalSplineTimeDependence()
 
 void OpalSplineTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-void OpalSplineTimeDependence::registerModel(const ElementValues& values) {
+void OpalSplineTimeDependence::registerModel(const ObjectValues& values) {
     const double order = values.getReal("ORDER");
     if (order != SplineTimeDependence::LinearInterpolation
         && order != SplineTimeDependence::CubicInterpolation) {

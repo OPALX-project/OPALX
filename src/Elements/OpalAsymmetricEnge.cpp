@@ -1,6 +1,6 @@
 
 #include "Elements/OpalAsymmetricEnge.h"
-#include "Elements/ElementValues.h"
+#include "Track/ObjectValues.h"
 
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
@@ -34,7 +34,7 @@ OpalAsymmetricEnge::OpalAsymmetricEnge()
     registerOwnership();
 }
 
-void OpalAsymmetricEnge::registerModel(const ElementValues& values) {
+void OpalAsymmetricEnge::registerModel(const ObjectValues& values) {
     double x0Start                = values.getReal("START_HALF_LENGTH");
     double lambdaStart            = values.getReal("START_FRINGE_LENGTH");
     std::vector<double> aVecStart = values.getRealArray("START_COEFFICIENTS");

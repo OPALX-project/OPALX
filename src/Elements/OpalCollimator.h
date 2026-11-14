@@ -36,11 +36,11 @@ public:
      *        Scraping only happens for z in [0, L) outside the aperture, so a
      *        collimator missing either would silently transmit everything.
      */
-    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ElementValues& values);
+    static void fill(ElementBase& element, const ObjectValues& values);
 
     // Not implemented.
     OpalCollimator(const OpalCollimator&);

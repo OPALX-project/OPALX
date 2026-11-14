@@ -19,7 +19,7 @@
 #define OPAL_OpalElement_HH
 
 #include "AbstractObjects/Element.h"
-#include "Elements/ElementValues.h"
+#include "Track/ObjectValues.h"
 
 #include <iosfwd>
 #include <string>
@@ -66,14 +66,14 @@ public:
     const std::string getTypeName() const;
 
     /// The aperture the APERTURE string of @p values gives (half widths), or the 1e6 default.
-    static std::pair<ApertureType, std::vector<double>> getApert(const ElementValues& values);
+    static std::pair<ApertureType, std::vector<double>> getApert(const ObjectValues& values);
 
     /**
      * @brief Set what every element shares from @p values: aperture, placement (ELEMEDGE or
      *        X/Y/Z/THETA/PHI/PSI), misalignment, DELETEONTRANSVERSEEXIT and REACH.
      * @note Final placement is resolved by PlacementResolver, not here.
      */
-    static void setCommonFields(ElementBase& element, const ElementValues& values);
+    static void setCommonFields(ElementBase& element, const ObjectValues& values);
 
     /// Return the element's type name.
     const std::string getWakeF() const;

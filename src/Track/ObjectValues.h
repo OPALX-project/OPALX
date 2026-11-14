@@ -1,12 +1,12 @@
 //
-// Class ElementValues
-//   The attribute values of one element, read from its description.
+// Class ObjectValues
+//   The attribute values of one input object, read from its description.
 //
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
 //
-#ifndef OPALX_ELEMENT_VALUES_H
-#define OPALX_ELEMENT_VALUES_H
+#ifndef OPALX_OBJECT_VALUES_H
+#define OPALX_OBJECT_VALUES_H
 
 #include <string>
 #include <vector>
@@ -14,17 +14,18 @@
 #include "Track/RunDescription.h"
 
 /**
- * @brief The attribute values of one element, read from its ObjectDescription.
+ * @brief The attribute values of one input object (element, BEAM, FIELDSOLVER, ...), read from
+ *        its ObjectDescription.
  *
  * The functions follow the rules of the Attributes::get* functions on the parsed object: an
  * attribute without a value reads as 0, false, "" or an empty list. An attribute whose
  * evaluation failed throws its error when it is read.
  */
-class ElementValues {
+class ObjectValues {
 public:
-    explicit ElementValues(opalx::run::ObjectDescription object);
+    explicit ObjectValues(opalx::run::ObjectDescription object);
 
-    /// The name the input gave the element.
+    /// The name the input gave the object.
     const std::string& getName() const { return object_m.name; }
 
     /// Same as bool(attribute): the attribute has a value, from the input or a default.
@@ -53,4 +54,4 @@ private:
     opalx::run::ObjectDescription object_m;
 };
 
-#endif  // OPALX_ELEMENT_VALUES_H
+#endif  // OPALX_OBJECT_VALUES_H

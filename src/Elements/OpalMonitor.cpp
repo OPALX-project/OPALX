@@ -30,13 +30,13 @@ OpalMonitor::OpalMonitor()
 
 OpalMonitor::~OpalMonitor() {}
 
-std::shared_ptr<ElementBase> OpalMonitor::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalMonitor::build(const ObjectValues& values) {
     auto element = std::make_shared<MonitorRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalMonitor::fill(ElementBase& element, const ElementValues& values) {
+void OpalMonitor::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     MonitorRep* mon = dynamic_cast<MonitorRep*>(&element);

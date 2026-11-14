@@ -37,13 +37,13 @@ OpalBox::OpalBox()
 
 OpalBox::~OpalBox() {}
 
-std::shared_ptr<ElementBase> OpalBox::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalBox::build(const ObjectValues& values) {
     auto element = std::make_shared<BoxRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalBox::fill(ElementBase& element, const ElementValues& values) {
+void OpalBox::fill(ElementBase& element, const ObjectValues& values) {
     // Applies the common attributes, including DELETEONTRANSVERSEEXIT, to the
     // embedded element.
     setCommonFields(element, values);

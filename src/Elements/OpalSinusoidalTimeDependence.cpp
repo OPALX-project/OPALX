@@ -43,7 +43,7 @@ OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence()
 
 void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-void OpalSinusoidalTimeDependence::registerModel(const ElementValues& values) {
+void OpalSinusoidalTimeDependence::registerModel(const ObjectValues& values) {
     AbstractTimeDependence::setTimeDependence(
             values.getName(),
             std::make_shared<SinusoidalTimeDependence>(

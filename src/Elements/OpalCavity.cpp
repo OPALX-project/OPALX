@@ -66,13 +66,13 @@ OpalCavity::OpalCavity()
 
 OpalCavity::~OpalCavity() {}
 
-std::shared_ptr<ElementBase> OpalCavity::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalCavity::build(const ObjectValues& values) {
     auto element = std::make_shared<RFCavityRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalCavity::fill(ElementBase& element, const ElementValues& values) {
+void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     RFCavityRep* rfc = dynamic_cast<RFCavityRep*>(&element);

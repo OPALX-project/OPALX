@@ -55,18 +55,18 @@ public:
     /** Inherited copy constructor */
 
     /// Build the runtime element of one occurrence from its attribute values.
-    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ElementValues& values);
+    static void fill(ElementBase& element, const ObjectValues& values);
 
     // Not implemented.
     OpalScalingFFAMagnet(const OpalScalingFFAMagnet&);
     void operator=(const OpalScalingFFAMagnet&);
 
-    static void setupNamedEndField(ScalingFFAMagnet& magnet, const ElementValues& values);
-    static void setupDefaultEndField(ScalingFFAMagnet& magnet, const ElementValues& values);
+    static void setupNamedEndField(ScalingFFAMagnet& magnet, const ObjectValues& values);
+    static void setupDefaultEndField(ScalingFFAMagnet& magnet, const ObjectValues& values);
 };
 
 #endif  // OPAL_OPALSCALINGFFAMAGNET_H

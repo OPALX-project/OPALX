@@ -32,13 +32,13 @@ OpalCollimator::OpalCollimator()
 
 OpalCollimator::~OpalCollimator() {}
 
-std::shared_ptr<ElementBase> OpalCollimator::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalCollimator::build(const ObjectValues& values) {
     auto element = std::make_shared<CollimatorRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalCollimator::fill(ElementBase& element, const ElementValues& values) {
+void OpalCollimator::fill(ElementBase& element, const ObjectValues& values) {
     // Applies the common attributes, including APERTURE and
     // DELETEONTRANSVERSEEXIT, to the embedded element.
     setCommonFields(element, values);

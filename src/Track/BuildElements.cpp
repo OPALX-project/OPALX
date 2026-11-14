@@ -11,7 +11,6 @@
 #include <string>
 
 #include "AbsBeamline/ElementBase.h"
-#include "Elements/ElementValues.h"
 #include "Elements/OpalAsymmetricEnge.h"
 #include "Elements/OpalBox.h"
 #include "Elements/OpalCavity.h"
@@ -40,6 +39,7 @@
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Track/ObjectValues.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
@@ -113,7 +113,7 @@ namespace opalx::run {
                             + " could not be evaluated: " + entry.error);
         }
 
-        std::shared_ptr<ElementBase> built = kind.build(ElementValues(input));
+        std::shared_ptr<ElementBase> built = kind.build(ObjectValues(input));
         if (built->getType() != kind.type) {
             throw LogicalError(
                     "opalx::run::buildElement",
@@ -125,7 +125,7 @@ namespace opalx::run {
 
     namespace {
 
-        using RegisterModel = void (*)(const ElementValues&);
+        using RegisterModel = void (*)(const ObjectValues&);
 
         /// The keywords of time dependences and end-field models, with their registerModel().
         const std::map<std::string, RegisterModel>& modelKeywords() {
@@ -152,7 +152,7 @@ namespace opalx::run {
                         "opalx::run::registerModels",
                         "\"" + model.keyword + "\" is not a time dependence or end-field model.");
             }
-            found->second(ElementValues(model));
+            found->second(ObjectValues(model));
         }
     }
 

@@ -19,13 +19,13 @@ OpalConstantEFieldCavity::OpalConstantEFieldCavity()
 
 OpalConstantEFieldCavity::~OpalConstantEFieldCavity() {}
 
-std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalConstantEFieldCavity::build(const ObjectValues& values) {
     auto element = std::make_shared<ConstantEFieldCavityRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalConstantEFieldCavity::fill(ElementBase& element, const ElementValues& values) {
+void OpalConstantEFieldCavity::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     ConstantEFieldCavityRep* rep = dynamic_cast<ConstantEFieldCavityRep*>(&element);

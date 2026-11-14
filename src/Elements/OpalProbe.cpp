@@ -40,13 +40,13 @@ OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defin
 
 OpalProbe::~OpalProbe() {}
 
-std::shared_ptr<ElementBase> OpalProbe::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalProbe::build(const ObjectValues& values) {
     auto element = std::make_shared<ProbeRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalProbe::fill(ElementBase& element, const ElementValues& values) {
+void OpalProbe::fill(ElementBase& element, const ObjectValues& values) {
     // Endpoint coordinates are already global. Ordinary element placement
     // validation would incorrectly require ELEMEDGE or a separate 6D pose.
 

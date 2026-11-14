@@ -48,13 +48,13 @@ OpalTravelingWave::OpalTravelingWave()
 
 OpalTravelingWave::~OpalTravelingWave() {}
 
-std::shared_ptr<ElementBase> OpalTravelingWave::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalTravelingWave::build(const ObjectValues& values) {
     auto element = std::make_shared<TravelingWaveRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalTravelingWave::fill(ElementBase& element, const ElementValues& values) {
+void OpalTravelingWave::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     TravelingWaveRep* rfc = dynamic_cast<TravelingWaveRep*>(&element);

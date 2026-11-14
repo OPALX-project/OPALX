@@ -61,13 +61,13 @@ OpalMultipole::~OpalMultipole() {}
 
 void OpalMultipole::print(std::ostream& os) const { OpalElement::print(os); }
 
-std::shared_ptr<ElementBase> OpalMultipole::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalMultipole::build(const ObjectValues& values) {
     auto element = std::make_shared<MultipoleRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalMultipole::fill(ElementBase& element, const ElementValues& values) {
+void OpalMultipole::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     // Get pointer to MultipoleRep object to set length

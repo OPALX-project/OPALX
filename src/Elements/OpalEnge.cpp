@@ -3,8 +3,8 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "Attributes/Attributes.h"
-#include "Elements/ElementValues.h"
 #include "Physics/Units.h"
+#include "Track/ObjectValues.h"
 
 extern Inform* gmsg;
 
@@ -22,7 +22,7 @@ OpalEnge::OpalEnge()
     registerOwnership();
 }
 
-void OpalEnge::registerModel(const ElementValues& values) {
+void OpalEnge::registerModel(const ObjectValues& values) {
     double x0                = values.getReal("LENGTH") / 2.0;
     double lambda            = values.getReal("FRINGE_LENGTH");
     std::vector<double> aVec = values.getRealArray("COEFFICIENTS");

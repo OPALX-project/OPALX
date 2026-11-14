@@ -34,13 +34,13 @@ OpalSBend::OpalSBend()
 
 OpalSBend::~OpalSBend() {}
 
-std::shared_ptr<ElementBase> OpalSBend::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalSBend::build(const ObjectValues& values) {
     auto element = std::make_shared<SBendRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalSBend::fill(ElementBase& element, const ElementValues& values) {
+void OpalSBend::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so

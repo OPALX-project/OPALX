@@ -48,11 +48,11 @@ public:
     virtual ~OpalFieldmapElement();
 
     /// Build the runtime element of one occurrence from its attribute values.
-    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ElementValues& values);
+    static void fill(ElementBase& element, const ObjectValues& values);
 
     // Not implemented.
     OpalFieldmapElement(const OpalFieldmapElement&);

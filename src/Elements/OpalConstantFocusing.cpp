@@ -20,13 +20,13 @@ OpalConstantFocusing::OpalConstantFocusing()
 
 OpalConstantFocusing::~OpalConstantFocusing() {}
 
-std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalConstantFocusing::build(const ObjectValues& values) {
     auto element = std::make_shared<ConstantFocusingRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalConstantFocusing::fill(ElementBase& element, const ElementValues& values) {
+void OpalConstantFocusing::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     const double radius = values.getReal("RADIUS");

@@ -14,12 +14,12 @@
 #include "Track/RunDescription.h"
 
 class ElementBase;
-class ElementValues;
+class ObjectValues;
 
 namespace opalx::run {
 
     /// Builds the runtime element of one occurrence from its attribute values.
-    using BuildFunction = std::shared_ptr<ElementBase> (*)(const ElementValues& values);
+    using BuildFunction = std::shared_ptr<ElementBase> (*)(const ObjectValues& values);
 
     /**
      * @brief The runtime element type string of an element keyword, e.g. "Multipole" for

@@ -3,6 +3,7 @@ set (_SRCS
     BuildElements.cpp
     DecayChain.cpp
     FreezeRun.cpp
+    ObjectValues.cpp
     RunDescriptionWriter.cpp
     Track.cpp
     TrackCmd.cpp
@@ -17,6 +18,7 @@ set (HDRS
     BuildElements.h
     DecayChain.h
     FreezeRun.h
+    ObjectValues.h
     RunDescription.h
     RunDescriptionWriter.h
     TrackCmd.h

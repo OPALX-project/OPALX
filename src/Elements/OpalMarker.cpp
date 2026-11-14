@@ -44,6 +44,6 @@ OpalMarker::~OpalMarker() {}
 
 void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 
-std::shared_ptr<ElementBase> OpalMarker::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalMarker::build(const ObjectValues& values) {
     return std::make_shared<MarkerRep>(values.getName());
 }

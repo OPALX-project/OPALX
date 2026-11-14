@@ -49,13 +49,13 @@ OpalVariableRFCavity::OpalVariableRFCavity()
     registerOwnership();
 }
 
-std::shared_ptr<ElementBase> OpalVariableRFCavity::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalVariableRFCavity::build(const ObjectValues& values) {
     auto element = std::make_shared<VariableRFCavity>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalVariableRFCavity::fill(ElementBase& element, const ElementValues& values) {
+void OpalVariableRFCavity::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     auto* cavity = dynamic_cast<VariableRfCavityRep*>(&element);

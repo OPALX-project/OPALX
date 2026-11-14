@@ -56,13 +56,13 @@ OpalFieldmapElement::OpalFieldmapElement()
 
 OpalFieldmapElement::~OpalFieldmapElement() {}
 
-std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ObjectValues& values) {
     auto element = std::make_shared<FieldmapElementRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalFieldmapElement::fill(ElementBase& element, const ElementValues& values) {
+void OpalFieldmapElement::fill(ElementBase& element, const ObjectValues& values) {
     // Checked before setCommonFields(), so that the specific message wins over the generic
     // "placement is over-specified" one.
     if (values.hasValue("ELEMEDGE")) {

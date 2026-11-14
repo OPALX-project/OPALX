@@ -34,13 +34,13 @@ OpalRBend::OpalRBend()
 
 OpalRBend::~OpalRBend() {}
 
-std::shared_ptr<ElementBase> OpalRBend::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalRBend::build(const ObjectValues& values) {
     auto element = std::make_shared<RBendRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalRBend::fill(ElementBase& element, const ElementValues& values) {
+void OpalRBend::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     // Geometry, field profile and calibration are independent RBEND settings.

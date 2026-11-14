@@ -35,13 +35,13 @@ OpalDrift::~OpalDrift() {}
 
 bool OpalDrift::isDrift() const { return true; }
 
-std::shared_ptr<ElementBase> OpalDrift::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalDrift::build(const ObjectValues& values) {
     auto element = std::make_shared<DriftRep>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalDrift::fill(ElementBase& element, const ElementValues& values) {
+void OpalDrift::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
     element.getGeometry().setElementLength(values.getReal("L"));
 }

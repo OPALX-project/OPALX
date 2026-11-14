@@ -42,7 +42,7 @@ public:
     virtual void print(std::ostream&) const;
 
     /// Build the runtime element of one occurrence: a marker has no settings.
-    static std::shared_ptr<ElementBase> build(const ElementValues& values);
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values);
 
 private:
     // Not implemented.

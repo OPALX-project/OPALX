@@ -96,7 +96,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
 OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {}
 
-std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ObjectValues& values) {
     auto magnet = std::make_shared<ScalingFFAMagnet>(values.getName());
     magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     fill(*magnet, values);
@@ -104,7 +104,7 @@ std::shared_ptr<ElementBase> OpalScalingFFAMagnet::build(const ElementValues& va
 }
 
 void OpalScalingFFAMagnet::setupDefaultEndField(
-        ScalingFFAMagnet& magnet, const ElementValues& values) {
+        ScalingFFAMagnet& magnet, const ObjectValues& values) {
     // get centre length and end length in metres
     double end_length = values.getReal("FRINGE_LENGTH");
     double x0         = values.getReal("L") / 2.;
@@ -119,7 +119,7 @@ void OpalScalingFFAMagnet::setupDefaultEndField(
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField(
-        ScalingFFAMagnet& magnet, const ElementValues& values) {
+        ScalingFFAMagnet& magnet, const ObjectValues& values) {
     if (!values.hasValue("END_FIELD_MODEL")) {
         return;
     }
@@ -131,7 +131,7 @@ void OpalScalingFFAMagnet::setupNamedEndField(
     magnet.setPhiStart(0.0);
 }
 
-void OpalScalingFFAMagnet::fill(ElementBase& element, const ElementValues& values) {
+void OpalScalingFFAMagnet::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
     auto& magnet = dynamic_cast<ScalingFFAMagnet&>(element);
     // use L = r0*theta; we define the magnet into length for UI but into angles

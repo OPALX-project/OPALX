@@ -39,13 +39,13 @@ OpalCyclotronSector::OpalCyclotronSector()
     itsAttr[TRIMCOIL] = Attributes::makeStringArray("TRIMCOIL", "Named trim-coil definitions.");
     registerOwnership();
 }
-std::shared_ptr<ElementBase> OpalCyclotronSector::build(const ElementValues& values) {
+std::shared_ptr<ElementBase> OpalCyclotronSector::build(const ObjectValues& values) {
     auto element = std::make_shared<CyclotronSector>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalCyclotronSector::fill(ElementBase& element, const ElementValues& values) {
+void OpalCyclotronSector::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
     const auto filename = values.getString("FMAPFN");
     if (filename.empty()) return;  // no field map: nothing to configure
