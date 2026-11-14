@@ -142,8 +142,12 @@ Beam::Beam()
             "normalises it. Only for FROMFILE and EMITTEDFROMFILE distributions, together with "
             "PC, ENERGY or GAMMA, which give its length. Default {0, 0, 1}.");
 
-    // Set up default beam.
-    Beam* defBeam    = clone("UNNAMED_BEAM");
+    registerOwnership(AttributeHandler::STATEMENT);
+}
+
+void Beam::defineBuiltins() {
+    Beam* defBeam = new Beam();
+    defBeam->setOpalName("UNNAMED_BEAM");
     defBeam->builtin = true;
 
     try {
@@ -152,8 +156,6 @@ Beam::Beam()
     } catch (...) {
         delete defBeam;
     }
-
-    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 Beam::Beam(const std::string& name, Beam* parent)

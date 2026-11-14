@@ -524,7 +524,8 @@ protected:
     }
 
     std::shared_ptr<PartBunch_t> makeBunch(size_t count) {
-        beam       = std::make_shared<Beam>();
+        beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         auto bunch = std::make_shared<PartBunch_t>(
                 std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{Beam::find("UNNAMED_BEAM")},
                 std::vector<size_t>{count}, 1.0, "LF2",

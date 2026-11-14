@@ -199,7 +199,8 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
-        auto beam    = std::make_shared<Beam>();
+        auto beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(

@@ -35,6 +35,10 @@ public:
     /// Exemplar constructor.
     Beam();
 
+    /// Define the built-in beam UNNAMED_BEAM, the default BEAM of TRACK. Called once by
+    /// Configure.
+    static void defineBuiltins();
+
     virtual ~Beam();
 
     /// Test if replacement is allowed.

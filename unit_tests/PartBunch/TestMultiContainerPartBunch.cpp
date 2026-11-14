@@ -64,6 +64,7 @@ namespace {
 
             dataSink = std::make_shared<DataSink>();
             beam     = std::make_shared<Beam>();
+            Beam::defineBuiltins();
             testBeam = Beam::find("UNNAMED_BEAM");
             ASSERT_NE(testBeam, nullptr);
 

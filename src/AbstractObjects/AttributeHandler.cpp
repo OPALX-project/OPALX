@@ -101,5 +101,11 @@ std::multimap<AttributeHandler::OwnerType, std::string> AttributeHandler::getOwn
 void AttributeHandler::addAttributeOwner(
         const std::string& owner, const AttributeHandler::OwnerType& type,
         const std::string& name) {
-    attributeOwnerDictionary_s.insert(std::make_pair(name, std::make_pair(type, owner)));
+    // Every object of a keyword registers again when it is made; keep each owner once.
+    const auto entry   = std::make_pair(type, owner);
+    auto [first, last] = attributeOwnerDictionary_s.equal_range(name);
+    for (auto it = first; it != last; ++it) {
+        if (it->second == entry) return;
+    }
+    attributeOwnerDictionary_s.insert(std::make_pair(name, entry));
 }

@@ -26,7 +26,11 @@ public:
     RealVariable();
 
     /// Constructor for built-in variables.
-    RealVariable(const std::string& name, RealVariable* parent, double value);
+    RealVariable(const std::string& name, double value);
+
+    /// Define the built-in variable P0 (reference momentum for magnet strengths). Called once
+    /// by Configure.
+    static void defineBuiltins();
 
     virtual ~RealVariable();
 

@@ -129,13 +129,17 @@ namespace {
         // Must create the value definitions first.
         opal->addKeyword(new BoolConstant());
         opal->addKeyword(new RealConstant());
+        RealConstant::defineBuiltins();
         opal->addKeyword(new RealVariable());
+        RealVariable::defineBuiltins();
         opal->addKeyword(new RealVector());
         opal->addKeyword(new StringConstant());
+        StringConstant::defineBuiltins();
 
         opal->addKeyword(new MacroCmd());
 
         opal->addKeyword(new Beam());
+        Beam::defineBuiltins();
         opal->addKeyword(new EmissionSource());
         opal->addKeyword(new FieldSolverCmd());
         opal->addKeyword(new Distribution());
@@ -157,6 +161,7 @@ namespace {
         opal->addKeyword(new OpalLaser());
         opal->addKeyword(new OpalMonitor());
         opal->addKeyword(new OpalMarker());
+        OpalMarker::defineBuiltins();
         opal->addKeyword(new OpalProbe());
         opal->addKeyword(new OpalMultipole());
         opal->addKeyword(new OpalQuadrupole());

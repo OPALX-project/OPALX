@@ -109,9 +109,12 @@ namespace {
             gmsg->setOutputLevel(5);
             auto* data = OpalData::getInstance();
             data->addKeyword(new RealConstant());
+            RealConstant::defineBuiltins();
             data->addKeyword(new RealVariable());
+            RealVariable::defineBuiltins();
             data->addKeyword(new RealVector());
             data->addKeyword(new StringConstant());
+            StringConstant::defineBuiltins();
             data->addKeyword(new MacroCmd());
             data->addKeyword(new Value());
         }

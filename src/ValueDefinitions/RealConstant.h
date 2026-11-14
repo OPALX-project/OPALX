@@ -26,7 +26,10 @@ public:
     RealConstant();
 
     /// Constructor for built-in constants.
-    RealConstant(const std::string& name, RealConstant* parent, double value);
+    RealConstant(const std::string& name, double value);
+
+    /// Define the built-in constants (PI, EMASS, ...). Called once by Configure.
+    static void defineBuiltins();
 
     virtual ~RealConstant();
 

@@ -31,16 +31,17 @@ RealVariable::RealVariable()
     itsAttr[0] = Attributes::makeReal("VALUE", "The variable value", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
+}
 
-    // Construct the P0 variable.
-    RealVariable* p0 = new RealVariable("P0", this, 1.0);
+void RealVariable::defineBuiltins() {
+    RealVariable* p0 = new RealVariable("P0", 1.0);
     OpalData::getInstance()->create(p0);
     p0->setDirty(true);
     OpalData::getInstance()->setP0(p0);
 }
 
-RealVariable::RealVariable(const std::string& name, RealVariable* parent, double value)
-    : ValueDefinition(name, parent) {
+RealVariable::RealVariable(const std::string& name, double value) : RealVariable() {
+    setOpalName(name);
     Attributes::setReal(itsAttr[0], value);
 }
 

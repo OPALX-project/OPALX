@@ -300,8 +300,8 @@ Object::Object(int size, const char* name, const char* help)
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
-    // The object is an exemplar and must not be saved in the data base.
-    builtin = true;
+    // Only the predefined objects (constants, #S/#E, UNNAMED_BEAM) set builtin.
+    builtin = false;
     flagged = modified = false;
 }
 

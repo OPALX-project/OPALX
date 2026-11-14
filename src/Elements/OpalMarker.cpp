@@ -29,16 +29,15 @@
 // ------------------------------------------------------------------------
 
 OpalMarker::OpalMarker()
-    : OpalElement(COMMON, "MARKER", "The \"MARKER\" element defines a marker.") {
-    // Construct the begin marker for beam lines.
-    OpalMarker* S = new OpalMarker("#S", this);
-    S->builtin    = true;
-    OpalData::getInstance()->create(S);
+    : OpalElement(COMMON, "MARKER", "The \"MARKER\" element defines a marker.") {}
 
-    // Construct the end marker for beam lines.
-    OpalMarker* E = new OpalMarker("#E", this);
-    E->builtin    = true;
-    OpalData::getInstance()->create(E);
+void OpalMarker::defineBuiltins() {
+    for (const char* name : {"#S", "#E"}) {
+        OpalMarker* marker = new OpalMarker();
+        marker->setOpalName(name);
+        marker->builtin = true;
+        OpalData::getInstance()->create(marker);
+    }
 }
 
 OpalMarker::OpalMarker(const std::string& name, OpalMarker* parent) : OpalElement(name, parent) {}

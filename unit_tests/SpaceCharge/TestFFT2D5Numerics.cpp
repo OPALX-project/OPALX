@@ -364,8 +364,9 @@ namespace {
             fsCmd_m->setParallelDimensions(true, true, true);
             fsCmd_m->execute();
 
-            dataSink_m     = std::make_shared<DataSink>();
-            beam_m         = std::make_shared<Beam>();
+            dataSink_m = std::make_shared<DataSink>();
+            beam_m     = std::make_shared<Beam>();
+            Beam::defineBuiltins();
             Beam* testBeam = Beam::find("UNNAMED_BEAM");
 
             // qi/mi/lbt are used by rho scaling; but with NullSolver we mostly validate

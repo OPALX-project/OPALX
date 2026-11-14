@@ -31,6 +31,10 @@ public:
     /// Exemplar constructor.
     OpalMarker();
 
+    /// Define the built-in markers #S and #E, which begin and end every LINE. Called once by
+    /// Configure.
+    static void defineBuiltins();
+
     virtual ~OpalMarker();
 
     /// Make clone.

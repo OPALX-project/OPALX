@@ -256,7 +256,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     const auto dataSink = std::make_shared<DataSink>();
     const auto fsCmd    = makeNoFieldSolver();
     const auto beam     = std::make_shared<Beam>();
-    Beam* testBeam      = Beam::find("UNNAMED_BEAM");
+    Beam::defineBuiltins();
+    Beam* testBeam = Beam::find("UNNAMED_BEAM");
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector{1.0e-9, 2.0e-9}, std::vector{0.511e-3, 0.938},
