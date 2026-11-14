@@ -93,8 +93,8 @@ TEST(ValidateRun, ValidRunHasNoErrors) {
 }
 
 TEST(ValidateRun, MissingFieldSolverAndBeam) {
-    RunDescription run = validRun();
-    run.track.run.attributes.erase(run.track.run.attributes.begin());
+    RunDescription run                   = validRun();
+    run.track.run.attributes[0].hasValue = false;  // FIELDSOLVER, as freeze() records it unset
     run.track.beamNames.push_back("B2");
     const auto errors = validate(run);
     EXPECT_TRUE(contains(errors, "\"FIELDSOLVER\" must be set in \"RUN\" command."));

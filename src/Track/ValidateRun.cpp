@@ -96,7 +96,7 @@ namespace opalx::run {
         const double kineticStop      = track.kineticEnergyStopGeV;
 
         // Field solver.
-        if (attribute(cmd, "FIELDSOLVER") == nullptr) {
+        if (text(cmd, "FIELDSOLVER").empty()) {
             errors.push_back("\"FIELDSOLVER\" must be set in \"RUN\" command.");
         } else if (!run.fieldSolver) {
             errors.push_back("FieldSolverCmd \"" + text(cmd, "FIELDSOLVER") + "\" not found.");
