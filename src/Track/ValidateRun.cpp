@@ -95,6 +95,10 @@ namespace opalx::run {
         const bool spectralTunes      = logical(cmd, "SPECTRALTUNES");
         const double kineticStop      = track.kineticEnergyStopGeV;
 
+        if (text(cmd, "METHOD").empty()) {
+            errors.push_back("The attribute \"METHOD\" isn't set for the \"RUN\" command");
+        }
+
         // Field solver.
         if (text(cmd, "FIELDSOLVER").empty()) {
             errors.push_back("\"FIELDSOLVER\" must be set in \"RUN\" command.");

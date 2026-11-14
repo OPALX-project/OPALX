@@ -1,6 +1,7 @@
 set (_SRCS
     CofCmd.cpp
     BuildElements.cpp
+    BuildTracking.cpp
     DecayChain.cpp
     FreezeRun.cpp
     ObjectValues.cpp
@@ -16,6 +17,7 @@ set (_SRCS
 set (HDRS
     CofCmd.h
     BuildElements.h
+    BuildTracking.h
     DecayChain.h
     FreezeRun.h
     ObjectValues.h

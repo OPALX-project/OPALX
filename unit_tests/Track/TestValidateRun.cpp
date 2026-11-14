@@ -45,6 +45,7 @@ namespace {
         run.track.run.attributes.push_back(entry("FIELDSOLVER", std::string("FS1")));
         run.track.run.attributes.push_back(entry("TURNS", 1.0, false));
         run.track.run.attributes.push_back(entry("SPECTRALTUNES", false, false));
+        run.track.run.attributes.push_back(entry("METHOD", std::string("PARALLEL")));
         run.track.fieldSolverType = "NONE";
         run.fieldSolver           = ObjectDescription{"FIELDSOLVER", "FS1", {}};
 

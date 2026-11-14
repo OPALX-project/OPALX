@@ -18,143 +18,29 @@
 #ifndef OPAL_TrackRun_HH
 #define OPAL_TrackRun_HH
 
-#include "Algorithms/BeamStop.h"
-#include "Algorithms/TrackingSetup.h"
-#include "OPALTypes.h"
-
 #include "AbstractObjects/Action.h"
-#include "Distribution/SamplingBase.hpp"
-#include "PartBunch/PartBunch.h"
 
-#include "Structure/FieldSolverCmd.h"
-
-#include "Utilities/BiMap.h"
-
-#include <memory>
-#include <optional>
-#include <string>
-#include <vector>
-
-class Beam;
 class OpalData;
-class DataSink;
-class Distribution;
-class EmissionSource;
-class GlobalProcess;
-class H5PartWrapper;
-class Inform;
-class ParallelTracker;
-
-namespace opalx::spacecharge {
-    class SpaceChargeSolver;
-}  // namespace opalx::spacecharge
 
 class TrackRun : public Action {
-    using emittingSamplers_t = std::vector<std::shared_ptr<SamplingBase>>;
-
 public:
     /// Exemplar constructor.
     TrackRun();
 
     virtual ~TrackRun();
 
-    /// Execute the command.
+    /**
+     * @brief Run freeze(), buildElements() and validate(); with --check write the run
+     *        description and stop, else build the tracking setup and track.
+     */
     virtual void execute();
 
-    /**
-     * @brief Build everything the tracker needs for this RUN: beams, particle containers,
-     *        output, samplers or the checkpoint, the space-charge solver, the step-size
-     *        schedule and the stop rules.
-     * @param description What freeze() read for this RUN; the OPTION values come from it.
-     * @note Called by execute() after freeze() and validate().
-     */
-    TrackingSetup buildTracking(
-            const opalx::run::RunDescription& description,
-            std::vector<std::shared_ptr<ElementBase>> elements);
-
-    // Bring base class print into scope to avoid hiding warning
-    using Object::print;
-
-    Inform& print(Inform& os) const;
-
 private:
-    enum class RunMethod : unsigned short { NONE, PARALLEL };
-
     // Not implemented.
     TrackRun(const TrackRun&);
     void operator=(const TrackRun&);
 
-    void setRunMethod();
-    std::string getRunMethodName() const;
-
-    void initDataSink(size_t numParticleContainers);
-    std::vector<H5PartWrapper*> borrowedPhaseSpaceSinks() const;
-
-    /// @brief Attach prebuilt global process vector to each particle container.
-    void setupGlobalProcesses(
-            std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists);
-
-    /**
-     * @brief Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
-     * @note Must be called after setupGlobalProcesses - reads processes from the containers.
-     */
-    void wireDaughterContainers(const std::vector<Beam*>& beams);
-
-    /**
-     * @brief Stop condition of every beam: TRACK ZSTOP for the first, BEAM ZSTOP or
-     *        UNTILMAXSTEPS for the others.
-     * @param restored Planes and done flags from a checkpoint; empty for a fresh run.
-     * @throws OpalException For a BEAM ZSTOP on the first beam or on a decay daughter beam,
-     *         ZSTOP together with UNTILMAXSTEPS, or either on a RING.
-     */
-    std::vector<BeamStop> makeBeamStops(
-            const std::vector<Beam*>& beams, bool isRing,
-            const std::vector<BeamStop>& restored) const;
-
-    /// Build samplers for all emission sources, perform initial sampling for t0 == 0
-    /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
-    /// Applied to particle container [index]
-    /// Returns the reference momentum [beta*gamma] set on BEAM for a file distribution
-    /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
-    std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
-            const std::vector<EmissionSource*>& sources, Beam* beam,
-            emittingSamplers_t& emittingSamplers, size_t index = 0);
-
-    /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
-    /// optional per-distribution NPARTDIST values on the emission sources.
-    size_t computeTotalAllocationForBunch(
-            Beam* beam, const std::vector<EmissionSource*>& sources) const;
-
-    /// For each beam (TRACK BEAMS order), the beam whose reference particle it uses: its own
-    /// index, or for a decay daughter beam the first beam of its decay chain.
-    std::vector<std::size_t> decayRoots_m;
-
-    using bunch_type = PartBunch_t;
-
-    // The destructor preserves the borrowed-particle lifetime contract: tracker, space-charge
-    // system, then the particle bunch. Algorithm destructors never observe dangling particles.
-    std::unique_ptr<bunch_type> bunch_m;
-    std::unique_ptr<opalx::spacecharge::SpaceChargeSolver> spaceChargeSolver_m;
-    std::unique_ptr<ParallelTracker> itsTracker_m;
-
-    /// Distributions referenced by all emission sources (non-owning raw pointers).
-    std::vector<Distribution*> distrs_m;
-
-    /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
-    // std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
-
-    FieldSolverCmd* fs_m;
-
-    DataSink* ds_m;
-
-    std::vector<std::unique_ptr<H5PartWrapper>> phaseSpaceSinks_m;
-
     OpalData* opal_m;
-
-    RunMethod method_m;
-    static const BiMap<RunMethod, std::string> stringMethod_s;
 };
-
-inline Inform& operator<<(Inform& os, const TrackRun& b) { return b.print(os); }
 
 #endif  // OPAL_TrackRun_HH
