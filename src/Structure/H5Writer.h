@@ -51,30 +51,8 @@ public:
     void writePhaseSpace(
             PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
 
-    /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
-     *
-     * \param beam The beam.
-     * \param FDext The external E and B field for the head, reference and tail particles. The
-     * vector array has the following layout:
-     *  - FDext[0] = B at head particle location (in x, y and z).
-     *  - FDext[1] = E at head particle location (in x, y and z).
-     *  - FDext[2] = B at reference particle location (in x, y and z).
-     *  - FDext[3] = E at reference particle location (in x, y and z).
-     *  - FDext[4] = B at tail particle location (in x, y, and z).
-     *  - FDext[5] = E at tail particle location (in x, y, and z).
-     *  \param E average energy (MeB)
-     *  \return Returns the number of the time step just written.
-     */
-    int writePhaseSpace(
-            PartBunch_t& beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
-            double refPz, double refR, double refTheta, double refZ, double azimuth,
-            double elevation, bool local, size_t particleContainerIndex = 0);
-
 private:
     H5PartWrapper* h5wrapper_m;
-
-    /// Current record, or time step, of H5 file.
-    int H5call_m;
 };
 
 inline void H5Writer::close() { h5wrapper_m->close(); }

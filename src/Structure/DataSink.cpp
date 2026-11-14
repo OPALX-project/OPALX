@@ -71,16 +71,6 @@ DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart)
 
 DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {}
 
-void DataSink::dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const {
-    const size_t n = beam.getNumParticleContainers();
-    std::vector<std::array<Vector_t<double, 3>, 2>> v(n);
-    for (size_t i = 0; i < n; ++i) {
-        v[i][0] = FDext[0];
-        v[i][1] = FDext[1];
-    }
-    dumpH5(beam, v);
-}
-
 void DataSink::dumpH5(
         PartBunch_t& beam,
         const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const {
@@ -107,19 +97,6 @@ void DataSink::dumpH5(
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
         h5Writers_m[i]->writePhaseSpace(beam, fd, i);
     }
-}
-
-int DataSink::dumpH5(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
-        double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-        double elevation, bool local) const {
-    if (!Options::enableHDF5 || h5Writers_m.empty()) {
-        return -1;
-    }
-
-    return h5Writers_m[0]->writePhaseSpace(
-            beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
-            local, 0);
 }
 
 void DataSink::dumpSDDS(

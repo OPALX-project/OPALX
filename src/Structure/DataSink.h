@@ -81,13 +81,6 @@ public:
     void rewindToCheckpoint(PartBunch_t& beam);
 
     /**
-     * @brief Write H5 phase-space data for all particle containers.
-     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     * @param FDext External magnetic/electric field values reused for each container.
-     */
-    void dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const;
-
-    /**
      * @brief Write H5 phase-space data with per-container external fields.
      * @param beam Borrowed particle bunch; DataSink does not own or retain it.
      * @param fdextPerContainer External field values indexed by particle container.
@@ -95,15 +88,6 @@ public:
     void dumpH5(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const;
-
-    /**
-     * @brief Write single-container H5 phase-space data with reference quantities.
-     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     */
-    int dumpH5(
-            PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
-            double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-            double elevation, bool local) const;
 
     /**
      * @brief Write SDDS statistics with per-container external fields.
