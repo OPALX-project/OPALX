@@ -51,8 +51,7 @@ TEST(TestOpalSinusoidalTimeDependence, ConstructorTest) {
 }
 
 TEST(TestOpalSinusoidalTimeDependence, PrintTest) {
-    const OpalSinusoidalTimeDependence& dep =
-            opalx::test::keyword<OpalSinusoidalTimeDependence>("SINUSOIDAL_TIME_DEPENDENCE");
+    const OpalSinusoidalTimeDependence dep;
     std::stringstream _string;
     dep.print(_string);
     EXPECT_EQ(_string.str(), "SINUSOIDAL_TIME_DEPENDENCE;\n");

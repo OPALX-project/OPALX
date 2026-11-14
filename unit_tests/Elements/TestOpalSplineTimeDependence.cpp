@@ -29,8 +29,7 @@ TEST(TestOpalSplineTimeDependence, ConstructorTest) {
 }
 
 TEST(TestOpalSplineTimeDependence, PrintTest) {
-    const OpalSplineTimeDependence& dep =
-            opalx::test::keyword<OpalSplineTimeDependence>("SPLINE_TIME_DEPENDENCE");
+    const OpalSplineTimeDependence dep;
     std::stringstream _string;
     dep.print(_string);
     EXPECT_EQ(_string.str(), "SPLINE_TIME_DEPENDENCE;\n");

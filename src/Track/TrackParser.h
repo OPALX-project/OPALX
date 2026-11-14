@@ -2,8 +2,7 @@
 // Class TrackParser
 //   The parser class used by the OPAL tracking module.
 //   As long as control remains in this class, OPAL recognizes only the
-//   commands allowed in tracking mode.  Thus this parser has its own
-//   command directory with a find() method which is used to find commands.
+//   commands allowed in tracking mode: RUN and ENDTRACK.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -21,7 +20,6 @@
 #ifndef OPAL_TrackParser_HH
 #define OPAL_TrackParser_HH
 
-#include "AbstractObjects/Directory.h"
 #include "OpalParser/OpalParser.h"
 
 class TrackParser : public OpalParser {
@@ -30,16 +28,13 @@ public:
     virtual ~TrackParser();
 
 protected:
-    /// Find object by name in the track command directory.
-    virtual Object* find(const std::string&) const;
+    /// A new RUN or ENDTRACK command named @p newName; nullptr for any other @p name.
+    virtual Object* makeFrom(const std::string& name, const std::string& newName) const;
 
 private:
     // Not implemented.
     TrackParser(const TrackParser&);
     void operator=(const TrackParser&);
-
-    // The sub-command directory.
-    Directory trackDirectory;
 };
 
 #endif  // OPAL_TrackParser_HH

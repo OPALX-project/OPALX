@@ -277,7 +277,11 @@ void Line::parseList(Statement& stat, bool allowModifiers) {
             std::string name = parseString(stat, "Line member expected.");
             Object* obj      = OpalData::getInstance()->find(name);
 
-            if (!obj) {
+            if (!obj && OpalData::getInstance()->isKeyword(name)) {
+                throw ParseError(
+                        "Line::parseList()",
+                        "\"" + name + "\" is a keyword, not a defined element.");
+            } else if (!obj) {
                 throw ParseError("Line::parseList()", "Element \"" + name + "\" is undefined.");
             }
 

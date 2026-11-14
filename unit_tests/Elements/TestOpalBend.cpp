@@ -100,8 +100,7 @@ namespace {
             // In a full run the RealVariable exemplar creates and registers the P0 variable;
             // without it getP0() dereferences a null pointer. Created once for the suite and
             // intentionally never deleted, since OpalData keeps referring to it.
-            [[maybe_unused]] static RealVariable* p0Owner =
-                    &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+            opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
     };
 

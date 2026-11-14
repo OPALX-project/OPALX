@@ -257,8 +257,7 @@ TEST_F(CyclotronProbeTest, ConfigurationValidationAndLegacyMapping) {
 }
 
 TEST_F(CyclotronProbeTest, InputConvertsMillimetresAndIgnoresPathLength) {
-    [[maybe_unused]] static RealVariable* p0Owner =
-            &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+    opalx::test::keyword<RealVariable>("REAL_VARIABLE");
     // The PROBE keyword has no segment; updating all input objects leaves it alone.
     opalx::test::keyword<OpalProbe>("PROBE");
     OpalData::getInstance()->makeDirty(nullptr);

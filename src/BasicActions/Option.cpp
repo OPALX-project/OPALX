@@ -401,12 +401,8 @@ Option::Option()
             "counts only. Values above 0 require the P3M field solver. Default is 0.",
             loadBalancingPairWeight);
 
-    registerOwnership(AttributeHandler::STATEMENT);
-
-    FileStream::setEcho(echo);
-}
-
-Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
+    // Start from the current settings, so that an OPTION command changes only the values it
+    // names.
     Attributes::setBool(itsAttr[ECHO], echo);
     Attributes::setBool(itsAttr[INFO], info);
     Attributes::setBool(itsAttr[TRACE], mtrace);
@@ -441,7 +437,13 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
     Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
     Attributes::setReal(itsAttr[LOADBALANCINGPAIRWEIGHT], loadBalancingPairWeight);
+
+    registerOwnership(AttributeHandler::STATEMENT);
+
+    FileStream::setEcho(echo);
 }
+
+Option::Option(const std::string& name, Option* parent) : Action(name, parent) {}
 
 Option::~Option() {}
 
@@ -625,16 +627,5 @@ void Option::execute() {
 
     if (Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
-    }
-
-    Option* main = dynamic_cast<Option*>(OpalData::getInstance()->find("OPTION"));
-    if (main) {
-        main->update(itsAttr);
-    }
-}
-
-void Option::update(const std::vector<Attribute>& othersAttributes) {
-    for (int i = 0; i < SIZE; ++i) {
-        itsAttr[i] = othersAttributes[i];
     }
 }

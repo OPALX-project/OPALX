@@ -30,8 +30,7 @@ TEST(TestOpalPolynomialTimeDependence, ConstructorTest) {
 }
 
 TEST(TestOpalPolynomialTimeDependence, PrintTest) {
-    const OpalPolynomialTimeDependence& dep =
-            opalx::test::keyword<OpalPolynomialTimeDependence>("POLYNOMIAL_TIME_DEPENDENCE");
+    const OpalPolynomialTimeDependence dep;
     std::stringstream _string;
     dep.print(_string);
     EXPECT_EQ(_string.str(), "POLYNOMIAL_TIME_DEPENDENCE;\n");

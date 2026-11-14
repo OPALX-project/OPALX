@@ -224,7 +224,7 @@ TEST_F(TestOpalMultipoleT, UserInterfaceSanityCheck) {
 // Does the print API work
 TEST_F(TestOpalMultipoleT, Print) {
     // Make the UI
-    const OpalMultipoleT& ui = opalx::test::keyword<OpalMultipoleT>("MULTIPOLET");
+    const OpalMultipoleT ui;
     // And print it
     std::stringstream ss;
     ui.print(ss);

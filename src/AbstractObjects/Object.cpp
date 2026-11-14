@@ -47,7 +47,11 @@ bool Object::canReplaceBy(Object*) {
     return false;
 }
 
-void Object::copyAttributes(const Object& source) { itsAttr = source.itsAttr; }
+void Object::copyAttributes(const Object& source) {
+    // Copy-construct the attributes: Attribute::operator= does not copy whether the input set
+    // the value.
+    itsAttr = std::vector<Attribute>(source.itsAttr);
+}
 
 void Object::execute() {
     // Default action: do nothing.

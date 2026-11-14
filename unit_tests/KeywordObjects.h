@@ -23,18 +23,13 @@ namespace opalx::test {
     /**
      * @brief Register keyword @p keyword (class @p T) in the keyword table, if it is not yet,
      *        and define its built-in objects (e.g. P0 for REAL_VARIABLE), as Configure does.
-     * @return The keyword's object, owned by OpalData.
      */
     template <class T>
-    T& keyword(const std::string& keyword) {
+    void keyword(const std::string& keyword) {
         OpalData* opal = OpalData::getInstance();
-        if (opal->findKeyword(keyword) == nullptr) {
-            opal->addKeyword(new T());
-            if constexpr (requires { T::defineBuiltins(); }) T::defineBuiltins();
-        }
-        T* model = dynamic_cast<T*>(opal->findKeyword(keyword));
-        if (model == nullptr) throw std::logic_error("keyword " + keyword + " has another class");
-        return *model;
+        if (opal->isKeyword(keyword)) return;
+        opal->addKeyword<T>();
+        if constexpr (requires { T::defineBuiltins(); }) T::defineBuiltins();
     }
 
     /**

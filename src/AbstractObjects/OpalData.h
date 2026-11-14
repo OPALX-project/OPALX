@@ -22,6 +22,7 @@
 #ifndef OPAL_OpalData_HH
 #define OPAL_OpalData_HH
 
+#include <functional>
 #include <iosfwd>
 #include <map>
 #include <stack>
@@ -104,22 +105,35 @@ public:
     void erase(const std::string& name);
 
     /// Find entry.
-    //  Identified by [b]name[/b]: an object defined in the input or a builtin constant, else
-    //  the keyword of that name (see findKeyword()).
+    //  Identified by [b]name[/b]: an object defined in the input or a builtin constant.
+    //  Keywords are not objects; see isKeyword().
     Object* find(const std::string& name);
+
+    /// Makes a new object of one keyword, with the keyword's attribute defaults.
+    using Maker = std::function<Object*()>;
 
     /**
      * @brief Register a keyword (QUADRUPOLE, BEAM, OPTION, ...).
-     * @param keywordObject An object built with its keyword constructor: it holds the
-     *        attribute definitions and defaults. OpalData takes ownership. It is kept apart
-     *        from the objects of the input, so update() and the other directory loops never
-     *        see it.
+     * @param keyword The keyword name, as in the input.
+     * @param maker Makes a new object of the keyword.
      * @throws OpalException if the keyword or an object of that name exists already.
      */
-    void addKeyword(Object* keywordObject);
+    void addKeyword(const std::string& keyword, Maker maker);
 
-    /// The object registered for @p keyword, or nullptr if it is not a keyword.
-    Object* findKeyword(const std::string& keyword) const;
+    /**
+     * @brief Register the keyword of class @p T. Its name is the one T's constructor gives.
+     * @note Making one T here also registers its attribute names for the parser's hints.
+     */
+    template <class T>
+    void addKeyword() {
+        const T probe;
+        addKeyword(probe.getOpalName(), [] {
+            return new T();
+        });
+    }
+
+    /// True if @p name is a keyword.
+    bool isKeyword(const std::string& name) const;
 
     /**
      * @brief Make a new object of @p keyword named @p name, with the keyword's attribute
@@ -128,6 +142,14 @@ public:
      * @note The object is not stored; pass it to define() to store it.
      */
     Object* makeObject(const std::string& keyword, const std::string& name);
+
+    /**
+     * @brief Make a copy of @p source named @p name: a new object of the same keyword with the
+     *        same attribute values (the object the parser makes for "NAME: SOURCE;"). The
+     *        values are shared until one of them is set again.
+     * @throws OpalException if the keyword of @p source is not registered.
+     */
+    Object* copyObject(const Object& source, const std::string& name);
 
     /// Return value of global reference momentum.
     double getP0() const;

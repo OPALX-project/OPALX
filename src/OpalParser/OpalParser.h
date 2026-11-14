@@ -73,8 +73,14 @@ protected:
     /// Execute or check the current command.
     void execute(Object*, const std::string&) const;
 
-    /// Find object by name in the main directory.
-    virtual Object* find(const std::string&) const;
+    /**
+     * @brief The object a statement "NAME, ...;" or "NEWNAME: NAME, ...;" starts from.
+     * @return A copy of the defined object @p name, or a new object of keyword @p name, named
+     *         @p newName and owned by the caller; nullptr if @p name is neither.
+     * @throws ParseError if @p name is a MACRO or a LINE with arguments; those are called with
+     *         their arguments.
+     */
+    virtual Object* makeFrom(const std::string& name, const std::string& newName) const;
 
     /// Parse executable command.
     virtual void parseAction(Statement&) const;

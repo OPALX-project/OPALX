@@ -386,10 +386,14 @@ namespace Expressions {
     std::string parseStringValue(Statement& stat, const char msg[]) {
         std::string result;
         std::string temp;
-        Object* object     = nullptr;
-        bool isWord        = stat.word(temp);
-        bool isValidObject = isWord && (object = OpalData::getInstance()->find(temp), object);
-        bool isConversion  = isWord && temp == "TO_STRING";
+        Object* object = nullptr;
+        bool isWord    = stat.word(temp);
+        // An object name gives the value of a string constant, else the name itself; a
+        // keyword name (TYPE = RING) also gives the name itself.
+        bool isValidObject = isWord
+                             && (object = OpalData::getInstance()->find(temp),
+                                 object || OpalData::getInstance()->isKeyword(temp));
+        bool isConversion = isWord && temp == "TO_STRING";
 
         while (stat.str(temp) || isValidObject || isConversion) {
             if (isValidObject) {
@@ -417,8 +421,10 @@ namespace Expressions {
 
             object        = nullptr;
             isWord        = stat.word(temp);
-            isValidObject = isWord && (object = OpalData::getInstance()->find(temp), object);
-            isConversion  = isWord && temp == "TO_STRING";
+            isValidObject = isWord
+                            && (object = OpalData::getInstance()->find(temp),
+                                object || OpalData::getInstance()->isKeyword(temp));
+            isConversion = isWord && temp == "TO_STRING";
         }
 
         if (result.empty()) {

@@ -445,7 +445,7 @@ TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
 }
 
 TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
-    [[maybe_unused]] static auto* p0Owner = &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+    opalx::test::keyword<RealVariable>("REAL_VARIABLE");
     auto rbendObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
     OpalRBend& rbend = *rbendObject;
     Attributes::setReal(*rbend.findAttribute("L"), 0.5);

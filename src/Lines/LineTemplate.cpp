@@ -82,8 +82,7 @@ Object* LineTemplate::makeInstance(const std::string& name, Statement& statement
         }
 
         // Parse the modified line.
-        Line* model = dynamic_cast<Line*>(OpalData::getInstance()->find("LINE"));
-        instance    = model->clone(name);
+        instance = static_cast<Line*>(OpalData::getInstance()->makeObject("LINE", name));
         instance->copyAttributes(*this);
         expansion.start();
         instance->parse(expansion);

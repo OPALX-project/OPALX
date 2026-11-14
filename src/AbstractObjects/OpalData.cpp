@@ -60,8 +60,8 @@ struct OpalDataImpl {
     // The main object directory.
     Directory mainDirectory;
 
-    // The keywords, by name; kept apart from the objects of the input.
-    std::map<std::string, std::shared_ptr<Object>> keywords;
+    // The keywords, by name, with the function that makes an object of each.
+    std::map<std::string, OpalData::Maker> keywords;
 
     // The value of the global momentum.
     ValueDefinition* referenceMomentum;
@@ -371,7 +371,7 @@ void OpalData::create(Object* newObject) {
     const std::string name = newObject->getOpalName();
     Object* oldObject      = p->mainDirectory.find(name);
 
-    if (oldObject != nullptr || findKeyword(name) != nullptr) {
+    if (oldObject != nullptr || isKeyword(name)) {
         throw OpalException(
                 "OpalData::create()", "You cannot replace the object \"" + name + "\".");
     } else {
@@ -384,8 +384,8 @@ void OpalData::define(Object* newObject) {
     const std::string name = newObject->getOpalName();
     Object* oldObject      = p->mainDirectory.find(name);
 
-    // A keyword cannot be redefined, as when the keywords were stored with the objects.
-    if (findKeyword(name) != nullptr) {
+    // A keyword cannot be redefined.
+    if (isKeyword(name)) {
         throw OpalException(
                 "OpalData::define()", "You cannot replace the object \"" + name + "\".");
     }
@@ -452,29 +452,34 @@ void OpalData::erase(const std::string& name) {
     if (oldObject != nullptr) p->mainDirectory.erase(name);
 }
 
-Object* OpalData::find(const std::string& name) {
-    if (Object* object = p->mainDirectory.find(name)) return object;
-    return findKeyword(name);
-}
+Object* OpalData::find(const std::string& name) { return p->mainDirectory.find(name); }
 
-void OpalData::addKeyword(Object* keywordObject) {
-    std::shared_ptr<Object> owned(keywordObject);
-    const std::string name = keywordObject->getOpalName();
-    if (p->keywords.count(name) != 0 || p->mainDirectory.find(name) != nullptr) {
+void OpalData::addKeyword(const std::string& keyword, Maker maker) {
+    if (p->keywords.count(keyword) != 0 || p->mainDirectory.find(keyword) != nullptr) {
         throw OpalException(
-                "OpalData::addKeyword()", "You cannot replace the object \"" + name + "\".");
+                "OpalData::addKeyword()", "You cannot replace the object \"" + keyword + "\".");
     }
-    p->keywords.emplace(name, std::move(owned));
+    p->keywords.emplace(keyword, std::move(maker));
 }
 
-Object* OpalData::findKeyword(const std::string& keyword) const {
-    const auto entry = p->keywords.find(keyword);
-    return entry == p->keywords.end() ? nullptr : entry->second.get();
-}
+bool OpalData::isKeyword(const std::string& name) const { return p->keywords.count(name) != 0; }
 
 Object* OpalData::makeObject(const std::string& keyword, const std::string& name) {
-    Object* model = findKeyword(keyword);
-    return model != nullptr ? model->clone(name) : nullptr;
+    const auto entry = p->keywords.find(keyword);
+    if (entry == p->keywords.end()) return nullptr;
+    Object* object = entry->second();
+    object->setOpalName(name);
+    return object;
+}
+
+Object* OpalData::copyObject(const Object& source, const std::string& name) {
+    Object* copy = makeObject(source.getKeyword(), name);
+    if (copy == nullptr) {
+        throw OpalException(
+                "OpalData::copyObject()", "\"" + source.getOpalName() + "\" cannot be copied.");
+    }
+    copy->copyAttributes(source);
+    return copy;
 }
 
 double OpalData::getP0() const { return p->referenceMomentum->getReal() * Units::GeV2eV; }

@@ -45,8 +45,7 @@ namespace {
 
         void SetUp() override {
             // Building reads OpalData::getP0(), which needs the P0 variable (see TestOpalBend).
-            [[maybe_unused]] static RealVariable* p0Owner =
-                    &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+            opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
 
         /// Build a MULTIPOLE made from the keyword table with the given arrays; an empty array

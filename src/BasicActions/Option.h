@@ -39,9 +39,6 @@ public:
     virtual void execute();
 
 private:
-    using Object::update;
-    void update(const std::vector<Attribute>&);
-
     // Not implemented.
     Option(const Option&);
     void operator=(const Option&);

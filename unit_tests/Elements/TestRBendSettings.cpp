@@ -40,8 +40,8 @@ namespace {
             int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
-            gmsg                             = new Inform(nullptr, -1);
-            [[maybe_unused]] static auto* p0 = &opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+            gmsg = new Inform(nullptr, -1);
+            opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
         static void TearDownTestSuite() {
             delete gmsg;
