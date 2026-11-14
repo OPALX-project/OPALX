@@ -608,6 +608,10 @@ void OpalData::update() {
             (*i)->invalidate();
         }
 
+        // Validation needs fresh expressions, but must not update simulation
+        // definitions or dynamic tables (which may load external data).
+        if (Options::parseOnly) return;
+
         // Force refilling of dynamic tables.
         for (OpalDataImpl::tableIterator i = p->tableDirectory.begin();
              i != p->tableDirectory.end(); ++i) {
