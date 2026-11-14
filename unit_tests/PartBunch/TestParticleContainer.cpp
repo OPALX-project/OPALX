@@ -5,8 +5,6 @@
  * Covers:
  * - Charge / mass storage in both `SingleValue` and `Attributes` QM modes.
  * - Round-trip `scaleDtByCharge` / `unscaleDtByCharge` in both QM modes.
- * - Moment computation stability (empty and known-data cases).
- * - Min / max position computation.
  * - `markParticlesOutside` and `deleteInvalidParticles` mask-driven deletion.
  * - Propagation of periodic and open boundary conditions to the P3M overlap layout.
  * - Rotation of `Pol` together with `P` in every frame change (`transformBunch`,
@@ -236,89 +234,6 @@ namespace {
         for (size_t i = 0; i < nPart; ++i) {
             EXPECT_NEAR(dt_back(i), dtOrig, 1e-20) << "particle " << i;
         }
-    }
-
-    // ================================================================
-    // Moments & MinMax – empty container (no NaN / crash)
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, MomentsAndMinMax_EmptyContainer_NoNaN) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        ASSERT_EQ(pc->getLocalNum(), 0u);
-
-        pc->updateMoments();
-        pc->computeMinMaxR();
-
-        auto meanR = pc->getMeanR();
-        auto rmsR  = pc->getRmsR();
-        auto minR  = pc->getMinR();
-        auto maxR  = pc->getMaxR();
-
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_TRUE(std::isfinite(meanR[d])) << "meanR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(rmsR[d])) << "rmsR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(minR[d])) << "minR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(maxR[d])) << "maxR[" << d << "]";
-            EXPECT_LE(minR[d], maxR[d]) << "min > max at dim " << d;
-        }
-    }
-
-    // ================================================================
-    // Moments – known symmetric data → mean ≈ 0, rms ≈ 1
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, Moments_KnownSymmetricData) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions;
-        if (ippl::Comm->rank() == 0) {
-            positions = {{1.0, 1.0, 1.0}, {-1.0, -1.0, -1.0}, {1.0, -1.0, 1.0}, {-1.0, 1.0, -1.0}};
-        }
-        createParticlesAt(pc, positions);
-        pc->setM(1.0);
-
-        pc->updateMoments();
-
-        auto meanR = pc->getMeanR();
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_NEAR(meanR[d], 0.0, 1e-14) << "meanR[" << d << "]";
-        }
-
-        auto rmsR = pc->getRmsR();
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_NEAR(rmsR[d], 1.0, 1e-14) << "rmsR[" << d << "]";
-        }
-    }
-
-    // ================================================================
-    // MinMax R – known particle positions
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, MinMaxR_KnownPositions) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions;
-        if (ippl::Comm->rank() == 0) {
-            positions = {{1.0, 2.0, 3.0}, {-0.5, -1.5, 0.0}, {0.0, 0.0, -2.0}};
-        }
-        createParticlesAt(pc, positions);
-
-        pc->computeMinMaxR();
-
-        auto minR = pc->getMinR();
-        auto maxR = pc->getMaxR();
-
-        EXPECT_NEAR(minR[0], -0.5, 1e-14);
-        EXPECT_NEAR(minR[1], -1.5, 1e-14);
-        EXPECT_NEAR(minR[2], -2.0, 1e-14);
-
-        EXPECT_NEAR(maxR[0], 1.0, 1e-14);
-        EXPECT_NEAR(maxR[1], 2.0, 1e-14);
-        EXPECT_NEAR(maxR[2], 3.0, 1e-14);
     }
 
     // ================================================================

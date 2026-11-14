@@ -112,7 +112,6 @@ namespace opalx::spacecharge {
             auto& particles           = *particles_m[index];
             const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
             leaveSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
-            particles.markMomentsDirty();
         }
     }
 
@@ -173,7 +172,6 @@ namespace opalx::spacecharge {
                 "FFT2D5::restoreCartesianPositions", pc.getLocalNum(),
                 KOKKOS_LAMBDA(size_t i) { positions(i) = cartesian(i); });
         Kokkos::fence();
-        pc.markMomentsDirty();
     }
 
     void FFT2D5Algorithm::migrateContainer(size_t container) {

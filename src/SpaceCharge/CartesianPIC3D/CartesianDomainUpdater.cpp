@@ -215,7 +215,6 @@ namespace opalx::spacecharge {
                 particles.updateLayout(fieldStorage.layout(), fieldStorage.mesh());
             }
             particles.update();
-            particles.markMomentsDirty();
         }
     }
 

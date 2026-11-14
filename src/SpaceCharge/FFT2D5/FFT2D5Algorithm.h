@@ -770,7 +770,7 @@ namespace opalx::spacecharge {
          * together. */
         void saveMigrationPositions(size_t container);
         /** @internal @brief Restore Cartesian coordinates from the migrated registered attribute.
-         * @param pc Container on its current ownership; invalidates its moment cache. */
+         * @param pc Container on its current ownership. */
         void restoreMigrationPositions(ParticleContainer& pc);
         /** @internal @brief Migrate one container through OPEN spatial infrastructure and restore
          * its BC.

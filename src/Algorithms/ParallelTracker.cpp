@@ -1234,7 +1234,6 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
                     "Cyclotron::predictMidpoint", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
                         r(i) += (.5 * h * Physics::c / Kokkos::sqrt(1 + dot(p(i), p(i)))) * p(i);
                     });
-            pc->markMomentsDirty();
         }
         return;
     }
@@ -1327,7 +1326,6 @@ void ParallelTracker::advanceCyclotronParticle() {
     p(0) = toLab.rotateFrom(momentum);
     Kokkos::deep_copy(pc->R.getView(), r);
     Kokkos::deep_copy(pc->P.getView(), p);
-    pc->markMomentsDirty();
 }
 
 /**
@@ -1419,7 +1417,6 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
             itsBunch_m->setdT(actualDt);
             pc->dt = actualDt;
         }
-        pc->markMomentsDirty();
         return;
     }
     // Legacy note: cathode transport/emission was sequenced after space charge so that
@@ -2015,7 +2012,6 @@ void ParallelTracker::reverseTrialDrift(double dt) {
             "Boris::rejectHalfDrift", pc->getLocalNum(),
             KOKKOS_LAMBDA(size_t i) { r(i) = boris_midpoint::halfDrift(r(i), p(i), -dt); });
     Kokkos::fence();
-    pc->markMomentsDirty();
 }
 
 void ParallelTracker::prepareBoundaryStep(
@@ -2103,7 +2099,6 @@ void ParallelTracker::pushParticles(
     // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
-    pc.markMomentsDirty();
 }
 
 /**
@@ -2143,7 +2138,6 @@ void ParallelTracker::kickParticles(
     */
     Kokkos::fence();
     ippl::Comm->barrier();
-    pc.markMomentsDirty();
 
     m << level5 << "Completed parallel kick operation." << endl;
 }
