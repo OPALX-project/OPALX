@@ -1551,7 +1551,6 @@ void ParallelTracker::computeSpaceChargeFields() {
         return;
     }
 
-    itsBunch_m->calcBeamParameters();
     const auto frames   = makeSpaceChargeFrameTransforms();
     const auto emission = spaceChargeEmissionProgress();
 

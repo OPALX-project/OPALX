@@ -52,8 +52,10 @@ void Probe::setStep(double step) { step_m = step; }
 double Probe::getStep() const { return step_m; }
 
 bool Probe::doPreCheck(PartBunch_t* bunch) {
-    Vector_t<double, 3> rmin, rmax;
-    bunch->get_bounds(rmin, rmax);
+    const auto bounds =
+            opalx::moments::compute(*bunch->getParticleContainer(), opalx::moments::Moment::Bounds);
+    const Vector_t<double, 3>& rmin = bounds.minR();
+    const Vector_t<double, 3>& rmax = bounds.maxR();
     // interested in absolute minimum and maximum
     double xmin       = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
     double xmax       = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
