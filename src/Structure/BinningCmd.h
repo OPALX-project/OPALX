@@ -28,6 +28,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Attributes/Attributes.h"
+#include "Track/ObjectValues.h"
 
 class Inform;
 
@@ -60,41 +61,39 @@ public:
     /// Find named BINNING command.
     static BinningCmd* find(const std::string& name);
 
-    int getMaxBins() const;
-    double getDesiredWidth() const;
-    double getBinningAlpha() const;
-    double getBinningBeta() const;
-    bool getAdaptiveBinning() const;
+    static int getMaxBins(const ObjectValues& values);
+    static double getDesiredWidth(const ObjectValues& values);
+    static double getBinningAlpha(const ObjectValues& values);
+    static double getBinningBeta(const ObjectValues& values);
+    static bool getAdaptiveBinning(const ObjectValues& values);
 
-    std::string getParameter() const;
+    static std::string getParameter(const ObjectValues& values);
 
     /// The PARAMETER as an enum. @throws OpalException for an unknown PARAMETER.
-    BinningParameter getParameterType() const;
+    static BinningParameter getParameterType(const ObjectValues& values);
 
     /// Get the file name for dumping bins to a file; ".json" is added if it has no extension.
-    std::string getDumpBinsFileName() const;
+    static std::string getDumpBinsFileName(const ObjectValues& values);
 
     /// Get the frequency of dumping bins to a file.
-    int getDumpBinsFrequency() const;
+    static int getDumpBinsFrequency(const ObjectValues& values);
 
     /// Get frequency (in global timesteps) of printing bin stats to console.
     /// Returns an integer >= 0. If 0, printing is disabled.
-    int getTablePrintFrequency() const;
+    static int getTablePrintFrequency(const ObjectValues& values);
 
     /// Check if dumping bins to a file is enabled.
-    bool dumpBinsToFile() const;
+    static bool dumpBinsToFile(const ObjectValues& values);
 
     /// Check PARAMETER, DUMPBINSFREQ and TABLEPRINTFREQ when the statement is read.
     virtual void execute();
 
-    Inform& printInfo(Inform& os) const;
+    static Inform& printInfo(Inform& os, const ObjectValues& values);
 
 private:
     // Not implemented.
     BinningCmd(const BinningCmd&);
     void operator=(const BinningCmd&);
 };
-
-inline Inform& operator<<(Inform& os, const BinningCmd& bc) { return bc.printInfo(os); }
 
 #endif  // OPALX_BinningCmd_HH

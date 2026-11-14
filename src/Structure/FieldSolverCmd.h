@@ -27,6 +27,7 @@
 #include "Attributes/Attributes.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
+#include "Track/ObjectValues.h"
 
 #include "Ippl.h"
 
@@ -74,29 +75,29 @@ public:
     /// Find named FieldSolverCmd.
     static FieldSolverCmd* find(const std::string& name);
 
-    std::string getType() const;
-    std::string getBinsName() const;
+    static std::string getType(const ObjectValues& values);
+    static std::string getBinsName(const ObjectValues& values);
     BinningCmd* getBinningCmd() const;
-    std::string getGreensFunction() const;
-    double getP3MCutoff() const;
+    static std::string getGreensFunction(const ObjectValues& values);
+    static double getP3MCutoff(const ObjectValues& values);
     /// P3M cutoff in units of the largest mesh spacing (default 2 when RCUT is not given).
-    double getP3MCutoffCells() const;
-    double getPeriodicBox() const;
+    static double getP3MCutoffCells(const ObjectValues& values);
+    static double getPeriodicBox(const ObjectValues& values);
     /// Whether RCUT or RCUT_CELLS was set in the input, rather than left at its default.
-    bool hasP3MCutoff() const;
-    bool hasP3MCutoffCells() const;
+    static bool hasP3MCutoff(const ObjectValues& values);
+    static bool hasP3MCutoffCells(const ObjectValues& values);
 
     /// Returns solver boundary conditions handler object.
-    BCHandler<3> constructBCHandler() const;
+    static BCHandler<3> constructBCHandler(const ObjectValues& values);
 
     /// Return meshsize
-    double getNX() const;
+    static double getNX(const ObjectValues& values);
 
     /// Return meshsize
-    double getNY() const;
+    static double getNY(const ObjectValues& values);
 
     /// Return meshsize
-    double getNZ() const;
+    static double getNZ(const ObjectValues& values);
 
     void setNX(double);
 
@@ -104,33 +105,31 @@ public:
 
     void setNZ(double);
 
-    double getBoxIncr() const;
+    static double getBoxIncr(const ObjectValues& values);
 
     /// Execute (init) the field solver data.
     virtual void execute();
 
-    bool hasBinningCmd() const { return getBinningCmd() != nullptr; }
+    static FieldSolverCmdType getFieldSolverCmdType(const ObjectValues& values);
 
-    FieldSolverCmdType getFieldSolverCmdType() const;
+    static ippl::Vector<bool, 3> getDomainDecomposition(const ObjectValues& values);
 
-    ippl::Vector<bool, 3> getDomainDecomposition() const;
-
-    Inform& printInfo(Inform& os) const;
+    static Inform& printInfo(Inform& os, const ObjectValues& values);
 
     /// Return the configured FFT2D5 identity; ORIGINAL is the default and only supported model.
-    std::string getFFT2D5Model() const;
+    static std::string getFFT2D5Model(const ObjectValues& values);
     /// Whether FFT2D5MODEL was explicitly supplied rather than inherited from its default.
-    bool hasFFT2D5Model() const;
+    static bool hasFFT2D5Model(const ObjectValues& values);
     /** @brief Set a predefined FFT2D5 model identity.
      * @param model ORIGINAL; invalid predefined values are rejected by attribute validation. */
     void setFFT2D5Model(const std::string& model);
-    std::string getPipeMode() const;
-    double getBeamRadius() const;
-    bool getClosedRing() const;
-    bool getScatterLongitudinally() const;
-    double getPipeSizeX() const;
-    double getPipeSizeY() const;
-    std::string getRefPathFileName() const;
+    static std::string getPipeMode(const ObjectValues& values);
+    static double getBeamRadius(const ObjectValues& values);
+    static bool getClosedRing(const ObjectValues& values);
+    static bool getScatterLongitudinally(const ObjectValues& values);
+    static double getPipeSizeX(const ObjectValues& values);
+    static double getPipeSizeY(const ObjectValues& values);
+    static std::string getRefPathFileName(const ObjectValues& values);
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
@@ -144,7 +143,5 @@ private:
     FieldSolverCmd(const FieldSolverCmd&);
     void operator=(const FieldSolverCmd&);
 };
-
-inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }
 
 #endif  // OPAL_FieldSolverCmd_HH

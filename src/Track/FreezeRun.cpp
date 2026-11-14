@@ -28,6 +28,7 @@
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Track/BuildElements.h"
+#include "Track/ObjectValues.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -175,11 +176,12 @@ namespace opalx::run {
         SourceDescription describeSource(const EmissionSource& source) {
             SourceDescription description;
             description.name = source.getOpalName();
+            const ObjectValues values(describeObject(source));
             tryRead([&] {
-                description.distribution = source.getDistributionName();
+                description.distribution = EmissionSource::getDistributionName(values);
             });
             tryRead([&] {
-                description.t0 = source.getT0();
+                description.t0 = EmissionSource::getT0(values);
             });
             if (const auto* dist = findAs<Distribution>(description.distribution)) {
                 description.distributionFound = true;
@@ -318,7 +320,9 @@ namespace opalx::run {
             for (const EmissionSource* source : list->fetchSources()) {
                 if (source == nullptr) continue;
                 run.emissionSources.push_back(describeObject(*source));
-                if (const auto* dist = findAs<Distribution>(source->getDistributionName())) {
+                const std::string distribution =
+                        Attributes::getString(*attributeNamed(*source, "DISTRIBUTION"));
+                if (const auto* dist = findAs<Distribution>(distribution)) {
                     run.distributions.push_back(describeObject(*dist));
                 }
             }
@@ -328,7 +332,8 @@ namespace opalx::run {
             if (const auto* fs = findAs<FieldSolverCmd>(Attributes::getString(*solver))) {
                 run.fieldSolver = describeObject(*fs);
                 tryRead([&] {
-                    run.track.fieldSolverType = fs->getType();
+                    run.track.fieldSolverType =
+                            FieldSolverCmd::getType(ObjectValues(*run.fieldSolver));
                 });
                 if (const BinningCmd* binning = fs->getBinningCmd()) {
                     run.binning = describeObject(*binning);

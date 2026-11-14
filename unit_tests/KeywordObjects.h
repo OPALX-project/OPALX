@@ -17,6 +17,7 @@
 #include "Attributes/Attributes.h"
 #include "Track/BuildElements.h"
 #include "Track/FreezeRun.h"
+#include "Track/ObjectValues.h"
 
 namespace opalx::test {
 
@@ -87,6 +88,11 @@ namespace opalx::test {
     /// does (opalx::run::registerModels()).
     inline void registerModel(const Object& object) {
         opalx::run::registerModels({opalx::run::describeObject(object)});
+    }
+
+    /// The attribute values of input object @p object, as a RUN reads them.
+    inline ObjectValues valuesOf(const Object& object) {
+        return ObjectValues(opalx::run::describeObject(object));
     }
 
 }  // namespace opalx::test

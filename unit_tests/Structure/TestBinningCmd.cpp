@@ -5,8 +5,8 @@
  * This file tests the behavior of the OPAL command object `BinningCmd`, focusing on:
  * - Default construction values (max bins, desired width, alpha/beta, default parameter, print
  * frequency).
- * - Getter/setter consistency via a small test helper (`TestableBinningCmd`) that writes to
- *   internal attributes using the standard `Attributes` interface.
+ * - The getters, which read the values a RUN reads (opalx::test::valuesOf()), after a small
+ *   test helper (`TestableBinningCmd`) set the attributes.
  * - `execute()` validation logic:
  *   - Appending `.json` to `DUMPBINSFILE` when a filename is provided without the suffix.
  *   - Enforcing that `DUMPBINSFREQ` is positive when dumping is enabled.
@@ -14,8 +14,7 @@
  * - `execute()` behavior:
  *   - Mapping supported `PARAMETER` strings to the corresponding `BinningParameter` enum.
  *   - Throwing `OpalException` for unknown/unsupported parameter strings.
- * - `clone(name)`:
- *   - Copies attribute state and cached parameter selection into a new named command object.
+ * - The copy the parser makes for `NAME: OTHER;` has the same values.
  * - `printInfo()`:
  *   - Smoke test that the informational printing path can be invoked without throwing.
  *
@@ -97,9 +96,9 @@ TEST_F(BinningCmdTest, AppendsJsonExtensionAndValidatesFreq) {
 
     cmd.execute();
 
-    EXPECT_TRUE(cmd.dumpBinsToFile());
-    EXPECT_EQ(cmd.getDumpBinsFileName(), "bins_output.json");
-    EXPECT_EQ(cmd.getDumpBinsFrequency(), 5);
+    EXPECT_TRUE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
+    EXPECT_EQ(BinningCmd::getDumpBinsFileName(opalx::test::valuesOf(cmd)), "bins_output.json");
+    EXPECT_EQ(BinningCmd::getDumpBinsFrequency(opalx::test::valuesOf(cmd)), 5);
 }
 
 // DumpBinsToFileRespectsNoneAndEmpty:
@@ -108,13 +107,13 @@ TEST_F(BinningCmdTest, DumpBinsToFileRespectsNoneAndEmpty) {
     TestableBinningCmd cmd;
 
     // Default is "NONE".
-    EXPECT_FALSE(cmd.dumpBinsToFile());
+    EXPECT_FALSE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 
     cmd.setDumpBinsFile("");
-    EXPECT_FALSE(cmd.dumpBinsToFile());
+    EXPECT_FALSE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 
     cmd.setDumpBinsFile("bins.json");
-    EXPECT_TRUE(cmd.dumpBinsToFile());
+    EXPECT_TRUE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 }
 
 // InvalidDumpFreqThrowsWhenDumpingEnabled:
@@ -143,16 +142,17 @@ TEST_F(BinningCmdTest, ConstructionDefaults) {
     auto cmdObject  = opalx::test::makeKeywordObject<BinningCmd>("BINNING", "BINNING");
     BinningCmd& cmd = *cmdObject;
 
-    EXPECT_EQ(cmd.getMaxBins(), 128);
-    EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.1);
-    EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 1.0);
-    EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.5);
-    EXPECT_TRUE(cmd.getAdaptiveBinning());
+    EXPECT_EQ(BinningCmd::getMaxBins(opalx::test::valuesOf(cmd)), 128);
+    EXPECT_DOUBLE_EQ(BinningCmd::getDesiredWidth(opalx::test::valuesOf(cmd)), 0.1);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningAlpha(opalx::test::valuesOf(cmd)), 1.0);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningBeta(opalx::test::valuesOf(cmd)), 1.5);
+    EXPECT_TRUE(BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(cmd)));
 
-    EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
-    EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
+    EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), "VELOCITYZ");
+    EXPECT_EQ(
+            BinningCmd::getParameterType(opalx::test::valuesOf(cmd)), BinningParameter::VELOCITYZ);
 
-    EXPECT_EQ(cmd.getTablePrintFrequency(), 10);
+    EXPECT_EQ(BinningCmd::getTablePrintFrequency(opalx::test::valuesOf(cmd)), 10);
 }
 
 // GettersReflectAttributes:
@@ -171,15 +171,15 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     // execute() checks the values.
     cmd.execute();
 
-    EXPECT_EQ(cmd.getMaxBins(), 42);
-    EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.25);
-    EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 0.5);
-    EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
-    EXPECT_FALSE(cmd.getAdaptiveBinning());
+    EXPECT_EQ(BinningCmd::getMaxBins(opalx::test::valuesOf(cmd)), 42);
+    EXPECT_DOUBLE_EQ(BinningCmd::getDesiredWidth(opalx::test::valuesOf(cmd)), 0.25);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningAlpha(opalx::test::valuesOf(cmd)), 0.5);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningBeta(opalx::test::valuesOf(cmd)), 1.75);
+    EXPECT_FALSE(BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(cmd)));
 
-    EXPECT_EQ(cmd.getParameter(), "PZ");
+    EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), "PZ");
 
-    EXPECT_EQ(cmd.getTablePrintFrequency(), 3);
+    EXPECT_EQ(BinningCmd::getTablePrintFrequency(opalx::test::valuesOf(cmd)), 3);
 }
 
 // ExecuteMapsKnownParameters:
@@ -201,8 +201,8 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         // execute() checks that PARAMETER is known.
         cmd.execute();
 
-        EXPECT_EQ(cmd.getParameter(), std::string(c.name));
-        EXPECT_EQ(cmd.getParameterType(), c.expected);
+        EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), std::string(c.name));
+        EXPECT_EQ(BinningCmd::getParameterType(opalx::test::valuesOf(cmd)), c.expected);
     }
 }
 
@@ -238,14 +238,28 @@ TEST_F(BinningCmdTest, CopyCopiesState) {
     ASSERT_NE(copy, nullptr);
     EXPECT_EQ(copy->getOpalName(), "BINNING_COPY");
 
-    EXPECT_EQ(copy->getMaxBins(), original.getMaxBins());
-    EXPECT_DOUBLE_EQ(copy->getDesiredWidth(), original.getDesiredWidth());
-    EXPECT_DOUBLE_EQ(copy->getBinningAlpha(), original.getBinningAlpha());
-    EXPECT_DOUBLE_EQ(copy->getBinningBeta(), original.getBinningBeta());
-    EXPECT_EQ(copy->getAdaptiveBinning(), original.getAdaptiveBinning());
+    EXPECT_EQ(
+            BinningCmd::getMaxBins(opalx::test::valuesOf(*copy)),
+            BinningCmd::getMaxBins(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getDesiredWidth(opalx::test::valuesOf(*copy)),
+            BinningCmd::getDesiredWidth(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getBinningAlpha(opalx::test::valuesOf(*copy)),
+            BinningCmd::getBinningAlpha(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getBinningBeta(opalx::test::valuesOf(*copy)),
+            BinningCmd::getBinningBeta(opalx::test::valuesOf(original)));
+    EXPECT_EQ(
+            BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(*copy)),
+            BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(original)));
 
-    EXPECT_EQ(copy->getParameter(), original.getParameter());
-    EXPECT_EQ(copy->getParameterType(), original.getParameterType());
+    EXPECT_EQ(
+            BinningCmd::getParameter(opalx::test::valuesOf(*copy)),
+            BinningCmd::getParameter(opalx::test::valuesOf(original)));
+    EXPECT_EQ(
+            BinningCmd::getParameterType(opalx::test::valuesOf(*copy)),
+            BinningCmd::getParameterType(opalx::test::valuesOf(original)));
 }
 
 // PrintInfoDoesNotThrow:
@@ -258,5 +272,5 @@ TEST_F(BinningCmdTest, PrintInfoDoesNotThrow) {
     // to exercise the printing path.
     Inform os("BinningCmd::printInfo");
 
-    EXPECT_NO_THROW({ cmd.printInfo(os); });
+    EXPECT_NO_THROW({ BinningCmd::printInfo(os, opalx::test::valuesOf(cmd)); });
 }

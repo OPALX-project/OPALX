@@ -57,9 +57,9 @@
 
 #include "Track/DecayChain.h"
 
+#include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
-#include "Lines/EmissionSourceList.h"
 #include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
 #include "Structure/EmissionSource.h"
@@ -336,15 +336,24 @@ namespace opalx::run {
             }
         }
 
+        /// The description named @p name in @p objects; freeze() recorded it.
+        const ObjectDescription& named(
+                const std::vector<ObjectDescription>& objects, const std::string& name) {
+            for (const ObjectDescription& object : objects) {
+                if (object.name == name) return object;
+            }
+            throw LogicalError("opalx::run::buildTracking", "No description of \"" + name + "\".");
+        }
+
         /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
         /// optional per-distribution NPARTDIST values on the emission sources.
         size_t computeTotalAllocationForBunch(
-                const BeamDescription& beam, const std::vector<EmissionSource*>& sources) {
+                const BeamDescription& beam, const std::vector<ObjectValues>& sources) {
             size_t beamAllocSize = beam.numAlloc;
 
             size_t totalFromDists = 0;
-            for (EmissionSource* src : sources) {
-                auto* dist = Distribution::find(src->getDistributionName());
+            for (const ObjectValues& src : sources) {
+                auto* dist = Distribution::find(EmissionSource::getDistributionName(src));
                 totalFromDists += dist->getNumParticles();
             }
 
@@ -371,7 +380,7 @@ namespace opalx::run {
         /// Returns the reference momentum [beta*gamma] set on BEAM for a file distribution
         /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
         std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
-                PartBunch_t& bunch, const std::vector<EmissionSource*>& sources,
+                PartBunch_t& bunch, const std::vector<ObjectValues>& sources,
                 const BeamDescription& beam, bool hasInitialOrbit,
                 std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
@@ -386,9 +395,10 @@ namespace opalx::run {
             emittingSamplers.clear();
             bool hasFileSource = false;
 
-            for (EmissionSource* src : sources) {
+            for (const ObjectValues& src : sources) {
                 // Distribution objects are registry-owned; samplers only borrow them.
-                Distribution* opalDist = Distribution::find(src->getDistributionName());
+                Distribution* opalDist =
+                        Distribution::find(EmissionSource::getDistributionName(src));
 
                 // Ensure distribution parameters and reference momentum are up to date.
                 opalDist->setDistType();
@@ -447,14 +457,14 @@ namespace opalx::run {
 
                 // Per-source emission state. The distribution remains a shape sampler; source
                 // physics is folded into the sampler setup here before particles are generated.
-                const auto R0               = src->getR0();
-                auto P0                     = src->getP0();
-                const double t0             = src->getT0();
-                const std::string emitModel = src->getEmissionModel();
+                const auto R0               = EmissionSource::getR0(src);
+                auto P0                     = EmissionSource::getP0(src);
+                const double t0             = EmissionSource::getT0(src);
+                const std::string emitModel = EmissionSource::getEmissionModel(src);
                 const bool generatedEmission =
                         opalDist->emitting_m && opalDist->getType() != DistributionType::FROMFILE
                         && opalDist->getType() != DistributionType::EMITTEDFROMFILE;
-                const double eKin                = src->getKineticEnergy();
+                const double eKin                = EmissionSource::getKineticEnergy(src);
                 double emissionMomentumMagnitude = 0.0;
                 if (generatedEmission && eKin > 0.0) {
                     // EKIN is source-side kinetic energy in eV. Convert it to normalized momentum.
@@ -491,7 +501,7 @@ namespace opalx::run {
                 // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
                 // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
                 // during tracking.
-                if (opalDist->emitting_m || src->getT0() > 0.0
+                if (opalDist->emitting_m || t0 > 0.0
                     || opalDist->getType() == DistributionType::EMITTEDFROMFILE) {
                     emittingSamplers.push_back(sampler);
                     *gmsg << level2 << "* Configured emitting source of type "
@@ -561,13 +571,13 @@ namespace opalx::run {
             }
         }
 
-        // Follow-up behavior is still based on whether a bunch was allocated already.
-        // Emission sources are resolved from the selected BEAM later.
-        // Field solver commands are registry-owned by OpalData; TrackRun only borrows it.
-        FieldSolverCmd* fieldSolver = FieldSolverCmd::find(run.getString("FIELDSOLVER"));
-        *gmsg << level1 << *fieldSolver << endl;
-        if (fieldSolver->hasBinningCmd()) {
-            *gmsg << level1 << *fieldSolver->getBinningCmd() << endl;
+        // validate() checked that the RUN names a FIELDSOLVER.
+        const ObjectValues fieldSolver(*description.fieldSolver);
+        std::optional<ObjectValues> binning;
+        if (description.binning) binning.emplace(*description.binning);
+        FieldSolverCmd::printInfo(*gmsg << level1, fieldSolver) << endl;
+        if (binning) {
+            BinningCmd::printInfo(*gmsg << level1, *binning) << endl;
         }
 
         const TrackDescription& track             = description.track;
@@ -603,7 +613,7 @@ namespace opalx::run {
         // Vectors for each species
         std::vector<double> macrocharges;
         std::vector<double> macromasses;
-        std::vector<std::vector<EmissionSource*>> emissionSourcesLists;
+        std::vector<std::vector<ObjectValues>> emissionSourcesLists;
         std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists;
         macrocharges.reserve(beams.size());
         macromasses.reserve(beams.size());
@@ -632,9 +642,11 @@ namespace opalx::run {
                 // A decay daughter beam gets particles only from the decay.
                 emissionSourcesLists.emplace_back();
             } else {
-                EmissionSourceList* esl = EmissionSourceList::find(b.emissionSourceList);
-                const auto& sources     = esl->fetchSources();
-                emissionSourcesLists.emplace_back(sources.begin(), sources.end());
+                emissionSourcesLists.emplace_back();
+                for (const SourceDescription& source : b.sources) {
+                    emissionSourcesLists.back().emplace_back(
+                            named(description.emissionSources, source.name));
+                }
             }
 
             globalProcessesLists[i] = makeGlobalProcessesForBeam(b, i);
@@ -646,10 +658,14 @@ namespace opalx::run {
             opal->setOpenMode(OpalData::OpenMode::APPEND);
         }
 
-        // Parser-owned commands are consumed once. Runtime solver objects retain only this
-        // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
-        auto spaceChargeConfig =
-                opalx::spacecharge::buildSpaceChargeConfig(*fieldSolver, emissionSourcesLists);
+        std::vector<ObjectValues> allSources;
+        for (const auto& sources : emissionSourcesLists) {
+            allSources.insert(allSources.end(), sources.begin(), sources.end());
+        }
+        auto spaceChargeConfig = opalx::spacecharge::buildSpaceChargeConfig(
+                fieldSolver, binning, allSources,
+                std::vector<ObjectValues>(
+                        description.distributions.begin(), description.distributions.end()));
         opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
         bool retrySafeBareTracking = false;
         if (const auto* cartesian =
@@ -718,7 +734,7 @@ namespace opalx::run {
         wireDaughterContainers(bunch, beams, beamNames, decayRoots);
 
         // BC handler
-        *gmsg << level2 << fieldSolver->constructBCHandler() << endl;
+        *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
 
         // double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
         // if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
@@ -855,7 +871,7 @@ namespace opalx::run {
             setup.initialOrbit = track.initialOrbit;
         }
         // Other solver configurations retain the ordinary unsplit integration sequence.
-        setup.bareTracking           = fieldSolver->getType() == "NONE";
+        setup.bareTracking           = FieldSolverCmd::getType(fieldSolver) == "NONE";
         setup.allowBoundaryControl   = retrySafeBareTracking;
         setup.requestedTurns         = directedTurns;
         setup.kineticEnergyStop      = kineticStop * 1e9;

@@ -26,6 +26,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "../KeywordObjects.h"
 #include "../TemporaryDirectory.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -379,7 +380,8 @@ namespace {
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2",
-                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(
+                            opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {})));
             pc_m = bunch_m->getParticleContainer();
         }
 
@@ -443,7 +445,7 @@ namespace {
         void rebuildBunch() {
             solver_m.reset();
             pc_m.reset();
-            if (fsCmd_m->getType() == "FFT2D5") {
+            if (FieldSolverCmd::getType(opalx::test::valuesOf(*fsCmd_m)) == "FFT2D5") {
                 fsCmd_m->setParallelDimensions(false, false, false);
             }
             fsCmd_m->execute();
@@ -455,9 +457,11 @@ namespace {
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2",
-                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(
+                            opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {})));
             pc_m        = bunch_m->getParticleContainer();
-            auto config = std::get<FFT2D5Config>(buildSpaceChargeConfig(*fsCmd_m, {}));
+            auto config = std::get<FFT2D5Config>(
+                    buildSpaceChargeConfig(opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {}));
             const std::array particles{pc_m.get()};
             solver_m = std::make_unique<FFT2D5Algorithm>(
                     config, particles, bunch_m->getBunchStateHandler());
@@ -758,7 +762,8 @@ namespace {
         fsCmd_m->setParallelDimensions(false, false, false);
 
         ASSERT_NO_THROW(fsCmd_m->execute());
-        const auto decomposition = fsCmd_m->getDomainDecomposition();
+        const auto decomposition =
+                FieldSolverCmd::getDomainDecomposition(opalx::test::valuesOf(*fsCmd_m));
         EXPECT_FALSE(decomposition[0]);
         EXPECT_FALSE(decomposition[1]);
         EXPECT_FALSE(decomposition[2]);
@@ -769,7 +774,9 @@ namespace {
         fsCmd_m->setParallelDimensions(true, false, false);
 
         EXPECT_NO_THROW(fsCmd_m->execute());
-        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
+        EXPECT_THROW(
+                (void)buildSpaceChargeConfig(opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {}),
+                OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_BinningRejected) {
@@ -778,7 +785,9 @@ namespace {
         fsCmd_m->setParallelDimensions(false, false, false);
 
         EXPECT_NO_THROW(fsCmd_m->execute());
-        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
+        EXPECT_THROW(
+                (void)buildSpaceChargeConfig(opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {}),
+                OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_MultipleRanksRequireZDecomposition) {
@@ -788,7 +797,9 @@ namespace {
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setParallelDimensions(false, false, false);
         EXPECT_NO_THROW(fsCmd_m->execute());
-        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
+        EXPECT_THROW(
+                (void)buildSpaceChargeConfig(opalx::test::valuesOf(*fsCmd_m), std::nullopt, {}, {}),
+                OpalException);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {

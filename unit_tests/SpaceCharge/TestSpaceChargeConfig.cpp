@@ -30,7 +30,6 @@
 #include "../KeywordObjects.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Distribution/Distribution.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
 #include "Structure/EmissionSource.h"
@@ -73,13 +72,16 @@ namespace opalx::spacecharge {
 
         TEST(SpaceChargeConfigTest, ExplicitOriginalModelPreservesDefaultAndRejectsOtherTypes) {
             TestableFieldSolverCmd parsed;
-            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
-            EXPECT_FALSE(parsed.hasFFT2D5Model());
+            EXPECT_EQ(FieldSolverCmd::getFFT2D5Model(opalx::test::valuesOf(parsed)), "ORIGINAL");
+            EXPECT_FALSE(FieldSolverCmd::hasFFT2D5Model(opalx::test::valuesOf(parsed)));
             parsed.setFFT2D5Model("ORIGINAL");
-            EXPECT_TRUE(parsed.hasFFT2D5Model());
-            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
+            EXPECT_TRUE(FieldSolverCmd::hasFFT2D5Model(opalx::test::valuesOf(parsed)));
+            EXPECT_EQ(FieldSolverCmd::getFFT2D5Model(opalx::test::valuesOf(parsed)), "ORIGINAL");
             parsed.setType("FFT");
-            EXPECT_THROW((void)buildSpaceChargeConfig(parsed, {}), OpalException);
+            EXPECT_THROW(
+                    (void)buildSpaceChargeConfig(
+                            opalx::test::valuesOf(parsed), std::nullopt, {}, {}),
+                    OpalException);
         }
 
         TEST(SpaceChargeConfigTest, DerivesP3MParticleLayoutAndBoundaryMode) {
@@ -197,11 +199,6 @@ namespace opalx::spacecharge {
         }
 
         TEST(SpaceChargeConfigBuilderTest, BuildsP3MShiftedSourcePlane) {
-            auto distributionObject =
-                    opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
-            Distribution& distribution = *distributionObject;
-            OpalData::getInstance()->define(
-                    opalx::test::copyOf(distribution, "P3M_PLANE_TEST_DISTRIBUTION").release());
             TestableFieldSolverCmd command;
             command.setType("P3M");
             command.setCutoff(0.025);
@@ -210,9 +207,9 @@ namespace opalx::spacecharge {
             command.setNZ(16);
             TestableEmissionSource source;
             source.enableShiftedPlane(0.125, 7);
-            const auto config =
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {{&source}}));
-            OpalData::getInstance()->erase("P3M_PLANE_TEST_DISTRIBUTION");
+            const auto config = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                    opalx::test::valuesOf(command), std::nullopt, {opalx::test::valuesOf(source)},
+                    {}));
             EXPECT_EQ(config.backend, PoissonSolverType::P3M);
             EXPECT_EQ(config.dirichletPlane.kind, DirichletPlaneType::ShiftedGreen);
             EXPECT_DOUBLE_EQ(config.dirichletPlane.planeZ, 0.125);
@@ -273,7 +270,10 @@ namespace opalx::spacecharge {
         TEST(SpaceChargeConfigBuilderTest, RejectsRecognizedCGBeforeRuntimeConstruction) {
             TestableFieldSolverCmd command;
             command.setType("CG");
-            EXPECT_THROW(static_cast<void>(buildSpaceChargeConfig(command, {})), OpalException);
+            EXPECT_THROW(
+                    static_cast<void>(buildSpaceChargeConfig(
+                            opalx::test::valuesOf(command), std::nullopt, {}, {})),
+                    OpalException);
         }
 
         TEST(SpaceChargeConfigTest, ValidatesPoissonDomainBoundaryMatrix) {
@@ -327,17 +327,22 @@ namespace opalx::spacecharge {
             command.setNZ(8);
             EXPECT_NO_THROW(command.execute());
             // Without RCUT, P3M ties its cutoff to the mesh with the default RCUT_CELLS = 2.
-            const auto p3m = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}));
+            const auto p3m = std::get<CartesianPIC3DConfig>(
+                    buildSpaceChargeConfig(opalx::test::valuesOf(command), std::nullopt, {}, {}));
             EXPECT_DOUBLE_EQ(p3m.p3mCutoff, 0.0);
             EXPECT_DOUBLE_EQ(p3m.p3mCutoffCells, 2.0);
             command.setType("OPEN");
-            EXPECT_EQ(command.getFieldSolverCmdType(), FieldSolverCmdType::OPEN);
-            const auto snapshot =
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}));
+            EXPECT_EQ(
+                    FieldSolverCmd::getFieldSolverCmdType(opalx::test::valuesOf(command)),
+                    FieldSolverCmdType::OPEN);
+            const auto snapshot = std::get<CartesianPIC3DConfig>(
+                    buildSpaceChargeConfig(opalx::test::valuesOf(command), std::nullopt, {}, {}));
             command.setNX(16);
             EXPECT_EQ(snapshot.grid.meshSize[0], 8u);
             EXPECT_EQ(
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}))
+                    std::get<CartesianPIC3DConfig>(
+                            buildSpaceChargeConfig(
+                                    opalx::test::valuesOf(command), std::nullopt, {}, {}))
                             .grid.meshSize[0],
                     16u);
         }
@@ -354,31 +359,39 @@ namespace opalx::spacecharge {
 
             auto fixed = makeCommand("P3M");
             fixed->setCutoff(0.025);
-            const auto fixedConfig =
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*fixed, {}));
+            const auto fixedConfig = std::get<CartesianPIC3DConfig>(
+                    buildSpaceChargeConfig(opalx::test::valuesOf(*fixed), std::nullopt, {}, {}));
             EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoff, 0.025);
             EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoffCells, 0.0);
 
             auto meshTied = makeCommand("P3M");
             meshTied->setCutoffCells(3.0);
-            const auto meshTiedConfig =
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*meshTied, {}));
+            const auto meshTiedConfig = std::get<CartesianPIC3DConfig>(
+                    buildSpaceChargeConfig(opalx::test::valuesOf(*meshTied), std::nullopt, {}, {}));
             EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoff, 0.0);
             EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoffCells, 3.0);
 
             auto both = makeCommand("P3M");
             both->setCutoff(0.025);
             both->setCutoffCells(2.0);
-            EXPECT_THROW((void)buildSpaceChargeConfig(*both, {}), OpalException);
+            EXPECT_THROW(
+                    (void)buildSpaceChargeConfig(
+                            opalx::test::valuesOf(*both), std::nullopt, {}, {}),
+                    OpalException);
 
             // Other solvers ignore the RCUT_CELLS default but reject an explicit value.
             auto open = makeCommand("OPEN");
             EXPECT_DOUBLE_EQ(
-                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*open, {}))
+                    std::get<CartesianPIC3DConfig>(
+                            buildSpaceChargeConfig(
+                                    opalx::test::valuesOf(*open), std::nullopt, {}, {}))
                             .p3mCutoffCells,
                     0.0);
             open->setCutoffCells(2.0);
-            EXPECT_THROW((void)buildSpaceChargeConfig(*open, {}), OpalException);
+            EXPECT_THROW(
+                    (void)buildSpaceChargeConfig(
+                            opalx::test::valuesOf(*open), std::nullopt, {}, {}),
+                    OpalException);
         }
 
         TEST(SpaceChargeConfigBuilderTest, RejectsInvalidMeshValuesBeforeIntegerConversion) {
@@ -391,7 +404,10 @@ namespace opalx::spacecharge {
                   std::numeric_limits<double>::infinity(),
                   double(std::numeric_limits<int>::max()) + 1.0}) {
                 command.setNX(value);
-                EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+                EXPECT_THROW(
+                        (void)buildSpaceChargeConfig(
+                                opalx::test::valuesOf(command), std::nullopt, {}, {}),
+                        OpalException);
             }
         }
 

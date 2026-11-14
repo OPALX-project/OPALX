@@ -136,52 +136,50 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     return fs;
 }
 
-std::string FieldSolverCmd::getType() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+std::string FieldSolverCmd::getType(const ObjectValues& values) { return values.getString("TYPE"); }
+
+std::string FieldSolverCmd::getBinsName(const ObjectValues& values) {
+    return values.getString("BINS");
 }
 
-std::string FieldSolverCmd::getBinsName() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
+std::string FieldSolverCmd::getGreensFunction(const ObjectValues& values) {
+    return values.getString("GREENSF");
 }
 
-std::string FieldSolverCmd::getGreensFunction() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
+double FieldSolverCmd::getP3MCutoff(const ObjectValues& values) { return values.getReal("RCUT"); }
+
+double FieldSolverCmd::getP3MCutoffCells(const ObjectValues& values) {
+    return values.getReal("RCUT_CELLS");
 }
 
-double FieldSolverCmd::getP3MCutoff() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUT]);
+double FieldSolverCmd::getPeriodicBox(const ObjectValues& values) {
+    return values.getReal("PERIODICBOX");
 }
 
-double FieldSolverCmd::getP3MCutoffCells() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
+bool FieldSolverCmd::hasP3MCutoff(const ObjectValues& values) {
+    return !values.defaultUsed("RCUT");
 }
 
-double FieldSolverCmd::getPeriodicBox() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::PERIODICBOX]);
+bool FieldSolverCmd::hasP3MCutoffCells(const ObjectValues& values) {
+    return !values.defaultUsed("RCUT_CELLS");
 }
 
-bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
-
-bool FieldSolverCmd::hasP3MCutoffCells() const {
-    return !itsAttr[FIELDSOLVER::P3MRCUTCELLS].defaultUsed();
-}
-
-BCHandler<3> FieldSolverCmd::constructBCHandler() const {
+BCHandler<3> FieldSolverCmd::constructBCHandler(const ObjectValues& values) {
     using BCH_t = BCHandler<3>;
 
     BCH_t boundary_conditions(
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
+            BCH_t::strToBCType(values.getString("BCFFTX")),
+            BCH_t::strToBCType(values.getString("BCFFTY")),
+            BCH_t::strToBCType(values.getString("BCFFTZ")));
 
     return boundary_conditions;
 }
 
-double FieldSolverCmd::getNX() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NX]); }
+double FieldSolverCmd::getNX(const ObjectValues& values) { return values.getReal("NX"); }
 
-double FieldSolverCmd::getNY() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NY]); }
+double FieldSolverCmd::getNY(const ObjectValues& values) { return values.getReal("NY"); }
 
-double FieldSolverCmd::getNZ() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NZ]); }
+double FieldSolverCmd::getNZ(const ObjectValues& values) { return values.getReal("NZ"); }
 
 void FieldSolverCmd::setNX(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NX], value); }
 
@@ -189,39 +187,35 @@ void FieldSolverCmd::setNY(double value) { Attributes::setReal(itsAttr[FIELDSOLV
 
 void FieldSolverCmd::setNZ(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NZ], value); }
 
-double FieldSolverCmd::getBoxIncr() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
-}
+double FieldSolverCmd::getBoxIncr(const ObjectValues& values) { return values.getReal("BBOXINCR"); }
 
-std::string FieldSolverCmd::getFFT2D5Model() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::FFT2D5MODEL]);
+std::string FieldSolverCmd::getFFT2D5Model(const ObjectValues& values) {
+    return values.getString("FFT2D5MODEL");
 }
-bool FieldSolverCmd::hasFFT2D5Model() const {
-    return !itsAttr[FIELDSOLVER::FFT2D5MODEL].defaultUsed();
+bool FieldSolverCmd::hasFFT2D5Model(const ObjectValues& values) {
+    return !values.defaultUsed("FFT2D5MODEL");
 }
 void FieldSolverCmd::setFFT2D5Model(const std::string& model) {
     Attributes::setPredefinedString(itsAttr[FIELDSOLVER::FFT2D5MODEL], model);
 }
-std::string FieldSolverCmd::getPipeMode() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
+std::string FieldSolverCmd::getPipeMode(const ObjectValues& values) {
+    return values.getString("PIPEMODE");
 }
-double FieldSolverCmd::getBeamRadius() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::BEAMR]);
+double FieldSolverCmd::getBeamRadius(const ObjectValues& values) { return values.getReal("BEAMR"); }
+bool FieldSolverCmd::getClosedRing(const ObjectValues& values) {
+    return values.getBool("CLOSEDRING");
 }
-bool FieldSolverCmd::getClosedRing() const {
-    return Attributes::getBool(itsAttr[FIELDSOLVER::CLOSEDRING]);
+bool FieldSolverCmd::getScatterLongitudinally(const ObjectValues& values) {
+    return values.getBool("SCATTERLONGITUDINALLY");
 }
-bool FieldSolverCmd::getScatterLongitudinally() const {
-    return Attributes::getBool(itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY]);
+double FieldSolverCmd::getPipeSizeX(const ObjectValues& values) {
+    return values.getReal("PIPESIZEX");
 }
-double FieldSolverCmd::getPipeSizeX() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEX]);
+double FieldSolverCmd::getPipeSizeY(const ObjectValues& values) {
+    return values.getReal("PIPESIZEY");
 }
-double FieldSolverCmd::getPipeSizeY() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEY]);
-}
-std::string FieldSolverCmd::getRefPathFileName() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::REFPATHFNAME]);
+std::string FieldSolverCmd::getRefPathFileName(const ObjectValues& values) {
+    return values.getString("REFPATHFNAME");
 }
 void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
     Attributes::setPredefinedString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
@@ -245,73 +239,72 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
     Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
 }
 
-FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
+FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType(const ObjectValues& values) {
     static const std::map<std::string, FieldSolverCmdType> types = {
             {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
             {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
             {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5}};
-    const auto found = types.find(getType());
+    const auto found = types.find(getType(values));
     if (found == types.end()) {
         throw OpalException("FieldSolverCmd::getFieldSolverCmdType", "Unknown or missing TYPE.");
     }
     return found->second;
 }
 
-ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition() const {
-    return {Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])};
+ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition(const ObjectValues& values) {
+    return {values.getBool("PARFFTX"), values.getBool("PARFFTY"), values.getBool("PARFFTZ")};
 }
 
 BinningCmd* FieldSolverCmd::getBinningCmd() const {
-    const std::string binsName = getBinsName();
+    const std::string binsName = Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
     if (binsName == "NONE" || binsName.empty()) {
         return nullptr;
     }
     return BinningCmd::find(binsName);
 }
 
-Inform& FieldSolverCmd::printInfo(Inform& os) const {
+Inform& FieldSolverCmd::printInfo(Inform& os, const ObjectValues& values) {
     os << "* ************* F I E L D S O L V E R ********************************************** "
        << endl;
-    os << "* FIELDSOLVER  " << getOpalName() << '\n'
-       << "* BINS         " << getBinsName() << '\n'
-       << "* TYPE         " << getType() << '\n'
+    os << "* FIELDSOLVER  " << values.getName() << '\n'
+       << "* BINS         " << getBinsName(values) << '\n'
+       << "* TYPE         " << getType(values) << '\n'
        << "* RANKS        " << ippl::Comm->size() << '\n'
-       << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
-       << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
-       << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
-       << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
-       << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+       << "* NX           " << values.getReal("NX") << '\n'
+       << "* NY           " << values.getReal("NY") << '\n'
+       << "* NZ           " << values.getReal("NZ") << '\n'
+       << "* BBOXINCR     " << values.getReal("BBOXINCR") << '\n'
+       << "* GREENSF      " << values.getString("GREENSF") << endl;
 
-    if (getType() == "FFT2D5") {
-        os << "* FFT2D5MODEL  " << getFFT2D5Model() << endl;
+    if (getType(values) == "FFT2D5") {
+        os << "* FFT2D5MODEL  " << getFFT2D5Model(values) << endl;
     }
 
-    if (getType() == "P3M") {
-        if (hasP3MCutoff()) {
-            const double cutoff = getP3MCutoff();
+    if (getType(values) == "P3M") {
+        if (hasP3MCutoff(values)) {
+            const double cutoff = getP3MCutoff(values);
             os << "* RCUT         " << cutoff << " [m]" << '\n'
                << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
         } else {
-            os << "* RCUT_CELLS   " << getP3MCutoffCells() << " [largest mesh spacing]" << '\n'
+            os << "* RCUT_CELLS   " << getP3MCutoffCells(values) << " [largest mesh spacing]"
+               << '\n'
                << "* ALPHA        2/RCUT, updated with the mesh" << endl;
         }
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
+    if (values.getBool("PARFFTX")) {
         os << "* XDIM         parallel  " << endl;
     } else {
         os << "* XDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY])) {
+    if (values.getBool("PARFFTY")) {
         os << "* YDIM         parallel  " << endl;
     } else {
         os << "* YDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])) {
+    if (values.getBool("PARFFTZ")) {
         os << "* ZDIM         parallel  " << endl;
     } else {
         os << "* ZDIM         serial  " << endl;

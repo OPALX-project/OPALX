@@ -1,5 +1,6 @@
 
 #include "Structure/BinningCmd.h"
+#include "Track/FreezeRun.h"
 
 #include <map>
 
@@ -73,61 +74,62 @@ BinningCmd* BinningCmd::find(const std::string& name) {
 
 void BinningCmd::execute() {
     // Check the values when the BINNING statement is read.
-    getParameterType();
-    getDumpBinsFrequency();
-    getTablePrintFrequency();
+    const ObjectValues values(opalx::run::describeObject(*this));
+    getParameterType(values);
+    getDumpBinsFrequency(values);
+    getTablePrintFrequency(values);
 }
 
-Inform& BinningCmd::printInfo(Inform& os) const {
+Inform& BinningCmd::printInfo(Inform& os, const ObjectValues& values) {
     os << "* ************* B I N N I N G ****************************************************** "
        << endl;
-    os << "* BINNING        " << getOpalName() << '\n'
-       << "* MAXBINS        " << getMaxBins() << '\n'
-       << "* DESIREDWIDTH   " << getDesiredWidth() << '\n'
-       << "* BINNINGALPHA   " << getBinningAlpha() << '\n'
-       << "* BINNINGBETA    " << getBinningBeta() << '\n'
-       << "* ADAPTIVEBINNING " << (getAdaptiveBinning() ? "TRUE" : "FALSE") << '\n'
-       << "* PARAMETER      " << getParameter() << endl;
-    if (dumpBinsToFile()) {
-        os << "* DUMPBINSFILE   " << getDumpBinsFileName() << '\n'
-           << "* DUMPBINSFREQ   " << getDumpBinsFrequency() << endl;
+    os << "* BINNING        " << values.getName() << '\n'
+       << "* MAXBINS        " << getMaxBins(values) << '\n'
+       << "* DESIREDWIDTH   " << getDesiredWidth(values) << '\n'
+       << "* BINNINGALPHA   " << getBinningAlpha(values) << '\n'
+       << "* BINNINGBETA    " << getBinningBeta(values) << '\n'
+       << "* ADAPTIVEBINNING " << (getAdaptiveBinning(values) ? "TRUE" : "FALSE") << '\n'
+       << "* PARAMETER      " << getParameter(values) << endl;
+    if (dumpBinsToFile(values)) {
+        os << "* DUMPBINSFILE   " << getDumpBinsFileName(values) << '\n'
+           << "* DUMPBINSFREQ   " << getDumpBinsFrequency(values) << endl;
     }
-    os << "* TABLEPRINTFREQ " << getTablePrintFrequency() << endl;
+    os << "* TABLEPRINTFREQ " << getTablePrintFrequency(values) << endl;
     os << "* ********************************************************************************** "
        << endl;
 
     return os;
 }
 
-int BinningCmd::getMaxBins() const {
-    return static_cast<int>(Attributes::getReal(itsAttr[BINNING::MAXBINS]));
+int BinningCmd::getMaxBins(const ObjectValues& values) {
+    return static_cast<int>(values.getReal("MAXBINS"));
 }
 
-double BinningCmd::getDesiredWidth() const {
-    return Attributes::getReal(itsAttr[BINNING::DESIREDWIDTH]);
+double BinningCmd::getDesiredWidth(const ObjectValues& values) {
+    return values.getReal("DESIREDWIDTH");
 }
 
-double BinningCmd::getBinningAlpha() const {
-    return Attributes::getReal(itsAttr[BINNING::BINNINGALPHA]);
+double BinningCmd::getBinningAlpha(const ObjectValues& values) {
+    return values.getReal("BINNINGALPHA");
 }
 
-double BinningCmd::getBinningBeta() const {
-    return Attributes::getReal(itsAttr[BINNING::BINNINGBETA]);
+double BinningCmd::getBinningBeta(const ObjectValues& values) {
+    return values.getReal("BINNINGBETA");
 }
 
-bool BinningCmd::getAdaptiveBinning() const {
-    return Attributes::getBool(itsAttr[BINNING::ADAPTIVEBINNING]);
+bool BinningCmd::getAdaptiveBinning(const ObjectValues& values) {
+    return values.getBool("ADAPTIVEBINNING");
 }
 
-std::string BinningCmd::getParameter() const {
-    return Attributes::getString(itsAttr[BINNING::PARAMETER]);
+std::string BinningCmd::getParameter(const ObjectValues& values) {
+    return values.getString("PARAMETER");
 }
 
-std::string BinningCmd::getDumpBinsFileName() const {
-    std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+std::string BinningCmd::getDumpBinsFileName(const ObjectValues& values) {
+    std::string filename = values.getString("DUMPBINSFILE");
     // The bins are written as JSON; add the extension if the name has none.
     const std::string extension = ".json";
-    if (dumpBinsToFile()
+    if (dumpBinsToFile(values)
         && (filename.size() < extension.size()
             || filename.substr(filename.size() - extension.size()) != extension)) {
         filename += extension;
@@ -135,9 +137,9 @@ std::string BinningCmd::getDumpBinsFileName() const {
     return filename;
 }
 
-int BinningCmd::getDumpBinsFrequency() const {
-    int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
-    if (dumpBinsToFile() && freq < 1) {
+int BinningCmd::getDumpBinsFrequency(const ObjectValues& values) {
+    int freq = static_cast<int>(values.getReal("DUMPBINSFREQ"));
+    if (dumpBinsToFile(values) && freq < 1) {
         throw OpalException(
                 "BinningCmd::getDumpBinsFrequency",
                 "DUMPBINSFREQ must be >= 1 if dumping bins to a file.");
@@ -145,27 +147,27 @@ int BinningCmd::getDumpBinsFrequency() const {
     return freq;
 }
 
-int BinningCmd::getTablePrintFrequency() const {
-    const int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
+int BinningCmd::getTablePrintFrequency(const ObjectValues& values) {
+    const int freq = static_cast<int>(values.getReal("TABLEPRINTFREQ"));
     if (freq < 0) {
         throw OpalException("BinningCmd::getTablePrintFrequency", "TABLEPRINTFREQ must be >= 0.");
     }
     return freq;
 }
 
-bool BinningCmd::dumpBinsToFile() const {
-    const std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+bool BinningCmd::dumpBinsToFile(const ObjectValues& values) {
+    const std::string filename = values.getString("DUMPBINSFILE");
     return !filename.empty() && filename != "NONE";
 }
 
-BinningParameter BinningCmd::getParameterType() const {
+BinningParameter BinningCmd::getParameterType(const ObjectValues& values) {
     static const std::map<std::string, BinningParameter> stringToParam = {
             {"VELOCITYZ", BinningParameter::VELOCITYZ},
             {"POSITIONZ", BinningParameter::POSITIONZ},
             {"PZ", BinningParameter::PZ},
             {"GAMMAZ", BinningParameter::GAMMAZ}};
 
-    const std::string name = getParameter();
+    const std::string name = getParameter(values);
     auto it                = stringToParam.find(name);
     if (it == stringToParam.end()) {
         throw OpalException(
