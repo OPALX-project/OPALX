@@ -580,7 +580,6 @@ void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
 }
 
 void OpalData::update() {
-    Inform msg("OpalData ");
     if (p->modified) {
         // Force re-evaluation of expressions.
         for (OpalDataImpl::exprIterator i = p->exprDirectory.begin(); i != p->exprDirectory.end();
@@ -594,12 +593,6 @@ void OpalData::update() {
             (*i)->invalidate();
         }
 
-        // Update all definitions.
-        for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
-            (*i).second->update();
-        }
-
-        // Definitions are up-to-date.
         p->modified = false;
     }
 }

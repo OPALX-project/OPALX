@@ -327,7 +327,6 @@ public:
 
     virtual bool canReplaceBy(Object* object);
     virtual void execute();
-    virtual void update();
 
     // void create(size_t &numberOfParticles, double massIneV, double charge);
 

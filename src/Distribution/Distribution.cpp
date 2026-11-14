@@ -218,10 +218,7 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
 /// Distribution can only be replaced by another distribution.
 bool Distribution::canReplaceBy(Object* object) { return dynamic_cast<Distribution*>(object) != 0; }
 
-void Distribution::execute() {
-    setAttributes();
-    update();
-}
+void Distribution::execute() { setAttributes(); }
 
 Distribution* Distribution::find(const std::string& name) {
     Distribution* dist = dynamic_cast<Distribution*>(OpalData::getInstance()->find(name));

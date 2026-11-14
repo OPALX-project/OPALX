@@ -194,8 +194,7 @@ public:
     /// Get the title string
     std::string getTitle();
 
-    /// Update all objects.
-    //  Loop over the directory and notify all objects to update themselves.
+    /// Mark all expressions and tables for re-evaluation after a value changed.
     void update();
 
     /// Clear Reference.

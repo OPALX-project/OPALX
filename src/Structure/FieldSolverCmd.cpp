@@ -125,7 +125,7 @@ FieldSolverCmd::FieldSolverCmd()
 
 FieldSolverCmd::~FieldSolverCmd() {}
 
-void FieldSolverCmd::execute() { update(); }
+void FieldSolverCmd::execute() {}
 
 FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     FieldSolverCmd* fs = dynamic_cast<FieldSolverCmd*>(OpalData::getInstance()->find(name));
@@ -192,8 +192,6 @@ void FieldSolverCmd::setNZ(double value) { Attributes::setReal(itsAttr[FIELDSOLV
 double FieldSolverCmd::getBoxIncr() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
 }
-
-void FieldSolverCmd::update() {}
 
 std::string FieldSolverCmd::getFFT2D5Model() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::FFT2D5MODEL]);

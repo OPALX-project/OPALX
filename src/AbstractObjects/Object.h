@@ -120,13 +120,6 @@ public:
     //  themselves or by replacing reference inside their data.
     virtual void replace(Object* oldObject, Object* newObject);
 
-    /// Update this object.
-    //  Called for all defined objects, before an action command is executed.
-    //  This default version does nothing.
-    //  Derived classes may use this call to update their internal state.
-    //  The beam line elements can update their OPALX counterpart.
-    virtual void update();
-
     /// True, if [b]this[/b] is a built-in object.
     bool isBuiltin() const;
 

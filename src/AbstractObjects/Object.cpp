@@ -237,10 +237,6 @@ void Object::replace(Object*, Object*) {
     // Default action: do nothing.
 }
 
-void Object::update() {
-    // Default action: do nothing.
-}
-
 bool Object::isBuiltin() const { return builtin; }
 
 void Object::setDirty(bool dirty) {

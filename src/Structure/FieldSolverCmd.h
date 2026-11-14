@@ -106,9 +106,6 @@ public:
 
     double getBoxIncr() const;
 
-    /// Update the field solver data.
-    virtual void update();
-
     /// Execute (init) the field solver data.
     virtual void execute();
 
