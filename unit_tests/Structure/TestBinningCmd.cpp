@@ -7,7 +7,7 @@
  * frequency).
  * - Getter/setter consistency via a small test helper (`TestableBinningCmd`) that writes to
  *   internal attributes using the standard `Attributes` interface.
- * - `update()` validation logic:
+ * - `execute()` validation logic:
  *   - Appending `.json` to `DUMPBINSFILE` when a filename is provided without the suffix.
  *   - Enforcing that `DUMPBINSFREQ` is positive when dumping is enabled.
  *   - Rejecting negative `TABLEPRINTFREQ`.
@@ -85,17 +85,17 @@ protected:
     static void TearDownTestSuite() { ippl::finalize(); }
 };
 
-// UpdateAppendsJsonExtensionAndValidatesFreq:
-// If DUMPBINSFILE is set without .json, update() appends the extension and
+// AppendsJsonExtensionAndValidatesFreq:
+// If DUMPBINSFILE is set without .json, getDumpBinsFileName() appends the extension and
 // enforces a valid DUMPBINSFREQ.
-TEST_F(BinningCmdTest, UpdateAppendsJsonExtensionAndValidatesFreq) {
+TEST_F(BinningCmdTest, AppendsJsonExtensionAndValidatesFreq) {
     TestableBinningCmd cmd;
 
     // Enable dumping with a filename missing the .json suffix.
     cmd.setDumpBinsFile("bins_output");
     cmd.setDumpBinsFreq(5.0);
 
-    cmd.update();
+    cmd.execute();
 
     EXPECT_TRUE(cmd.dumpBinsToFile());
     EXPECT_EQ(cmd.getDumpBinsFileName(), "bins_output.json");
@@ -125,16 +125,16 @@ TEST_F(BinningCmdTest, InvalidDumpFreqThrowsWhenDumpingEnabled) {
     cmd.setDumpBinsFile("bins.json");
     cmd.setDumpBinsFreq(0.0);
 
-    EXPECT_THROW(cmd.update(), OpalException);
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // InvalidTablePrintFrequencyThrowsWhenNegative:
-// Negative TABLEPRINTFREQ values are rejected by update().
+// Negative TABLEPRINTFREQ values are rejected by execute().
 TEST_F(BinningCmdTest, InvalidTablePrintFrequencyThrowsWhenNegative) {
     TestableBinningCmd cmd;
 
     cmd.setTablePrintFrequency(-1.0);
-    EXPECT_THROW(cmd.update(), OpalException);
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // ConstructionDefaults:
@@ -168,8 +168,8 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setParameterString("PZ");
     cmd.setTablePrintFrequency(3.0);
 
-    // update() refreshes the internal cached parameter string.
-    cmd.update();
+    // execute() checks the values.
+    cmd.execute();
 
     EXPECT_EQ(cmd.getMaxBins(), 42);
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.25);
@@ -198,7 +198,7 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         TestableBinningCmd cmd;
         cmd.setParameterString(c.name);
 
-        // execute() calls setParameterType() and then update().
+        // execute() checks that PARAMETER is known.
         cmd.execute();
 
         EXPECT_EQ(cmd.getParameter(), std::string(c.name));
@@ -230,7 +230,7 @@ TEST_F(BinningCmdTest, CopyCopiesState) {
     original.setAdaptiveBinning(false);
     original.setParameterString("POSITIONZ");
 
-    original.execute();  // ensure parameterType_m is updated
+    original.execute();
 
     std::unique_ptr<BinningCmd> copy = opalx::test::copyOf<BinningCmd>(original, "BINNING_COPY");
     copy->execute();  // the parser executes every definition before storing it

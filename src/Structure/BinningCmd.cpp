@@ -9,9 +9,7 @@
 BinningCmd::BinningCmd()
     : Definition(
               BINNING::SIZE, "BINNING",
-              "The \"BINNING\" statement defines adaptive binning parameters."),
-      parameterName_m("VELOCITYZ"),
-      parameterType_m(BinningParameter::VELOCITYZ) {
+              "The \"BINNING\" statement defines adaptive binning parameters.") {
     itsAttr[BINNING::MAXBINS] = Attributes::makeReal(
             "MAXBINS",
             "The maximum number of bins used for adaptive binning. "
@@ -74,68 +72,10 @@ BinningCmd* BinningCmd::find(const std::string& name) {
 }
 
 void BinningCmd::execute() {
-    setParameterType();
-    update();
-}
-
-void BinningCmd::update() {
-    if (itsAttr[BINNING::PARAMETER]) {
-        parameterName_m = Attributes::getString(itsAttr[BINNING::PARAMETER]);
-    } else {
-        parameterName_m = "VELOCITYZ";
-    }
-
-    // Sanitize dump-to-file configuration if present.
-    if (itsAttr[BINNING::DUMPBINSFILE]) {
-        std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
-
-        // Treat empty or "NONE" as "no dumping".
-        if (!filename.empty() && filename != "NONE") {
-            // Ensure the file name ends with ".json".
-            const std::string extension = ".json";
-            if (filename.size() < extension.size()
-                || filename.substr(filename.size() - extension.size()) != extension) {
-                filename += extension;
-                Attributes::setString(itsAttr[BINNING::DUMPBINSFILE], filename);
-            }
-
-            // Validate frequency when dumping is enabled.
-            int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
-            if (freq < 1) {
-                throw OpalException(
-                        "BinningCmd::update",
-                        "DUMPBINSFREQ must be >= 1 when DUMPBINSFILE is set.");
-            }
-        }
-    }
-
-    // Validate console table print frequency (used in binned mode).
-    {
-        const int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
-        if (freq < 0) {
-            throw OpalException("BinningCmd::update", "TABLEPRINTFREQ must be >= 0.");
-        }
-    }
-}
-
-void BinningCmd::setParameterType() {
-    // Ensure we work from the current attribute value.
-    parameterName_m = getParameter();
-
-    static const std::map<std::string, BinningParameter> stringToParam = {
-            {"VELOCITYZ", BinningParameter::VELOCITYZ},
-            {"POSITIONZ", BinningParameter::POSITIONZ},
-            {"PZ", BinningParameter::PZ},
-            {"GAMMAZ", BinningParameter::GAMMAZ}};
-
-    auto it = stringToParam.find(parameterName_m);
-    if (it == stringToParam.end()) {
-        throw OpalException(
-                "BinningCmd::setParameterType",
-                "Unknown binning PARAMETER \"" + parameterName_m + "\"");
-    }
-
-    parameterType_m = it->second;
+    // Check the values when the BINNING statement is read.
+    getParameterType();
+    getDumpBinsFrequency();
+    getTablePrintFrequency();
 }
 
 Inform& BinningCmd::printInfo(Inform& os) const {
@@ -147,7 +87,7 @@ Inform& BinningCmd::printInfo(Inform& os) const {
        << "* BINNINGALPHA   " << getBinningAlpha() << '\n'
        << "* BINNINGBETA    " << getBinningBeta() << '\n'
        << "* ADAPTIVEBINNING " << (getAdaptiveBinning() ? "TRUE" : "FALSE") << '\n'
-       << "* PARAMETER      " << parameterName_m << endl;
+       << "* PARAMETER      " << getParameter() << endl;
     if (dumpBinsToFile()) {
         os << "* DUMPBINSFILE   " << getDumpBinsFileName() << '\n'
            << "* DUMPBINSFREQ   " << getDumpBinsFrequency() << endl;
@@ -179,12 +119,20 @@ bool BinningCmd::getAdaptiveBinning() const {
     return Attributes::getBool(itsAttr[BINNING::ADAPTIVEBINNING]);
 }
 
-std::string BinningCmd::getParameter() {
+std::string BinningCmd::getParameter() const {
     return Attributes::getString(itsAttr[BINNING::PARAMETER]);
 }
 
 std::string BinningCmd::getDumpBinsFileName() const {
-    return Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+    std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+    // The bins are written as JSON; add the extension if the name has none.
+    const std::string extension = ".json";
+    if (dumpBinsToFile()
+        && (filename.size() < extension.size()
+            || filename.substr(filename.size() - extension.size()) != extension)) {
+        filename += extension;
+    }
+    return filename;
 }
 
 int BinningCmd::getDumpBinsFrequency() const {
@@ -210,4 +158,18 @@ bool BinningCmd::dumpBinsToFile() const {
     return !filename.empty() && filename != "NONE";
 }
 
-BinningParameter BinningCmd::getParameterType() const { return parameterType_m; }
+BinningParameter BinningCmd::getParameterType() const {
+    static const std::map<std::string, BinningParameter> stringToParam = {
+            {"VELOCITYZ", BinningParameter::VELOCITYZ},
+            {"POSITIONZ", BinningParameter::POSITIONZ},
+            {"PZ", BinningParameter::PZ},
+            {"GAMMAZ", BinningParameter::GAMMAZ}};
+
+    const std::string name = getParameter();
+    auto it                = stringToParam.find(name);
+    if (it == stringToParam.end()) {
+        throw OpalException(
+                "BinningCmd::getParameterType", "Unknown binning PARAMETER \"" + name + "\"");
+    }
+    return it->second;
+}

@@ -66,10 +66,12 @@ public:
     double getBinningBeta() const;
     bool getAdaptiveBinning() const;
 
-    std::string getParameter();
+    std::string getParameter() const;
+
+    /// The PARAMETER as an enum. @throws OpalException for an unknown PARAMETER.
     BinningParameter getParameterType() const;
 
-    /// Get the file name for dumping bins to a file.
+    /// Get the file name for dumping bins to a file; ".json" is added if it has no extension.
     std::string getDumpBinsFileName() const;
 
     /// Get the frequency of dumping bins to a file.
@@ -82,10 +84,7 @@ public:
     /// Check if dumping bins to a file is enabled.
     bool dumpBinsToFile() const;
 
-    /// Update the binning data (internal cache of attributes).
-    virtual void update();
-
-    /// Execute the BINNING command (currently a thin wrapper around update()).
+    /// Check PARAMETER, DUMPBINSFREQ and TABLEPRINTFREQ when the statement is read.
     virtual void execute();
 
     Inform& printInfo(Inform& os) const;
@@ -94,12 +93,6 @@ private:
     // Not implemented.
     BinningCmd(const BinningCmd&);
     void operator=(const BinningCmd&);
-
-    /// Recompute the enum-valued parameter from the string attribute.
-    void setParameterType();
-
-    std::string parameterName_m;
-    BinningParameter parameterType_m;
 };
 
 inline Inform& operator<<(Inform& os, const BinningCmd& bc) { return bc.printInfo(os); }
