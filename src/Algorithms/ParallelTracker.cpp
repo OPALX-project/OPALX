@@ -71,6 +71,8 @@
 
 extern Inform* gmsg;
 
+using opalx::moments::Moment;
+
 namespace {
     std::string getRingProgressString(double pathLength, double circumference) {
         const double completedTurns = std::floor(pathLength / circumference);
@@ -344,8 +346,10 @@ void ParallelTracker::execute() {
             Vector_t<double, 3> refR = 0.0;
             Vector_t<double, 3> refP = 0.0;
             if (pc->getTotalNum() > 0) {
-                refR = pc->getMeanR();
-                refP = pc->getMeanP();
+                const auto moments =
+                        opalx::moments::compute(*pc, Moment::MeanPosition | Moment::MeanMomentum);
+                refR = moments.meanR();
+                refP = moments.meanP();
             } else {
                 // Empty container (e.g. an emitted distribution before its first emission):
                 // the bunch mean is undefined, so take the emission offsets from the sampler.
@@ -821,8 +825,6 @@ void ParallelTracker::execute() {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after timeIntegration1." << endl;
 
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
                     resetFields();
@@ -837,8 +839,6 @@ void ParallelTracker::execute() {
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after emission." << endl;
 
                 // External field computation
                 computeExternalFields(oths);
@@ -862,8 +862,6 @@ void ParallelTracker::execute() {
                 throw;
             }
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after timeIntegration2." << endl;
 
             // Apply global processes (e.g. decay) and mark afftected particles for deletion
             const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
@@ -1450,8 +1448,9 @@ opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFr
         const {
     constexpr double momentumTolerance = 1e-12;
     const auto primary                 = itsBunch_m->getParticleContainer();
-    Vector_t<double, 3> meanMomentum   = primary->getMeanP();
-    double momentumLengthSquared       = dot(meanMomentum, meanMomentum);
+    Vector_t<double, 3> meanMomentum =
+            opalx::moments::compute(*primary, Moment::MeanMomentum).meanP();
+    double momentumLengthSquared = dot(meanMomentum, meanMomentum);
 
     // The bunch mean can vanish with zero or one particle, or on an empty MPI rank. Prefer the
     // reference-particle direction in that case and finally use +z so getQuaternion always
@@ -1647,19 +1646,13 @@ void ParallelTracker::forEachElementInBunchFrame(
             continue;
         }
 
-        // Bunch bounds for this container.
+        // Bunch bounds for this container; an empty container queries the path length itself.
+        // The spatial candidate search reads them only to select cyclotron sectors.
         Vector_t<double, 3> rmin(0.0), rmax(0.0);
-        if (pc->getTotalNum() > 0) {
-            pc->computeMinMaxR();
-            rmin = pc->getMinR();
-            rmax = pc->getMaxR();
-
-            // Empty or not-yet-initialized moment state can still produce non-finite bounds.
-            // Fall back to zero so the query uses pathLength_m as the centre with zero
-            // half-width.
-            if (!std::isfinite(rmin(2)) || !std::isfinite(rmax(2))) {
-                rmin = rmax = 0.0;
-            }
+        if (pc->getTotalNum() > 0 && (!spatialCandidates || !cyclotronSectors.empty())) {
+            const auto bounds = opalx::moments::compute(*pc, Moment::Bounds);
+            rmin              = bounds.minR();
+            rmax              = bounds.maxR();
         }
 
         // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
@@ -2033,7 +2026,6 @@ void ParallelTracker::prepareBoundaryStep(
             computeSpaceChargeFields();
         }
         timeIntegration1(pusher);
-        itsBunch_m->updateAllParticleMoments();
         if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
             resetFields();
             computeSpaceChargeFields();
@@ -2279,45 +2271,16 @@ void ParallelTracker::activateEmittingContainers(double t) {
  * @copybrief ParallelTracker::computeInitialBounds
  */
 void ParallelTracker::computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax) {
-    const auto& particleContainers = itsBunch_m->getParticleContainers();
-    bool hasNonEmpty               = false;
-    ippl::Vector<double, 3> rminLoc(0.0), rmaxLoc(0.0);
-
-    for (const auto& pc : particleContainers) {
-        if (!pc || pc->getTotalNum() == 0) {
-            continue;
-        }
-        pc->computeMinMaxR();
-        const ippl::Vector<double, 3> mn = pc->getMinR();
-        const ippl::Vector<double, 3> mx = pc->getMaxR();
-        if (!hasNonEmpty) {
-            rminLoc     = mn;
-            rmaxLoc     = mx;
-            hasNonEmpty = true;
-        } else {
-            for (int i = 0; i < 3; ++i) {
-                rminLoc[i] = std::min(rminLoc[i], mn[i]);
-                rmaxLoc[i] = std::max(rmaxLoc[i], mx[i]);
-            }
+    std::vector<const ParticleContainer_t*> containers;
+    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+        if (pc) {
+            containers.push_back(pc.get());
         }
     }
-
-    if (!hasNonEmpty) {
-        if (particleContainers.empty() || !particleContainers[0]) {
-            throw OpalException(
-                    "ParallelTracker::computeInitialBounds",
-                    "No valid particle container for initial bounds.");
-        }
-        particleContainers[0]->computeMinMaxR();
-        rminLoc = particleContainers[0]->getMinR();
-        rmaxLoc = particleContainers[0]->getMaxR();
-    }
-
-    rmax = rmaxLoc;
-    rmin = rminLoc;
-    ippl::Comm->allreduce(rmax, 1, std::greater<ippl::Vector<double, 3>>());
-    ippl::Comm->allreduce(rmin, 1, std::less<ippl::Vector<double, 3>>());
-    ippl::Comm->barrier();
+    // Empty containers contribute nothing; without any particle the box is a point at the origin.
+    const auto bounds = opalx::moments::compute(containers, Moment::Bounds);
+    rmin              = bounds.minR();
+    rmax              = bounds.maxR();
 }
 
 /**
@@ -2332,8 +2295,9 @@ void ParallelTracker::printInitialContainerRefs(Inform& m) const {
             continue;
         }
         if (pc->getTotalNum() > 0) {
-            m << level3 << "ParallelTrack (container " << i
-              << "): momentum z = " << pc->getMeanP()(2) << "\n"
+            // Collective; evaluated on every rank before the rank-filtered log line.
+            const double meanPz = opalx::moments::compute(*pc, Moment::MeanMomentum).meanP()(2);
+            m << level3 << "ParallelTrack (container " << i << "): momentum z = " << meanPz << "\n"
               << "RefPartR (container " << i << ") = " << pc->getRefPartR() << "\n"
               << "RefPartP (container " << i << ") = " << pc->getRefPartP() << endl;
         } else {

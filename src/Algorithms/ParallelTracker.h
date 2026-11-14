@@ -33,6 +33,7 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
+#include "Moments/BeamMoments.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
@@ -457,6 +458,7 @@ private:
     /// @brief Build stable native particle and field identities once.
     void initializeSpaceChargeContainerActivity();
 
+    /// @brief Solve-frame transforms from the primary container's mean momentum. Collective.
     [[nodiscard]] opalx::spacecharge::CoordinateFrameTransforms makeSpaceChargeFrameTransforms()
             const;
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
