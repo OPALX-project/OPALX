@@ -123,7 +123,18 @@ void TrackRun::execute() {
 
     // The tracker is destroyed before the objects it borrows.
     opalx::run::RunObjects objects;
-    auto tracker = std::make_unique<ParallelTracker>(
-            opalx::run::buildTracking(description, std::move(elements), objects));
+    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+    if (!setup.tuneInitial.empty()) {
+        // SPECTRALTUNES traces two rays through the built line instead of tracking the bunch.
+        if (ippl::Comm->size() != 1 || setup.bunch->getNumParticleContainers() != 1)
+            throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");
+        // MONITOR records the rays only outside the preparation state.
+        auto preparation = OpalData::getInstance()->enterPreparationState();
+        SpectralTunes::run(
+                setup.beamline, *setup.bunch->getParticleContainer(0)->getReference(),
+                setup.tuneInitial, setup.tuneSettings, description.context.inputBasename);
+        return;
+    }
+    auto tracker = std::make_unique<ParallelTracker>(std::move(setup));
     tracker->execute();
 }

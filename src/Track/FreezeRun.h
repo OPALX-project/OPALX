@@ -21,7 +21,7 @@ namespace opalx::run {
      * Reads the TRACK settings (Track::block), the RUN attributes, the beams, their emission
      * sources and distributions, the field solver, the tracked line and
      * the OPTION values. Every attribute is evaluated now, so ":=" expressions take the values
-     * valid at this RUN. An object that cannot be found is left out; TrackRun reports that error
+     * valid at this RUN. An object that cannot be found is left out; validate() reports that error
      * itself.
      *
      * @param runCommand The RUN command being executed. Track::block must be set.

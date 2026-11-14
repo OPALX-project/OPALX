@@ -116,11 +116,10 @@ TEST_F(BuildTrackingTest, RunNeedsOnlyTheDescription) {
     std::vector<std::shared_ptr<ElementBase>> elements =
             opalx::run::buildElements(description.line, description.context.p0);
     opalx::run::RunObjects objects;
-    const TrackingSetup setup =
-            opalx::run::buildTracking(description, std::move(elements), objects);
+    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
 
-    // #S D1 Q1 #E: the LINE brings its own start and end markers.
-    EXPECT_EQ(setup.elements.size(), 4u);
+    // #S D1 Q1 #E were built; the beamline holds D1 and Q1, markers are not tracked.
+    EXPECT_EQ(setup.beamline.getElements().size(), 2u);
     EXPECT_EQ(setup.dt, std::vector<double>{1e-12});
     EXPECT_EQ(setup.maxSteps, std::vector<unsigned long long>{5});
     EXPECT_EQ(setup.sStop, std::vector<double>{1.0});

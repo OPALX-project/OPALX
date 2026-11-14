@@ -1,5 +1,5 @@
 //
-// TrackingSetup: what TrackRun hands to ParallelTracker.
+// TrackingSetup: what buildTracking() hands to ParallelTracker.
 //
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
@@ -13,10 +13,12 @@
 
 #include "Algorithms/BeamStop.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
+#include "Algorithms/CyclotronProbeRecorder.h"
 #include "Algorithms/Quaternion.hpp"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Distribution/SamplingBase.hpp"
+#include "Elements/OpalBeamline.h"
 #include "OPALTypes.h"
 #include "PartBunch/PartBunchFwd.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
@@ -36,10 +38,10 @@ enum class SpaceChargeFieldUpdate {
 };
 
 /**
- * @brief Everything TrackRun builds for one RUN and ParallelTracker reads.
+ * @brief Everything buildTracking() makes for one RUN and ParallelTracker reads.
  *
- * Replaces the 16 constructor arguments and the setters ParallelTracker had. The bunch, the
- * space-charge solver and the data sink stay owned by TrackRun and are borrowed here.
+ * Made by opalx::run::buildTracking(). The bunch, the space-charge solver and the data sink are
+ * owned elsewhere (opalx::run::RunObjects, OpalData) and borrowed here.
  */
 struct TrackingSetup {
     PartBunch_t* bunch = nullptr;  ///< Borrowed particle bunch (one container per beam).
@@ -47,12 +49,13 @@ struct TrackingSetup {
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane;  ///< Plane used for particle loss.
     DataSink* dataSink = nullptr;  ///< Borrowed statistics and phase-space output.
 
-    /// The elements of the tracked line, in line order, built from the run description
-    /// (opalx::run::buildElements()); ParallelTracker copies them into its OpalBeamline.
-    std::vector<std::shared_ptr<ElementBase>> elements;
-    /// Start position and direction of the tracked line in the global frame.
-    Vector_t<double, 3> lineOrigin{0.0, 0.0, 0.0};
-    Quaternion lineDirection{1.0, 0.0, 0.0, 0.0};
+    /// The tracked line: the elements built from the run description, placed, with the 3D
+    /// lattice files written and the element mapping built.
+    OpalBeamline beamline;
+    /// The PROBE elements of the line, as settings of the probe recorder.
+    std::vector<CyclotronProbeRecorder::Config> probeConfigs;
+    /// True if an RF cavity of the line is a single cyclotron gap (TYPE = SINGLEGAP).
+    bool cyclotronGaps = false;
 
     /// Step-size schedule, one entry per DT segment: time step (s), stop path length (m) and
     /// number of steps.

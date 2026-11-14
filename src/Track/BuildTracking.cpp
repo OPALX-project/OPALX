@@ -17,6 +17,7 @@
 //
 #include "Track/BuildTracking.h"
 
+#include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/ParallelTracker.h"
@@ -66,6 +67,7 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
+#include "Structure/MeshGenerator.h"
 
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
@@ -334,6 +336,97 @@ namespace opalx::run {
                           << "\"." << endl;
                 }
             }
+        }
+
+        /// Set the phases of the RF cavities that a checkpoint stored (DataSink); autophase
+        /// leaves these cavities alone.
+        void restoreCavityPhases(OpalBeamline& beamline) {
+            ElementList cavities       = beamline.getElementByType(ElementType::RFCAVITY);
+            ElementList travelingWaves = beamline.getElementByType(ElementType::TRAVELINGWAVE);
+            cavities.insert(cavities.end(), travelingWaves.begin(), travelingWaves.end());
+            OpalData* opal = OpalData::getInstance();
+            for (auto it = opal->getFirstMaxPhases(); it < opal->getLastMaxPhases(); ++it) {
+                for (const auto& cavity : cavities) {
+                    if (cavity->getName() != it->first) continue;
+                    auto* element = static_cast<RFCavity*>(cavity.get());
+                    element->setPhasem(it->second);
+                    element->setAutophaseVeto();
+                    *gmsg << level3
+                          << "Restored cavity phase from the h5 file. Name: " << element->getName()
+                          << ", phase: " << it->second << " rad" << endl;
+                    break;
+                }
+            }
+        }
+
+        /**
+         * @brief Hand the elements of the line to an OpalBeamline in line order (addElement()
+         *        calls initialise()), place them, write the 3D lattice files and build the
+         *        element mapping. PROBE elements become probe recorder settings.
+         * @param restart Set the cavity phases a checkpoint stored.
+         */
+        OpalBeamline buildBeamline(
+                const LineDescription& line,
+                const std::vector<std::shared_ptr<ElementBase>>& elements, PartBunch_t& bunch,
+                bool restart, std::vector<CyclotronProbeRecorder::Config>& probeConfigs) {
+            OpalBeamline beamline(
+                    Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
+                    Quaternion(
+                            line.direction[0], line.direction[1], line.direction[2],
+                            line.direction[3]));
+            for (const auto& built : elements) {
+                switch (built->trackedAs()) {
+                    case TrackedAs::FieldElement:
+                        beamline.addElement(built, bunch);
+                        break;
+                    case TrackedAs::ProbeRecorder:
+                        probeConfigs.push_back(
+                                CyclotronProbeRecorder::configuration(
+                                        static_cast<const Probe&>(*built)));
+                        break;
+                    case TrackedAs::Unsupported:
+                        throw LogicalError(
+                                "opalx::run::buildBeamline",
+                                "Tracking of the \"" + Util::toUpper(built->getTypeString())
+                                        + "\" element is not implemented yet.");
+                    case TrackedAs::Ignored:
+                        break;
+                }
+            }
+
+            // Sorts the elements by starting position and places them.
+            beamline.prepareSections();
+            beamline.compute3DLattice();
+
+            // Passive PROBEs are not lattice elements. Add their already-global display planes
+            // only to the export mesh, never to field selection or placement.
+            MeshGenerator displayMesh;
+            if (ippl::Comm->rank() == 0)
+                for (const auto& probe : probeConfigs)
+                    displayMesh.addProbe(probe.segment.start, probe.segment.end);
+            beamline.save3DLattice(displayMesh);
+            beamline.save3DInput();
+
+            if (restart) restoreCavityPhases(beamline);
+
+            if (!probeConfigs.empty()) {
+                // validate() checked that PROBE runs without restart, in a cyclotron sector or
+                // RING. FFA reuses the same crossing/history/output path. Its ring centre need
+                // not be the lab origin, so only cyclotron tracking enables the legacy
+                // lab-origin radial summaries.
+                bool cyclotron = false;
+                for (const auto& element : beamline.getElements())
+                    cyclotron |= element->getType() == ElementType::CYCLOTRONSECTOR;
+                for (auto& config : probeConfigs)
+                    config.radialSummaries = cyclotron;
+            }
+
+            // Placement, misalignment and field-map extents are final here: each element's
+            // aperture must lie inside its reach before the grid is built from the reaches.
+            for (const auto& element : beamline.getElementByType(ElementType::ANY))
+                element->checkRegions();
+            beamline.buildElementMapping();
+            return beamline;
         }
 
         /// The description named @p name in @p objects; freeze() recorded it.
@@ -852,13 +945,16 @@ namespace opalx::run {
         setup.restartDt         = restartMetadata.dt;
         setup.restartPosition   = StepSizeConfig::ResumePosition{
                 restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
-        setup.ringPeriod    = ringPeriod;
-        setup.options       = description.options;
-        setup.elements      = std::move(elements);
-        const auto& origin  = description.line.origin;
-        const auto& turn    = description.line.direction;
-        setup.lineOrigin    = Vector_t<double, 3>(origin[0], origin[1], origin[2]);
-        setup.lineDirection = Quaternion(turn[0], turn[1], turn[2], turn[3]);
+        setup.ringPeriod = ringPeriod;
+        setup.options    = description.options;
+
+        // The tracker steps with a positive time step; elements read it in initialise().
+        bunch.setdT(std::abs(bunch.getdT()));
+        setup.beamline =
+                buildBeamline(description.line, elements, bunch, isRestart, setup.probeConfigs);
+        for (const auto& element : setup.beamline.getElements())
+            if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
+                setup.cyclotronGaps |= cavity->isCyclotronGap();
         if (track.initialOrbit) {
             track.initialOrbit->validate(
                     description.line.name, beams.front().particleName, beams.front().reference);

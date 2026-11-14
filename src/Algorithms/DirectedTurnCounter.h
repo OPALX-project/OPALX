@@ -16,7 +16,7 @@
  * or assumed orbit radius enters the count. This host-side object is maintained
  * independently for each particle-container reference, not for each macro-particle.
  * Its origin, normal, armed flag, and count are not currently checkpointed.
- * @see ParallelTracker::setRequestedTurns
+ * @see TrackingSetup::requestedTurns
  */
 class DirectedTurnCounter {
 public:

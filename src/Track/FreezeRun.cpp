@@ -155,7 +155,7 @@ namespace opalx::run {
         }
 
         /// Run @p read; a parse object that cannot answer (OpalException) leaves the field at its
-        /// default and stores the message in @p error, if given. TrackRun reports such errors.
+        /// default and stores the message in @p error, if given. validate() reports such errors.
         template <class F>
         void tryRead(F&& read, std::string* error = nullptr) {
             try {

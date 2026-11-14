@@ -55,8 +55,6 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
       referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
 
-OpalBeamline::~OpalBeamline() { elements_m.clear(); }
-
 ElementSet OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     ElementSet elementSet;
     const auto selectIfInside = [&](const std::shared_ptr<ElementBase>& element) {

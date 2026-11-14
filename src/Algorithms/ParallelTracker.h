@@ -111,12 +111,10 @@ public:
 
 private:
     std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
-    /// The particle bunch to track. Borrowed; TrackRun owns it.
+    /// The particle bunch to track. Borrowed; opalx::run::RunObjects owns it.
     PartBunch_t* itsBunch_m;
     /// OPTION values of this RUN; the tracker reads no Options:: globals.
     opalx::run::OptionValues options_m;
-    /// The elements of the tracked line, built from the run description (TrackingSetup).
-    std::vector<std::shared_ptr<ElementBase>> lineElements_m;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
     bool allowBoundaryControl_m =
@@ -124,37 +122,29 @@ private:
     std::optional<ClosedOrbitInitialState> initialOrbit_m;
     /// Per-container reference momentum [beta*gamma] set on BEAM; empty uses the bunch mean.
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
-    std::vector<double> tuneInitial_m;
-    SpectralTunes::Settings tuneSettings_m;
     /// True if an RF cavity of the line is a single cyclotron gap (TYPE = SINGLEGAP); set
-    /// once in prepareTracking().
+    /// by buildTracking().
     bool hasCyclotronGaps() const;
     bool cyclotronGaps_m = false;
-    /// Loop state built by prepareTracking(): turn counters for TURNS and EKINSTOP, passive
+    /// Loop state built by startTracking(): turn counters for TURNS and EKINSTOP, passive
     /// ring probes, and the PROBE recorder with its per-container turn counters.
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters_m;
     std::unique_ptr<PassiveRingProbe> passiveProbes_m;
     std::unique_ptr<CyclotronProbeRecorder> probeRecorder_m;
     std::vector<std::unique_ptr<DirectedTurnCounter>> probeTurns_m;
     /**
-     * @brief Everything before the first step: elements, placement, reference particles,
-     *        element grid, reference pass, ring mode and output.
-     * @return False if nothing is left to track (SPECTRALTUNES ran instead, or a restart is
-     *         already at the end of the schedule).
+     * @brief Everything before the first step that needs the tracker: the start of the
+     *        reference particles, the reference pass with autophase, the ring mode, the turn
+     *        counters, the initial output and the probe recorder.
+     * @return False if a restart is already at the end of the schedule.
      */
-    bool prepareTracking();
-    /**
-     * @brief Hand the elements built for this RUN (lineElements_m) to itsOpalBeamline_m.
-     *        ElementBase::trackedAs() says what happens to each: field elements are added,
-     *        PROBE configures the recorder, MARKER is left out and LASER is an error.
-     */
-    void addLineElements();
+    bool startTracking();
     /// Bunch time, time step and step number of the current step, passed to element apply().
     StepTime stepTime() const {
         return {itsBunch_m->getT(), itsBunch_m->getdT(),
                 static_cast<long long>(itsBunch_m->getGlobalTrackStep())};
     }
-    /// The step loop and the final output; prepareTracking() must have returned true.
+    /// The step loop and the final output; startTracking() must have returned true.
     void trackSteps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
     /// Fixed-size first-failure payload, allocated once when device RF transport is prepared.
@@ -231,14 +221,12 @@ private:
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef referencePassTimer_m;
 
 public:
     /**
      * @brief Construct the tracker for one RUN.
-     * @param setup Everything TrackRun built for this RUN; setup.bunch must be set.
+     * @param setup Everything buildTracking() built for this RUN; setup.bunch must be set.
      */
     explicit ParallelTracker(TrackingSetup setup);
 
@@ -384,9 +372,6 @@ private:
      */
     void dumpStats(long long step, bool psDump, bool statDump);
 
-    /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
-    void prepareSections();
-
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
@@ -417,22 +402,6 @@ private:
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
     void autophaseCavities(const BorisPusher& pusher);
-
-    /**
-     * @brief Set stored RF phase on the named cavity or traveling-wave element.
-     * @param elName  Element name to match.
-     * @param maxPhi  RF phase to apply (rad).
-     */
-    void updateRFElement(std::string elName, double maxPhi);
-
-    /// @brief Print RF phases (debug/diagnostic hook).
-    void printRFPhases();
-
-    /// @brief Persist cavity phases to the data sink.
-    void saveCavityPhases();
-
-    /// @brief Restore cavity phases from a prior track or restart.
-    void restoreCavityPhases();
 };
 
 #endif  // OPALX_ParallelTracker_HH
