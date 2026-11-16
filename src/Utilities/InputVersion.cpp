@@ -13,8 +13,17 @@ namespace InputVersion {
     namespace {
         constexpr Version buildVersion{buildinfo::version_major, buildinfo::version_minor};
 
-        // Append new entries at the end and raise the array size. No OPALX release has
-        // changed the meaning of an existing input yet.
+        // Append new entries at the end and raise the array size. An entry names the first
+        // release with the new meaning and says how to adapt an older input. A hypothetical
+        // change in OPALX 1.1 would read:
+        //
+        //     constexpr std::array<Change, 1> changeTable{
+        //             Change{{1, 1},
+        //                    "LAG of RFCAVITY is given in degrees instead of radians. "
+        //                    "Multiply the values of OPALX 1.0 inputs by 180/PI."}};
+        //
+        // Inputs with VERSION = "1.0" would then stop at TRACK or COF and print this text.
+        // No OPALX release has changed the meaning of an existing input yet.
         constexpr std::array<Change, 0> changeTable{};
 
         static_assert(
