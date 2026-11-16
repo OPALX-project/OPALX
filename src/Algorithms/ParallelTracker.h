@@ -217,6 +217,7 @@ private:
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
+    CavityPhases cavityPhases_m;  ///< Phases autophase set (and a restart restored).
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;

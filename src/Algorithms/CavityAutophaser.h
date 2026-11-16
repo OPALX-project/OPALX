@@ -22,12 +22,25 @@
 #ifndef CAVITYAUTOPHASER
 #define CAVITYAUTOPHASER
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/PartData.h"
 
+/// Name and phase (rad) of each cavity that autophase has set, in the order they were set.
+using CavityPhases = std::vector<std::pair<std::string, double>>;
+
 class CavityAutophaser {
 public:
-    CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity);
+    /**
+     * @param phases If given, getPhaseAtMaxEnergy() adds the phase it sets on the cavity; a
+     *        checkpoint stores this list so that a restart keeps the phases.
+     */
+    CavityAutophaser(
+            const PartData& ref, std::shared_ptr<ElementBase> cavity,
+            CavityPhases* phases = nullptr);
 
     ~CavityAutophaser();
 
@@ -42,6 +55,7 @@ private:
 
     const PartData& itsReference_m;
     std::shared_ptr<ElementBase> itsCavity_m;
+    CavityPhases* phases_m;
 
     Vector_t<double, 3> initialR_m;
     Vector_t<double, 3> initialP_m;

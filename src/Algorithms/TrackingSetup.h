@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Algorithms/BeamStop.h"
+#include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/CyclotronProbeRecorder.h"
 #include "Algorithms/Quaternion.hpp"
@@ -81,6 +82,8 @@ struct TrackingSetup {
     unsigned long long restartGlobalStep = 0;
     double restartDt                     = 0;
     StepSizeConfig::ResumePosition restartPosition{0, 0};
+    /// Cavity phases the checkpoint stored; autophase adds to them and checkpoints save them.
+    CavityPhases cavityPhases;
 
     double ringPeriod = 0;  ///< One-turn path length of a RING (m), zero for a LINE.
     unsigned long long requestedTurns = 0;  ///< RUN TURNS on a RING; zero if not given.

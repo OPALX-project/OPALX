@@ -25,7 +25,6 @@
 #include <functional>
 #include <iosfwd>
 #include <map>
-#include <stack>
 #include <string>
 #include <vector>
 #include "AbstractObjects/ObjectFunction.h"
@@ -34,9 +33,6 @@
 class AttributeBase;
 class Object;
 class ValueDefinition;
-
-// store element name, max phase
-typedef std::pair<std::string, double> MaxPhasesT;
 
 /// The global OPAL structure.
 class OpalData {
@@ -177,12 +173,6 @@ public:
 
     void setOpenMode(OpenMode openMode);
     OpenMode getOpenMode() const;
-
-    void setMaxPhase(std::string elName, double phi);
-
-    std::vector<MaxPhasesT>::iterator getFirstMaxPhases();
-    std::vector<MaxPhasesT>::iterator getLastMaxPhases();
-    int getNumberOfMaxPhases();
 
     void storeArguments(int argc, char* argv[]);
     std::vector<std::string> getArguments();

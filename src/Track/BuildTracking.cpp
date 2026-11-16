@@ -331,14 +331,13 @@ namespace opalx::run {
             }
         }
 
-        /// Set the phases of the RF cavities that a checkpoint stored (DataSink); autophase
-        /// leaves these cavities alone.
-        void restoreCavityPhases(OpalBeamline& beamline) {
+        /// Set the phases of the RF cavities that a checkpoint stored; autophase leaves these
+        /// cavities alone.
+        void restoreCavityPhases(OpalBeamline& beamline, const CavityPhases& phases) {
             ElementList cavities       = beamline.getElementByType(ElementType::RFCAVITY);
             ElementList travelingWaves = beamline.getElementByType(ElementType::TRAVELINGWAVE);
             cavities.insert(cavities.end(), travelingWaves.begin(), travelingWaves.end());
-            OpalData* opal = OpalData::getInstance();
-            for (auto it = opal->getFirstMaxPhases(); it < opal->getLastMaxPhases(); ++it) {
+            for (auto it = phases.begin(); it != phases.end(); ++it) {
                 for (const auto& cavity : cavities) {
                     if (cavity->getName() != it->first) continue;
                     auto* element = static_cast<RFCavity*>(cavity.get());
@@ -356,12 +355,13 @@ namespace opalx::run {
          * @brief Hand the elements of the line to an OpalBeamline in line order (addElement()
          *        calls initialise()), place them, write the 3D lattice files and build the
          *        element mapping. PROBE elements become probe recorder settings.
-         * @param restart Set the cavity phases a checkpoint stored.
+         * @param cavityPhases The cavity phases a checkpoint stored; empty for a fresh run.
          */
         OpalBeamline buildBeamline(
                 const LineDescription& line,
                 const std::vector<std::shared_ptr<ElementBase>>& elements, PartBunch_t& bunch,
-                bool restart, std::vector<CyclotronProbeRecorder::Config>& probeConfigs) {
+                const CavityPhases& cavityPhases,
+                std::vector<CyclotronProbeRecorder::Config>& probeConfigs) {
             OpalBeamline beamline(
                     Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
                     Quaternion(
@@ -400,7 +400,7 @@ namespace opalx::run {
             beamline.save3DLattice(displayMesh);
             beamline.save3DInput();
 
-            if (restart) restoreCavityPhases(beamline);
+            restoreCavityPhases(beamline, cavityPhases);
 
             if (!probeConfigs.empty()) {
                 // validate() checked that PROBE runs without restart, in a cyclotron sector or
@@ -937,13 +937,15 @@ namespace opalx::run {
         setup.restartDt         = restartMetadata.dt;
         setup.restartPosition   = StepSizeConfig::ResumePosition{
                 restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
-        setup.ringPeriod = ringPeriod;
-        setup.options    = description.options;
+        setup.cavityPhases = restartMetadata.cavityPhases;
+        setup.ringPeriod   = ringPeriod;
+        setup.options      = description.options;
 
         // The tracker steps with a positive time step; elements read it in initialise().
         bunch.setdT(std::abs(bunch.getdT()));
-        setup.beamline =
-                buildBeamline(description.line, elements, bunch, isRestart, setup.probeConfigs);
+        setup.beamline = buildBeamline(
+                description.line, elements, bunch, restartMetadata.cavityPhases,
+                setup.probeConfigs);
         for (const auto& element : setup.beamline.getElements())
             if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
                 setup.cyclotronGaps |= cavity->isCyclotronGap();

@@ -18,6 +18,7 @@
 #ifndef OPALX_REFERENCE_TRACER_H
 #define OPALX_REFERENCE_TRACER_H
 
+#include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
 #include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/StepSizeConfig.h"
@@ -59,10 +60,11 @@ public:
      * @param stepSizes Tracking schedule: DT, ZSTOP and MAXSTEPS per segment.
      * @param dt Time step of the pass [s], normally the smallest DT of the schedule.
      * @param ringPeriod Ring circumference [m]; nonpositive for a LINE.
+     * @param cavityPhases If given, autophase adds the phase it sets on each cavity.
      */
     ReferenceTracer(
             const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-            double dt, double ringPeriod);
+            double dt, double ringPeriod, CavityPhases* cavityPhases = nullptr);
 
     /**
      * @brief Trace the reference particle.
@@ -115,6 +117,8 @@ private:
 
     std::ofstream designPath_m;
     std::size_t designPathFrequency_m;
+    /// Receives the phase autophase sets on each cavity; may be null.
+    CavityPhases* cavityPhases_m;
 };
 
 #endif  // OPALX_REFERENCE_TRACER_H

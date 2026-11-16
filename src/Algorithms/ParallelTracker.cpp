@@ -119,6 +119,7 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       restartGlobalStep_m(setup.restartGlobalStep),
       restartDt_m(setup.restartDt),
       restartPosition_m(setup.restartPosition),
+      cavityPhases_m(std::move(setup.cavityPhases)),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -378,7 +379,8 @@ bool ParallelTracker::startTracking() {
         }
         if (!isDesignBeam) continue;
         ReferenceTracer tracer(
-                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, ringPeriod_m);
+                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, ringPeriod_m,
+                &cavityPhases_m);
         ReferenceTracer::RayState start;
         start.position   = pc->getRefPartR();
         start.momentum   = pc->getRefPartP();
@@ -951,7 +953,8 @@ void ParallelTracker::trackSteps() {
                 const std::string checkpointPath =
                         CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
                 CheckpointFile::write(
-                        checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m);
+                        checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m,
+                        cavityPhases_m);
                 m << level2 << "Wrote checkpoint '" << checkpointPath << "' after global step "
                   << itsBunch_m->getGlobalTrackStep() << "." << endl;
             }
@@ -2616,7 +2619,7 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         if (element->getType() == ElementType::TRAVELINGWAVE) {
             const TravelingWave* TWelement = static_cast<const TravelingWave*>(element.get());
             if (!TWelement->getAutophaseVeto()) {
-                CavityAutophaser ap(ref, element);
+                CavityAutophaser ap(ref, element, &cavityPhases_m);
                 ap.getPhaseAtMaxEnergy(
                         itsOpalBeamline_m.transformToLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartR()),
@@ -2628,7 +2631,7 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         } else if (element->getType() == ElementType::RFCAVITY) {
             const RFCavity* RFelement = static_cast<const RFCavity*>(element.get());
             if (!RFelement->getAutophaseVeto()) {
-                CavityAutophaser ap(ref, element);
+                CavityAutophaser ap(ref, element, &cavityPhases_m);
                 ap.getPhaseAtMaxEnergy(
                         itsOpalBeamline_m.transformToLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartR()),

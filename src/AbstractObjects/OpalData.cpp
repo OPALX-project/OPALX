@@ -77,8 +77,6 @@ struct OpalDataImpl {
     /// Mode for writing files
     OpalData::OpenMode openMode_m = OpalData::OpenMode::WRITE;
 
-    std::vector<MaxPhasesT> maxPhases_m;
-
     std::vector<std::string> arguments_m;
 };
 
@@ -125,16 +123,6 @@ void OpalData::setRestartFileName(std::string s) { p->restartFn_m = s; }
 void OpalData::setOpenMode(OpenMode openMode) { p->openMode_m = openMode; }
 
 OpalData::OpenMode OpalData::getOpenMode() const { return p->openMode_m; }
-
-void OpalData::setMaxPhase(std::string elName, double phi) {
-    p->maxPhases_m.push_back(MaxPhasesT(elName, phi));
-}
-
-std::vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() { return p->maxPhases_m.begin(); }
-
-std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() { return p->maxPhases_m.end(); }
-
-int OpalData::getNumberOfMaxPhases() { return p->maxPhases_m.size(); }
 
 void OpalData::apply(const ObjectFunction& fun) {
     for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {

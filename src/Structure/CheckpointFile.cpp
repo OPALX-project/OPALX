@@ -193,9 +193,10 @@ namespace {
         return std::string(buffer.data());
     }
 
-    void restoreCavityPhases(h5_file_t file) {
+    CavityPhases readCavityPhases(h5_file_t file) {
+        CavityPhases phases;
         if (H5HasFileAttrib(file, "NumCavityPhases") <= 0) {
-            return;
+            return phases;
         }
         h5_int64_t count = 0;
         requireSuccess(
@@ -212,9 +213,9 @@ namespace {
             requireSuccess(
                     H5ReadFileAttribFloat64(file, (prefix + "Value").c_str(), &phase),
                     "reading cavity phase value");
-            OpalData::getInstance()->setMaxPhase(
-                    readStringFileAttribute(file, prefix + "Name"), phase);
+            phases.emplace_back(readStringFileAttribute(file, prefix + "Name"), phase);
         }
+        return phases;
     }
 
     template <typename View>
@@ -302,7 +303,8 @@ std::string CheckpointFile::defaultPath(const std::string& inputBasename) {
 
 void CheckpointFile::write(
         const std::string& fileName, PartBunch_t& bunch, std::size_t stepSizeSegment,
-        unsigned long long stepsCompletedInSegment, const std::vector<BeamStop>& beamStops) {
+        unsigned long long stepsCompletedInSegment, const std::vector<BeamStop>& beamStops,
+        const CavityPhases& cavityPhases) {
     namespace fs                    = std::filesystem;
     const std::string temporaryName = fileName + ".tmp";
 
@@ -366,13 +368,12 @@ void CheckpointFile::write(
                     "writing beam stop plane normal");
         }
 
-        h5_int64_t phaseCount = OpalData::getInstance()->getNumberOfMaxPhases();
+        h5_int64_t phaseCount = static_cast<h5_int64_t>(cavityPhases.size());
         requireSuccess(
                 H5WriteFileAttribInt64(file, "NumCavityPhases", &phaseCount, 1),
                 "writing cavity phase count");
         std::size_t phaseIndex = 0;
-        for (auto it = OpalData::getInstance()->getFirstMaxPhases();
-             it != OpalData::getInstance()->getLastMaxPhases(); ++it, ++phaseIndex) {
+        for (auto it = cavityPhases.begin(); it != cavityPhases.end(); ++it, ++phaseIndex) {
             const std::string prefix = "CavityPhase" + std::to_string(phaseIndex);
             requireSuccess(
                     H5WriteFileAttribString(file, (prefix + "Name").c_str(), it->first.c_str()),
@@ -554,8 +555,8 @@ CheckpointFile::Metadata CheckpointFile::inspect(const std::string& fileName) {
 CheckpointFile::Metadata CheckpointFile::read(const std::string& fileName, PartBunch_t& bunch) {
     h5_file_t file = openFile(fileName, H5_O_RDONLY);
     try {
-        const Metadata metadata = readMetadata(file);
-        restoreCavityPhases(file);
+        Metadata metadata     = readMetadata(file);
+        metadata.cavityPhases = readCavityPhases(file);
         std::vector<bool> atSStop(metadata.numContainers, false);
         if (metadata.numContainers != bunch.getNumParticleContainers()) {
             throw OpalException(

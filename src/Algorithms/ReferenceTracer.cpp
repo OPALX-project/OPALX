@@ -39,14 +39,15 @@ extern Inform* gmsg;
 
 ReferenceTracer::ReferenceTracer(
         const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-        const double dt, const double ringPeriod)
+        const double dt, const double ringPeriod, CavityPhases* cavityPhases)
     : reference_m(reference),
       beamline_m(beamline),
       stepSizes_m(stepSizes),
       dt_m(dt),
       ringPeriod_m(ringPeriod),
       rayTracker_m(beamline, reference),
-      designPathFrequency_m(std::numeric_limits<std::size_t>::max()) {
+      designPathFrequency_m(std::numeric_limits<std::size_t>::max()),
+      cavityPhases_m(cavityPhases) {
     if (!(std::isfinite(dt_m) && dt_m > 0.0))
         throw OpalException("ReferenceTracer", "The reference pass needs a positive DT.");
 }
@@ -164,7 +165,7 @@ void ReferenceTracer::autophaseCavities(const ElementSet& fields) {
             && visitedElements_m.find(element->getName()) == visitedElements_m.end()) {
             const auto initialR = beamline_m.transformToLocalCS(element, ray_m.position);
             const auto initialP = beamline_m.rotateToLocalCS(element, ray_m.momentum);
-            CavityAutophaser autophaser(reference_m, element);
+            CavityAutophaser autophaser(reference_m, element, cavityPhases_m);
             autophaser.getPhaseAtMaxEnergy(initialR, initialP, ray_m.time, dt_m);
         }
     }
