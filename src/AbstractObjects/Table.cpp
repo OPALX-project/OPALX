@@ -26,10 +26,7 @@
 // Class Table
 // ------------------------------------------------------------------------
 
-Table::~Table() {
-    // Remove pointer to "this" from table directory.
-    if (!builtin) OpalData::getInstance()->unregisterTable(this);
-}
+Table::~Table() {}
 
 bool Table::canReplaceBy(Object* /*newObject*/) { return false; }
 

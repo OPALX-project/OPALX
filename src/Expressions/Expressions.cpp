@@ -136,20 +136,6 @@ namespace Expressions {
     // Real functions without arguments.
     // ----------------------------------------------------------------------
 
-    double getEkin() {
-        PartBunch_t* p = OpalData::getInstance()->getPartBunch();
-
-        if (p)
-            std::cout << "PartBuch valid" << std::endl;
-        else
-            std::cout << "PartBuch not valid" << std::endl;
-
-        if (p) return 0.0;
-        // return p->get_meanKineticEnergy();
-        else
-            return -1.0;
-    }
-
     double ranf() { return Options::rangen.uniform(); }
 
     double gauss() {
@@ -159,7 +145,6 @@ namespace Expressions {
     }
 
     static TFunction0<double> table0[] = {
-            {"GETEKIN", -2, getEkin},
             {"RANF", -2, ranf},
             {"GAUSS", -2, gauss},
             {"SI", -2, SFunction::arcIn},

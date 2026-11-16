@@ -132,7 +132,6 @@ namespace opalx::run {
            << "inputBasename = " << d.context.inputBasename << "\n"
            << "restart = " << flag(d.context.restart) << "\n"
            << "restartFileName = " << d.context.restartFileName << "\n"
-           << "restartStep = " << d.context.restartStep << "\n"
            << "openMode = " << d.context.openMode << "\n"
            << "p0 = " << number(d.context.p0) << "\n"
            << "globalPhaseShift = " << number(d.context.globalPhaseShift) << "\n";

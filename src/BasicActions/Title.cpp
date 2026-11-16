@@ -17,7 +17,6 @@
 //
 #include "BasicActions/Title.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 
 Title::Title()
@@ -32,8 +31,7 @@ Title::Title()
 Title::~Title() {}
 
 void Title::execute() {
-    std::string title = Attributes::getString(itsAttr[0]);
-    OpalData::getInstance()->storeTitle(title);
+    // Accepted so that old inputs still read; no output uses the title.
 }
 
 void Title::parse(Statement& statement) { parseShortcut(statement); }

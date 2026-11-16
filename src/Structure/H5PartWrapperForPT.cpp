@@ -45,12 +45,7 @@ H5PartWrapperForPT::H5PartWrapperForPT(
       h5TotalStepTimer_m(IpplTimings::getTimer("H5 total step")),
       h5StepHeaderTimer_m(IpplTimings::getTimer("H5 step header")),
       h5DeviceHostCopyTimer_m(IpplTimings::getTimer("H5 device host copy")),
-      h5DatasetWriteTimer_m(IpplTimings::getTimer("H5 dataset write")) {
-    if (restartStep == -1) {
-        restartStep = H5GetNumSteps(file_m) - 1;
-        OpalData::getInstance()->setRestartStep(restartStep);
-    }
-}
+      h5DatasetWriteTimer_m(IpplTimings::getTimer("H5 dataset write")) {}
 
 H5PartWrapperForPT::~H5PartWrapperForPT() {}
 

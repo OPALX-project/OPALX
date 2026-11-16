@@ -165,7 +165,6 @@ namespace opalx::run {
         std::string inputBasename;
         bool restart = false;
         std::string restartFileName;
-        int restartStep = 0;
         std::string openMode;
         double p0               = 0;  ///< The input variable P0, used to scale magnet strengths.
         double globalPhaseShift = 0;

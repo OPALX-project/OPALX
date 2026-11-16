@@ -33,13 +33,11 @@
 
 class AttributeBase;
 class Object;
-class Table;
 class ValueDefinition;
 class DataSink;
 
 // store element name, max phase
 typedef std::pair<std::string, double> MaxPhasesT;
-typedef std::map<double, double> energyEvolution_t;
 
 /// The global OPAL structure.
 class OpalData {
@@ -72,17 +70,10 @@ public:
 
     static void deleteInstance();
 
-    static void stashInstance();
-
-    static OpalData* popInstance();
-
     ~OpalData();
 
     /// Enum for writing to files
     enum class OpenMode : unsigned short { UNDEFINED, WRITE, APPEND };
-
-    /// reset object for consecutive runs
-    void reset();
 
     /// Apply a function to all objects.
     //  Loop over the directory and apply the given functor object to each
@@ -159,21 +150,6 @@ public:
     //  Also set the [b]modified[/b] flag in [b]object[/b], if not nullptr.
     void makeDirty(Object* object);
 
-    /// Print all objects.
-    //  Loop over the directory and print each object whose name matches
-    //  the regular expression [b]pattern[/b].
-    void printNames(std::ostream& stream, const std::string& pattern);
-    void printAllNames(std::ostream& stream);
-
-    /// Register table.
-    //  Register the table [b]t[/b].
-    //  Registered tables are invalidated to be refilled when an object
-    //  on which they depend is changed or replaced.
-    void registerTable(Table* t);
-
-    /// Unregister table.
-    void unregisterTable(Table* t);
-
     /// Register expression.
     //  Registered expressions are invalidated to be recomputed when
     //  any object in the directory is changed or replaced.
@@ -185,26 +161,8 @@ public:
     /// Set the global momentum.
     void setP0(ValueDefinition* p0);
 
-    /// Store the page title.
-    void storeTitle(const std::string&);
-
-    /// Print the page title.
-    void printTitle(std::ostream&);
-
-    /// Get the title string
-    std::string getTitle();
-
     /// Mark all expressions and tables for re-evaluation after a value changed.
     void update();
-
-    /// Clear Reference.
-    //  This functor is used to clear the reference count stored in an object.
-    struct ClearReference : public ObjectFunction {
-        virtual void operator()(Object*) const;
-    };
-
-    std::map<std::string, std::string> getVariableData();
-    std::vector<std::string> getVariableNames();
 
     bool isInPrepState();
     void setInPrepState(bool state);
@@ -225,12 +183,6 @@ public:
 
     /// set OPAL in restart mode
     void setRestartRun(const bool& value = true);
-
-    /// store the location where to restart
-    void setRestartStep(int s);
-
-    /// get the step where to restart
-    int getRestartStep();
 
     /// get the name of the the additional data directory
     std::string getAuxiliaryOutputDirectory() const;
@@ -253,27 +205,8 @@ public:
     /// store opals restart h5 format filename
     void setRestartFileName(std::string s);
 
-    /// true if we do a restart from specified h5 file
-    bool hasRestartFile();
-
-    /// set the dump frequency as found in restart file
-    void setRestartDumpFreq(const int& N);
-
-    /// get the dump frequency as found in restart file
-    int getRestartDumpFreq() const;
-
     void setOpenMode(OpenMode openMode);
     OpenMode getOpenMode() const;
-
-    /// set the last step in a run for possible follow-up run
-    void setLastStep(const int& step);
-
-    /// get the last step from a possible previous run
-    int getLastStep() const;
-
-    PartBunch_t* getPartBunch();
-
-    void setPartBunch(PartBunch_t* p);
 
     /// true if we already allocated a DataSink object
     bool hasDataSinkAllocated();
@@ -293,17 +226,6 @@ public:
     std::vector<MaxPhasesT>::iterator getLastMaxPhases();
     int getNumberOfMaxPhases();
 
-    void addEnergyData(double spos, double ekin);
-    energyEvolution_t::iterator getFirstEnergyData();
-    energyEvolution_t::iterator getLastEnergyData();
-
-    unsigned long long getMaxTrackSteps();
-    void setMaxTrackSteps(unsigned long long s);
-    void incMaxTrackSteps(unsigned long long s);
-
-    void addProblemCharacteristicValue(const std::string& name, unsigned int value);
-    const std::map<std::string, unsigned int>& getProblemCharacteristicValues() const;
-
     void storeArguments(int argc, char* argv[]);
     std::vector<std::string> getArguments();
 
@@ -311,7 +233,6 @@ private:
     static bool isInstantiated;
     static OpalData* instance;  // \todo should be a smart pointer and we then should get ridd of
                                 // deleteInstance
-    static std::stack<OpalData*> stashedInstances;
 
     OpalData();
 

@@ -286,7 +286,6 @@ namespace opalx::run {
         context.inputBasename    = opal->getInputBasename();
         context.restart          = opal->inRestartRun();
         context.restartFileName  = context.restart ? opal->getRestartFileName() : "";
-        context.restartStep      = opal->getRestartStep();
         context.openMode         = openModeName(opal->getOpenMode());
         context.p0               = opal->getP0();
         context.globalPhaseShift = opal->getGlobalPhaseShift();
