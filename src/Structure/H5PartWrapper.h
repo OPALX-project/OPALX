@@ -47,17 +47,12 @@ public:
 
     /** Remove diagnostic steps after @p checkpointTime in the direction of @p timeStep. */
     void rewindToTime(double checkpointTime, double timeStep);
-    virtual void readHeader()                                                              = 0;
-    virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
-
     virtual void writeHeader() = 0;
     virtual void writeStep(
             PartBunch_t*, const std::map<std::string, double>&,
             size_t particleContainerIndex = 0) = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
-
-    void storeCavityInformation();
 
     size_t getNumParticles() const;
 

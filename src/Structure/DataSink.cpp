@@ -171,14 +171,6 @@ void DataSink::dumpSDDS(
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
-void DataSink::storeCavityInformation() {
-    if (!Options::enableHDF5 || h5Writers_m.empty()) {
-        return;
-    }
-
-    h5Writers_m[0]->storeCavityInformation();
-}
-
 void DataSink::changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers) {
     if (!Options::enableHDF5) {
         return;

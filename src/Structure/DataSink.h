@@ -122,10 +122,6 @@ public:
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
             int reportedBinCount, const losses_t& losses, const double& azimuth) const;
 
-    /** \brief Write cavity information from  H5 file
-     */
-    void storeCavityInformation();
-
     void changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers);
 
     /**
