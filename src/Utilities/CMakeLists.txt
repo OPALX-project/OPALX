@@ -8,6 +8,7 @@ set (_SRCS
     DomainError.cpp
     FormatError.cpp
     GeneralOpalException.cpp
+    InputVersion.cpp
     LogicalError.cpp
     Options.cpp
     OverflowError.cpp
@@ -35,6 +36,7 @@ set (HDRS
     DomainError.h
     FormatError.h
     GeneralOpalException.h
+    InputVersion.h
     LogicalError.h
     Options.h
     OverflowError.h
