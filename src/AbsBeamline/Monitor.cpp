@@ -236,8 +236,7 @@ void Monitor::driftToCorrectPositionAndSave(
 bool Monitor::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr
-        || OpalData::getInstance()->isInPrepState()) {
+    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr || !recordReference_m) {
         return false;
     }
 

@@ -161,7 +161,8 @@ bool ParallelTracker::startTracking() {
     Inform m("ParallelTracker::execute");
     terminalStepDt_m = 0;
     cyclotronBunchLattice_m.reset();
-    auto preparationState = OpalData::getInstance()->enterPreparationState();
+    // The reference start and pass may cross a MONITOR; only the step loop records.
+    itsOpalBeamline_m.setMonitorsRecordReference(false);
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
         restartPosition = restartPosition_m;
@@ -505,9 +506,8 @@ bool ParallelTracker::startTracking() {
     // Handle any dump field requests
     DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
 
-    // The reference pass and the other setup stages may cross diagnostic elements. Only
-    // crossings produced by the real tracking loop may write output.
-    preparationState.finish();
+    // Only crossings in the step loop write MONITOR output.
+    itsOpalBeamline_m.setMonitorsRecordReference(true);
     probeRecorder_m.reset();
     probeTurns_m.clear();
     probeTurns_m.resize(nContainers);

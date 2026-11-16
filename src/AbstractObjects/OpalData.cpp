@@ -84,8 +84,6 @@ struct OpalDataImpl {
 
     std::vector<MaxPhasesT> maxPhases_m;
 
-    bool isInPrepState_m;
-
     std::vector<std::string> arguments_m;
 };
 
@@ -95,9 +93,7 @@ OpalDataImpl::OpalDataImpl()
       modified(false),
       isRestart_m(false),
       hasDataSinkAllocated_m(false),
-      isInPrepState_m(false) {
-    dataSink_m = nullptr;
-}
+      dataSink_m(nullptr) {}
 
 OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the expressions are deleted.
@@ -129,25 +125,6 @@ void OpalData::deleteInstance() {
 OpalData::OpalData() { p = new OpalDataImpl(); }
 
 OpalData::~OpalData() { delete p; }
-
-bool OpalData::isInPrepState() { return p->isInPrepState_m; }
-
-void OpalData::setInPrepState(bool state) { p->isInPrepState_m = state; }
-
-OpalData::PreparationState::PreparationState(OpalData& opalData) : opalData_m(opalData) {
-    opalData_m.setInPrepState(true);
-}
-
-OpalData::PreparationState::~PreparationState() noexcept { finish(); }
-
-void OpalData::PreparationState::finish() noexcept {
-    if (active_m) {
-        opalData_m.setInPrepState(false);
-        active_m = false;
-    }
-}
-
-OpalData::PreparationState OpalData::enterPreparationState() { return PreparationState(*this); }
 
 bool OpalData::inRestartRun() { return p->isRestart_m; }
 

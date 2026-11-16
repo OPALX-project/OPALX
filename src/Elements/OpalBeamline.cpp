@@ -17,6 +17,7 @@
 //
 #include "Elements/OpalBeamline.h"
 
+#include "AbsBeamline/Monitor.h"
 #include "Elements/PlacementResolver.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -134,6 +135,11 @@ unsigned long OpalBeamline::getFieldAt(
 void OpalBeamline::switchElementsOff() {
     for (ElementList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
         (*flit)->goOffline();
+}
+
+void OpalBeamline::setMonitorsRecordReference(bool record) {
+    for (const auto& element : getElementByType(ElementType::MONITOR))
+        static_cast<Monitor*>(element.get())->setRecordReference(record);
 }
 
 void OpalBeamline::prepareSections() {

@@ -79,6 +79,13 @@ public:
 
     void setCollectionType(CollectionType type);
 
+    /**
+     * @brief Whether a reference particle that crosses the monitor is recorded.
+     * @note The tracker turns this off for the reference start and the reference pass, and
+     *       SPECTRALTUNES for its rays; only the step loop records.
+     */
+    void setRecordReference(bool record) { recordReference_m = record; }
+
     static void writeStatistics();
 
     virtual int getRequiredNumberOfTimeSteps() const override;
@@ -97,6 +104,7 @@ private:
     Plane plane_m;
     CollectionType type_m;
     unsigned int numPassages_m;
+    bool recordReference_m = true;  ///< See setRecordReference().
 
     std::unique_ptr<LossDataSink> lossDs_m;
 

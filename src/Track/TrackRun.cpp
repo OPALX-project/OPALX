@@ -128,8 +128,8 @@ void TrackRun::execute() {
         // SPECTRALTUNES traces two rays through the built line instead of tracking the bunch.
         if (ippl::Comm->size() != 1 || setup.bunch->getNumParticleContainers() != 1)
             throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");
-        // MONITOR records the rays only outside the preparation state.
-        auto preparation = OpalData::getInstance()->enterPreparationState();
+        // The tune rays must not write MONITOR output.
+        setup.beamline.setMonitorsRecordReference(false);
         SpectralTunes::run(
                 setup.beamline, *setup.bunch->getParticleContainer(0)->getReference(),
                 setup.tuneInitial, setup.tuneSettings, description.context.inputBasename);

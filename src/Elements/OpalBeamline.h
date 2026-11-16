@@ -95,6 +95,9 @@ public:
 
     void switchElementsOff();
 
+    /// Turn reference recording of every MONITOR on or off (Monitor::setRecordReference()).
+    void setMonitorsRecordReference(bool record);
+
     unsigned long getFieldAt(
             const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,
             Vector_t<double, 3>&, Vector_t<double, 3>&);
