@@ -122,8 +122,6 @@ public:
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
             int reportedBinCount, const losses_t& losses, const double& azimuth) const;
 
-    void changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers);
-
     /**
      * Write geometry points and surface triangles to vtk file
      *

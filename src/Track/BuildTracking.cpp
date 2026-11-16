@@ -176,7 +176,6 @@ namespace opalx::run {
 
         DataSink* initDataSink(
                 size_t numParticleContainers, const RunContext& context, RunObjects& objects) {
-            OpalData* opal = OpalData::getInstance();
             objects.phaseSpaceSinks.clear();
             objects.phaseSpaceSinks.reserve(numParticleContainers);
 
@@ -200,22 +199,16 @@ namespace opalx::run {
             std::vector<H5PartWrapper*> sinks;
             for (const auto& sink : objects.phaseSpaceSinks)
                 sinks.push_back(sink.get());
-            if (!isRestart) {
-                if (!opal->hasDataSinkAllocated()) {
-                    opal->setDataSink(new DataSink(sinks, false, numParticleContainers));
-                } else {
-                    DataSink* raw = opal->getDataSink();
-                    raw->changeH5Wrappers(sinks);
-                }
+            // A restart continues the diagnostics under their original basename: existing
+            // phase-space H5 files are opened for append, absent ones are started. A later RUN
+            // of the same input appends to the statistics files of the earlier ones.
+            if (isRestart || context.runIndex > 1) {
+                objects.dataSink = std::make_unique<DataSink>(
+                        sinks, false, numParticleContainers, inputBase, true);
             } else {
-                // All diagnostics continue under their original basename. Existing phase-space H5
-                // files are opened for append; absent ones are initialized as new diagnostic files.
-                opal->setDataSink(
-                        new DataSink(sinks, false, numParticleContainers, inputBase, true));
+                objects.dataSink = std::make_unique<DataSink>(sinks, false, numParticleContainers);
             }
-
-            // DataSink lifetime is managed by OpalData; the RUN only borrows it.
-            return opal->getDataSink();
+            return objects.dataSink.get();
         }
 
         /// Attach the global processes of each beam to its particle container.

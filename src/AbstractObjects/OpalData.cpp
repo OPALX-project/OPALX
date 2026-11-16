@@ -33,7 +33,6 @@
 #include "OpalParser/StringStream.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
-#include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
@@ -78,27 +77,16 @@ struct OpalDataImpl {
     /// Mode for writing files
     OpalData::OpenMode openMode_m = OpalData::OpenMode::WRITE;
 
-    bool hasDataSinkAllocated_m;
-
-    DataSink* dataSink_m;
-
     std::vector<MaxPhasesT> maxPhases_m;
 
     std::vector<std::string> arguments_m;
 };
 
 OpalDataImpl::OpalDataImpl()
-    : mainDirectory(),
-      referenceMomentum(0),
-      modified(false),
-      isRestart_m(false),
-      hasDataSinkAllocated_m(false),
-      dataSink_m(nullptr) {}
+    : mainDirectory(), referenceMomentum(0), modified(false), isRestart_m(false) {}
 
 OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the expressions are deleted.
-    delete dataSink_m;
-
     mainDirectory.erase();
     exprDirectory.clear();
 }
@@ -137,15 +125,6 @@ void OpalData::setRestartFileName(std::string s) { p->restartFn_m = s; }
 void OpalData::setOpenMode(OpenMode openMode) { p->openMode_m = openMode; }
 
 OpalData::OpenMode OpalData::getOpenMode() const { return p->openMode_m; }
-
-bool OpalData::hasDataSinkAllocated() { return p->hasDataSinkAllocated_m; }
-
-void OpalData::setDataSink(DataSink* s) {
-    p->dataSink_m             = s;
-    p->hasDataSinkAllocated_m = true;
-}
-
-DataSink* OpalData::getDataSink() { return p->dataSink_m; }
 
 void OpalData::setMaxPhase(std::string elName, double phi) {
     p->maxPhases_m.push_back(MaxPhasesT(elName, phi));

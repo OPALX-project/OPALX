@@ -34,7 +34,6 @@
 class AttributeBase;
 class Object;
 class ValueDefinition;
-class DataSink;
 
 // store element name, max phase
 typedef std::pair<std::string, double> MaxPhasesT;
@@ -178,13 +177,6 @@ public:
 
     void setOpenMode(OpenMode openMode);
     OpenMode getOpenMode() const;
-
-    /// true if we already allocated a DataSink object
-    bool hasDataSinkAllocated();
-
-    DataSink* getDataSink();
-
-    void setDataSink(DataSink* s);
 
     void setMaxPhase(std::string elName, double phi);
 

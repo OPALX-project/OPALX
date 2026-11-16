@@ -171,23 +171,6 @@ void DataSink::dumpSDDS(
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
-void DataSink::changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers) {
-    if (!Options::enableHDF5) {
-        return;
-    }
-
-    if (h5wrappers.size() != h5Writers_m.size()) {
-        throw OpalException(
-                "DataSink::changeH5Wrappers", "Expected " + std::to_string(h5Writers_m.size())
-                                                      + " wrappers, got "
-                                                      + std::to_string(h5wrappers.size()) + ".");
-    }
-
-    for (size_t i = 0; i < h5wrappers.size(); ++i) {
-        h5Writers_m[i]->changeH5Wrapper(h5wrappers[i]);
-    }
-}
-
 void DataSink::writeImpactStatistics(
         const PartBunch_t& beam, long long& step, size_t& impact, double& sey_num,
         size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {

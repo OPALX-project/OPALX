@@ -14,6 +14,7 @@
 #include "Algorithms/TrackingSetup.h"
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
+#include "Structure/DataSink.h"
 #include "Structure/H5PartWrapper.h"
 #include "Track/RunDescription.h"
 
@@ -25,11 +26,14 @@ namespace opalx::run {
      * @brief The objects buildTracking() makes for one RUN; the tracker borrows them.
      *
      * Members are destroyed in reverse order: the space-charge solver before the bunch it
-     * borrows particles from, and both before the phase-space files.
+     * borrows particles from, then the data sink, which the solver borrows, and last the
+     * phase-space files, which the data sink writes to.
      */
     struct RunObjects {
         /// Phase-space files, one per beam; the DataSink borrows them.
         std::vector<std::unique_ptr<H5PartWrapper>> phaseSpaceSinks;
+        /// Statistics and phase-space output of this RUN.
+        std::unique_ptr<DataSink> dataSink;
         std::unique_ptr<PartBunch_t> bunch;
         std::unique_ptr<spacecharge::SpaceChargeSolver> spaceChargeSolver;
     };

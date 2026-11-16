@@ -28,8 +28,6 @@ public:
 
     void close();
 
-    void changeH5Wrapper(H5PartWrapper* h5wrapper);
-
     double getLastPosition();
 
     void rewindToTime(double checkpointTime, double timeStep);
@@ -76,8 +74,6 @@ private:
 };
 
 inline void H5Writer::close() { h5wrapper_m->close(); }
-
-inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) { h5wrapper_m = h5wrapper; }
 
 inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
 
