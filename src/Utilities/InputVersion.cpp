@@ -2,6 +2,8 @@
 
 #include "BuildInfo.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+#include "Utility/Inform.h"
 
 #include <array>
 #include <cctype>
@@ -81,6 +83,59 @@ namespace InputVersion {
             result.status = Status::OLDERAFFECTED;
         }
         return result;
+    }
+
+    void enforce() {
+        static std::optional<std::string> checked;
+        if (checked == Options::version) {
+            return;
+        }
+        checked = Options::version;
+
+        std::optional<Version> input;
+        if (!Options::version.empty()) {
+            input = parse(Options::version);
+        }
+        const std::string current = toString(buildVersion);
+        const Result result       = evaluate(input, buildVersion, changeTable);
+
+        switch (result.status) {
+            case Status::NOTGIVEN: {
+                Inform warning("Warning");
+                warning << "The input does not state the OPALX release it was written for and "
+                        << "is read as an OPALX " << current << " input.\n"
+                        << "Add OPTION, VERSION = \"" << current << "\"; so that input changes "
+                        << "of later releases are reported." << endl;
+                break;
+            }
+            case Status::NEWER: {
+                Inform warning("Warning");
+                warning << "The input was written for OPALX " << toString(*input)
+                        << ", but this is OPALX " << current << ".\n"
+                        << "Input changes made after OPALX " << current
+                        << " are unknown to this executable." << endl;
+                break;
+            }
+            case Status::OLDERAFFECTED: {
+                Inform error("Error");
+                error << "\nThe input was written for OPALX " << toString(*input)
+                      << ". Later releases changed the meaning of existing input:\n"
+                      << endl;
+                for (const Change& change : result.changes) {
+                    error << "* OPALX " << toString(change.since) << ": " << change.text << "\n"
+                          << endl;
+                }
+                error << "Adapt the input to these changes, then set\n"
+                      << "OPTION, VERSION = \"" << current << "\";" << endl;
+                throw OpalException(
+                        "InputVersion::enforce",
+                        "The input was written for OPALX " + toString(*input)
+                                + " and is affected by later input changes.");
+            }
+            case Status::CURRENT:
+            case Status::OLDERUNAFFECTED:
+                break;
+        }
     }
 
 }  // namespace InputVersion

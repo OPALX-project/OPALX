@@ -21,6 +21,7 @@
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "Structure/Beam.h"
+#include "Utilities/InputVersion.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -505,6 +506,7 @@ CofCmd::CofCmd()
 CofCmd::CofCmd(const std::string& name, CofCmd* parent) : Action(name, parent) {}
 CofCmd* CofCmd::clone(const std::string& name) { return new CofCmd(name, this); }
 void CofCmd::execute() {
+    InputVersion::enforce();
     result_m.reset();
     OpalData::getInstance()->hasCofRun = true;
     require(!OpalData::getInstance()->inRestartRun(), "COF does not support restart mode.");

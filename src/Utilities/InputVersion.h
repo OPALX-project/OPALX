@@ -93,6 +93,16 @@ namespace InputVersion {
     Result evaluate(
             const std::optional<Version>& input, Version build, std::span<const Change> table);
 
+    /**
+     * @brief Applies the check to `Options::version` before tracking starts.
+     *
+     * Prints the warnings of the table above and repeats them only if `OPTION, VERSION`
+     * has changed since the last call.
+     *
+     * @throws OpalException if the input is older than a registered change.
+     */
+    void enforce();
+
 }  // namespace InputVersion
 
 #endif

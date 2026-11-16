@@ -108,7 +108,7 @@ namespace Options {
 
     bool writeBendTrajectories = false;
 
-    int version = 10000;
+    std::string version;
 
     bool memoryDump = false;
 

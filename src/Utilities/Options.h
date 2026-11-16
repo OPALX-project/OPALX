@@ -174,8 +174,9 @@ namespace Options {
 
     extern bool writeBendTrajectories;
 
-    /// opal version of input file
-    extern int version;
+    /// OPALX release the input was written for, as "major.minor"; empty if the input does
+    /// not state it. Checked by InputVersion::enforce().
+    extern std::string version;
 
     extern bool memoryDump;
 
