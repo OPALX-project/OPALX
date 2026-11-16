@@ -203,6 +203,7 @@ private:
     bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
     std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     double sStart_m;                    ///< Path-length start position for the track (m).
+    double globalPhaseShift_m;          ///< A fresh run starts this long before t = 0 (s).
     double ringPeriod_m;                ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */

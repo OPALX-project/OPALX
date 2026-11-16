@@ -82,9 +82,6 @@ struct OpalDataImpl {
 
     DataSink* dataSink_m;
 
-    // In units of seconds. This is half of tEmission
-    double gPhaseShift_m;
-
     std::vector<MaxPhasesT> maxPhases_m;
 
     bool isInPrepState_m;
@@ -98,7 +95,6 @@ OpalDataImpl::OpalDataImpl()
       modified(false),
       isRestart_m(false),
       hasDataSinkAllocated_m(false),
-      gPhaseShift_m(0.0),
       isInPrepState_m(false) {
     dataSink_m = nullptr;
 }
@@ -183,16 +179,6 @@ std::vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() { return p->maxP
 std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() { return p->maxPhases_m.end(); }
 
 int OpalData::getNumberOfMaxPhases() { return p->maxPhases_m.size(); }
-
-void OpalData::setGlobalPhaseShift(double shift) {
-    /// units: (sec)
-    p->gPhaseShift_m = shift;
-}
-
-double OpalData::getGlobalPhaseShift() {
-    /// units: (sec)
-    return p->gPhaseShift_m;
-}
 
 void OpalData::apply(const ObjectFunction& fun) {
     for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {

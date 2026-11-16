@@ -130,8 +130,9 @@ void H5PartWrapperForPT::writeHeader() {
     h5_int64_t dumpfreq = Options::psDumpFreq;
     WRITEFILEATTRIB(Int64, file_m, "dump frequency", &dumpfreq, 1);
 
-    /// Write global phase change
-    h5_float64_t dphi = OpalData::getInstance()->getGlobalPhaseShift();
+    /// The header is written before the samplers give the phase shift; nothing reads this
+    /// attribute, so it stays 0 as it always was for the first RUN.
+    h5_float64_t dphi = 0.0;
     WRITEFILEATTRIB(Float64, file_m, "dPhiGlobal", &dphi, 1);
 }
 

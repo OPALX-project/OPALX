@@ -63,6 +63,9 @@ struct TrackingSetup {
     std::vector<double> sStop;
     std::vector<unsigned long long> maxSteps;
     double sStart = 0;  ///< Path length where tracking starts (m).
+    /// A fresh run starts this long before t = 0 (s): the largest time shift of the samplers,
+    /// for flat-top pulses centred on the RF reference time. Zero on a restart.
+    double globalPhaseShift = 0;
 
     /// Per container, the samplers that emit particles during tracking.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers;

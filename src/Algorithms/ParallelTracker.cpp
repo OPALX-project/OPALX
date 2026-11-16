@@ -111,6 +111,7 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       referenceHitMaterial_m(false),
       beamStops_m(std::move(setup.beamStops)),
       sStart_m(setup.sStart),
+      globalPhaseShift_m(setup.globalPhaseShift),
       ringPeriod_m(setup.ringPeriod),
       dtCurrentTrack_m(0.0),
       emittingSamplers_m(std::move(setup.emittingSamplers)),
@@ -471,7 +472,7 @@ bool ParallelTracker::startTracking() {
     // flat-top pulses. Checkpoint time already contains this shift and must not be shifted again.
     double time = itsBunch_m->getT();
     if (!restarting_m) {
-        time -= OpalData::getInstance()->getGlobalPhaseShift();
+        time -= globalPhaseShift_m;
         itsBunch_m->setT(time);
     }
     m << level4 << "Reset bunch time to " << time << "." << endl;

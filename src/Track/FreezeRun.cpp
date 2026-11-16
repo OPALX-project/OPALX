@@ -281,14 +281,13 @@ namespace opalx::run {
         RunDescription run;
         OpalData* opal = OpalData::getInstance();
 
-        RunContext& context      = run.context;
-        context.runIndex         = runIndex;
-        context.inputBasename    = opal->getInputBasename();
-        context.restart          = opal->inRestartRun();
-        context.restartFileName  = context.restart ? opal->getRestartFileName() : "";
-        context.openMode         = openModeName(opal->getOpenMode());
-        context.p0               = opal->getP0();
-        context.globalPhaseShift = opal->getGlobalPhaseShift();
+        RunContext& context     = run.context;
+        context.runIndex        = runIndex;
+        context.inputBasename   = opal->getInputBasename();
+        context.restart         = opal->inRestartRun();
+        context.restartFileName = context.restart ? opal->getRestartFileName() : "";
+        context.openMode        = openModeName(opal->getOpenMode());
+        context.p0              = opal->getP0();
 
         run.options = currentOptions();
 

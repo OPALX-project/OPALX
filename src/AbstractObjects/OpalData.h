@@ -215,11 +215,6 @@ public:
 
     void setDataSink(DataSink* s);
 
-    /// units: (sec)
-    void setGlobalPhaseShift(double shift);
-    /// units: (sec)
-    double getGlobalPhaseShift();
-
     void setMaxPhase(std::string elName, double phi);
 
     std::vector<MaxPhasesT>::iterator getFirstMaxPhases();

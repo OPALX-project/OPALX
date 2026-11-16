@@ -133,8 +133,7 @@ namespace opalx::run {
            << "restart = " << flag(d.context.restart) << "\n"
            << "restartFileName = " << d.context.restartFileName << "\n"
            << "openMode = " << d.context.openMode << "\n"
-           << "p0 = " << number(d.context.p0) << "\n"
-           << "globalPhaseShift = " << number(d.context.globalPhaseShift) << "\n";
+           << "p0 = " << number(d.context.p0) << "\n";
 
         os << "\n[options]\n";
         writeOptions(d.options, os);

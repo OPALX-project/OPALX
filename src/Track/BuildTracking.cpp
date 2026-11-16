@@ -477,7 +477,7 @@ namespace opalx::run {
                 PartBunch_t& bunch, const std::vector<ObjectValues>& sources,
                 const std::vector<ObjectDescription>& distributions, const BeamDescription& beam,
                 bool hasInitialOrbit, std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers,
-                size_t index) {
+                size_t index, double& globalPhaseShift) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
             IpplTimings::startTimer(samplingTime);
@@ -584,10 +584,7 @@ namespace opalx::run {
                 // emission structures irrespective of t0.
                 sampler->generateParticles(Nmutable, nr);
 
-                const double globalShift = std::max(
-                        OpalData::getInstance()->getGlobalPhaseShift(),
-                        sampler->getGlobalTimeShift());
-                OpalData::getInstance()->setGlobalPhaseShift(globalShift);
+                globalPhaseShift = std::max(globalPhaseShift, sampler->getGlobalTimeShift());
 
                 // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
                 // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
@@ -845,7 +842,7 @@ namespace opalx::run {
 
         // A fresh run samples its distributions. A restart restores the exact saved particle state
         // instead, so sampling it again would duplicate particles and consume random numbers.
-        OpalData::getInstance()->setGlobalPhaseShift(0.0);
+        double globalPhaseShift = 0.0;
         std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplersList(
                 particleContainers.size());
         std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta(
@@ -861,7 +858,8 @@ namespace opalx::run {
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 beamReferenceMomenta[i] = setupDistributionsAndSamplers(
                         bunch, emissionSourcesLists[i], description.distributions, beams[i],
-                        track.initialOrbit.has_value(), emittingSamplersList[i], i);
+                        track.initialOrbit.has_value(), emittingSamplersList[i], i,
+                        globalPhaseShift);
             }
         }
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(
@@ -938,6 +936,7 @@ namespace opalx::run {
         setup.sStop                = sStop;
         setup.maxSteps             = maxSteps;
         setup.sStart               = sStart;
+        setup.globalPhaseShift     = globalPhaseShift;
         setup.emittingSamplers     = emittingSamplersList;
         setup.beamReferenceMomenta = std::move(beamReferenceMomenta);
         setup.restarting           = isRestart;
