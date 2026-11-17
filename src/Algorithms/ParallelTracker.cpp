@@ -84,6 +84,22 @@ namespace {
                  << ", angle=" << std::fixed << std::setprecision(3) << angleDegrees << " [deg]";
         return progress.str();
     }
+
+    /** @brief Count local particles chosen by experimental_boundary::selected().
+     * @note Not a ParallelTracker member: CUDA does not allow device lambdas inside private
+     *       member functions such as startTracking().
+     */
+    template <class IdView>
+    unsigned long long countBoundarySample(const IdView& ids, size_t n, unsigned long long stride) {
+        unsigned long long count = 0;
+        Kokkos::parallel_reduce(
+                "Boris::countBoundarySample", n,
+                KOKKOS_LAMBDA(size_t i, unsigned long long& sum) {
+                    if (experimental_boundary::selected(ids(i), stride)) ++sum;
+                },
+                count);
+        return count;
+    }
 }  // namespace
 
 // --- Constructors ---
@@ -424,16 +440,11 @@ bool ParallelTracker::startTracking() {
                     "OPALX_TEST_BOUNDARY_CONTROL_STRIDE must be 0 or an unsigned power of two.");
         m << level1 << "Ring boundary control: synchronized ordinary Boris/PIC substeps." << endl;
         if (boundaryControlStride_m > 1) {
-            const auto pc                    = itsBunch_m->getParticleContainer();
-            const auto ids                   = pc->ID.getView();
-            const auto stride                = boundaryControlStride_m;
-            unsigned long long localSelected = 0, totalSelected = 0;
-            Kokkos::parallel_reduce(
-                    "Boris::countBoundarySample", pc->getLocalNum(),
-                    KOKKOS_LAMBDA(size_t i, unsigned long long& count) {
-                        if (experimental_boundary::selected(ids(i), stride)) ++count;
-                    },
-                    localSelected);
+            const auto pc     = itsBunch_m->getParticleContainer();
+            const auto stride = boundaryControlStride_m;
+            unsigned long long localSelected =
+                    countBoundarySample(pc->ID.getView(), pc->getLocalNum(), stride);
+            unsigned long long totalSelected = 0;
             ippl::Comm->allreduce(localSelected, totalSelected, 1, std::plus<unsigned long long>());
             m << level1 << "EXPERIMENTAL boundary sample: stride=" << stride
               << ", selected=" << totalSelected << ", reference=always; full bunch PIC/Boris."
