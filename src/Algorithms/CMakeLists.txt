@@ -9,11 +9,7 @@ set (_SRCS
     DeviceExternalField.cpp
     PassiveRingProbe.cpp
     CyclotronProbeRecorder.cpp
-    OneTurnMap.cpp
-    ClosedOrbitSolver.cpp
-    LinearMapEigenAnalysis.cpp
     LinearTransferMapBuilder.cpp
-    SpectralTunes.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
     TrackReferenceStep.cpp
@@ -42,16 +38,11 @@ set (HDRS
     CyclotronProbe.h
     CyclotronProbeRecorder.h
     PassiveRingProbe.h
-    OneTurnMap.h
-    ClosedOrbitSolver.h
-    LinearMapEigenAnalysis.h
     LinearTransferMapBuilder.h
-    SpectralTunes.h
     LinearTransferMap.h
     OrbitThreader.h
     OrbitThreaderDiagnostics.h
     ParallelTracker.h
-    ClosedOrbitInitialState.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

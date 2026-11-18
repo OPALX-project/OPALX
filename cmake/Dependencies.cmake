@@ -17,7 +17,6 @@ set(FETCHCONTENT_QUIET ON)
 
 include(FetchContent)
 include(CheckCCompilerFlag)
-include(LapackDependency)
 
 # ------------------------------------------------------------------------------
 # MPI

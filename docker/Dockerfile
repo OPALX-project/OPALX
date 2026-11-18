@@ -23,14 +23,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      build-essential gfortran cmake git ca-certificates \
+      build-essential cmake git ca-certificates \
       libopenmpi-dev openmpi-bin python3 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
 
 # ------------------------------------------------------------------------------
-# build: dependencies (IPPL, Kokkos, Heffte, HDF5, H5hut, LAPACK) are fetched
+# build: dependencies (IPPL, Kokkos, Heffte, HDF5, H5hut) are fetched
 # during configure, so this stage needs network access
 # ------------------------------------------------------------------------------
 FROM dev AS build
@@ -72,7 +72,7 @@ LABEL org.opencontainers.image.title="OPALX" \
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      openmpi-bin libgfortran5 libgomp1 \
+      openmpi-bin libgomp1 \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /opt/opalx/build/src/opalx /usr/local/bin/opalx

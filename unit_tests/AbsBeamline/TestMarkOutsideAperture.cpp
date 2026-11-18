@@ -171,18 +171,6 @@ namespace {
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, true}));
     }
 
-    TEST_F(MarkOutsideApertureTest, ScalarOpticsLossUsesNativeAperture) {
-        DriftRep drift       = makeDrift(.1, .01);
-        ElementBase& element = drift;
-        const Vector_t<double, 3> momentum(0., 0., .1);
-        EXPECT_TRUE(
-                element.isReferenceParticleLost(Vector_t<double, 3>(.02, 0., .05), momentum, 0.));
-        EXPECT_FALSE(
-                element.isReferenceParticleLost(Vector_t<double, 3>(.005, 0., .05), momentum, 0.));
-        EXPECT_FALSE(
-                element.isReferenceParticleLost(Vector_t<double, 3>(.02, 0., .2), momentum, 0.));
-    }
-
     TEST_F(MarkOutsideApertureTest, MarkedParticlesAreDeletedByDeleteInvalidParticles) {
         DriftRep drift = makeDrift(0.1, 0.01);
         auto pc        = makeContainer();

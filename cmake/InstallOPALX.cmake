@@ -28,8 +28,7 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
-# Install the OPALX library. The fetched Reference-LAPACK installs its own
-# liblapacke.a, liblapack.a and libblas.a into the same lib directory.
+# Install the OPALX library.
 install(
   TARGETS opalx
   EXPORT OPALXTargets

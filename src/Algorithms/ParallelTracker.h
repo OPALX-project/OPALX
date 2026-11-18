@@ -24,9 +24,7 @@
 
 #include <optional>
 #include "Algorithms/BorisStepControl.h"
-#include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/DeviceExternalField.h"
-#include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -97,20 +95,12 @@ public:
         PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
     };
 
-    /// Place the generated bunch in the solved orbit frame, preserving local spread.
-    void setInitialOrbit(const ClosedOrbitInitialState& state) { initialOrbit_m = state; }
-
     /// Reference momentum [beta*gamma] per container from BEAM for a file distribution;
     /// an empty entry uses the bunch mean.
     void setBeamReferenceMomenta(std::vector<std::optional<Vector_t<double, 3>>> momenta) {
         beamReferenceMomenta_m = std::move(momenta);
     }
 
-    /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
-    void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
-        tuneInitial_m  = std::move(initial);
-        tuneSettings_m = settings;
-    }
     /// Stop at the localized Nth forward reference return (single container,
     /// supported magnetic/RF elements, no ongoing emission). The complete bunch
     /// advances to that reference event time; individual particles need not close.
@@ -154,11 +144,8 @@ private:
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
     bool allowBoundaryControl_m =
             true;  ///< Restrict retries to bare, undiagnosed Cartesian solves.
-    std::optional<ClosedOrbitInitialState> initialOrbit_m;
     /// Per-container reference momentum [beta*gamma] set on BEAM; empty uses the bunch mean.
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
-    std::vector<double> tuneInitial_m;
-    SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
     /// Fixed-size first-failure payload, allocated once when device RF transport is prepared.

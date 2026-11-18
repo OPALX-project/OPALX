@@ -117,9 +117,6 @@ public:
     /// beam's DAUGHTERBEAM and rejects it on one.
     bool hasEmissionSources() const;
 
-    /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
-    std::vector<double> getTuneInitial() const;
-
     /// Update the BEAM data.
     virtual void update();
 

@@ -19,8 +19,6 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
-#include <optional>
-#include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/PartData.h"
 #include "PartBunch/PartBunch.h"
 #include "Steppers/Steppers.h"
@@ -37,7 +35,7 @@ class EmissionSourceList;
 class Track {
 public:
     Track(BeamSequence*, const PartData&, const std::vector<double>& dt,
-          const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+          const std::vector<unsigned long long>& maxtsteps, double zStart,
           const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
           double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList = nullptr,
           const std::vector<std::string>& beamNames = {});
@@ -78,14 +76,8 @@ public:
      */
     double kineticEnergyStopGeV = 0;
 
-    /// Independent snapshot selected by TRACK INITIALORBIT.
-    std::optional<ClosedOrbitInitialState> initialOrbit;
-
     /// Maximal number of timesteps
     std::vector<unsigned long long> localTimeSteps;
-
-    /// The timsteps per revolution period. ONLY available for OPAL-cycl.
-    int stepsPerTurn;
 
     /// The location at which the simulation starts
     double zstart;

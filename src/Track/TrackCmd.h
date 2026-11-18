@@ -46,10 +46,6 @@ public:
     /// Return the maximum timsteps we integrate the system
     std::vector<unsigned long long> getMaxSteps() const;
 
-    /// Return the timsteps per revolution period. ONLY available for OPAL-cycl.
-    /// In OPAL-cycl, timestep is calculated by STEPSPERTURN, rather than given in TRACK command.
-    int getStepsPerTurn() const;
-
     /// location at which the simulation starts
     double getZStart() const;
 

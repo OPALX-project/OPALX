@@ -17,7 +17,6 @@
 //
 #include "Track/TrackCmd.h"
 #include <cmath>
-#include "Track/CofCmd.h"
 
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
@@ -48,10 +47,8 @@ namespace {
         ZSTART,    // Defines a z-location [m] where the reference particle starts
         ZSTOP,     // Defines a z-location [m], after which the simulation stops when the last
                    // particles passes
-        STEPSPERTURN,    // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR,  // the name of time integrator
         EKINSTOP,        // Optional SINGLEGAP reference kinetic-energy target [GeV].
-        INITIALORBIT,
         SIZE
     };
 }  // namespace
@@ -64,8 +61,6 @@ const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegr
         {"MTS", Steppers::TimeIntegrator::MTS}};
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
-    itsAttr[INITIALORBIT] = Attributes::makeString(
-            "INITIALORBIT", "Named COF launch for orbit-local generated distributions.");
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
 
     itsAttr[SOURCES] = Attributes::makeString(
@@ -101,8 +96,6 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
             "Defines a z-location [m], after which the simulation stops when the last particles "
             "passes.");
 
-    itsAttr[STEPSPERTURN] = Attributes::makeReal(
-            "STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720);
     itsAttr[EKINSTOP] = Attributes::makeReal(
             "EKINSTOP", "Stop after the first complete RF kick reaching this kinetic energy [GeV].",
             0.0);
@@ -172,8 +165,6 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
     return maxsteps_i;
 }
 
-int TrackCmd::getStepsPerTurn() const { return (int)Attributes::getReal(itsAttr[STEPSPERTURN]); }
-
 Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
     std::string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
     return stringTimeIntegrator_s.at(name);
@@ -215,7 +206,6 @@ void TrackCmd::execute() {
     double dtScInit                          = getDTSCINIT();
     double deltaTau                          = getDTAU();
     std::vector<unsigned long long> maxsteps = getMaxSteps();
-    int stepsperturn                         = getStepsPerTurn();
     double zstart                            = getZStart();
     std::vector<double> zstop                = getZStop();
 
@@ -240,26 +230,10 @@ void TrackCmd::execute() {
     const double kineticStop = Attributes::getReal(itsAttr[EKINSTOP]);
     if (!itsAttr[EKINSTOP].defaultUsed() && (!std::isfinite(kineticStop) || kineticStop <= 0))
         throw OpalException("TrackCmd::execute", "EKINSTOP must be finite and positive [GeV].");
-    std::optional<ClosedOrbitInitialState> initialOrbit;
-    if (!itsAttr[INITIALORBIT].defaultUsed()) {
-        if (beams.size() != 1 || OpalData::getInstance()->inRestartRun() || zstart != 0)
-            throw OpalException("INITIALORBIT", "Requires one beam, a fresh run and ZSTART=0.");
-        const std::string initialOrbitName = Attributes::getString(itsAttr[INITIALORBIT]);
-        const auto& initial                = CofCmd::findResult(initialOrbitName);
-        if (!beam->hasExplicitEnergy())
-            throw OpalException("INITIALORBIT", "BEAM must specify the same energy as COF.");
-        initial.validate(
-                theLineToTrack->getOpalName(), beam->getParticleName(), beam->getReference());
-        if (!itsAttr[T0].defaultUsed() && t0 != initial.time)
-            throw OpalException("INITIALORBIT", "TRACK T0 conflicts with the COF launch time.");
-        t0           = initial.time;
-        initialOrbit = initial;
-    }
     Track::block = new Track(
-            theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
-            timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
+            theLineToTrack, beam->getReference(), dt, maxsteps, zstart, zstop, timeintegrator, t0,
+            dtScInit, deltaTau, emissionSourcesList, beamNames);
     Track::block->kineticEnergyStopGeV = kineticStop;
-    Track::block->initialOrbit         = std::move(initialOrbit);
 
     Track::block->parser.run();
 

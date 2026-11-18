@@ -122,10 +122,6 @@ public:
         }
         return false;
     }
-    bool isReferenceParticleLost(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, double) override {
-        return config_m.outsideAperture(R);
-    }
     /** Replace B with this element's field for the supplied local positions.
      *
      * Unlike apply(), this raw getter overwrites every output, including zero

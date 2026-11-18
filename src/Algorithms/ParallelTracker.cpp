@@ -279,11 +279,9 @@ void ParallelTracker::execute() {
         bool cyclotron = false;
         for (const auto& element : itsOpalBeamline_m.getElements())
             cyclotron |= element->getType() == ElementType::CYCLOTRONSECTOR;
-        if ((!cyclotron && ringPeriod_m <= 0) || !tuneInitial_m.empty())
+        if (!cyclotron && ringPeriod_m <= 0)
             throw OpalException(
-                    "PROBE",
-                    "PROBE requires cyclotron-sector or RING particle tracking; "
-                    "spectral-tune trial tracking is unsupported.");
+                    "PROBE", "PROBE requires cyclotron-sector or RING particle tracking.");
         // Segments are explicit laboratory observers, not repeated magnetic
         // elements. FFA reuses the same crossing/history/output path. Its ring
         // centre need not be the lab origin, so only cyclotron tracking enables
@@ -300,15 +298,6 @@ void ParallelTracker::execute() {
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
-    if (!tuneInitial_m.empty()) {
-        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1)
-            throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");
-        SpectralTunes::run(
-                itsOpalBeamline_m, *itsBunch_m->getParticleContainer(0)->getReference(),
-                tuneInitial_m, tuneSettings_m, OpalData::getInstance()->getInputBasename());
-        return;
-    }
-
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
@@ -316,7 +305,6 @@ void ParallelTracker::execute() {
     // or particle stepping. The actual host/device choice may still follow N(t).
     prepareCyclotronTransport();
     if (!restarting_m) {
-        if (initialOrbit_m) itsBunch_m->setT(initialOrbit_m->time);
         CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
         for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
             const auto& pc = particleContainers[ci];
@@ -327,15 +315,6 @@ void ParallelTracker::execute() {
                 throw OpalException(
                         "ParallelTracker::execute",
                         "Particle container has null PartData reference during lab-frame init.");
-            }
-            if (initialOrbit_m) {
-                // Generated particles already carry orbit-local positions and full momenta.
-                // Change their frame once; preserve the solved reference independently of
-                // finite-sample centroid offsets. Subsequent kernels use the normal frame path.
-                pc->setToLabTrafo(initialOrbit_m->frame().inverted());
-                pc->getRefPartR() = initialOrbit_m->position;
-                pc->getRefPartP() = initialOrbit_m->momentum;
-                continue;
             }
             pc->setToLabTrafo(beamlineToLab);
 

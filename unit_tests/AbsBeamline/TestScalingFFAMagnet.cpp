@@ -750,7 +750,6 @@ TEST_F(ScalingFFAMagnetTest, ReferenceParticleReportsNativeApertureLossWithoutFi
     Vector_t<double, 3> electric(0.), magnetic(0.), momentum(0., 0., .1);
     for (const auto& point : {Vector_t<double, 3>(.2, 0., 0.), Vector_t<double, 3>(0., .06, 0.)}) {
         EXPECT_FALSE(sector_m->isInside(point));
-        EXPECT_TRUE(sector_m->isReferenceParticleLost(point, momentum, 0.));
         EXPECT_TRUE(sector_m->applyToReferenceParticle(point, momentum, 0., electric, magnetic));
     }
     // An opposite ring arm is outside this element's angular ownership.

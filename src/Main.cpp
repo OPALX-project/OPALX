@@ -574,10 +574,9 @@ int main(int argc, char* argv[]) {
 
         IpplTimings::print();
 
-        if (!opal->hasCofRun || opal->hasTrackingRun)
-            IpplTimings::print(
-                    std::string("timing.dat"),
-                    OpalData::getInstance()->getProblemCharacteristicValues());
+        IpplTimings::print(
+                std::string("timing.dat"),
+                OpalData::getInstance()->getProblemCharacteristicValues());
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();

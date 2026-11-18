@@ -1,5 +1,4 @@
 set (_SRCS
-    CofCmd.cpp
     DecayChain.cpp
     Track.cpp
     TrackCmd.cpp
@@ -9,7 +8,6 @@ set (_SRCS
     )
 
 set (HDRS
-    CofCmd.h
     DecayChain.h
     TrackCmd.h
     TrackEnd.h

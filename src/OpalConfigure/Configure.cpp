@@ -45,7 +45,6 @@
 #include "OpalParser/MacroCmd.h"
 
 // Commands introducing a special mode.
-#include "Track/CofCmd.h"
 #include "Track/TrackCmd.h"
 
 // Table-related commands.
@@ -120,7 +119,6 @@ namespace {
         opal->create(new System());
         opal->create(new Title());
         opal->create(new TrackCmd());
-        opal->create(new CofCmd());
         opal->create(new Value());
     }
 

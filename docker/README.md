@@ -49,7 +49,7 @@ On Windows PowerShell, leave out `--user` and use `-v "${PWD}:/data"`.
 
 OPALX is licensed under the GNU General Public License, version 3 or later.
 The image also contains libraries under their own licenses: IPPL, Kokkos,
-Heffte, HDF5, H5hut and LAPACK are compiled into `opalx`, and Open MPI and the
+Heffte, HDF5 and H5hut are compiled into `opalx`, and Open MPI and the
 other runtime libraries come from Ubuntu packages. Their license texts are in
 the image, in `/usr/share/doc/opalx` for OPALX and the libraries compiled into
 it, and in `/usr/share/doc/<package>/copyright` for the Ubuntu packages:
@@ -68,7 +68,7 @@ docker build -f docker/Dockerfile -t opalx:cpu --build-arg GIT_SHA=$(git rev-par
 
 The image is built for your machine's architecture; add `--platform linux/arm64`
 or `linux/amd64` for the other one (this needs QEMU emulation and is much
-slower). The build downloads IPPL, Kokkos, Heffte, HDF5, H5hut and LAPACK, so
+slower). The build downloads IPPL, Kokkos, Heffte, HDF5 and H5hut, so
 it needs network access. Build arguments:
 
 | Argument | Default | |
@@ -97,7 +97,7 @@ fuse multiply-adds.
 
 ## Development environment
 
-The `dev` stage has the toolchain only (GCC, gfortran, Open MPI, CMake). The
+The `dev` stage has the toolchain only (GCC, Open MPI, CMake). The
 source stays on your machine and is mounted into the container:
 
 ```bash

@@ -24,8 +24,6 @@ THIRD_PARTY = [
     ('heffte', 'ippl-build/_deps/heffte-src/LICENSE'),
     ('hdf5', 'hdf5-src/LICENSE'),
     ('h5hut', 'h5hut-src/COPYING'),
-    ('lapack', 'opalx_lapack-src/LICENSE'),
-    ('lapacke', 'opalx_lapack-src/LAPACKE/LICENSE'),
 ]
 
 README = """\

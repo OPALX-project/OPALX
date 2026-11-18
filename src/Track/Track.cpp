@@ -35,7 +35,7 @@ otherwise a new bunch is allocated in the dictionary.
 
 Track::Track(
         BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
-        const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+        const std::vector<unsigned long long>& maxtsteps, double zStart,
         const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
         double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList,
         const std::vector<std::string>& beamNames)
@@ -49,7 +49,6 @@ Track::Track(
       deltaTau(deltaTau),
       t0_m(t0),
       localTimeSteps(maxtsteps),
-      stepsPerTurn(stepsperturn),
       zstart(zStart),
       zstop(zStop),
       timeIntegrator(timeintegrator),

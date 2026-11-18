@@ -129,7 +129,6 @@ target_link_libraries(opalx PUBLIC
     ${HDF5_LIBRARIES}
     ZLIB::ZLIB
 )
-target_link_libraries(opalx PRIVATE OPALX::lapacke)
 
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}

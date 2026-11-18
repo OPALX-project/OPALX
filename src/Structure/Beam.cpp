@@ -51,7 +51,6 @@ namespace {
         GLOBALPROCESSES,  // Global physics processes active for this beam
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
-        TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
         REFDIRECTION,     // Direction of the reference momentum for file distributions
         SIZE
     };
@@ -68,10 +67,7 @@ Beam::Beam()
             {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
              "HMINUS", "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
-    itsAttr[MASS]        = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
-    itsAttr[TUNEINITIAL] = Attributes::makeRealArray(
-            "TUNEINITIAL",
-            "Repeated spectral launches: kinetic energy [GeV], radius [m], radial momentum [mc].");
+    itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
 
     itsAttr[CHARGE] = Attributes::makeReal("CHARGE", "Particle charge in proton charges");
 
@@ -383,10 +379,6 @@ double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); 
 bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC]; }
 
 bool Beam::hasEmissionSources() const { return itsAttr[SOURCES]; }
-
-std::vector<double> Beam::getTuneInitial() const {
-    return Attributes::getRealArray(itsAttr[TUNEINITIAL]);
-}
 
 double Beam::getChargePerParticle() const {
     return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumAlloc();
