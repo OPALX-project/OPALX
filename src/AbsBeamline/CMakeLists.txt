@@ -48,7 +48,6 @@ set(_HDRS
     MultipoleTCurvedConstRadius.h
     RFCavity.h
     TravelingWave.h
-    SpecificElementVisitor.h
     Solenoid.h
     RBend.h
     SBend.h
