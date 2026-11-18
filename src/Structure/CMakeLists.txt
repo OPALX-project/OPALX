@@ -24,7 +24,6 @@ set (_SRCS
   SDDSColumn.cpp
   SDDSColumnSet.cpp
   SDDSWriter.cpp
-  PeakFinder.cpp
 )
 
 set (HDRS
@@ -53,7 +52,6 @@ set (HDRS
     SDDSColumn.h
     SDDSColumnSet.h
     SDDSWriter.h
-    PeakFinder.h
 )
 
 if (UNIX AND NOT APPLE)

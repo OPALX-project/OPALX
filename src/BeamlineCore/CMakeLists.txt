@@ -14,7 +14,6 @@ set (_SRCS
     SBendRep.cpp
     TravelingWaveRep.cpp
     SolenoidRep.cpp
-    ProbeRep.cpp
     )
 
 set (HDRS
@@ -33,7 +32,6 @@ set (HDRS
     SBendRep.h
     TravelingWaveRep.h
     SolenoidRep.h
-    ProbeRep.h
     MultipoleTRep.h
     VariableRFCavityRep.h
 )

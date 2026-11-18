@@ -14,10 +14,6 @@ add_opalx_test(TestRFEventStepMPI SOURCES TestRFEventStep.cpp NUM_PROCS 2 USE_GT
 add_opalx_test(TestDeviceExternalField USE_GTEST_MAIN)
 add_opalx_test(TestBorisStepControl USE_GTEST_MAIN)
 add_opalx_test(TestExperimentalBoundarySample USE_GTEST_MAIN)
-add_opalx_test(TestPassiveProbe USE_GTEST_MAIN)
-add_opalx_test(TestPassiveRingProbe USE_GTEST_MAIN)
 add_opalx_test(TestBorisMidpoint USE_GTEST_MAIN)
 add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN)
 
-add_opalx_test(TestCyclotronProbe USE_GTEST_MAIN)
-add_opalx_test(TestCyclotronProbeMPI SOURCES TestCyclotronProbe.cpp NUM_PROCS 2 USE_GTEST_MAIN)

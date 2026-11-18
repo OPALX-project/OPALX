@@ -70,13 +70,6 @@ public:
      */
     void add(const ElementBase& element);
 
-    /** Add a grey detector plane at global laboratory X-Z endpoints [m].
-     * PROBE is vertically unbounded for tracking. The 1 m display height only
-     * makes its orientation visible; it imposes no detector acceptance limit.
-     * These vertices are already global and must not undergo element placement.
-     */
-    void addProbe(const Vector_t<double, 3>& start, const Vector_t<double, 3>& end);
-
     void write(const std::string& fname);
 
 private:
@@ -91,8 +84,7 @@ private:
         RFCAVITY,
         TRAVELINGWAVE,
         DRIFT,
-        SCALINGFFA,
-        PROBE
+        SCALINGFFA
     };
 
     static MeshData getCylinder(

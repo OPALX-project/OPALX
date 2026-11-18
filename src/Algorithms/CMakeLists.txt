@@ -7,8 +7,6 @@ set (_SRCS
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
     DeviceExternalField.cpp
-    PassiveRingProbe.cpp
-    CyclotronProbeRecorder.cpp
     LinearTransferMapBuilder.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
@@ -34,10 +32,6 @@ set (HDRS
     IndexMap.h
     ExternalFieldRayTracker.h
     DeviceExternalField.h
-    PassiveProbe.h
-    CyclotronProbe.h
-    CyclotronProbeRecorder.h
-    PassiveRingProbe.h
     LinearTransferMapBuilder.h
     LinearTransferMap.h
     OrbitThreader.h

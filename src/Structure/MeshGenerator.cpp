@@ -108,19 +108,6 @@ void MeshGenerator::setDriftReference(const double minor, const double major) {
     driftMajor_m        = major;
 }
 
-void MeshGenerator::addProbe(const Vector_t<double, 3>& start, const Vector_t<double, 3>& end) {
-    MeshData mesh;
-    mesh.type_m                        = PROBE;
-    constexpr double displayHalfHeight = .5;
-    mesh.vertices_m                    = {
-            {start(0), -displayHalfHeight, start(2)},
-            {end(0), -displayHalfHeight, end(2)},
-            {end(0), displayHalfHeight, end(2)},
-            {start(0), displayHalfHeight, start(2)}};
-    mesh.triangles_m = {{0, 1, 2}, {0, 2, 3}};
-    elements_m.push_back(std::move(mesh));
-}
-
 void MeshGenerator::add(const ElementBase& element) {
     double start = 0.0;
 
@@ -520,7 +507,6 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
     out << indent << indent << indent << indent << "('ScalingFFA', (0.0, 0.65, 0.65)),\n";
-    out << indent << indent << indent << indent << "('Probe', (0.65, 0.65, 0.65)),\n";
     out << indent << indent << indent << "]\n";
     out << indent << indent << indent << "present = []\n";
     out << indent << indent << indent << "for label, color in legend:\n";
@@ -642,8 +628,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n";
-    out << indent << "lookup_table.append([0.0, 0.65, 0.65, 1.0])\n";
-    out << indent << "lookup_table.append([0.65, 0.65, 0.65, 0.3])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.65, 0.65, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
@@ -719,8 +704,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n";
-    out << indent << "lookup_table.append([0.0, 0.65, 0.65])\n";
-    out << indent << "lookup_table.append([0.65, 0.65, 0.65])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.65, 0.65])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 

@@ -105,33 +105,6 @@ protected:
         EXPECT_TRUE(generator.elements_m.back().triangles_m.empty());
     }
 
-    static void checkProbePlane() {
-        // Deliberately translated, oblique global endpoints: no placement,
-        // mm conversion, or lab Y/Z exchange may be applied a second time.
-        const Vector_t<double, 3> a(-7, 0, 2), b(-5, 0, 3);
-        MeshGenerator generator;
-        generator.addProbe(a, b);
-        ASSERT_EQ(generator.elements_m.size(), 1u);
-        const auto& plane = generator.elements_m.front();
-        EXPECT_EQ(plane.type_m, MeshGenerator::PROBE);
-        ASSERT_EQ(plane.vertices_m.size(), 4u);
-        ASSERT_EQ(plane.triangles_m.size(), 2u);
-        for (unsigned i = 0; i < 4; ++i) {
-            const auto expected = (i == 0 || i == 3) ? a : b;
-            EXPECT_DOUBLE_EQ(plane.vertices_m[i](0), expected(0));
-            EXPECT_DOUBLE_EQ(plane.vertices_m[i](2), expected(2));
-            EXPECT_DOUBLE_EQ(plane.vertices_m[i](1), i < 2 ? -.5 : .5);
-        }
-        for (const auto& tri : plane.triangles_m) {
-            for (int d = 0; d < 3; ++d)
-                ASSERT_LT(tri(d), 4u);
-            const Vector_t<double, 3> u      = plane.vertices_m[tri(1)] - plane.vertices_m[tri(0)],
-                                      v      = plane.vertices_m[tri(2)] - plane.vertices_m[tri(0)];
-            const Vector_t<double, 3> normal = cross(u, v);
-            EXPECT_GT(dot(normal, normal), 0);
-        }
-    }
-
     static void checkBend(double horizontal, double vertical, bool finite, bool shared) {
         SBendRep bend("BEND");
         bend.getGeometry() = Geometry::makeSBend(1.0, 0.5);
@@ -170,5 +143,3 @@ TEST_F(MeshGeneratorTest, ScalingFFASectorsHaveClosedOutwardSurfacesForBothBendD
 }
 
 TEST_F(MeshGeneratorTest, ScalingFFAPlacementTransformsTheMeshOnce) { checkFFAPlacement(); }
-
-TEST_F(MeshGeneratorTest, ProbePlaneUsesGlobalEndpointsAndDisplayOnlyHeight) { checkProbePlane(); }

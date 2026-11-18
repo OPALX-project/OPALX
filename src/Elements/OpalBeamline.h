@@ -35,7 +35,6 @@
 #include "OPALTypes.h"
 
 class BoundaryGeometry;
-class MeshGenerator;
 
 /**
  * @brief Borrowed view of one element-owned transfer-map copy.
@@ -119,9 +118,6 @@ public:
     void prepareSections();
     void compute3DLattice();
     void save3DLattice();
-    /// Append the physical lattice to a display mesh containing global diagnostics.
-    /// Diagnostic geometry remains outside elements_m and field/placement selection.
-    void save3DLattice(MeshGenerator& mesh);
     void save3DInput();
     void print(Inform&) const;
     void apply(

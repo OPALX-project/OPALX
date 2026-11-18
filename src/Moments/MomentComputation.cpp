@@ -15,6 +15,7 @@
 
 #include "Ippl.h"
 
+#include "OPALTypes.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"

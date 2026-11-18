@@ -53,7 +53,6 @@ enum class ElementType : unsigned short {
     SCALINGFFAMAGNET,
     RBEND,
     RBEND3D,
-    PROBE,
     VACUUM,
     SOLENOID,
     SOURCE,

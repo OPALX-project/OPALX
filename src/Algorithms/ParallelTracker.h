@@ -56,7 +56,6 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
@@ -64,7 +63,6 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VariableRFCavity.h"
-#include "Algorithms/CyclotronProbeRecorder.h"
 #include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -74,8 +72,6 @@
 #include <memory>
 #include <tuple>
 #include <vector>
-
-class PluginElement;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -132,13 +128,7 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 
-    /// Register global diagnostics separately from field/placement elements.
-    void visitProbe(const Probe& probe) override {
-        probeConfigs_m.push_back(CyclotronProbeRecorder::configuration(probe));
-    }
-
 private:
-    std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
     friend class TrackRun;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
@@ -222,7 +212,6 @@ private:
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
 
 public:

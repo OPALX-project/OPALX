@@ -28,8 +28,6 @@ set(_SRCS
     Solenoid.cpp
     TravelingWave.cpp
     VerticalFFAMagnet.cpp
-    Probe.cpp
-    PluginElement.cpp
     RBend.cpp
     VariableRFCavity.cpp
     SBend.cpp
@@ -60,8 +58,6 @@ set(_HDRS
     ScalingFFAMagnet.h
     Solenoid.h
     VerticalFFAMagnet.h
-    Probe.h
-    PluginElement.h
     RBend.h
     SBend.h
     VariableRFCavity.h

@@ -61,7 +61,6 @@ class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
-class Probe;
 
 namespace endfieldmodel {
     class Enge;
@@ -151,9 +150,6 @@ public:
 
     /// Apply the algorithm to a vertical FFA magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&) = 0;
-
-    /// Apply the algorithm to a Probe.
-    virtual void visitProbe(const Probe&) = 0;
 
 private:
     // Not implemented.

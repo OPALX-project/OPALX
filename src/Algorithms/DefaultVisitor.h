@@ -108,9 +108,6 @@ public:
     /// Apply the algorithm to a variable RF cavity.
     void visitVariableRFCavity(const VariableRFCavity&) override;
 
-    /// Apply the algorithm to a Probe
-    void visitProbe(const Probe& prob) override;
-
 protected:
     // The top level beamline.
     const Beamline& itsLine;

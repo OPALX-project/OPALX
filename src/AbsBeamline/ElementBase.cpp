@@ -56,7 +56,6 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::RBEND3D, "RBEND3D"},
         {ElementType::SOURCE, "SOURCE"},
         {ElementType::SOLENOID, "SOLENOID"},
-        {ElementType::PROBE, "Probe"},
         {ElementType::VACUUM, "Vacuum"},
         {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"},
         {ElementType::CONSTANTFOCUSING, "ConstantFocusing"}};
