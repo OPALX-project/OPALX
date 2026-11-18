@@ -173,7 +173,6 @@ namespace TRACKRUN {
     // The attributes of class TrackRun.
     enum {
         METHOD,            // Tracking method to use.
-        TURNS,             // The number of turns to be tracked, we keep that for the moment
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
         TRACKBACK,         // In case we run the beam backwards
@@ -203,13 +202,6 @@ TrackRun::TrackRun()
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
             "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
-    itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
-            "TURNS",
-            "Optional directed-return limit for RING tracking. When omitted, TRACK uses its "
-            "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers and use "
-            "ordinary device Boris/PIC transport; supported bare analytic rings use synchronized "
-            "boundary steps.",
-            1.0);
     itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makePredefinedString(
             "SCFIELDUPDATE",
             "Space-charge field evaluation point: MIDPOINT uses positions after the first half "
@@ -473,29 +465,8 @@ void TrackRun::execute() {
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
     auto spaceChargeConfig =
             opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
-    opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
-    bool retrySafeBareTracking = false;
-    if (const auto* cartesian =
-                std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
-        dirichletPlane = cartesian->dirichletPlane;
-        // Boundary retries belong to the bare analytic-ring benchmark. A
-        // diagnostic particle selection must never impose retries of the
-        // collective PIC solve. Keep non-NONE backends on the ordinary path.
-        // Even NONE may traverse the binning adapter, so exclude stateful
-        // binning/diagnostics and repartitioning from retry eligibility.
-        const auto& bin          = cartesian->binning;
-        const bool retrySafeBins = !bin
-                                   || (!bin->adaptive && bin->maximumBins == 1
-                                       && (bin->dumpFile.empty() || bin->dumpFrequency == 0)
-                                       && bin->tablePrintFrequency == 0);
-        retrySafeBareTracking = retrySafeBins && cartesian->repartitionFrequency == 0
-                                && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
-                                && !dirichletPlane.enabled();
-#ifdef OPALX_FIELD_DEBUG
-        // Unbinned backend field dumps are numbered by attempted solve.
-        if (!bin) retrySafeBareTracking = false;
-#endif
-    }
+    const opalx::spacecharge::DirichletPlaneConfig dirichletPlane =
+            std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig).dirichletPlane;
     const auto cartesianDomainConfig =
             opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
 
@@ -628,75 +599,8 @@ void TrackRun::execute() {
     */
     Track::block->use->prepareForTracking();
 
-    auto maxSteps = Track::block->localTimeSteps;
-    auto sStop    = Track::block->zstop;
-    const bool isRing =
-            Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
-    const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
-    if (isRing && (!(ringPeriod > 0.0) || !std::isfinite(ringPeriod))) {
-        throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
-    }
-    unsigned long long directedTurns = 0;
-    const double kineticStop         = Track::block->kineticEnergyStopGeV;
-    if (kineticStop > 0) {
-        if (!isRing || isRestart || !itsAttr[TRACKRUN::TURNS].defaultUsed()
-            || Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1
-            || !(Track::block->dT.front() > 0))
-            throw OpalException(
-                    "TrackRun::execute",
-                    "EKINSTOP requires a non-restarted RING, one positive DT segment and no "
-                    "explicit TURNS.");
-        sStop.front() = std::numeric_limits<double>::max();
-    }
-    if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing) {
-        const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
-        const double roundedTurns   = std::round(requestedTurns);
-        if (!std::isfinite(requestedTurns)
-            || requestedTurns >= static_cast<double>(std::numeric_limits<unsigned long long>::max())
-            || requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
-            throw OpalException(
-                    "TrackRun::execute", "TURNS must be a positive integer for a RING.");
-        }
-        if (Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "RING tracking with explicit TURNS currently requires one DT/MAXSTEPS/ZSTOP "
-                    "segment.");
-        }
-
-        const auto turns = static_cast<unsigned long long>(roundedTurns);
-        if (beams.size() != 1)
-            throw OpalException("TrackRun::execute", "Localized TURNS requires one beam.");
-        if (isRestart) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "Explicit RING TURNS restart requires persisted return-plane counters and is "
-                    "not supported yet.");
-        }
-        directedTurns                = turns;
-        const double beta            = Track::block->reference.getBeta();
-        const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
-        if (!(distancePerStep > 0.0)) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "A RING tracked with TURNS requires positive circumference, DT, and "
-                    "reference velocity.");
-        }
-
-        const double pathLength     = roundedTurns * ringPeriod;
-        const double estimatedSteps = std::ceil(pathLength / distancePerStep);
-        const double safetySteps    = 2.0 * estimatedSteps + 100.0;
-        if (!std::isfinite(safetySteps)
-            || safetySteps >= static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
-            throw OpalException("TrackRun::execute", "RING TURNS step budget overflows.");
-        }
-
-        sStop.front()    = std::numeric_limits<double>::max();
-        maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
-        *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
-              << " directed turns; nominal circumference for step-budget estimate = " << ringPeriod
-              << " m." << endl;
-    }
+    const auto& maxSteps = Track::block->localTimeSteps;
+    const auto& sStop    = Track::block->zstop;
 
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
@@ -704,16 +608,9 @@ void TrackRun::execute() {
             isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
             restartMetadata.dt,
             StepSizeConfig::ResumePosition{
-                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
-            ringPeriod);
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     static_cast<ParallelTracker*>(itsTracker_m.get())
             ->setBeamReferenceMomenta(std::move(beamReferenceMomenta));
-    // Other solver configurations retain the ordinary unsplit integration sequence.
-    static_cast<ParallelTracker*>(itsTracker_m.get())->bareTracking_m = fs_m->getType() == "NONE";
-    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m =
-            retrySafeBareTracking;
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop * 1e9);
     static_cast<ParallelTracker*>(itsTracker_m.get())
             ->setSpaceChargeFieldUpdate(
                     Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"

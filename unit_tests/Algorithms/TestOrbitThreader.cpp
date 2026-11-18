@@ -1,7 +1,6 @@
 #include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
-#include "AbsBeamline/CyclotronSector.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/MapExitRoot.h"

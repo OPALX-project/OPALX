@@ -38,7 +38,6 @@ const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::ANY, "Any"},
-        {ElementType::CYCLOTRONSECTOR, "CyclotronSector"},
         {ElementType::BEAMLINE, "Beamline"},
         {ElementType::BOX, "Box"},
         {ElementType::COLLIMATOR, "Collimator"},

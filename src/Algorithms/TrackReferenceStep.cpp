@@ -1,6 +1,5 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Algorithms/TrackReferenceStep.h"
-#include "Algorithms/ExternalFieldRayTracker.h"
 #include "Algorithms/PartData.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
@@ -25,73 +24,4 @@ track_reference::State track_reference::advanceInBeamline(
                 }
                 return hit;
             });
-}
-
-track_reference::State track_reference::advanceResolvedInBeamline(
-        OpalBeamline& beamline, const PartData& reference, State state, double dt, double endTime,
-        bool diagnostics) {
-    if (!std::isfinite(dt) || dt == 0 || !std::isfinite(endTime))
-        throw std::invalid_argument("Invalid resolved TRACK step duration/time");
-    ExternalFieldRayTracker tracker(beamline, reference);
-    ExternalFieldRayTracker::State start;
-    start.position = state.position;
-    start.momentum = state.momentum;
-    start.time     = endTime - dt;
-    std::vector<ExternalFieldRayTracker::Step> accepted;
-    const auto end = tracker.advance(start, dt, diagnostics ? &accepted : nullptr);
-    if (diagnostics) {
-        for (const auto& step : accepted) {
-            for (const auto& element : beamline.getElements(step.midpoint.position)) {
-                if (element->getType() != ElementType::MONITOR) continue;
-                Vector_t<double, 3> electric(0), magnetic(0);
-                state.hitMaterial =
-                        element->applyToReferenceParticle(
-                                beamline.transformToLocalCS(element, step.midpoint.position),
-                                beamline.rotateToLocalCS(element, step.midpoint.momentum),
-                                step.midpoint.time, electric, magnetic)
-                        || state.hitMaterial;
-            }
-        }
-    }
-    state.position = end.position;
-    state.momentum = end.momentum;
-    return state;
-}
-
-double track_reference::collectiveTerminalStep(
-        MPI_Comm communicator, const std::function<double()>& search) {
-    return collectiveTerminalStep(communicator, search, {});
-}
-
-double track_reference::collectiveTerminalStep(
-        MPI_Comm communicator, const std::function<double()>& search,
-        const std::function<void()>& onFailure) {
-    int rank = 0;
-    MPI_Comm_rank(communicator, &rank);
-    double duration = 0;
-    std::string error;
-    if (rank == 0) {
-        try {
-            duration = search();
-            if (!(duration > 0) || !std::isfinite(duration))
-                throw std::runtime_error("Invalid terminal-event duration");
-        } catch (const OpalException& exception) {
-            error = exception.where() + ": " + exception.what();
-        } catch (const std::exception& exception) {
-            error = exception.what();
-            if (error.empty()) error = "Terminal-event reference trial failed";
-        } catch (...) {
-            error = "Unknown failure during terminal-event reference trial";
-        }
-    }
-    int length = static_cast<int>(error.size());
-    MPI_Bcast(&length, 1, MPI_INT, 0, communicator);
-    if (length > 0) {
-        error.resize(length);
-        MPI_Bcast(error.data(), length, MPI_CHAR, 0, communicator);
-        if (onFailure) onFailure();
-        throw OpalException("ParallelTracker::terminalEvent", error);
-    }
-    MPI_Bcast(&duration, 1, MPI_DOUBLE, 0, communicator);
-    return duration;
 }

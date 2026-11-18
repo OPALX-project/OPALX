@@ -30,11 +30,9 @@ OpalCavity::OpalCavity()
     : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity."),
       obgeo_m(nullptr) {
     itsAttr[TYPE] = Attributes::makePredefinedString(
-            "TYPE",
-            "RF cavity model: mapped STANDING (default), mapped SINGLEGAP, or uniform IDEAL.",
-            {"STANDING", "SINGLEGAP", "IDEAL"});
-    itsAttr[VOLT] = Attributes::makeReal(
-            "VOLT", "Peak RF electric field in MV/m (STANDING/IDEAL); voltage in MV (SINGLEGAP)");
+            "TYPE", "RF cavity model: mapped STANDING (default) or uniform IDEAL.",
+            {"STANDING", "IDEAL"});
+    itsAttr[VOLT]     = Attributes::makeReal("VOLT", "Peak RF electric field in MV/m");
     itsAttr[DVOLT]    = Attributes::makeReal("DVOLT", "Peak RF electric field error in MV/m");
     itsAttr[FREQ]     = Attributes::makeReal("FREQ", "RF frequency in MHz");
     itsAttr[LAG]      = Attributes::makeReal("LAG", "Phase lag (rad)");
@@ -99,21 +97,6 @@ void OpalCavity::update() {
     double phi0          = Attributes::getReal(itsAttr[PHI0]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
-    rfc->clearCyclotronGap();
-    if (type == "SINGLEGAP" && !fmapfn.empty()) {
-        if (angle != 0 || pdis != 0 || peakError != 0 || phase != 0 || phaseError != 0
-            || !Attributes::getString(itsAttr[PHASE_MODEL]).empty()
-            || !Attributes::getString(itsAttr[AMPLITUDE_MODEL]).empty()
-            || !Attributes::getString(itsAttr[FREQUENCY_MODEL]).empty())
-            throw OpalException(
-                    "OpalCavity::update",
-                    "SINGLEGAP uses SI geometry and X/Y/Z/THETA/PHI/PSI poses, PHI0, and static RF "
-                    "parameters only.");
-        rfc->configureCyclotronGap(
-                fmapfn, rmin, rmax,
-                CyclotronRFKick{peak * 1e6, freq, phi0 * Units::deg2rad, gapwidth, rmax - rmin});
-    }
-
     rfc->getGeometry().setElementLength(length);
 
     rfc->dropFieldmaps();
@@ -126,7 +109,7 @@ void OpalCavity::update() {
     rfc->setFieldMapFN(fmapfn);
 
     rfc->setFast(fast);
-    rfc->setAutophaseVeto(apVeto || rfc->isCyclotronGap());
+    rfc->setAutophaseVeto(apVeto);
     rfc->setCavityType(type);
     rfc->setRmin(rmin);
     rfc->setRmax(rmax);

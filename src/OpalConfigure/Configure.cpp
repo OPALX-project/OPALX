@@ -67,7 +67,6 @@
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
-#include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalLaser.h"
@@ -146,8 +145,6 @@ namespace {
         opal->create(new OpalTravelingWave());
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalConstantFocusing());
-        opal->create(new OpalCyclotronSector());
-        opal->create(new OpalTrimCoil());
         opal->create(new OpalBox());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());

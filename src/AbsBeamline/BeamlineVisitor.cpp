@@ -32,11 +32,6 @@
 //
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/CyclotronSector.h"
-
-void BeamlineVisitor::visitCyclotronSector(const CyclotronSector& sector) {
-    visitElementBase(sector);
-}
 
 #include "AbsBeamline/ConstantFocusing.h"
 

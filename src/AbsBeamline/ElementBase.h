@@ -57,8 +57,7 @@ enum class ElementType : unsigned short {
     SOLENOID,
     SOURCE,
     CONSTANTEFIELDCAVITY,
-    CONSTANTFOCUSING,
-    CYCLOTRONSECTOR
+    CONSTANTFOCUSING
 };
 
 /// Logical sequence topology, independent of ElementType and field-support overlap.

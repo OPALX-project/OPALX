@@ -5,7 +5,6 @@ set (_SRCS
     OpalCollimator.cpp
     OpalConstantEFieldCavity.cpp
     OpalConstantFocusing.cpp
-    OpalCyclotronSector.cpp
     OpalTravelingWave.cpp
     OpalBend.cpp
     OpalDrift.cpp
@@ -42,7 +41,6 @@ set (HDRS
     OpalCollimator.h
     OpalConstantEFieldCavity.h
     OpalConstantFocusing.h
-    OpalCyclotronSector.h
     OpalDrift.h
     OpalFieldmapElement.h
     OpalElement.h

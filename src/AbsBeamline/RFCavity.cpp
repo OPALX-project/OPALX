@@ -34,7 +34,6 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
     BiMap<CavityType, std::string> bimap;
     bimap.insert(CavityType::SW, "STANDING");
     bimap.insert(CavityType::IDEAL, "IDEAL");
-    bimap.insert(CavityType::SGSW, "SINGLEGAP");
     return bimap;
 }();
 
@@ -72,12 +71,7 @@ RFCavity::RFCavity(const RFCavity& right)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {
-    cyclotronProfile_m = right.cyclotronProfile_m;
-    cyclotronKick_m    = right.cyclotronKick_m;
-    gapMin_m           = right.gapMin_m;
-    gapMax_m           = right.gapMax_m;
-}
+      num_points_m(right.num_points_m) {}
 
 RFCavity::RFCavity(const std::string& name)
     : ElementBase(name),
@@ -123,7 +117,6 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * statement
  */
 void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (isCyclotronGap()) return;
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -178,7 +171,6 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (isCyclotronGap()) return;
     if (isIdeal()) {
         if (isInside(R))
             E[2] += (scale_m + scaleError_m) * Units::MVpm2Vpm
@@ -199,7 +191,6 @@ void RFCavity::apply(
 bool RFCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (isCyclotronGap()) return false;
     if (isIdeal()) {
         if (R[2] < 0.0 || R[2] >= getGeometry().getElementLength()) return false;
         if (!ApertureHelper::isInsideAperture(R, aperture_m)) return true;
@@ -243,10 +234,6 @@ void RFCavity::initialise(PartBunch_t* bunch) {
         fieldmap_m     = nullptr;
         startField_m   = 0.0;
         endField_m     = getGeometry().getElementLength();
-        return;
-    }
-    if (isCyclotronGap()) {
-        RefPartBunch_m = bunch;
         return;
     }
     startField_m = endField_m = 0.0;
@@ -328,7 +315,7 @@ void RFCavity::initialise(
 void RFCavity::finalise() {}
 
 void RFCavity::goOnline(const double&) {
-    if (isCyclotronGap() || isIdeal()) {
+    if (isIdeal()) {
         online_m = true;
         return;
     }
@@ -338,7 +325,7 @@ void RFCavity::goOnline(const double&) {
 }
 
 void RFCavity::goOffline() {
-    if (isCyclotronGap() || isIdeal()) {
+    if (isIdeal()) {
         online_m = false;
         return;
     }
@@ -348,19 +335,6 @@ void RFCavity::goOffline() {
 }
 
 void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
-
-void RFCavity::configureCyclotronGap(
-        const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick) {
-    kick.validate();
-    if (!std::isfinite(rmin) || !std::isfinite(rmax) || rmin < 0 || rmax <= rmin)
-        throw OpalException("RFCavity::configureCyclotronGap", "Invalid gap support [m].");
-    auto profile       = std::make_shared<CyclotronRFProfile>(filename);
-    cyclotronProfile_m = std::move(profile);
-    cyclotronKick_m    = kick;
-    gapMin_m           = rmin;
-    gapMax_m           = rmax;
-    autophaseVeto_m    = true;
-}
 
 void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
 
@@ -779,7 +753,6 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 }
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
-    if (isCyclotronGap()) return false;
     if (isIdeal())
         return r[2] >= 0.0 && r[2] < getGeometry().getElementLength()
                && ApertureHelper::isInsideAperture(r, aperture_m);

@@ -6,7 +6,6 @@ set (_SRCS
     Flagger.cpp
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
-    DeviceExternalField.cpp
     LinearTransferMapBuilder.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
@@ -31,7 +30,6 @@ set (HDRS
     Flagger.h
     IndexMap.h
     ExternalFieldRayTracker.h
-    DeviceExternalField.h
     LinearTransferMapBuilder.h
     LinearTransferMap.h
     OrbitThreader.h
