@@ -10,7 +10,7 @@
  *   Dirichlet plane only with open boundaries.
  * - `LOADBALANCINGPAIRWEIGHT` must lie in [0, 1] and needs P3M when it is above 0.
  * - The boundary conditions each Poisson backend accepts, unsupported Dirichlet-plane
- *   combinations, invalid enum values, and the separate FFT2D5 domain.
+ *   combinations and invalid enum values.
  * - A shifted-Green plane works with or without binning and with either Green function.
  *
  * `SpaceChargeConfigBuilderTest` starts from parsed `FIELDSOLVER` and `EMISSIONSOURCE` commands:
@@ -68,17 +68,6 @@ namespace opalx::spacecharge {
             config.p3mCutoff          = 0.025;
             config.boundaryConditions = {boundary, boundary, boundary};
             return config;
-        }
-
-        TEST(SpaceChargeConfigTest, ExplicitOriginalModelPreservesDefaultAndRejectsOtherTypes) {
-            TestableFieldSolverCmd parsed;
-            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
-            EXPECT_FALSE(parsed.hasFFT2D5Model());
-            parsed.setFFT2D5Model("ORIGINAL");
-            EXPECT_TRUE(parsed.hasFFT2D5Model());
-            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
-            parsed.setType("FFT");
-            EXPECT_THROW((void)buildSpaceChargeConfig(parsed, {}), OpalException);
         }
 
         TEST(SpaceChargeConfigTest, DerivesP3MParticleLayoutAndBoundaryMode) {
@@ -246,25 +235,6 @@ namespace opalx::spacecharge {
             EXPECT_DOUBLE_EQ(config.p3mCutoff, 0.025);
         }
 
-        TEST(SpaceChargeConfigTest, DerivesIndependentFFT2D5Domain) {
-            FFT2D5Config config;
-            config.grid.meshSize       = {16, 18, 20};
-            config.grid.decomposition  = {false, false, false};
-            config.pipeSizeX           = 0.1;
-            config.pipeSizeY           = 0.2;
-            config.beamRadius          = 0.01;
-            config.referencePathFile   = "design-path.dat";
-            SpaceChargeConfig selected = config;
-            validateSpaceChargeConfig(selected);
-
-            EXPECT_TRUE(std::holds_alternative<FFT2D5Config>(selected));
-            const auto domain = makeCartesianDomainConfig(selected);
-            EXPECT_EQ(domain.meshSize, config.grid.meshSize);
-            EXPECT_EQ(domain.decomposition, config.grid.decomposition);
-            EXPECT_EQ(domain.layoutType, ParticleLayoutType::Spatial);
-            EXPECT_FALSE(domain.periodicParticleBoundary);
-        }
-
         TEST(SpaceChargeConfigTest, RejectsUnsupportedDirichletPlaneCombinations) {
             CartesianPIC3DConfig shifted;
             shifted.backend             = PoissonSolverType::Open;
@@ -290,10 +260,6 @@ namespace opalx::spacecharge {
             cartesian                     = {};
             cartesian.dirichletPlane.kind = static_cast<DirichletPlaneType>(255);
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(cartesian)), OpalException);
-
-            FFT2D5Config fft2d5;
-            fft2d5.longitudinalFieldMode = static_cast<FFT2D5LongitudinalFieldMode>(255);
-            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(fft2d5)), OpalException);
         }
 
         TEST(SpaceChargeConfigBuilderTest, RejectsRecognizedCGBeforeRuntimeConstruction) {

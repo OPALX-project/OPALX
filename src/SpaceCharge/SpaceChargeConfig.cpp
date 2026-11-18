@@ -129,32 +129,6 @@ namespace opalx::spacecharge {
             }
         }
 
-        void validateFFT2D5(const FFT2D5Config& config) {
-            validateGrid(config.grid);
-            if (config.grid.decomposition[0] || config.grid.decomposition[1]) {
-                throw OpalException(
-                        "validateSpaceChargeConfig",
-                        "FFT2D5 supports only longitudinal decomposition (PARFFTZ).");
-            }
-            if (!std::isfinite(config.pipeSizeX) || !std::isfinite(config.pipeSizeY)
-                || !std::isfinite(config.beamRadius) || !(config.pipeSizeX > 0.0)
-                || !(config.pipeSizeY > 0.0) || !(config.beamRadius > 0.0)) {
-                throw OpalException(
-                        "validateSpaceChargeConfig",
-                        "FFT2D5 pipe dimensions and beam radius must be positive.");
-            }
-            switch (config.longitudinalFieldMode) {
-                case FFT2D5LongitudinalFieldMode::Open:
-                case FFT2D5LongitudinalFieldMode::Cylindrical:
-                case FFT2D5LongitudinalFieldMode::Plates:
-                case FFT2D5LongitudinalFieldMode::None:
-                    break;
-                default:
-                    throw OpalException(
-                            "validateSpaceChargeConfig", "Unknown FFT2D5 longitudinal mode.");
-            }
-        }
-
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
@@ -253,8 +227,6 @@ namespace opalx::spacecharge {
                                     "boundaries on all faces and no BINS.");
                         }
                         validateCartesian(selected);
-                    } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
-                        validateFFT2D5(selected);
                     } else {
                         static_assert(
                                 std::is_same_v<Config, void>, "Add validation for this algorithm");

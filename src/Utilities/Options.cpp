@@ -26,9 +26,8 @@ namespace Options {
     // The global program options.
     bool echo = false;
 
-    bool info           = true;
-    int infoLevel       = 1;
-    int fft2d5BatchSize = 0;
+    bool info     = true;
+    int infoLevel = 1;
 
     bool mtrace = false;
 

@@ -23,7 +23,6 @@ namespace opalx::spacecharge {
     enum class FieldBoundaryCondition : std::uint8_t { Open, Dirichlet, Periodic };
     enum class GreenFunctionType : std::uint8_t { Standard, Integrated };
     enum class BinningVariable : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
-    enum class FFT2D5LongitudinalFieldMode : std::uint8_t { Open, Cylindrical, Plates, None };
 
     /** @brief Backend-independent settings for a 3D Poisson solve. */
     struct PoissonSolverConfig {
@@ -119,18 +118,7 @@ namespace opalx::spacecharge {
         }
     };
 
-    struct FFT2D5Config {
-        CartesianGridConfig grid{.decomposition = {false, false, false}};
-        FFT2D5LongitudinalFieldMode longitudinalFieldMode = FFT2D5LongitudinalFieldMode::Open;
-        double pipeSizeX                                  = 1.0;
-        double pipeSizeY                                  = 1.0;
-        double beamRadius                                 = 1.0;
-        bool closedRing                                   = false;
-        bool scatterLongitudinally                        = true;
-        std::string referencePathFile;
-    };
-
-    using SpaceChargeConfig = std::variant<CartesianPIC3DConfig, FFT2D5Config>;
+    using SpaceChargeConfig = std::variant<CartesianPIC3DConfig>;
 
     /** @brief Reject unsupported or inconsistent Poisson settings. */
     void validatePoissonSolverConfig(const PoissonSolverConfig& config);

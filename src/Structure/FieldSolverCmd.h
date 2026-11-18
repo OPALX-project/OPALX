@@ -30,7 +30,7 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3, FFT2D5 = 4 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
@@ -53,14 +53,6 @@ namespace FIELDSOLVER {
         REPEATSPACING,  // lab-frame spacing of the copies in metres [OPEN, P3M]
         PERIODICBOX,    // edge length of a fixed all-periodic cube [m]; zero follows the particles
         BBOXINCR,       // how much the boundingbox is increased
-        FFT2D5MODEL,    // Explicit FFT2D5 model identity; ORIGINAL is currently supported
-        PIPEMODE,       // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
-        BEAMR,          // Beam radius in metres [FFT2D5 only]
-        CLOSEDRING,     // TRUE if the ring is closed [FFT2D5 only]
-        PIPESIZEX,      // Size of the pipe in meters in the transverse direction [FFT2D5 only]
-        PIPESIZEY,      // Size of the pipe in meters in the vertical direction [FFT2D5 only]
-        REFPATHFNAME,   // Reference path file name [FFT2D5 only]
-        SCATTERLONGITUDINALLY,  // Scatter charge between longitudinal slices [FFT2D5 only]
         SIZE
     };
 }
@@ -127,28 +119,6 @@ public:
     ippl::Vector<bool, 3> getDomainDecomposition() const;
 
     Inform& printInfo(Inform& os) const;
-
-    /// Return the configured FFT2D5 identity; ORIGINAL is the default and only supported model.
-    std::string getFFT2D5Model() const;
-    /// Whether FFT2D5MODEL was explicitly supplied rather than inherited from its default.
-    bool hasFFT2D5Model() const;
-    /** @brief Set a predefined FFT2D5 model identity.
-     * @param model ORIGINAL; invalid predefined values are rejected by attribute validation. */
-    void setFFT2D5Model(const std::string& model);
-    std::string getPipeMode() const;
-    double getBeamRadius() const;
-    bool getClosedRing() const;
-    bool getScatterLongitudinally() const;
-    double getPipeSizeX() const;
-    double getPipeSizeY() const;
-    std::string getRefPathFileName() const;
-    void setPipeMode(const std::string& pipeMode);
-    void setBeamRadius(double beamRadius);
-    void setClosedRing(bool closedRing);
-    void setScatterLongitudinally(bool val);
-    void setPipeSizeX(double pipeSizeX);
-    void setPipeSizeY(double pipeSizeY);
-    void setRefPathFileName(const std::string& refPathFileName);
 
 private:
     // Not implemented.

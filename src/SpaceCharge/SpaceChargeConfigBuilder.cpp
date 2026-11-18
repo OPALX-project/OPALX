@@ -5,7 +5,6 @@
 
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Distribution/Distribution.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
@@ -13,9 +12,7 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-#include "Utilities/Util.h"
 
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -36,8 +33,6 @@ namespace opalx::spacecharge {
                     return PoissonSolverType::ConjugateGradient;
                 case FieldSolverCmdType::P3M:
                     return PoissonSolverType::P3M;
-                case FieldSolverCmdType::FFT2D5:
-                    break;
             }
             throw OpalException(
                     "SpaceChargeConfigBuilder::build", "Unknown FIELDSOLVER TYPE value.");
@@ -68,35 +63,6 @@ namespace opalx::spacecharge {
             }
             throw OpalException(
                     "SpaceChargeConfigBuilder::build", "Unknown BINNING PARAMETER value.");
-        }
-
-        FFT2D5LongitudinalFieldMode convertFFT2D5Mode(const std::string& name) {
-            if (name == "OPEN") {
-                return FFT2D5LongitudinalFieldMode::Open;
-            }
-            if (name == "CIRCULAR") {
-                return FFT2D5LongitudinalFieldMode::Cylindrical;
-            }
-            if (name == "PLATES") {
-                return FFT2D5LongitudinalFieldMode::Plates;
-            }
-            if (name == "NONE") {
-                return FFT2D5LongitudinalFieldMode::None;
-            }
-            throw OpalException(
-                    "SpaceChargeConfigBuilder::build",
-                    "Unknown FIELDSOLVER PIPEMODE value '" + name + "'.");
-        }
-
-        std::string resolveReferencePath(const FieldSolverCmd& fieldSolver) {
-            std::string path = fieldSolver.getRefPathFileName();
-            if (!path.empty()) {
-                return path;
-            }
-            OpalData* opal = OpalData::getInstance();
-            return Util::combineFilePath(
-                    {opal->getAuxiliaryOutputDirectory(),
-                     opal->getInputBasename() + "_DesignPath.dat"});
         }
 
         std::array<FieldBoundaryCondition, 3> convertBoundaryConditions(
@@ -297,56 +263,6 @@ namespace opalx::spacecharge {
         grid.meshSize                   = meshSize;
         grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
         grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
-
-        if (fieldSolver.hasFFT2D5Model() && solverType != FieldSolverCmdType::FFT2D5) {
-            throw OpalException("buildSpaceChargeConfig", "FFT2D5MODEL requires TYPE=FFT2D5.");
-        }
-        if (solverType == FieldSolverCmdType::FFT2D5) {
-            if (fieldSolver.getFFT2D5Model() != "ORIGINAL") {
-                throw OpalException(
-                        "buildSpaceChargeConfig", "Only FFT2D5MODEL=ORIGINAL is supported.");
-            }
-            if (ippl::Comm->size() > 1 && !grid.decomposition[2]) {
-                throw OpalException(
-                        "buildSpaceChargeConfig", "Multiple FFT2D5 ranks require PARFFTZ=TRUE.");
-            }
-            const auto binsName = fieldSolver.getBinsName();
-            if (!binsName.empty() && binsName != "NONE") {
-                throw OpalException("buildSpaceChargeConfig", "FFT2D5 does not support BINS.");
-            }
-            const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
-            if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
-                    return boundary == FieldBoundaryCondition::Open;
-                })) {
-                throw OpalException(
-                        "buildSpaceChargeConfig",
-                        "FFT2D5 transverse Poisson slices are OPEN. Use CLOSEDRING for "
-                        "longitudinal periodicity and PIPEMODE for the longitudinal-field model.");
-            }
-            const DirichletPlaneConfig dirichletPlane = buildDirichletPlaneConfig(emissionSources);
-            if (dirichletPlane.enabled()) {
-                throw OpalException(
-                        "SpaceChargeConfigBuilder::build",
-                        "FFT2D5 does not support Dirichlet planes.");
-            }
-            if (Options::loadBalancingPairWeight > 0.0) {
-                throw OpalException(
-                        "buildSpaceChargeConfig",
-                        "LOADBALANCINGPAIRWEIGHT above 0 requires FIELDSOLVER TYPE=P3M.");
-            }
-            FFT2D5Config values;
-            values.grid                  = grid;
-            values.longitudinalFieldMode = convertFFT2D5Mode(fieldSolver.getPipeMode());
-            values.pipeSizeX             = fieldSolver.getPipeSizeX();
-            values.pipeSizeY             = fieldSolver.getPipeSizeY();
-            values.beamRadius            = fieldSolver.getBeamRadius();
-            values.closedRing            = fieldSolver.getClosedRing();
-            values.scatterLongitudinally = fieldSolver.getScatterLongitudinally();
-            values.referencePathFile     = resolveReferencePath(fieldSolver);
-            SpaceChargeConfig config     = std::move(values);
-            validateSpaceChargeConfig(config);
-            return config;
-        }
 
         CartesianPIC3DConfig values;
         values.grid                       = grid;

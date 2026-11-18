@@ -5,8 +5,8 @@
  *
  * The construction tests also check the P3M overlap layouts: a mesh-tied cutoff
  * (`RCUT_CELLS`) that does not fit the rank regions is reduced when the bunch is built, as the
- * runtime domain update does, and a cutoff that fits is kept. The space-charge factory tests
- * check that the configured Cartesian algorithm is built and that FFT2D5 defers its setup.
+ * runtime domain update does, and a cutoff that fits is kept. The space-charge factory test
+ * checks that the configured Cartesian algorithm is built.
  */
 
 #include <gtest/gtest.h>
@@ -294,17 +294,6 @@ namespace {
 
         auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
         EXPECT_NE(solver, nullptr);
-    }
-
-    TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
-        using namespace opalx::spacecharge;
-        FFT2D5Config values;
-        values.referencePathFile = "";
-        auto solver = makeSpaceChargeSolver(SpaceChargeConfig(values), *bunch, nullptr);
-
-        ASSERT_NE(solver, nullptr);
-        EXPECT_EQ(solver->backendSolveCount(), 0u);
-        EXPECT_EQ(solver->redistributionCount(), 0u);
     }
 
     // --- DataSink stems and writers ---
