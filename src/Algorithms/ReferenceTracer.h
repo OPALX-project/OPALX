@@ -23,7 +23,6 @@
 #include "Algorithms/StepSizeConfig.h"
 
 #include <cstddef>
-#include <fstream>
 #include <memory>
 #include <set>
 #include <string>
@@ -41,13 +40,11 @@ class PartData;
  * - checks that the DT of the current segment resolves each element it reaches
  *   (ElementBase::getRequiredNumberOfTimeSteps()),
  * - checks that no element would delete the reference
- *   (GeneralElementMapping::checkReferencePoint()),
- * - writes <basename>_DesignPath.dat, which the FFT2D5 solver reads.
+ *   (GeneralElementMapping::checkReferencePoint()).
  *
- * A LINE pass ends when the reference is outside every element and either has left the lab box
+ * The pass ends when the reference is outside every element and either has left the lab box
  * of all elements and moves away from it, or is two bunch lengths past the last ZSTOP. It also
- * ends when the step budget of the tracking schedule is used up. A RING pass ends after one
- * circumference.
+ * ends when the step budget of the tracking schedule is used up.
  */
 class ReferenceTracer {
 public:
@@ -58,11 +55,10 @@ public:
      * @param beamline Placed lattice whose element grid is built.
      * @param stepSizes Tracking schedule: DT, ZSTOP and MAXSTEPS per segment.
      * @param dt Time step of the pass [s], normally the smallest DT of the schedule.
-     * @param ringPeriod Ring circumference [m]; nonpositive for a LINE.
      */
     ReferenceTracer(
             const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-            double dt, double ringPeriod);
+            double dt);
 
     /**
      * @brief Trace the reference particle.
@@ -86,9 +82,6 @@ private:
     bool step(double dt, ElementSet& fields);
     void checkElementLengths(const ElementSet& fields);
     void autophaseCavities(const ElementSet& fields);
-    void openDesignPath();
-    void writeDesignPath(
-            const ExternalFieldRayTracker::Step& step, const ElementSet& fields, double dt);
     bool reachedEnd(const ElementSet& fields) const;
 
     const PartData& reference_m;
@@ -96,13 +89,12 @@ private:
     /// Advanced along the pass to find the DT of the current segment.
     StepSizeConfig stepSizes_m;
     double dt_m;
-    const double ringPeriod_m;
     ExternalFieldRayTracker rayTracker_m;
 
     RayState ray_m;
     /// Path length [m] at the start of the forward pass.
     double startPathLength_m{0.0};
-    /// Path length [m] past which a LINE pass may end: last ZSTOP plus two bunch lengths.
+    /// Path length [m] past which the pass may end: last ZSTOP plus two bunch lengths.
     double endPathLength_m{0.0};
     /// Signed step counter; negative during the forward pass after the backward steps.
     long step_m{0};
@@ -112,9 +104,6 @@ private:
 
     std::set<std::string> visitedElements_m;
     ElementSet previousFields_m;
-
-    std::ofstream designPath_m;
-    std::size_t designPathFrequency_m;
 };
 
 #endif  // OPALX_REFERENCE_TRACER_H

@@ -101,11 +101,10 @@ private:
      *        UNTILMAXSTEPS for the others.
      * @param restored Planes and done flags from a checkpoint; empty for a fresh run.
      * @throws OpalException For a BEAM ZSTOP on the first beam or on a decay daughter beam,
-     *         ZSTOP together with UNTILMAXSTEPS, or either on a RING.
+     *         or ZSTOP together with UNTILMAXSTEPS.
      */
     std::vector<BeamStop> makeBeamStops(
-            const std::vector<Beam*>& beams, bool isRing,
-            const std::vector<BeamStop>& restored) const;
+            const std::vector<Beam*>& beams, const std::vector<BeamStop>& restored) const;
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.

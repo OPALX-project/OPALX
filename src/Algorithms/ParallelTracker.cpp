@@ -390,8 +390,7 @@ void ParallelTracker::execute() {
         if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
             continue;  // a decay daughter container follows its root's reference
         }
-        ReferenceTracer tracer(
-                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, 0.0);
+        ReferenceTracer tracer(*pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep);
         ReferenceTracer::RayState start;
         start.position   = pc->getRefPartR();
         start.momentum   = pc->getRefPartP();

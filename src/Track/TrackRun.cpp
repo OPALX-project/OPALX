@@ -617,7 +617,7 @@ void TrackRun::execute() {
                             ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
                             : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
     static_cast<ParallelTracker*>(itsTracker_m.get())
-            ->setBeamStops(makeBeamStops(beams, false, restartMetadata.beamStops));
+            ->setBeamStops(makeBeamStops(beams, restartMetadata.beamStops));
     itsTracker_m->execute();
 
     /*
@@ -724,8 +724,7 @@ void TrackRun::setupGlobalProcesses(
 }
 
 std::vector<BeamStop> TrackRun::makeBeamStops(
-        const std::vector<Beam*>& beams, const bool isRing,
-        const std::vector<BeamStop>& restored) const {
+        const std::vector<Beam*>& beams, const std::vector<BeamStop>& restored) const {
     const std::vector<std::string>& beamNames = Track::block->beamNames_m;
     const auto name                           = [&](std::size_t i) {
         return "\"" + (i < beamNames.size() ? beamNames[i] : std::to_string(i)) + "\"";
@@ -734,12 +733,6 @@ std::vector<BeamStop> TrackRun::makeBeamStops(
     for (std::size_t i = 0; i < beams.size(); ++i) {
         const std::optional<double> zStop = beams[i]->getZStop();
         const bool untilMaxSteps          = beams[i]->getUntilMaxSteps();
-        if ((zStop || untilMaxSteps) && isRing) {
-            throw OpalException(
-                    "TrackRun::makeBeamStops",
-                    "BEAM ZSTOP and UNTILMAXSTEPS apply to LINE tracking only (beam " + name(i)
-                            + ").");
-        }
         if (zStop && i == 0) {
             throw OpalException(
                     "TrackRun::makeBeamStops",
@@ -757,7 +750,7 @@ std::vector<BeamStop> TrackRun::makeBeamStops(
         stops[i].zStop         = zStop;
         stops[i].untilMaxSteps = untilMaxSteps;
     }
-    if (!isRing && Track::block->zStopGiven) stops[0].zStop = Track::block->zstop.back();
+    if (Track::block->zStopGiven) stops[0].zStop = Track::block->zstop.back();
     for (std::size_t i = 0; i < stops.size(); ++i) {
         if (stops[i].zStop && stops[i].untilMaxSteps) {
             throw OpalException(

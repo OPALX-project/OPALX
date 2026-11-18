@@ -17,7 +17,6 @@
 //
 #include "Algorithms/ReferenceTracer.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/CompensatedSum.h"
 #include "Algorithms/PartData.h"
@@ -30,8 +29,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
-#include <iomanip>
 #include <limits>
 #include <sstream>
 
@@ -39,14 +36,12 @@ extern Inform* gmsg;
 
 ReferenceTracer::ReferenceTracer(
         const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-        const double dt, const double ringPeriod)
+        const double dt)
     : reference_m(reference),
       beamline_m(beamline),
       stepSizes_m(stepSizes),
       dt_m(dt),
-      ringPeriod_m(ringPeriod),
-      rayTracker_m(beamline, reference),
-      designPathFrequency_m(std::numeric_limits<std::size_t>::max()) {
+      rayTracker_m(beamline, reference) {
     if (!(std::isfinite(dt_m) && dt_m > 0.0))
         throw OpalException("ReferenceTracer", "The reference pass needs a positive DT.");
 }
@@ -54,9 +49,8 @@ ReferenceTracer::ReferenceTracer(
 ReferenceTracer::RayState ReferenceTracer::execute(RayState start, const double bunchTail) {
     ray_m       = start;
     labBounds_m = beamline_m.getElementMapping().getLabBounds();
-    openDesignPath();
 
-    // Step back over the bunch tail so that the design path also covers it.
+    // Step back over the bunch tail so that the checks also cover it.
     const double tail = std::min(start.pathLength, std::max(0.0, bunchTail));
     ElementSet fields;
     while (std::abs(start.pathLength - ray_m.pathLength) < tail && step(-dt_m, fields)) {
@@ -75,7 +69,6 @@ ReferenceTracer::RayState ReferenceTracer::execute(RayState start, const double 
         ++forwardSteps;
     } while (!hitMaterial && !reachedEnd(fields) && forwardSteps < maxForwardSteps_m);
 
-    designPath_m.close();
     *gmsg << level2 << "* Reference pass: path length " << startPathLength_m << " m to "
           << ray_m.pathLength << " m in " << forwardSteps << " steps of " << dt_m << " s"
           << (hitMaterial ? "; stopped where the reference hit an element." : ".") << endl;
@@ -114,7 +107,6 @@ bool ReferenceTracer::step(const double dt, ElementSet& fields) {
             result.midpoint.position, result.midpoint.pathLength);
     if (result.hitMaterial) return false;
 
-    writeDesignPath(result, fields, dt);
     ray_m = result.end;
     if (dt > 0.0) {
         for (const auto& element : fields)
@@ -171,7 +163,6 @@ void ReferenceTracer::autophaseCavities(const ElementSet& fields) {
 }
 
 bool ReferenceTracer::reachedEnd(const ElementSet& fields) const {
-    if (ringPeriod_m > 0.0) return std::abs(ray_m.pathLength - startPathLength_m) >= ringPeriod_m;
     if (!fields.empty()) return false;
     if (ray_m.pathLength >= endPathLength_m) return true;
     return !labBounds_m.isInside(ray_m.position)
@@ -197,58 +188,4 @@ bool ReferenceTracer::rayHitsBox(
         if (enter > leave) return false;
     }
     return true;
-}
-
-void ReferenceTracer::openDesignPath() {
-    auto opal = OpalData::getInstance();
-    if (ippl::Comm->rank() != 0 || opal->isOptimizerRun()) return;
-
-    const std::string fileName = Util::combineFilePath(
-            {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});
-    if (opal->getOpenMode() == OpalData::OpenMode::WRITE || !std::filesystem::exists(fileName)) {
-        designPath_m.open(fileName);
-        designPath_m << "#" << std::setw(17) << "1 - s" << std::setw(18) << "2 - Rx"
-                     << std::setw(18) << "3 - Ry" << std::setw(18) << "4 - Rz" << std::setw(18)
-                     << "5 - Px" << std::setw(18) << "6 - Py" << std::setw(18) << "7 - Pz"
-                     << std::setw(18) << "8 - Efx" << std::setw(18) << "9 - Efy" << std::setw(18)
-                     << "10 - Efz" << std::setw(18) << "11 - Bfx" << std::setw(18) << "12 - Bfy"
-                     << std::setw(18) << "13 - Bfz" << std::setw(18) << "14 - Ekin" << std::setw(18)
-                     << "15 - t" << std::endl;
-    } else {
-        designPath_m.open(fileName, std::ios_base::app);
-    }
-    designPathFrequency_m = std::max(1.0, std::round(1e-11 / std::abs(dt_m)));
-}
-
-void ReferenceTracer::writeDesignPath(
-        const ExternalFieldRayTracker::Step& step, const ElementSet& fields, const double dt) {
-    if (!designPath_m.is_open()) return;
-    const double pathLength = step.midpoint.pathLength;
-    const bool forwardInside =
-            ray_m.pathLength > 0.0 && (ringPeriod_m > 0.0 || ray_m.pathLength < endPathLength_m);
-    if (!((forwardInside || dt < 0.0) && step_m % designPathFrequency_m == 0)) return;
-
-    std::string names("\t");
-    for (const auto& element : fields)
-        names += element->getName() + ", ";
-    const auto& r   = step.midpoint.position;
-    const auto& p   = step.midpoint.momentum;
-    const auto& Ef  = step.electric;
-    const auto& Bf  = step.magnetic;
-    const auto cell = [this](const double value) -> std::ostream& {
-        designPath_m << std::setw(18) << std::setprecision(8) << value;
-        return designPath_m;
-    };
-    cell(pathLength);
-    for (unsigned d = 0; d < 3; ++d)
-        cell(r(d));
-    for (unsigned d = 0; d < 3; ++d)
-        cell(p(d));
-    for (unsigned d = 0; d < 3; ++d)
-        cell(Ef(d));
-    for (unsigned d = 0; d < 3; ++d)
-        cell(Bf(d));
-    cell(reference_m.getM() * (std::sqrt(dot(ray_m.momentum, ray_m.momentum) + 1) - 1)
-         * Units::eV2MeV);
-    cell(step.midpoint.time * Units::s2ns) << names << std::endl;
 }
