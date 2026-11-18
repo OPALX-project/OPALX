@@ -27,7 +27,6 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
@@ -37,11 +36,9 @@
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VariableRFCavity.h"
-#include "AbsBeamline/VerticalFFAMagnet.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -70,12 +67,6 @@ void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll
 
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
 
-void DefaultVisitor::visitEnge(const endfieldmodel::Enge&) {}
-
-void DefaultVisitor::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
-
-void DefaultVisitor::visitTanh(const endfieldmodel::Tanh&) {}
-
 void DefaultVisitor::visitFieldmapElement(const FieldmapElement& fm) { applyDefault(fm); }
 
 void DefaultVisitor::visitLaser(const Laser& laser) { applyDefault(laser); }
@@ -97,10 +88,6 @@ void DefaultVisitor::visitSBend(const SBend& bend) { applyDefault(bend); }
 void DefaultVisitor::visitSolenoid(const Solenoid& so) { applyDefault(so); }
 
 void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault(trw); }
-
-void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) { applyDefault(spiral); }
-
-void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) { applyDefault(mag); }
 
 void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) { applyDefault(cavity); }
 

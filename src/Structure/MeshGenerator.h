@@ -17,7 +17,6 @@
 #include "OPALTypes.h"
 
 class ElementBase;
-class ScalingFFAMagnet;
 
 /** Display-only geometry in the element frame, transformed once when added.
  * Empty triangles with nonempty vertices represent a consecutive polyline in
@@ -83,8 +82,7 @@ private:
         SOLENOID,
         RFCAVITY,
         TRAVELINGWAVE,
-        DRIFT,
-        SCALINGFFA
+        DRIFT
     };
 
     static MeshData getCylinder(
@@ -124,18 +122,6 @@ private:
      */
     static MeshData getSBend(
             double arcLength, double curvature, double horizontalHalfSize, double verticalHalfSize);
-
-    /** Nominal ScalingFFA display volume, not a mechanical yoke or fringe envelope.
-     * Uses the resolved field chart and nominal length; spiral faces are sampled
-     * radially. The nominal spiral interval is centred on the resolved phiStart;
-     * its width is arcLength/abs(R0). Height and radial limits are the configured
-     * support dimensions, not inferred mechanical dimensions. Both signs of R0
-     * use the inverse of the field-support chart. Sampling is bounded and purely
-     * for display; it does not set tracking accuracy or an iso-field threshold.
-     * Zero-field geometry arcs produce only a design-orbit polyline.
-     * No aperture, field or tracking configuration is changed.
-     */
-    static MeshData getScalingFFA(const ScalingFFAMagnet& magnet);
 
     /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.

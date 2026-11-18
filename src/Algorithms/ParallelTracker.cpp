@@ -61,8 +61,6 @@
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
-#include "AbsBeamline/VerticalFFAMagnet.h"
-
 extern Inform* gmsg;
 
 using opalx::moments::Moment;

@@ -97,15 +97,10 @@ public:
     void visitMultipoleT(const MultipoleT&) override {}
     void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
-    void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
-    void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
-    void visitEnge(const endfieldmodel::Enge&) override {}
-    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override {}
-    void visitTanh(const endfieldmodel::Tanh&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {

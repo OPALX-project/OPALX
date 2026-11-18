@@ -1,7 +1,6 @@
 # AbsBeamline/CMakeLists.txt
 
 # Include subdirectories
-add_subdirectory(EndFieldModel)
 
 # List local source and header files
 set(_SRCS
@@ -23,10 +22,8 @@ set(_SRCS
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
     RFCavity.cpp
-    ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
-    VerticalFFAMagnet.cpp
     RBend.cpp
     VariableRFCavity.cpp
     SBend.cpp
@@ -52,10 +49,7 @@ set(_HDRS
     RFCavity.h
     TravelingWave.h
     SpecificElementVisitor.h
-    ScalingFFASupport.h
-    ScalingFFAMagnet.h
     Solenoid.h
-    VerticalFFAMagnet.h
     RBend.h
     SBend.h
     VariableRFCavity.h

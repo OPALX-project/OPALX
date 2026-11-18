@@ -58,15 +58,6 @@ class VariableRFCavity;
 class TravelingWave;
 class SBend;
 class Solenoid;
-class ScalingFFAMagnet;
-class Offset;
-class VerticalFFAMagnet;
-
-namespace endfieldmodel {
-    class Enge;
-    class Tanh;
-    class AsymmetricEnge;
-}  // namespace endfieldmodel
 
 class BeamlineVisitor {
 public:
@@ -96,15 +87,6 @@ public:
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
-
-    /// Apply the algorithm to a drift space.
-    virtual void visitEnge(const endfieldmodel::Enge&) = 0;
-
-    /// Apply the algorithm to a drift space.
-    virtual void visitTanh(const endfieldmodel::Tanh&) = 0;
-
-    /// Apply the algorithm to a drift space.
-    virtual void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) = 0;
 
     /// Apply the algorithm to a field-map-driven element.
     virtual void visitFieldmapElement(const FieldmapElement&) = 0;
@@ -136,8 +118,6 @@ public:
     /// Apply the algorithm to a variable RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&) = 0;
 
@@ -146,9 +126,6 @@ public:
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave&) = 0;
-
-    /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&) = 0;
 
 private:
     // Not implemented.
