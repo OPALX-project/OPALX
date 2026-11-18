@@ -44,15 +44,6 @@ void StringConstant::defineBuiltins() {
     // no string constant should be defined for them
 
     // Element / TYPE
-    // RING is registered as a beam-sequence keyword. String attributes still
-    // accept the non-string RING object name as the literal value "RING".
-    CREATE_STRINGCONSTANT("CARBONCYCL");
-    CREATE_STRINGCONSTANT("CYCIAE");
-    CREATE_STRINGCONSTANT("AVFEQ");
-    CREATE_STRINGCONSTANT("FFA");
-    CREATE_STRINGCONSTANT("BANDRF");
-    CREATE_STRINGCONSTANT("SYNCHROCYCLOTRON");
-    CREATE_STRINGCONSTANT("SINGLEGAP");
     CREATE_STRINGCONSTANT("STANDING");
     CREATE_STRINGCONSTANT("TEMPORAL");
     CREATE_STRINGCONSTANT("SPATIAL");
@@ -92,11 +83,6 @@ void StringConstant::defineBuiltins() {
     CREATE_STRINGCONSTANT("ASTRA");
     CREATE_STRINGCONSTANT("NONEQUIL");
     // additionally: NONE
-
-    // TrimCoil / TYPE
-    // CREATE_STRINGCONSTANT("PSI-BFIELD");
-    // CREATE_STRINGCONSTANT("PSI-PHASE");
-    // CREATE_STRINGCONSTANT("PSI-BFIELD-MIRRORED");
 
     // OptimizeCmd / CROSSOVER
     CREATE_STRINGCONSTANT("BLEND");
@@ -223,7 +209,6 @@ void StringConstant::defineBuiltins() {
 
     // DumpEMFields / COORDINATE_SYSTEM
     CREATE_STRINGCONSTANT("CARTESIAN");
-    CREATE_STRINGCONSTANT("CYLINDRICAL");
 }
 
 StringConstant::StringConstant(const std::string& name, const std::string& value)

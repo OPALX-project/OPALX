@@ -81,8 +81,8 @@ public:
 
     /**
      * @brief Whether a reference particle that crosses the monitor is recorded.
-     * @note The tracker turns this off for the reference start and the reference pass, and
-     *       SPECTRALTUNES for its rays; only the step loop records.
+     * @note The tracker turns this off for the reference start and the reference pass; only
+     *       the step loop records.
      */
     void setRecordReference(bool record) { recordReference_m = record; }
 

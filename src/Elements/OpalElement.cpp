@@ -34,9 +34,7 @@
 OpalElement::OpalElement(int size, const char* name, const char* help)
     : Element(size, name, help), itsSize(size) {
     itsAttr[TYPE] = Attributes::makePredefinedString(
-            "TYPE", "The element design type.",
-            {"RING", "CARBONCYCL", "CYCIAE", "AVFEQ", "FFA", "BANDRF", "SYNCHROCYCLOTRON",
-             "SINGLEGAP", "STANDING", "TEMPORAL", "SPATIAL"});
+            "TYPE", "The element design type.", {"STANDING", "TEMPORAL", "SPATIAL"});
 
     itsAttr[LENGTH] = Attributes::makeReal("L", "The element length in m");
 

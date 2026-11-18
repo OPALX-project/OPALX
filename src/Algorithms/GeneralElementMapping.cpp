@@ -60,7 +60,7 @@ GeneralElementMapping::GeneralElementMapping(
         throw OpalException("GeneralElementMapping", "Too many elements for the element grid.");
     }
 
-    // Serial snapshot: some getters set up state lazily (ScalingFFAMagnet::getFieldExtent).
+    // Serial snapshot: some getters may set up state lazily.
     entries_m.reserve(elements.size());
     for (const auto& element : elements) {
         Entry entry;
