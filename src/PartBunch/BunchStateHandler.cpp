@@ -9,10 +9,8 @@
 #include <utility>
 
 namespace {
-    // Converge a local bool across all MPI ranks using logical-OR. Intentionally
-    // chosen over logical-AND so that any rank reporting the "set" state forces
-    // the whole bunch to adopt it: dirty wins over clean, unitless wins over
-    // physical.
+    // Converge a local bool across all MPI ranks using logical-OR: any rank reporting the
+    // unitless state forces the whole bunch to adopt it.
     inline bool syncOr(bool v) {
         bool out = v;
         ippl::Comm->allreduce(v, out, 1, std::logical_or<bool>());
@@ -24,17 +22,6 @@ namespace {
 
 void BunchStateHandler::ContainerState::setUnitlessPositions(bool v) {
     unitlessPositions = Options::aggressiveStateSync ? syncOr(v) : v;
-}
-
-void BunchStateHandler::ContainerState::markMomentsDirty() {
-    momentsDirty = Options::aggressiveStateSync ? syncOr(true) : true;
-}
-
-void BunchStateHandler::ContainerState::markMomentsClean() {
-    // With AGGRESSIVE_STATE_SYNC, "clear" only takes effect if every rank
-    // agrees the cache is clean; any rank still dirty keeps the whole bunch
-    // dirty.
-    momentsDirty = Options::aggressiveStateSync ? syncOr(false) : false;
 }
 
 // -- BunchStateHandler -----------------------------------------------------

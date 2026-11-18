@@ -72,6 +72,5 @@ void Uniform::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /
     Kokkos::fence();
 
     fillPolarization(offset, nlocal);
-    pc_m->markMomentsDirty();
     hasEmittedOnce_m = true;
 }

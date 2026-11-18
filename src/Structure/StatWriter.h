@@ -21,6 +21,8 @@
 
 #include "StatBaseWriter.h"
 
+#include "Moments/BeamMoments.h"
+
 class StatWriter : public StatBaseWriter {
 public:
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
@@ -45,9 +47,16 @@ public:
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
     void write(
-            PartBunch_t& beam, Vector_t<double, 3> FDext[], int reportedBinCount,
-            const losses_t& losses = losses_t(), const double& azimuth = -1,
-            const size_t npOutside = 0, size_t particleContainerIndex = 0);
+            PartBunch_t& beam, const opalx::moments::BeamMoments& moments,
+            Vector_t<double, 3> FDext[], int reportedBinCount, const losses_t& losses = losses_t(),
+            const double& azimuth = -1, const size_t npOutside = 0,
+            size_t particleContainerIndex = 0);
+
+    /// Moment groups write() reads for a non-empty container; Polarization only with spin.
+    static constexpr opalx::moments::Request requiredMoments(bool hasSpin) {
+        return hasSpin ? opalx::moments::allMoments
+                       : opalx::moments::allMoments.without(opalx::moments::Moment::Polarization);
+    }
 
 private:
     void fillHeader(

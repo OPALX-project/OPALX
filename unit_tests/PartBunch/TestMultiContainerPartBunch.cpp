@@ -108,8 +108,8 @@ namespace {
             auto dt_host = pc->dt.getHostMirror();
             auto E_host  = pc->E.getHostMirror();
 
-            const auto rmin = bunch->rmin_m;
-            const auto rmax = bunch->rmax_m;
+            const auto rmin = bunch->cartesianDomain().lower();
+            const auto rmax = bunch->cartesianDomain().upper();
 
             std::uniform_real_distribution<double> unifR_x(rmin[0] + 0.1, rmax[0] - 0.1);
             std::uniform_real_distribution<double> unifR_y(rmin[1] + 0.1, rmax[1] - 0.1);
@@ -144,6 +144,17 @@ namespace {
             ippl::Comm->barrier();
             Kokkos::fence();
             pc->update();
+        }
+
+        /// Snapshots for every container holding what the statistics and H5 outputs read.
+        std::vector<opalx::moments::BeamMoments> outputMoments() const {
+            std::vector<opalx::moments::BeamMoments> moments;
+            for (const auto& pc : bunch->getParticleContainers()) {
+                moments.push_back(
+                        opalx::moments::compute(
+                                *pc, DataSink::requiredMoments(true, true, pc->hasSpin())));
+            }
+            return moments;
         }
 
         static std::array<Vector_t<double, 3>, 2> zeroFdPair() {
@@ -271,9 +282,6 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
         using namespace opalx::spacecharge;
-        // Reconfiguration to a different solver must clear a previous FFT2D5 selection.
-        for (const auto& pc : bunch->getParticleContainers())
-            pc->setCompactSymmetricMoments(true);
         CartesianPIC3DConfig values;
         values.backend                         = PoissonSolverType::PeriodicFFT;
         values.grid.meshSize                   = storageConfig.meshSize;
@@ -286,9 +294,6 @@ namespace {
 
         auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
         EXPECT_NE(solver, nullptr);
-        EXPECT_FALSE(solver->usesFFT2D5());
-        for (const auto& pc : bunch->getParticleContainers())
-            EXPECT_FALSE(pc->usesCompactSymmetricMoments());
     }
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
@@ -298,54 +303,8 @@ namespace {
         auto solver = makeSpaceChargeSolver(SpaceChargeConfig(values), *bunch, nullptr);
 
         ASSERT_NE(solver, nullptr);
-        EXPECT_TRUE(solver->usesFFT2D5());
-        for (const auto& pc : bunch->getParticleContainers())
-            EXPECT_TRUE(pc->usesCompactSymmetricMoments());
         EXPECT_EQ(solver->backendSolveCount(), 0u);
         EXPECT_EQ(solver->redistributionCount(), 0u);
-    }
-
-    TEST_F(MultiContainerPartBunchTest, FFT2D5BeamParametersMatchLegacyWithEmptyAndUnevenRanks) {
-        auto pc           = bunch->getParticleContainer();
-        const size_t rank = ippl::Comm->rank();
-        // Exercise an empty bunch, ownership on rank zero only, then uneven ownership.
-        for (size_t added : {size_t(0), rank == 0 ? size_t(3) : size_t(0), rank + 1}) {
-            pc->createParticles(added);
-            auto r = pc->R.getHostMirror();
-            auto p = pc->P.getHostMirror();
-            for (size_t i = 0; i < pc->getLocalNum(); ++i) {
-                r(i) = Vector_t<double, 3>(-0.3 + 0.01 * i, 0.2 + rank, -1.0 - i - rank);
-                p(i) = Vector_t<double, 3>(0.001 * i, -0.002 * rank, 0.1 + 0.01 * i);
-            }
-            Kokkos::deep_copy(pc->R.getView(), r);
-            Kokkos::deep_copy(pc->P.getView(), p);
-            pc->markMomentsDirty();
-            bunch->calcBeamParameters();
-            const auto minimum    = bunch->rmin_m;
-            const auto maximum    = bunch->rmax_m;
-            const auto means      = pc->getMeans();
-            const auto covariance = pc->getCovMatrix();
-            const auto rmsR       = pc->getRmsR();
-            const auto rmsP       = pc->getRmsP();
-
-            pc->markMomentsDirty();
-            bunch->rmin_m = 123.0;
-            bunch->rmax_m = -123.0;
-            bunch->calcBeamParameters(true);
-            EXPECT_FALSE(pc->isMomentsDirty());
-            for (size_t d = 0; d < 3; ++d) {
-                EXPECT_EQ(bunch->rmin_m[d], minimum[d]);
-                EXPECT_EQ(bunch->rmax_m[d], maximum[d]);
-                EXPECT_EQ(pc->getRmsR()[d], rmsR[d]);
-                EXPECT_EQ(pc->getRmsP()[d], rmsP[d]);
-            }
-            for (size_t i = 0; i < 6; ++i) {
-                EXPECT_EQ(pc->getMeans()[i], means[i]);
-                for (size_t j = 0; j < 6; ++j) {
-                    EXPECT_EQ(pc->getCovMatrix()(i, j), covariance(i, j));
-                }
-            }
-        }
     }
 
     // --- DataSink stems and writers ---
@@ -371,7 +330,7 @@ namespace {
         fdTooSmall.push_back(zeroFdPair());
 
         const double azimuth = 0.0;
-        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, 1, azimuth), OpalException);
+        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, outputMoments(), 1, azimuth), OpalException);
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_NoThrowWithMatchingFdextAndHdf5Off) {
@@ -384,7 +343,7 @@ namespace {
         fd[1] = zeroFdPair();
 
         const double azimuth = 0.0;
-        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, 1, azimuth));
+        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, outputMoments(), 1, azimuth));
     }
 
     // When HDF5 is disabled, dumpH5 returns before validating fdext size.
@@ -397,7 +356,7 @@ namespace {
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
-        EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall));
+        EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()));
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHdf5On) {
@@ -417,7 +376,7 @@ namespace {
             DataSink ds(wrappers, false, 2);
             std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
             fdTooSmall.push_back(zeroFdPair());
-            EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall), OpalException);
+            EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()), OpalException);
         }
 
         for (H5PartWrapper* w : wrappers) {
@@ -454,14 +413,14 @@ namespace {
 
             bunch->setdT(1.0e-12);
             bunch->setT(1.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
             bunch->setT(2.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
 
             bunch->setT(1.0e-12);
             ds.rewindToCheckpoint(*bunch);
             bunch->setT(2.0e-12);
-            ds.dumpH5(*bunch, fd);
+            ds.dumpH5(*bunch, fd, outputMoments());
         }
         w0.reset();
         w1.reset();

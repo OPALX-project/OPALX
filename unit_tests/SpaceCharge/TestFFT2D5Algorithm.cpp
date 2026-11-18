@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "../TemporaryDirectory.h"
+#include "Moments/BeamMoments.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
-#include "SpaceCharge/FFT2D5/MomentUpdatePolicy.h"
 #include "Utilities/Options.h"
 
 #include <array>
@@ -22,35 +22,6 @@
 
 namespace opalx::spacecharge {
     namespace {
-
-        TEST(FFT2D5MomentPolicyTest, DefersOnlyEligibleCoastingMidpointUpdates) {
-            using fft2d5_detail::MomentUpdateEligibility;
-            const MomentUpdateEligibility eligible{
-                    .fft2d5 = true, .midpoint = true, .solveActive = true, .containerCount = 1};
-            EXPECT_TRUE(eligible.mayDefer());
-            for (auto member :
-                 {&MomentUpdateEligibility::fft2d5, &MomentUpdateEligibility::midpoint,
-                  &MomentUpdateEligibility::solveActive}) {
-                auto fallback    = eligible;
-                fallback.*member = false;
-                EXPECT_FALSE(fallback.mayDefer());
-            }
-            for (auto member :
-                 {&MomentUpdateEligibility::boundaryControlled,
-                  &MomentUpdateEligibility::emissionActive,
-                  &MomentUpdateEligibility::globalProcesses,
-                  &MomentUpdateEligibility::spinEnabled}) {
-                auto fallback    = eligible;
-                fallback.*member = true;
-                EXPECT_FALSE(fallback.mayDefer());
-            }
-            for (size_t count : {size_t(0), size_t(2)}) {
-                auto fallback           = eligible;
-                fallback.containerCount = count;
-                EXPECT_FALSE(fallback.mayDefer());
-            }
-            EXPECT_FALSE(SpaceChargeStepState{}.deferTrackerMoments);
-        }
 
         // NVCC extended lambdas need an enclosing function with public access;
         // GoogleTest's generated TestBody is private. Keep this independent
@@ -253,8 +224,6 @@ namespace opalx::spacecharge {
                 Kokkos::deep_copy(particles.P.getView(), momenta);
                 Kokkos::deep_copy(particles.dt.getView(), 1.0e-12);
                 Kokkos::deep_copy(particles.InvalidMask.getView(), false);
-                particles.markMomentsDirty();
-                particles.updateMoments();
             }
 
             SpaceChargeStepState alignedStep(const double originZ) const {
@@ -262,7 +231,11 @@ namespace opalx::spacecharge {
                 step.timeStep = 1.0e-12;
                 const CoordinateSystemTrafo trackerToSolve(
                         Vector(0.0, 0.0, originZ),
-                        getQuaternion(particles_m->getMeanP(), Vector(0.0, 0.0, 1.0)));
+                        getQuaternion(
+                                opalx::moments::compute(
+                                        *particles_m, opalx::moments::Moment::MeanMomentum)
+                                        .meanP(),
+                                Vector(0.0, 0.0, 1.0)));
                 step.frames = {trackerToSolve, trackerToSolve.inverted()};
                 return step;
             }
@@ -436,7 +409,6 @@ namespace opalx::spacecharge {
 
             const SpaceChargeSolveResult result = solver.solve(context);
             EXPECT_EQ(result.backendSolves, 4u);
-            EXPECT_FALSE(particles_m->isMomentsDirty());
             const auto restored = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), particles_m->R.getView());
             for (std::size_t index = 0; index < 2; ++index) {
@@ -444,7 +416,10 @@ namespace opalx::spacecharge {
                     EXPECT_NEAR(restored(index)[dimension], positions(index)[dimension], 1.0e-14);
                 }
             }
-            EXPECT_NEAR(particles_m->getMeanR()[2], 0.5, 1.0e-14);
+            EXPECT_NEAR(
+                    opalx::moments::compute(*particles_m, opalx::moments::Moment::MeanPosition)
+                            .meanR()[2],
+                    0.5, 1.0e-14);
         }
 
         TEST_F(FFT2D5AlgorithmTest, LabPathFieldsSurviveReferenceFrameChanges) {
@@ -587,83 +562,6 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(FFT2D5AlgorithmTest, DeferredMomentsPreserveFieldsAndRefreshOnDemand) {
-            const auto positions = sourcePositions();
-            const Vector momentum(0.02, 0.0, 0.4);
-            const CoordinateSystemTrafo referenceToLab(
-                    Vector(0.1, 0.0, -0.2), Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0));
-            setPhysicalSource(positions, momentum, referenceToLab);
-            std::array particles{particles_m.get()};
-            FFT2D5Algorithm solver(
-                    config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
-            const std::array<std::uint8_t, 1> activity{1};
-            auto step = alignedStep(-0.5);
-            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-            EXPECT_FALSE(particles_m->isMomentsDirty());
-            const auto expectedE          = physicalFields(true);
-            const auto expectedB          = physicalFields(false);
-            const auto expectedMeans      = particles_m->getMeans();
-            const auto expectedCovariance = particles_m->getCovMatrix();
-
-            setPhysicalSource(positions, momentum, referenceToLab);
-            step.deferTrackerMoments = true;
-            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-            EXPECT_TRUE(particles_m->isMomentsDirty());
-            expectSourceRestored(positions, momentum);
-            expectDepositedCharge(solver);
-            const auto actualE = physicalFields(true);
-            const auto actualB = physicalFields(false);
-            for (size_t i = 0; i < sourceSize; ++i) {
-                for (size_t d = 0; d < 3; ++d) {
-                    EXPECT_NEAR(actualE[i][d], expectedE[i][d], 1.e-11);
-                    EXPECT_NEAR(actualB[i][d], expectedB[i][d], 1.e-11);
-                }
-            }
-            particles_m->updateMoments();
-            EXPECT_FALSE(particles_m->isMomentsDirty());
-            for (size_t i = 0; i < 6; ++i) {
-                EXPECT_EQ(particles_m->getMeans()[i], expectedMeans[i]);
-                for (size_t j = 0; j < 6; ++j)
-                    EXPECT_EQ(particles_m->getCovMatrix()(i, j), expectedCovariance(i, j));
-            }
-        }
-
-        TEST_F(FFT2D5AlgorithmTest, DirectMeanKeepsNumberWeightingIncludingMaskedMomentum) {
-            setPhysicalSource(sourcePositions(), Vector(0., 0., .4), CoordinateSystemTrafo());
-            auto momentum = particles_m->P.getHostMirror();
-            Kokkos::deep_copy(momentum, particles_m->P.getView());
-            momentum(0)[2] = 1.5;
-            Kokkos::deep_copy(particles_m->P.getView(), momentum);
-            auto mask = particles_m->InvalidMask.getHostMirror();
-            Kokkos::deep_copy(mask, particles_m->InvalidMask.getView());
-            mask(0) = true;
-            Kokkos::deep_copy(particles_m->InvalidMask.getView(), mask);
-            particles_m->markMomentsDirty();
-            particles_m->updateMoments();
-            EXPECT_NEAR(particles_m->getMeanP()[2], (1.5 + 7. * .4) / 8., 1.e-15);
-            std::array particles{particles_m.get()};
-            FFT2D5Algorithm solver(
-                    config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
-            const std::array<std::uint8_t, 1> activity{1};
-            auto step = alignedStep(0.);
-            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-            const auto expectedE     = physicalFields(true);
-            const auto expectedB     = physicalFields(false);
-            step.deferTrackerMoments = true;
-            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-            EXPECT_TRUE(particles_m->isMomentsDirty());
-            const auto actualE = physicalFields(true);
-            const auto actualB = physicalFields(false);
-            for (size_t i = 0; i < sourceSize; ++i) {
-                for (size_t d = 0; d < 3; ++d) {
-                    EXPECT_NEAR(actualE[i][d], expectedE[i][d], 1.e-11);
-                    EXPECT_NEAR(actualB[i][d], expectedB[i][d], 1.e-11);
-                }
-            }
-            particles_m->updateMoments();
-            EXPECT_FALSE(particles_m->isMomentsDirty());
-        }
-
         TEST_F(FFT2D5AlgorithmTest, CoverageFailureRestoresReferenceCoordinatesAndTimeSteps) {
             Vectors positions = sourcePositions();
             positions[0][2]   = 1.2;
@@ -675,14 +573,9 @@ namespace opalx::spacecharge {
             FFT2D5Algorithm solver(
                     config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
             const std::array<std::uint8_t, 1> activity{1};
-            for (bool deferred : {false, true}) {
-                setPhysicalSource(positions, momentum, referenceToLab);
-                auto step                = alignedStep(-0.5);
-                step.deferTrackerMoments = deferred;
-                EXPECT_THROW(static_cast<void>(solver.solve({activity, step})), OpalException);
-                expectSourceRestored(positions, momentum);
-                EXPECT_FALSE(particles_m->isMomentsDirty());
-            }
+            EXPECT_THROW(
+                    static_cast<void>(solver.solve({activity, alignedStep(-0.5)})), OpalException);
+            expectSourceRestored(positions, momentum);
         }
 
         TEST_F(FFT2D5AlgorithmTest, ExplicitBatchSizesMatchSerialFullSolveAndBoundaryModes) {
@@ -895,8 +788,6 @@ namespace opalx::spacecharge {
                     Kokkos::deep_copy(particles_m->P.getView(), momenta);
                     Kokkos::deep_copy(particles_m->InvalidMask.getView(), mask);
                     Kokkos::deep_copy(particles_m->dt.getView(), step.timeStep);
-                    particles_m->markMomentsDirty();
-                    particles_m->updateMoments();
                     ASSERT_NO_THROW(static_cast<void>(solver.solve(context)));
                     // create_mirror always allocates; create_mirror_view could alias on CPU.
                     auto expectedE   = Kokkos::create_mirror(particles_m->E.getView());

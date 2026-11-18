@@ -367,8 +367,6 @@ void FlatTop::emitParticles(double t, double dt) {
 
     fillPolarization(nlocal, nNew);
 
-    pc_m->markMomentsDirty();
-
     msgAll << level3 << "* " << nNew << " new particles emmitted" << endl;
 }
 

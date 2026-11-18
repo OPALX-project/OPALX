@@ -461,8 +461,6 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     ippl::Comm->barrier();
 
     fillPolarization(nlocalCurrent, nlocal);
-
-    pc_m->markMomentsDirty();
 }
 
 void FromFile::emitParticles(double t, double dt) {

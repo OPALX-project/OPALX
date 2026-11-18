@@ -691,7 +691,6 @@ CheckpointFile::Metadata CheckpointFile::read(const std::string& fileName, PartB
             pc->setToLabTrafo(CoordinateSystemTrafo(
                     origin,
                     Quaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3])));
-            pc->markMomentsDirty();
             requireSuccess(H5PartResetView(file), "resetting checkpoint particle view");
         }
 
