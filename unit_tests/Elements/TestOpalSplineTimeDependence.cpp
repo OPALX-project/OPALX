@@ -14,14 +14,17 @@
 //
 
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalSplineTimeDependence.h"
 #include "gtest/gtest.h"
 
 TEST(TestOpalSplineTimeDependence, ConstructorTest) {
-    OpalSplineTimeDependence dep;
-    const OpalSplineTimeDependence* dep_clone = dep.clone("new name");
+    auto depObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& dep = *depObject;
+    const auto dep_clone          = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 
@@ -34,13 +37,15 @@ TEST(TestOpalSplineTimeDependence, PrintTest) {
 
 TEST(TestOpalSplineTimeDependence, UserInterface) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 3);
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::VALUES], {5, 6, 7, 8});
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SplineTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get());
@@ -52,11 +57,13 @@ TEST(TestOpalSplineTimeDependence, UserInterface) {
 
 TEST(TestOpalSplineTimeDependence, DefaultValues) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 1);
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SplineTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get());
@@ -68,11 +75,13 @@ TEST(TestOpalSplineTimeDependence, DefaultValues) {
 
 TEST(TestOpalSplineTimeDependence, UserInterfaceBadOrder) {
     // Make the UI
-    OpalSplineTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSplineTimeDependence>(
+            "SPLINE_TIME_DEPENDENCE", "SPLINE_TIME_DEPENDENCE");
+    OpalSplineTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalSplineTimeDependence::ORDER], 2);
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::TIMES], {1, 2, 3, 4});
     Attributes::setRealArray(ui.itsAttr[OpalSplineTimeDependence::VALUES], {5, 6, 7, 8});
     // Update the object
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::registerModel(ui));
 }

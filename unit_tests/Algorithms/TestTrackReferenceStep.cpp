@@ -1,3 +1,4 @@
+#include "../KeywordObjects.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/TrackReferenceStep.h"
@@ -6,6 +7,7 @@
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
+#include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
@@ -94,9 +96,11 @@ TEST_F(TrackReferenceStepTest, MagneticBorisAngleAndEnergyForBothCharges) {
 }
 
 TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     FlaggedBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;

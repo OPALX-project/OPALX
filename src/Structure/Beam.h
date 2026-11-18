@@ -35,14 +35,15 @@ public:
     /// Exemplar constructor.
     Beam();
 
+    /// Define the built-in beam UNNAMED_BEAM, the default BEAM of TRACK. Called once by
+    /// Configure.
+    static void defineBuiltins();
+
     virtual ~Beam();
 
     /// Test if replacement is allowed.
     //  Can replace only by another BEAM.
     virtual bool canReplaceBy(Object* object);
-
-    /// Make clone.
-    virtual Beam* clone(const std::string& name);
 
     /// Check the BEAM data.
     virtual void execute();
@@ -54,7 +55,11 @@ public:
     size_t getNumAlloc() const;
 
     /// Return the embedded OPALX PartData.
-    const PartData& getReference() const;
+    /**
+     * @brief The reference particle: charge, mass (eV) and momentum from GAMMA, ENERGY or PC.
+     * @throws OpalException if GAMMA, ENERGY or PC is out of range.
+     */
+    PartData getReference() const;
 
     /// Return the beam current in A (legacy; no longer used in OPALX)
     double getCurrent() const;
@@ -124,9 +129,6 @@ public:
     /// beam's DAUGHTERBEAM and rejects it on one.
     bool hasEmissionSources() const;
 
-    /// Update the BEAM data.
-    virtual void update();
-
     void print(std::ostream& os) const;
 
 private:
@@ -134,17 +136,11 @@ private:
     Beam(const Beam&);
     void operator=(const Beam&);
 
-    // Clone constructor.
-    Beam(const std::string& name, Beam* parent);
-
     // Validate the POLARIZATION attribute (length, magnitude, muon-only).
     void validatePolarization() const;
 
     // Validate the REFDIRECTION attribute (length 3, non-zero, needs PC/ENERGY/GAMMA).
     void validateReferenceDirection() const;
-
-    // The particle reference data.
-    PartData reference;
 
     // The converstion from GeV to eV.
     static const double energy_scale;

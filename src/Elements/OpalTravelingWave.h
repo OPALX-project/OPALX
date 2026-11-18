@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalTravelingWave_HH
 #define OPAL_OpalTravelingWave_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalTravelingWave : public OpalElement {
@@ -43,19 +45,16 @@ public:
 
     virtual ~OpalTravelingWave();
 
-    /// Make clone.
-    virtual OpalTravelingWave* clone(const std::string& name);
-
-    /// Update the embedded OPALX cavity.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalTravelingWave(const OpalTravelingWave&);
     void operator=(const OpalTravelingWave&);
-
-    // Clone constructor.
-    OpalTravelingWave(const std::string& name, OpalTravelingWave* parent);
 };
 
 #endif  // OPAL_OpalTravelingWave_HH

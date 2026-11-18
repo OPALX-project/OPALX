@@ -111,12 +111,12 @@ void VariableRFCavity::apply(
             R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
-void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     const auto R = pc->R.getView();
     const auto E = pc->E.getView();
     // The ordinary Boris kick and host reference field both sample this
     // physical midpoint. Match RFCavity's common-time convention.
-    const auto t           = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
+    const auto t           = time.t + 0.5 * time.dt;
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
@@ -161,7 +161,13 @@ BoundingBox VariableRFCavity::getLocalSupportBox(const double reach) const {
     return box;
 }
 
-void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
+void VariableRFCavity::initialise(PartBunch_t* bunch) {
+    RefPartBunch_m = bunch;
+    // Every tracked copy looks up its amplitude, frequency and phase models by name. An
+    // element whose models were set directly (without names) keeps them.
+    if (!amplitudeName_m.empty() && !frequencyName_m.empty() && !phaseName_m.empty())
+        initialiseTimeDependencies();
+}
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 

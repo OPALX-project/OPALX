@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalTravelingWave.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/TravelingWaveRep.h"
@@ -42,38 +44,33 @@ OpalTravelingWave::OpalTravelingWave()
             "MODE", "The phase shift between neighboring cells in 2*pi", 1.0 / 3.0);
 
     registerOwnership();
-
-    setElement(new TravelingWaveRep("TRAVELINGWAVE"));
-}
-
-OpalTravelingWave::OpalTravelingWave(const std::string& name, OpalTravelingWave* parent)
-    : OpalElement(name, parent) {
-    setElement(new TravelingWaveRep(name));
 }
 
 OpalTravelingWave::~OpalTravelingWave() {}
 
-OpalTravelingWave* OpalTravelingWave::clone(const std::string& name) {
-    return new OpalTravelingWave(name, this);
+std::shared_ptr<ElementBase> OpalTravelingWave::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<TravelingWaveRep>(values.getName());
+    fill(*element, values);
+    return element;
 }
 
-void OpalTravelingWave::update() {
-    OpalElement::update();
+void OpalTravelingWave::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
 
-    TravelingWaveRep* rfc = dynamic_cast<TravelingWaveRep*>(getElement());
+    TravelingWaveRep* rfc = dynamic_cast<TravelingWaveRep*>(&element);
 
-    double length      = Attributes::getReal(itsAttr[LENGTH]);
-    double vPeak       = Attributes::getReal(itsAttr[VOLT]);
-    double vPeakError  = Attributes::getReal(itsAttr[DVOLT]);
-    double phase       = Attributes::getReal(itsAttr[LAG]);
-    double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq        = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
-    std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
-    bool fast          = Attributes::getBool(itsAttr[FAST]);
-    bool apVeto        = Attributes::getBool(itsAttr[APVETO]);
+    double length      = values.getReal("L");
+    double vPeak       = values.getReal("VOLT");
+    double vPeakError  = values.getReal("DVOLT");
+    double phase       = values.getReal("LAG");
+    double phaseError  = values.getReal("DLAG");
+    double freq        = Physics::two_pi * values.getReal("FREQ") * Units::MHz2Hz;
+    std::string fmapfm = values.getString("FMAPFN");
+    bool fast          = values.getBool("FAST");
+    bool apVeto        = values.getBool("APVETO");
 
-    //    std::string type = Attributes::getString(itsAttr[TYPE]);
-    double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+    //    std::string type = values.getString("TYPE");
+    double kineticEnergy = values.getReal("DESIGNENERGY");
 
     rfc->getGeometry().setElementLength(length);
 
@@ -85,10 +82,7 @@ void OpalTravelingWave::update() {
     rfc->setFrequencym(freq);
     rfc->setPhasem(phase);
     rfc->setPhaseError(phaseError);
-    rfc->setNumCells((int)Attributes::getReal(itsAttr[NUMCELLS]));
-    rfc->setMode(Attributes::getReal(itsAttr[MODE]));
+    rfc->setNumCells((int)values.getReal("NUMCELLS"));
+    rfc->setMode(values.getReal("MODE"));
     rfc->setDesignEnergy(kineticEnergy);
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(rfc);
 }

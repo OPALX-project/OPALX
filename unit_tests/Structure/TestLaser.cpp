@@ -14,6 +14,7 @@
 #include "gtest/gtest.h"
 
 #include <cmath>
+#include "../KeywordObjects.h"
 
 namespace {
     void setValidLaserAttributes(OpalLaser& laser) {
@@ -43,14 +44,16 @@ namespace {
 }  // namespace
 
 TEST(TestLaser, UpdateStoresValidatedParameters) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], 0.01);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 0.0, 1.0});
 
-    EXPECT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getGeometry().getElementLength(), 0.01);
     EXPECT_DOUBLE_EQ(rep->getWavelength(), 1.03e-6);
@@ -65,12 +68,14 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
 }
 
 TEST(TestLaser, UpdateDefaultsStokesToZero) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
 
-    EXPECT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getStokes()(0), 0.0);
     EXPECT_DOUBLE_EQ(rep->getStokes()(1), 0.0);
@@ -78,62 +83,69 @@ TEST(TestLaser, UpdateDefaultsStokesToZero) {
 }
 
 TEST(TestLaser, UpdateRequiresWavelength) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSEENERGY], 1.0);
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSELENGTH], 2.0e-12);
     Attributes::setReal(laser.itsAttr[OpalLaser::WAISTX], 5.0e-6);
     Attributes::setReal(laser.itsAttr[OpalLaser::WAISTY], 6.0e-6);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, -2.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsNonPositivePulseEnergy) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalLaser::PULSEENERGY], 0.0);
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsBadDirectionSize) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 1.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsZeroDirection) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, 0.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsBadStokesSize) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {0.0, 1.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsStokesNormAboveOne) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::STOKES], {1.0, 1.0, 0.0});
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 TEST(TestLaser, UpdateRejectsNegativeLength) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], -1.0);
 
-    EXPECT_THROW(laser.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(laser), OpalException);
 }
 
 /**
@@ -165,13 +177,15 @@ TEST(TestLaser, UpdateRejectsNegativeLength) {
  * \f$E_e - p_e + \omega_L\f$ for relativistic electrons.
  */
 TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinematics) {
-    OpalLaser laser;
+    auto laserObject = opalx::test::makePlacedElement<OpalLaser>("LASER", "LASER");
+    OpalLaser& laser = *laserObject;
     setValidLaserAttributes(laser);
     Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {1.0, 0.0, 0.0});
 
-    ASSERT_NO_THROW(laser.update());
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    auto* rep = dynamic_cast<LaserRep*>(built.get());
     ASSERT_NE(rep, nullptr);
 
     Vector_t<double, 3> beamDirection(0.0);

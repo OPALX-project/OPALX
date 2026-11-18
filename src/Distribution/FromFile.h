@@ -12,7 +12,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
@@ -44,9 +44,9 @@ public:
     /**
      * @brief Constructor for FromFile.
      * @param pc Shared pointer to ParticleContainer.
-     * @param opalDist Borrowed Distribution.
+     * @param opalDist Values of the distribution; the sampler keeps a copy.
      */
-    FromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
+    FromFile(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.

@@ -66,7 +66,7 @@ Solenoid::~Solenoid() {
  * @returns true if at least one particle is lost, false otherwise
  * (not implemented, always returns false)
  */
-void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
 
@@ -158,6 +158,7 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
         startField_m = zBegin;
         endField_m   = zEnd;
+        Fieldmap::readMap(filename_m);
     } else {
         startField_m = 0.0;
         endField_m   = 0.0;
@@ -166,16 +167,12 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
 void Solenoid::finalise() {}
 
-/// @brief Read field map and go online
-void Solenoid::goOnline(const double&) {
-    Fieldmap::readMap(filename_m);
-    online_m = true;
-}
-
 /// @brief Free field map and go offline
 void Solenoid::goOffline() {
+    // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
     Fieldmap::freeMap(filename_m);
-    online_m = false;
+    fieldmap_m = nullptr;
+    online_m   = false;
 }
 
 /// @brief Assign the field filename

@@ -56,8 +56,8 @@ Monitor::~Monitor() {}
 
 void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
-void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!online_m || lossDs_m == nullptr || pc == nullptr || RefPartBunch_m == nullptr) {
+void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr) {
         return;
     }
 
@@ -65,7 +65,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         return;
     }
 
-    const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+    const long long globalStep = time.step;
     const double sPos          = pc->get_sPos();
 
     if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
@@ -105,7 +105,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const bool qmAreAttributes =
             (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
-    const double bunchTime = RefPartBunch_m->getT();
+    const double bunchTime = time.t;
 
     for (size_t i = 0; i < nLoc; ++i) {
         const Vector_t<double, 3> R = hR(i);
@@ -122,7 +122,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const double frac = -R(2) / singleStep(2);
 
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
-            const double crossingTime = bunchTime + 0.5 * RefPartBunch_m->getdT() + frac * dt;
+            const double crossingTime           = bunchTime + 0.5 * time.dt + frac * dt;
 
             const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q       = qmAreAttributes ? hQ(i) : hQ(0);
@@ -237,8 +237,7 @@ void Monitor::driftToCorrectPositionAndSave(
 bool Monitor::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr
-        || OpalData::getInstance()->isInPrepState()) {
+    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr || !recordReference_m) {
         return false;
     }
 
@@ -337,11 +336,10 @@ void Monitor::initialise(PartBunch_t* bunch) {
     }
 
     lossDs_m = std::make_unique<LossDataSink>(filename_m, !Options::asciidump, type_m);
+    online_m = true;
 }
 
 void Monitor::finalise() {}
-
-void Monitor::goOnline(const double&) { online_m = true; }
 
 void Monitor::goOffline() {
     if (!lossDs_m) {
@@ -382,15 +380,14 @@ void Monitor::writeStatistics() {
 
     std::string fileName =
             OpalData::getInstance()->getInputBasename() + std::string("_Monitors.stat");
-    auto instance      = OpalData::getInstance();
-    bool hasPriorTrack = instance->hasPriorTrack();
-    bool inRestartRun  = instance->inRestartRun();
+    auto instance     = OpalData::getInstance();
+    bool inRestartRun = instance->inRestartRun();
 
     auto it     = statFileEntries_sm.begin();
     double spos = it->first;
     Util::rewindLinesSDDS(fileName, spos, false);
 
-    MonitorStatisticsWriter writer(fileName, hasPriorTrack || inRestartRun);
+    MonitorStatisticsWriter writer(fileName, inRestartRun);
 
     for (const auto& entry : statFileEntries_sm) {
         writer.addRow(entry.second);

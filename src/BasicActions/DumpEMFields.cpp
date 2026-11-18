@@ -70,24 +70,13 @@ DumpEMFields::DumpEMFields()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent) : Action(name, parent) {}
-
-DumpEMFields* DumpEMFields::clone(const std::string& name) {
-    auto* dumper = new DumpEMFields(name, this);
-    if (grid_m != nullptr) {
-        dumper->grid_m.reset(grid_m->clone());
-    }
-    dumper->filename_m = filename_m;
-    return dumper;
-}
-
 void DumpEMFields::execute() {
     buildGrid();
-    // the routine for action (OpalParser/OpalParser) calls execute and then
-    // deletes 'this'; so we must build a copy that lasts until the field maps
-    // are constructed and we are ready for tracking (which is when the field
-    // maps are written). Hence the clone call below.
-    dumpsSet_m.insert(std::unique_ptr<DumpEMFields>(this->clone("")));
+    // The parser deletes this command after execute(), so store a copy that lasts until the
+    // field maps are written, at the start of tracking.
+    auto* copy = static_cast<DumpEMFields*>(OpalData::getInstance()->copyObject(*this, ""));
+    copy->buildGrid();
+    dumpsSet_m.insert(std::unique_ptr<DumpEMFields>(copy));
 }
 
 void DumpEMFields::buildGrid() {
@@ -123,7 +112,7 @@ void DumpEMFields::buildGrid() {
     filename_m = Attributes::getString(itsAttr[FILE_NAME]);
 }
 
-void DumpEMFields::writeFields(const std::set<std::shared_ptr<ElementBase>>& elements) {
+void DumpEMFields::writeFields(const ElementSet& elements) {
     for (auto& item : dumpsSet_m) {
         item->writeFieldThis(elements);
     }
@@ -158,8 +147,8 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
 }
 
 void DumpEMFields::writeFieldLine(
-        const std::set<std::shared_ptr<ElementBase>>& elements, const Vector_t<double, 3>& point,
-        const double& time, std::ofstream& fout) const {
+        const ElementSet& elements, const Vector_t<double, 3>& point, const double& time,
+        std::ofstream& fout) const {
     Vector_t<double, 3> E{};
     Vector_t<double, 3> B{};
     // Collect the fields
@@ -181,7 +170,7 @@ void DumpEMFields::writeFieldLine(
          << "\n";
 }
 
-void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements) {
+void DumpEMFields::writeFieldThis(const ElementSet& elements) {
     if (grid_m == nullptr) {
         throw OpalException(
                 "DumpEMFields::writeFieldThis",

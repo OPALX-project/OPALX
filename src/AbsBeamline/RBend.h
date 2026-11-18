@@ -48,7 +48,7 @@ public:
 
     /// @brief Apply the field to all particles.
     /// @param pc The particle container.
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /// @brief Apply the field to a particle with position R and momentum P.
     /// @param R Position.
@@ -111,7 +111,7 @@ public:
     /// Use the initialization time step to preserve OPAL-T's sampled endpoint convention.
     void initialiseReferencePath(double mass, double charge, double timeStep);
     /// Path length used by downstream placement; physical pole-face geometry is unchanged.
-    double getPlacementPathLength() const;
+    double getPlacementPathLength() const override;
 
     /// @brief Store the normal/skew multipole coefficients into the device views
     ///        read by apply()/computeFieldHost().

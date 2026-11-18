@@ -47,7 +47,11 @@ bool Object::canReplaceBy(Object*) {
     return false;
 }
 
-void Object::copyAttributes(const Object& source) { itsAttr = source.itsAttr; }
+void Object::copyAttributes(const Object& source) {
+    // Copy-construct the attributes: Attribute::operator= does not copy whether the input set
+    // the value.
+    itsAttr = std::vector<Attribute>(source.itsAttr);
+}
 
 void Object::execute() {
     // Default action: do nothing.
@@ -145,10 +149,9 @@ void Object::parseShortcut(Statement& stat, bool eval) {
 
 void Object::print(std::ostream& msg) const {
     std::string head = getOpalName();
-    Object* parent   = getParent();
-    if (parent != 0 && !parent->getOpalName().empty()) {
+    if (getKeyword() != getOpalName()) {
         if (!getOpalName().empty()) head += ':';
-        head += parent->getOpalName();
+        head += getKeyword();
     }
 
     msg << head;
@@ -167,8 +170,6 @@ void Object::registerReference(Invalidator* ref) { references.insert(ref); }
 void Object::unregisterReference(Invalidator* ref) { references.erase(ref); }
 
 void Object::registerOwnership(const AttributeHandler::OwnerType& itsClass) const {
-    if (getParent() != 0) return;
-
     const unsigned int end = itsAttr.size();
     const std::string name = getOpalName();
     for (unsigned int i = 0; i < end; ++i) {
@@ -236,15 +237,7 @@ void Object::replace(Object*, Object*) {
     // Default action: do nothing.
 }
 
-void Object::update() {
-    // Default action: do nothing.
-}
-
 bool Object::isBuiltin() const { return builtin; }
-
-bool Object::isShared() const { return sharedFlag; }
-
-void Object::setShared(bool flag) { sharedFlag = flag; }
 
 void Object::setDirty(bool dirty) {
     // The object is now different from the data base.
@@ -257,30 +250,11 @@ void Object::setFlag(bool flag) { flagged = flag; }
 
 bool Object::isFlagged() const { return flagged; }
 
-const Object* Object::getBaseObject() const {
-    const Object* base = this;
-    while (base->itsParent != 0)
-        base = base->itsParent;
-    return base;
-}
-
 const std::string& Object::getOpalName() const { return itsName; }
 
-Object* Object::getParent() const { return itsParent; }
-
-bool Object::isTreeMember(const Object* classObject) const {
-    const Object* object = this;
-
-    while (object != 0 && object != classObject) {
-        object = object->itsParent;
-    }
-
-    return object != 0;
-}
+const std::string& Object::getKeyword() const { return keyword_m; }
 
 void Object::setOpalName(const std::string& name) { itsName = name; }
-
-void Object::setParent(Object* parent) { itsParent = parent; }
 
 void Object::clear() { occurrence = 0; }
 
@@ -289,22 +263,21 @@ int Object::increment() { return ++occurrence; }
 int Object::occurrenceCount() { return occurrence; }
 
 Object::Object(int size, const char* name, const char* help)
-    : itsAttr(size), itsParent(0), itsName(name), itsHelp(help), occurrence(0), sharedFlag(false) {
+    : itsAttr(size), itsName(name), keyword_m(name), itsHelp(help), occurrence(0) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
-    // The object is an exemplar and must not be saved in the data base.
-    builtin = true;
+    // Only the predefined objects (constants, #S/#E, UNNAMED_BEAM) set builtin.
+    builtin = false;
     flagged = modified = false;
 }
 
 Object::Object(const std::string& name, Object* parent)
     : itsAttr(parent->itsAttr),
-      itsParent(parent),
       itsName(name),
+      keyword_m(parent->keyword_m),
       itsHelp(parent->itsHelp),
-      occurrence(0),
-      sharedFlag(false) {
+      occurrence(0) {
     // The object is now different from the data base.
     builtin = flagged = false;
     modified          = true;

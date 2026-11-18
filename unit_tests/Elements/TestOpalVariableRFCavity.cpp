@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "../KeywordObjects.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
@@ -41,13 +42,13 @@ public:
 };
 
 TEST_F(TestOpalVariableRFCavity, ConstructorDestructor) {
-    OpalVariableRFCavity cav1;
+    auto cav1Object = opalx::test::makePlacedElement<OpalVariableRFCavity>(
+            "VARIABLE_RF_CAVITY", "VARIABLE_RF_CAVITY");
+    OpalVariableRFCavity& cav1 = *cav1Object;
     EXPECT_EQ(cav1.getOpalName(), "VARIABLE_RF_CAVITY");
-    OpalVariableRFCavity cav2("name", &cav1);
-    EXPECT_EQ(cav2.getOpalName(), "name");
-    const std::unique_ptr<OpalVariableRFCavity> cav3{cav2.clone()};
-    EXPECT_EQ(cav3->getOpalName(), "name");
-    const std::unique_ptr<OpalVariableRFCavity> cav4{cav2.clone("other_name")};
+    const auto cav2 = opalx::test::copyOf(cav1, "name");
+    EXPECT_EQ(cav2->getOpalName(), "name");
+    const auto cav4 = opalx::test::copyOf(*cav2, "other_name");
     EXPECT_EQ(cav4->getOpalName(), "other_name");
 }
 
@@ -60,7 +61,9 @@ TEST_F(TestOpalVariableRFCavity, UserInterface) {
     AbstractTimeDependence::setTimeDependence("PD2", pd2);
     AbstractTimeDependence::setTimeDependence("PD3", pd3);
     // Make the UI
-    OpalVariableRFCavity ui;
+    auto uiObject = opalx::test::makePlacedElement<OpalVariableRFCavity>(
+            "VARIABLE_RF_CAVITY", "VARIABLE_RF_CAVITY");
+    OpalVariableRFCavity& ui = *uiObject;
     // Set the attributes
     Attributes::setUpperCaseString(ui.itsAttr[OpalVariableRFCavity::PHASE_MODEL], "pd1");
     Attributes::setUpperCaseString(ui.itsAttr[OpalVariableRFCavity::AMPLITUDE_MODEL], "pd2");
@@ -68,10 +71,11 @@ TEST_F(TestOpalVariableRFCavity, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::WIDTH], 4.0);
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::HEIGHT], 5.0);
     Attributes::setReal(ui.itsAttr[OpalVariableRFCavity::LENGTH], 6.0);
-    // Update the cavity
-    EXPECT_NO_THROW(ui.update());
+    // Build the cavity
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(ui));
     // Check the values
-    auto* myCavity = dynamic_cast<VariableRFCavity*>(ui.getElement());
+    auto* myCavity = dynamic_cast<VariableRFCavity*>(built.get());
     EXPECT_TRUE(myCavity);
     EXPECT_NO_THROW(myCavity->initialiseTimeDependencies());
     EXPECT_DOUBLE_EQ(myCavity->getPhaseModel()->getValue(0.0), 1.0);

@@ -22,9 +22,9 @@
 #ifndef OPAL_OpalData_HH
 #define OPAL_OpalData_HH
 
+#include <functional>
 #include <iosfwd>
 #include <map>
-#include <stack>
 #include <string>
 #include <vector>
 #include "AbstractObjects/ObjectFunction.h"
@@ -32,57 +32,19 @@
 
 class AttributeBase;
 class Object;
-class Table;
 class ValueDefinition;
-class DataSink;
-class BoundaryGeometry;
-
-// store element name, max phase
-typedef std::pair<std::string, double> MaxPhasesT;
-typedef std::map<double, double> energyEvolution_t;
 
 /// The global OPAL structure.
 class OpalData {
 public:
-    /**
-     * Scope the process-wide preparation state used by output-producing elements.
-     *
-     * The state is cleared explicitly with finish() before real tracking starts, or
-     * automatically when setup exits through an exception or early return.
-     */
-    class PreparationState {
-    public:
-        ~PreparationState() noexcept;
-
-        PreparationState(const PreparationState&)            = delete;
-        PreparationState& operator=(const PreparationState&) = delete;
-
-        void finish() noexcept;
-
-    private:
-        friend class OpalData;
-
-        explicit PreparationState(OpalData& opalData);
-
-        OpalData& opalData_m;
-        bool active_m{true};
-    };
-
     static OpalData* getInstance();
 
     static void deleteInstance();
-
-    static void stashInstance();
-
-    static OpalData* popInstance();
 
     ~OpalData();
 
     /// Enum for writing to files
     enum class OpenMode : unsigned short { UNDEFINED, WRITE, APPEND };
-
-    /// reset object for consecutive runs
-    void reset();
 
     /// Apply a function to all objects.
     //  Loop over the directory and apply the given functor object to each
@@ -104,8 +66,51 @@ public:
     void erase(const std::string& name);
 
     /// Find entry.
-    //  Identified by [b]name[/b].
+    //  Identified by [b]name[/b]: an object defined in the input or a builtin constant.
+    //  Keywords are not objects; see isKeyword().
     Object* find(const std::string& name);
+
+    /// Makes a new object of one keyword, with the keyword's attribute defaults.
+    using Maker = std::function<Object*()>;
+
+    /**
+     * @brief Register a keyword (QUADRUPOLE, BEAM, OPTION, ...).
+     * @param keyword The keyword name, as in the input.
+     * @param maker Makes a new object of the keyword.
+     * @throws OpalException if the keyword or an object of that name exists already.
+     */
+    void addKeyword(const std::string& keyword, Maker maker);
+
+    /**
+     * @brief Register the keyword of class @p T. Its name is the one T's constructor gives.
+     * @note Making one T here also registers its attribute names for the parser's hints.
+     */
+    template <class T>
+    void addKeyword() {
+        const T probe;
+        addKeyword(probe.getOpalName(), [] {
+            return new T();
+        });
+    }
+
+    /// True if @p name is a keyword.
+    bool isKeyword(const std::string& name) const;
+
+    /**
+     * @brief Make a new object of @p keyword named @p name, with the keyword's attribute
+     *        defaults (the same object the parser makes for "NAME: KEYWORD;").
+     * @return The new object, owned by the caller, or nullptr if @p keyword is unknown.
+     * @note The object is not stored; pass it to define() to store it.
+     */
+    Object* makeObject(const std::string& keyword, const std::string& name);
+
+    /**
+     * @brief Make a copy of @p source named @p name: a new object of the same keyword with the
+     *        same attribute values (the object the parser makes for "NAME: SOURCE;"). The
+     *        values are shared until one of them is set again.
+     * @throws OpalException if the keyword of @p source is not registered.
+     */
+    Object* copyObject(const Object& source, const std::string& name);
 
     /// Return value of global reference momentum.
     double getP0() const;
@@ -115,21 +120,6 @@ public:
     //  executed.
     //  Also set the [b]modified[/b] flag in [b]object[/b], if not nullptr.
     void makeDirty(Object* object);
-
-    /// Print all objects.
-    //  Loop over the directory and print each object whose name matches
-    //  the regular expression [b]pattern[/b].
-    void printNames(std::ostream& stream, const std::string& pattern);
-    void printAllNames(std::ostream& stream);
-
-    /// Register table.
-    //  Register the table [b]t[/b].
-    //  Registered tables are invalidated to be refilled when an object
-    //  on which they depend is changed or replaced.
-    void registerTable(Table* t);
-
-    /// Unregister table.
-    void unregisterTable(Table* t);
 
     /// Register expression.
     //  Registered expressions are invalidated to be recomputed when
@@ -142,58 +132,20 @@ public:
     /// Set the global momentum.
     void setP0(ValueDefinition* p0);
 
-    /// Store the page title.
-    void storeTitle(const std::string&);
-
-    /// Print the page title.
-    void printTitle(std::ostream&);
-
-    /// Get the title string
-    std::string getTitle();
-
-    /// Update all objects.
-    //  Loop over the directory and notify all objects to update themselves.
+    /// Mark all expressions and tables for re-evaluation after a value changed.
     void update();
 
-    /// Clear Reference.
-    //  This functor is used to clear the reference count stored in an object.
-    struct ClearReference : public ObjectFunction {
-        virtual void operator()(Object*) const;
-    };
+    /// Set by --check: RUN writes its run description and does not track.
+    bool checkOnly = false;
 
-    std::map<std::string, std::string> getVariableData();
-    std::vector<std::string> getVariableNames();
-
-    bool isInOPALCyclMode();
-    bool isInOPALTMode();
-    bool isOptimizerRun();
-
-    void setInOPALCyclMode();
-    void setInOPALTMode();
-    void setOptimizerFlag();
-
-    bool isInPrepState();
-    void setInPrepState(bool state);
-
-    [[nodiscard]] PreparationState enterPreparationState();
-
-    /// true if in follow-up track
-    bool hasPriorTrack();
-
-    /// true if in follow-up track
-    void setPriorTrack(const bool& value = true);
+    /// Number of RUN commands executed so far in this input.
+    int numberOfRuns = 0;
 
     /// true if we do a restart run
     bool inRestartRun();
 
     /// set OPAL in restart mode
     void setRestartRun(const bool& value = true);
-
-    /// store the location where to restart
-    void setRestartStep(int s);
-
-    /// get the step where to restart
-    int getRestartStep();
 
     /// get the name of the the additional data directory
     std::string getAuxiliaryOutputDirectory() const;
@@ -216,68 +168,8 @@ public:
     /// store opals restart h5 format filename
     void setRestartFileName(std::string s);
 
-    /// true if we do a restart from specified h5 file
-    bool hasRestartFile();
-
-    /// set the dump frequency as found in restart file
-    void setRestartDumpFreq(const int& N);
-
-    /// get the dump frequency as found in restart file
-    int getRestartDumpFreq() const;
-
     void setOpenMode(OpenMode openMode);
     OpenMode getOpenMode() const;
-
-    /// set the last step in a run for possible follow-up run
-    void setLastStep(const int& step);
-
-    /// get the last step from a possible previous run
-    int getLastStep() const;
-
-    /// true if we already allocated a ParticleBunch object
-    bool hasBunchAllocated();
-
-    void bunchIsAllocated();
-
-    PartBunch_t* getPartBunch();
-
-    void setPartBunch(PartBunch_t* p);
-
-    /// true if we already allocated a DataSink object
-    bool hasDataSinkAllocated();
-
-    DataSink* getDataSink();
-
-    void setDataSink(DataSink* s);
-
-    /// units: (sec)
-    void setGlobalPhaseShift(double shift);
-    /// units: (sec)
-    double getGlobalPhaseShift();
-
-    ///
-    void setGlobalGeometry(BoundaryGeometry* bg);
-    ///
-    BoundaryGeometry* getGlobalGeometry();
-
-    bool hasGlobalGeometry();
-
-    void setMaxPhase(std::string elName, double phi);
-
-    std::vector<MaxPhasesT>::iterator getFirstMaxPhases();
-    std::vector<MaxPhasesT>::iterator getLastMaxPhases();
-    int getNumberOfMaxPhases();
-
-    void addEnergyData(double spos, double ekin);
-    energyEvolution_t::iterator getFirstEnergyData();
-    energyEvolution_t::iterator getLastEnergyData();
-
-    unsigned long long getMaxTrackSteps();
-    void setMaxTrackSteps(unsigned long long s);
-    void incMaxTrackSteps(unsigned long long s);
-
-    void addProblemCharacteristicValue(const std::string& name, unsigned int value);
-    const std::map<std::string, unsigned int>& getProblemCharacteristicValues() const;
 
     void storeArguments(int argc, char* argv[]);
     std::vector<std::string> getArguments();
@@ -286,7 +178,6 @@ private:
     static bool isInstantiated;
     static OpalData* instance;  // \todo should be a smart pointer and we then should get ridd of
                                 // deleteInstance
-    static std::stack<OpalData*> stashedInstances;
 
     OpalData();
 

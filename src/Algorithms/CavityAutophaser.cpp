@@ -38,8 +38,9 @@
 
 extern Inform* gmsg;
 
-CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity)
-    : itsReference_m(ref), itsCavity_m(cavity) {
+CavityAutophaser::CavityAutophaser(
+        const PartData& ref, std::shared_ptr<ElementBase> cavity, CavityPhases* phases)
+    : itsReference_m(ref), itsCavity_m(cavity), phases_m(phases) {
     double zbegin = 0.0, zend = 0.0;
     cavity->getFieldExtent(zbegin, zend);
     initialR_m = Vector_t<double, 3>(0, 0, zbegin);
@@ -75,7 +76,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
         element->setAutophaseVeto();
 
         originalPhase += optimizedPhase;
-        OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), originalPhase);
+        if (phases_m) phases_m->emplace_back(itsCavity_m->getName(), originalPhase);
 
         apVeto  = true;
         isDCGun = true;
@@ -148,11 +149,11 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
 
         auto opal = OpalData::getInstance();
 
-        opal->setMaxPhase(itsCavity_m->getName(), newPhase);
+        if (phases_m) phases_m->emplace_back(itsCavity_m->getName(), newPhase);
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-        if (!opal->isOptimizerRun() && ippl::Comm->rank() == 0) {
+        if (ippl::Comm->rank() == 0) {
             std::string fname = Util::combineFilePath(
                     {opal->getAuxiliaryOutputDirectory(), itsCavity_m->getName() + "_AP.dat"});
             std::ofstream out(fname);

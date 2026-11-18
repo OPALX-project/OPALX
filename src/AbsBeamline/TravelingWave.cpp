@@ -65,7 +65,7 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const { visitor.visitTravel
  * of the field from the core to the exit region, while maintaining the correct phase
  * relationship between the fields.
  */
-void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     // RF parameters (copied to device)
     const double freq       = frequency_m;
     const double scaleEntry = scale_m + scaleError_m;
@@ -81,7 +81,7 @@ void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double fieldLength     = endField_m - startField_m;
 
     // Reference particle time -> to be consistent with OPAL
-    const double t       = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
+    const double t       = time.t + 0.5 * time.dt;
     const double omega_t = freq * t;
 
     const double cosEntry = std::cos(omega_t + phase_m + phaseError);
@@ -258,22 +258,14 @@ void TravelingWave::initialise(PartBunch_t* bunch) {
             - Physics::two_pi * ((numCells_m - 1) * mode_m - std::floor((numCells_m - 1) * mode_m));
 }
 
-void TravelingWave::initialise(
-        PartBunch_t* /*bunch*/, std::shared_ptr<AbstractTimeDependence> /*freq_atd*/,
-        std::shared_ptr<AbstractTimeDependence> /*ampl_atd*/,
-        std::shared_ptr<AbstractTimeDependence> /*phase_atd*/) {
-    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-          << " function: " << __func__ << endl;
-}
-
 void TravelingWave::finalise() {}
 
-void TravelingWave::goOnline(const double&) {
-    Fieldmap::readMap(filename_m);
-    online_m = true;
+void TravelingWave::goOffline() {
+    // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
+    Fieldmap::freeMap(filename_m);
+    fieldmap_m = nullptr;
+    online_m   = false;
 }
-
-void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
 
 void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;

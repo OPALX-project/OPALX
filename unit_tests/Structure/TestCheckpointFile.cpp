@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -18,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 namespace {
     using Bunch = PartBunch<double, 3>;
@@ -52,7 +54,7 @@ namespace {
             Options::useQMAttributes               = false;
             storageConfig.periodicParticleBoundary = true;
 
-            beamObject = std::make_unique<Beam>();
+            beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
             beam       = Beam::find("UNNAMED_BEAM");
             ASSERT_NE(beam, nullptr);
         }
@@ -72,8 +74,10 @@ namespace {
             static_cast<void>(sink);
             return std::make_unique<Bunch>(
                     std::vector<double>{1.25e-12, -2.5e-12}, std::vector<double>{0.511e-3, 0.938},
-                    std::vector<Beam*>{beam, beam}, std::vector<std::size_t>{16, 16}, 1.0, "LF2",
-                    storageConfig);
+                    std::vector{
+                            opalx::run::describeBeamForBunch(*beam),
+                            opalx::run::describeBeamForBunch(*beam)},
+                    std::vector<std::size_t>{16, 16}, 1.0, "LF2", storageConfig);
         }
 
         void populate(Bunch& bunch) {
@@ -154,15 +158,14 @@ namespace {
 
         const std::string path =
                 CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
-        OpalData::getInstance()->setMaxPhase("TEST_CAVITY", 0.375);
-        const int phasesBeforeRead = OpalData::getInstance()->getNumberOfMaxPhases();
+        const CavityPhases phases{{"TEST_CAVITY", 0.375}};
         std::vector<BeamStop> stops(2);
         stops[1].zStop       = 3.0;  // from the input, not stored
         stops[1].planeSet    = true;
         stops[1].planeOrigin = Vector_t<double, 3>(1.0, 2.0, 3.0);
         stops[1].planeNormal = Vector_t<double, 3>(0.0, 0.6, 0.8);
         stops[1].done        = true;
-        ASSERT_NO_THROW(CheckpointFile::write(path, *source, 2, 7, stops));
+        ASSERT_NO_THROW(CheckpointFile::write(path, *source, 2, 7, stops, phases));
         if (ippl::Comm->rank() == 0) {
             EXPECT_TRUE(std::filesystem::exists(path));
             EXPECT_FALSE(std::filesystem::exists(path + ".tmp"));
@@ -187,11 +190,9 @@ namespace {
         DataSink targetSink;
         auto target         = makeBunch(targetSink);
         const auto restored = CheckpointFile::read(path, *target);
-        ASSERT_EQ(OpalData::getInstance()->getNumberOfMaxPhases(), phasesBeforeRead + 1);
-        auto lastPhase = OpalData::getInstance()->getLastMaxPhases();
-        --lastPhase;
-        EXPECT_EQ(lastPhase->first, "TEST_CAVITY");
-        EXPECT_DOUBLE_EQ(lastPhase->second, 0.375);
+        ASSERT_EQ(restored.cavityPhases.size(), 1u);
+        EXPECT_EQ(restored.cavityPhases[0].first, "TEST_CAVITY");
+        EXPECT_DOUBLE_EQ(restored.cavityPhases[0].second, 0.375);
         EXPECT_EQ(restored.globalTrackStep, 37);
         EXPECT_EQ(target->getGlobalTrackStep(), 37);
         EXPECT_DOUBLE_EQ(target->getT(), 7.5e-9);

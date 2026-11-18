@@ -14,6 +14,8 @@
 //
 
 #include "Elements/OpalMultipoleT.h"
+
+#include <memory>
 #include <vector>
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleTRep.h"
@@ -57,74 +59,65 @@ OpalMultipoleT::OpalMultipoleT()
             "The name of the time dependence model, which should give a scaling factor.");
 
     registerOwnership();
-    setElement(new MultipoleT("MULTIPOLET"));
-}
-
-OpalMultipoleT::OpalMultipoleT(const std::string& name, OpalMultipoleT* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleT(name));
-}
-
-OpalMultipoleT* OpalMultipoleT::clone(const std::string& name) {
-    return new OpalMultipoleT(name, this);
 }
 
 void OpalMultipoleT::print(std::ostream& os) const { OpalElement::print(os); }
 
-void OpalMultipoleT::update() {
+std::shared_ptr<ElementBase> OpalMultipoleT::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<MultipoleT>(values.getName());
+    fill(*element, values);
+    return element;
+}
+
+void OpalMultipoleT::fill(ElementBase& element, const ObjectValues& values) {
     // Base class first
-    OpalElement::update();
+    setCommonFields(element, values);
     // Make some sanity checks
-    const auto maxFOrder = Attributes::getReal(itsAttr[MAXFORDER]);
+    const auto maxFOrder = values.getReal("MAXFORDER");
     if (maxFOrder < MinimumMAXFORDER) {
-        throw OpalException("OpalMultipoleT::Update", "Attribute MAXFORDER must be >= 1.0");
+        throw OpalException("OpalMultipoleT::build", "Attribute MAXFORDER must be >= 1.0");
     }
     if (maxFOrder > MaximumMAXFORDER) {
-        throw OpalException("OpalMultipoleT::Update", "Attribute MAXFORDER must be <= 9.0");
+        throw OpalException("OpalMultipoleT::build", "Attribute MAXFORDER must be <= 9.0");
     }
-    const double rotation  = Attributes::getReal(itsAttr[ROTATION]);
-    const double bendAngle = Attributes::getReal(itsAttr[ANGLE]);
+    const double rotation  = values.getReal("ROTATION");
+    const double bendAngle = values.getReal("ANGLE");
     if (bendAngle != 0.0 && rotation != 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "Non-zero ROTATION (a skew multipole) is only "
                 "supported for straight magnets");
     }
-    const bool varRadius = Attributes::getBool(itsAttr[VARRADIUS]);
+    const bool varRadius = values.getBool("VARRADIUS");
     if (varRadius && bendAngle != 0.0) {
-        throw OpalException("OpalMultipoleT::Update", "Variable radius is not currently supported");
+        throw OpalException("OpalMultipoleT::build", "Variable radius is not currently supported");
     }
-    const double entryOffset = Attributes::getReal(itsAttr[ENTRYOFFSET]);
+    const double entryOffset = values.getReal("ENTRYOFFSET");
     if (!varRadius && entryOffset != 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "The ENTRYOFFSET is only supported for variable radius curved magnets");
     }
-    auto tp = Attributes::getRealArray(itsAttr[TP]);
+    auto tp = values.getRealArray("TP");
     // Set the attributes
-    const auto length = Attributes::getReal(itsAttr[LENGTH]);
+    const auto length = values.getReal("L");
     if (bendAngle != 0.0 && length == 0.0) {
         throw OpalException(
-                "OpalMultipoleT::Update",
+                "OpalMultipoleT::build",
                 "A curved magnet (non-zero ANGLE) needs a non-zero L: the curvature is "
                 "ANGLE / L, with L the arc length");
     }
-    auto* multT = dynamic_cast<MultipoleTRep*>(getElement());
+    auto* multT = dynamic_cast<MultipoleTRep*>(&element);
     multT->setElementLength(length);
     multT->setBendAngle(bendAngle, varRadius);
-    multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), Attributes::getReal(itsAttr[HAPERT]));
-    multT->setFringeField(
-            length * 0.5, Attributes::getReal(itsAttr[LFRINGE]),
-            Attributes::getReal(itsAttr[RFRINGE]));
-    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
+    multT->setAperture(values.getReal("VAPERT"), values.getReal("HAPERT"));
+    multT->setFringeField(length * 0.5, values.getReal("LFRINGE"), values.getReal("RFRINGE"));
+    multT->setBoundingBoxLength(values.getReal("BBLENGTH"));
     multT->setTransProfile(tp);
     multT->setMaxOrder(
-            static_cast<size_t>(maxFOrder),
-            static_cast<size_t>(Attributes::getReal(itsAttr[MAXXORDER])));
+            static_cast<size_t>(maxFOrder), static_cast<size_t>(values.getReal("MAXXORDER")));
     multT->setRotation(rotation);
-    multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
+    multT->setEntranceAngle(values.getReal("EANGLE"));
     multT->setEntryOffset(entryOffset);
-    multT->setScalingName(Attributes::getString(itsAttr[SCALING_MODEL]));
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(multT);
+    multT->setScalingName(values.getString("SCALING_MODEL"));
 }

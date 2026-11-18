@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
@@ -36,9 +36,9 @@ public:
     /**
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
-     * @param opalDist Borrowed Distribution.
+     * @param opalDist Values of the distribution; the sampler keeps a copy.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist);
 
     /**
      * @brief Constructor for FlatTop.
@@ -115,9 +115,9 @@ private:
 
     /**
      * @brief Sets distribution parameters.
-     * @param opalDist Shared pointer to the distribution object.
+     * @param opalDist Values of the distribution.
      */
-    void setParameters(Distribution_t* opalDist);
+    void setParameters(const DistributionSettings& opalDist);
 
 public:
     /**

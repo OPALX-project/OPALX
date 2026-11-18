@@ -87,7 +87,7 @@ public:
     /** Return the cell geometry */
     const Geometry& getGeometry() const override;
     /** Calculate the field for all particles */
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
     /** Calculate the field at some arbitrary position \n
      *  \param R -> Position in the lab coordinate system of the multipole
      *  \param P -> Not used
@@ -102,7 +102,7 @@ public:
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
      *  This overload is single-container only. In multi-container tracking,
-     *  use apply(const std::shared_ptr<ParticleContainer_t>& pc).
+     *  use apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time).
      *  \param t -> Time at which the field is to be calculated
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field

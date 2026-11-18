@@ -55,6 +55,7 @@
  *   Individual tests override only what they need.
  */
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 
 #include <gtest/gtest.h>
 #include <limits>
@@ -75,6 +76,7 @@
 
 #include <cmath>
 #include <memory>
+#include "../KeywordObjects.h"
 
 class FakeFieldmap : public Fieldmap {
 public:
@@ -523,9 +525,11 @@ protected:
     }
 
     std::shared_ptr<PartBunch_t> makeBunch(size_t count) {
-        beam       = std::make_shared<Beam>();
+        beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{Beam::find("UNNAMED_BEAM")},
+                std::vector{1.0}, std::vector{1.0},
+                std::vector{opalx::run::describeBeamForBunch(*Beam::find("UNNAMED_BEAM"))},
                 std::vector<size_t>{count}, 1.0, "LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(count);
@@ -577,8 +581,7 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
     bunch->setT(1.e-9);
     bunch->setdT(2.e-9);
     cavity.initialise(bunch.get());
-    cavity.goOnline(0.);
-    cavity.apply(pc);
+    cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     const auto magnetic = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     for (size_t i = 0; i < positions.size(); ++i) {
@@ -614,25 +617,29 @@ TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
 }
 
 TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
-    OpalCavity input;
-    auto* rep = dynamic_cast<RFCavityRep*>(input.getElement());
+    auto inputObject  = opalx::test::makePlacedElement<OpalCavity>("RFCAVITY", "RFCAVITY");
+    OpalCavity& input = *inputObject;
+    std::shared_ptr<ElementBase> built;
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
+    auto* rep = dynamic_cast<RFCavityRep*>(built.get());
     ASSERT_NE(rep, nullptr);
-    EXPECT_NO_THROW(input.update());
     EXPECT_FALSE(rep->isIdeal());
     EXPECT_EQ(rep->getCavityType(), CavityType::SW);
     Attributes::setPredefinedString(input.itsAttr[OpalCavity::TYPE], "IDEAL");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setReal(input.itsAttr[OpalCavity::LENGTH], 0.2);
     Attributes::setReal(input.itsAttr[OpalCavity::VOLT], 1.);
     Attributes::setReal(input.itsAttr[OpalCavity::FREQ], 100.);
-    EXPECT_NO_THROW(input.update());
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
+    rep = dynamic_cast<RFCavityRep*>(built.get());
+    ASSERT_NE(rep, nullptr);
     EXPECT_TRUE(rep->isIdeal());
     EXPECT_DOUBLE_EQ(rep->getFrequencym(), Physics::two_pi * 100.e6);
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "unused.map");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "");
     Attributes::setString(input.itsAttr[OpalCavity::PHASE_MODEL], "phase");
-    EXPECT_ANY_THROW(input.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     for (double length : {0., -1., std::numeric_limits<double>::infinity()}) {
         cavity.getGeometry().setElementLength(length);
         EXPECT_ANY_THROW(cavity.initialise(nullptr));
@@ -757,7 +764,7 @@ TEST_F(IdealRFCavityTest, FieldAmplitudeIndependentOfLength) {
         cavity.apply({0., 0., 0.1}, {}, 0., hostE, b);
         EXPECT_FALSE(cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b));
         Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
-        cavity.apply(pc);
+        cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         const auto fields =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
         // VOLT=5 MV/m sets the field directly; length only sets spatial support.

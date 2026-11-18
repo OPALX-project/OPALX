@@ -21,6 +21,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include "../KeywordObjects.h"
+#include "AbstractObjects/OpalData.h"
 
 namespace {
 
@@ -31,15 +33,14 @@ namespace {
         /**
          * @brief A BOX as an input file would define it.
          *
-         * The tests must run against a *clone*, not the exemplar: OpalData
-         * calls update() on the builtin prototype too, and the attribute
-         * validation is skipped there.
+         * Made from the keyword table, as the parser does for "B1: BOX;". Returns the runtime
+         * element a RUN builds for it.
          */
-        std::unique_ptr<OpalBox> makeBox(
+        std::shared_ptr<ElementBase> makeBox(
                 double length, double width, double height,
                 const std::optional<std::string>& aperture = std::nullopt,
                 const std::optional<double>& reach         = std::nullopt) {
-            std::unique_ptr<OpalBox> box(exemplar_m.clone("B1"));
+            auto box = opalx::test::makeKeywordObject<OpalBox>("BOX", "B1");
             Attributes::setReal(*box->findAttribute("L"), length);
             Attributes::setReal(*box->findAttribute("WIDTH"), width);
             Attributes::setReal(*box->findAttribute("HEIGHT"), height);
@@ -50,20 +51,15 @@ namespace {
             if (reach.has_value()) {
                 Attributes::setReal(*box->findAttribute("REACH"), reach.value());
             }
-            box->update();
-            return box;
+            return opalx::test::buildFrom(*box);
         }
-
-    private:
-        /// Outlives every clone made from it.
-        OpalBox exemplar_m;
     };
 
 }  // namespace
 
 TEST_F(TestOpalBox, UpdateSetsTypeLengthAndHalfSize) {
     auto box             = makeBox(0.1, 0.02, 0.04);
-    ElementBase* element = box->getElement();
+    ElementBase* element = box.get();
     ASSERT_NE(element, nullptr);
     EXPECT_EQ(element->getType(), ElementType::BOX);
     EXPECT_DOUBLE_EQ(element->getGeometry().getElementLength(), 0.1);
@@ -91,7 +87,11 @@ TEST_F(TestOpalBox, ApertureOrReachThrows) {
     EXPECT_THROW(makeBox(0.1, 0.02, 0.04, std::nullopt, 1.0), OpalException);
 }
 
-TEST_F(TestOpalBox, BuiltinExemplarPassesValidation) {
-    OpalBox exemplar;
-    EXPECT_NO_THROW(exemplar.update());
+TEST_F(TestOpalBox, KeywordIsNotUpdatedWithTheInputObjects) {
+    // The BOX keyword has none of the attributes an input object must set. It is kept in the
+    // keyword table, apart from the input objects, so updating all input objects leaves it alone.
+    OpalData* opal = OpalData::getInstance();
+    opalx::test::keyword<OpalBox>("BOX");
+    opal->makeDirty(nullptr);
+    EXPECT_NO_THROW(opal->update());
 }

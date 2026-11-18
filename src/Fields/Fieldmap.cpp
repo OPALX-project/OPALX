@@ -408,6 +408,17 @@ void Fieldmap::readMap(std::string Filename) {
         }
 }
 
+const std::vector<double>& Fieldmap::getFileValues(std::size_t minimum) const {
+    if (fileValues_m.size() < minimum) {
+        throw GeneralOpalException(
+                "Fieldmap::getFileValues", "Field map '" + Filename_m + "': expected at least "
+                                                   + std::to_string(minimum)
+                                                   + " numbers from the data lines, have "
+                                                   + std::to_string(fileValues_m.size()) + ".");
+    }
+    return fileValues_m;
+}
+
 void Fieldmap::freeMap(std::string Filename) {
     std::map<std::string, FieldmapDescription>::iterator position =
             FieldmapDictionary.find(Filename);
@@ -457,7 +468,7 @@ void Fieldmap::checkMap(
 
     auto opal = OpalData::getInstance();
     std::ofstream out;
-    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+    if (ippl::Comm->rank() == 0) {
         std::string fname = Util::combineFilePath(
                 {opal->getAuxiliaryOutputDirectory(),
                  Filename_m.substr(lastSlash, lastDot) + ".check"});
@@ -484,7 +495,7 @@ void Fieldmap::checkMap(
         error += std::pow(difference, 2.0);
         ezSquare += std::pow(ez, 2.0);
 
-        if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+        if (ippl::Comm->rank() == 0) {
             out << std::setw(16) << std::setprecision(8) << *it << std::setw(16)
                 << std::setprecision(8) << ez << std::setw(16) << std::setprecision(8)
                 << onAxisFieldCheck << std::endl;

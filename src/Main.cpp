@@ -171,6 +171,9 @@ namespace OPALXMAIN {
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
         *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
+        *ippl::Info << "   --check                  : Read the input; each RUN writes what it "
+                       "would track "
+                       "with to <input>_run<n>.txt and does not track.\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -380,6 +383,9 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     continue;
+                } else if (argStr == std::string("--check")) {
+                    opal->checkOnly = true;
+                    continue;
                 } else if (argStr == std::string("--info")) {
                     ++ii;
                     continue;
@@ -567,15 +573,12 @@ int main(int argc, char* argv[]) {
         }
 
         // print dictionary
-        //        opal->printAllNames(std::cout);
 
         IpplTimings::stopTimer(mainTimer);
 
         IpplTimings::print();
 
-        IpplTimings::print(
-                std::string("timing.dat"),
-                OpalData::getInstance()->getProblemCharacteristicValues());
+        IpplTimings::print(std::string("timing.dat"), {});
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();

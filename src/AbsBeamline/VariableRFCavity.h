@@ -62,7 +62,7 @@ public:
      * Amplitude [MV/m], integrated frequency [MHz s], and phase [rad]
      * are evaluated on the host; the additive field kernel runs on the device.
      */
-    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /** Calculate the field at a given position
      *

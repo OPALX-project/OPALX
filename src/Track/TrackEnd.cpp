@@ -25,10 +25,6 @@
 
 TrackEnd::TrackEnd() : Action(0, "ENDTRACK", "The \"ENDTRACK\" sub-command stops tracking.") {}
 
-TrackEnd::TrackEnd(const std::string& name, TrackEnd* parent) : Action(name, parent) {}
-
 TrackEnd::~TrackEnd() {}
-
-TrackEnd* TrackEnd::clone(const std::string& name) { return new TrackEnd(name, this); }
 
 void TrackEnd::execute() { Track::block->parser.stop(); }

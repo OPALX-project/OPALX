@@ -17,6 +17,8 @@
 //
 #include "Elements/OpalFieldmapElement.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/FieldmapElementRep.h"
 #include "Utilities/OpalException.h"
@@ -50,70 +52,57 @@ OpalFieldmapElement::OpalFieldmapElement()
             false);
 
     registerOwnership();
-
-    setElement(new FieldmapElementRep("FIELDMAP"));
-}
-
-OpalFieldmapElement::OpalFieldmapElement(const std::string& name, OpalFieldmapElement* parent)
-    : OpalElement(name, parent) {
-    setElement(new FieldmapElementRep(name));
 }
 
 OpalFieldmapElement::~OpalFieldmapElement() {}
 
-OpalFieldmapElement* OpalFieldmapElement::clone(const std::string& name) {
-    return new OpalFieldmapElement(name, this);
+std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<FieldmapElementRep>(values.getName());
+    fill(*element, values);
+    return element;
 }
 
-void OpalFieldmapElement::update() {
-    // Checked before OpalElement::update(), so that the specific message wins over the
-    // generic "placement is over-specified" one. OpalData::update() calls update() on every
-    // object in the directory including the untouched builtin prototype, whose attributes are
-    // all unset, so only real (cloned) instances are validated -- the same guard
-    // OpalElement::validatePlacement() uses.
-    if (!isBuiltin()) {
-        if (itsAttr[ELEMEDGE]) {
-            throw OpalException(
-                    "OpalFieldmapElement::update()",
-                    getOpalName()
-                            + ": a FIELDMAP element cannot be placed with ELEMEDGE. ELEMEDGE "
-                              "positions an element by path length s along the reference orbit, "
-                              "which needs the element's length along that orbit; a FIELDMAP "
-                              "element's extent comes from its field map and is not a path "
-                              "length. Use an absolute 6D lab pose (X, Y, Z, THETA, PHI, PSI) "
-                              "instead. OPALX requires one placement convention for the whole "
-                              "beamline, so every other element in the line must use a 6D pose "
-                              "too.");
-        }
-
-        if (itsAttr[LENGTH]) {
-            throw OpalException(
-                    "OpalFieldmapElement::update()",
-                    getOpalName()
-                            + ": a FIELDMAP element takes no L. Its length is the longitudinal "
-                              "extent of the field map named by FMAPFN, and is read from the map "
-                              "header.");
-        }
-
-        if (!itsAttr[FMAPFN] || Attributes::getString(itsAttr[FMAPFN]).empty()) {
-            throw OpalException(
-                    "OpalFieldmapElement::update()",
-                    getOpalName() + ": a FIELDMAP element requires FMAPFN.");
-        }
+void OpalFieldmapElement::fill(ElementBase& element, const ObjectValues& values) {
+    // Checked before setCommonFields(), so that the specific message wins over the generic
+    // "placement is over-specified" one.
+    if (values.hasValue("ELEMEDGE")) {
+        throw OpalException(
+                "OpalFieldmapElement::build",
+                values.getName()
+                        + ": a FIELDMAP element cannot be placed with ELEMEDGE. ELEMEDGE "
+                          "positions an element by path length s along the reference orbit, "
+                          "which needs the element's length along that orbit; a FIELDMAP "
+                          "element's extent comes from its field map and is not a path "
+                          "length. Use an absolute 6D lab pose (X, Y, Z, THETA, PHI, PSI) "
+                          "instead. OPALX requires one placement convention for the whole "
+                          "beamline, so every other element in the line must use a 6D pose "
+                          "too.");
     }
 
-    OpalElement::update();
+    if (values.hasValue("L")) {
+        throw OpalException(
+                "OpalFieldmapElement::build",
+                values.getName()
+                        + ": a FIELDMAP element takes no L. Its length is the longitudinal "
+                          "extent of the field map named by FMAPFN, and is read from the map "
+                          "header.");
+    }
 
-    FieldmapElementRep* fm = dynamic_cast<FieldmapElementRep*>(getElement());
+    if (!values.hasValue("FMAPFN") || values.getString("FMAPFN").empty()) {
+        throw OpalException(
+                "OpalFieldmapElement::build",
+                values.getName() + ": a FIELDMAP element requires FMAPFN.");
+    }
+
+    setCommonFields(element, values);
+
+    FieldmapElementRep* fm = dynamic_cast<FieldmapElementRep*>(&element);
 
     // The geometry length is deliberately NOT set here: it comes from the map, which is only
     // loaded in FieldmapElement::initialise(). That runs on the tracked clone before the
     // element list is sorted and before PlacementResolver, so every consumer still sees it.
-    fm->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    fm->setBScale(Attributes::getReal(itsAttr[BSCALE]));
-    fm->setEScale(Attributes::getReal(itsAttr[ESCALE]));
-    fm->setIsZReversed(Attributes::getBool(itsAttr[ZREVERSE]));
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(fm);
+    fm->setFieldMapFN(values.getString("FMAPFN"));
+    fm->setBScale(values.getReal("BSCALE"));
+    fm->setEScale(values.getReal("ESCALE"));
+    fm->setIsZReversed(values.getBool("ZREVERSE"));
 }

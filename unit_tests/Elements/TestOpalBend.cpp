@@ -29,6 +29,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "../KeywordObjects.h"
 
 // The transverse aperture of a bend is bounded vertically by the pole gap (HGAP) and
 // horizontally by HAPERT or by APERTURE. HAPERT and APERTURE are mutually exclusive, and
@@ -38,20 +39,21 @@ namespace {
 
     enum class BendKind { SBend, RBend };
 
-    /// What the deck writes. An unset field is left at its attribute default, which is
-    /// what update() distinguishes through Attribute::defaultUsed().
+    /// What the input writes. An unset field is left at its attribute default, which the
+    /// build tells apart through Attribute::defaultUsed().
     struct BendSpec {
         std::optional<double> hgap;
         std::optional<double> hapert;
         std::optional<std::string> aperture;
     };
 
-    std::unique_ptr<OpalElement> makeBend(BendKind kind, const BendSpec& spec) {
+    /// The runtime element a RUN builds for a bend with @p spec.
+    std::shared_ptr<ElementBase> makeBend(BendKind kind, const BendSpec& spec) {
         std::unique_ptr<OpalElement> bend;
         if (kind == BendKind::SBend) {
-            bend = std::make_unique<OpalSBend>();
+            bend = opalx::test::makeKeywordObject<OpalSBend>("SBEND", "SBEND");
         } else {
-            bend = std::make_unique<OpalRBend>();
+            bend = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
         }
 
         Attributes::setReal(*bend->findAttribute("L"), 1.0);
@@ -65,14 +67,13 @@ namespace {
         if (spec.aperture.has_value()) {
             Attributes::setString(*bend->findAttribute("APERTURE"), spec.aperture.value());
         }
-        bend->update();
-        return bend;
+        return opalx::test::buildFrom(*bend);
     }
 
     void expectAperture(
-            const std::unique_ptr<OpalElement>& bend, ApertureType type,
+            const std::shared_ptr<ElementBase>& bend, ApertureType type,
             const std::vector<double>& args) {
-        ElementBase* element = bend->getElement();
+        ElementBase* element = bend.get();
         ASSERT_NE(element, nullptr);
         const auto aperture = element->getAperture();
         EXPECT_EQ(aperture.first, type);
@@ -85,7 +86,7 @@ namespace {
     class TestOpalBend : public testing::TestWithParam<BendKind> {
     protected:
         // The bends allocate Kokkos views for their multipole coefficients, so the runtime
-        // has to be up before the first update().
+        // has to be up before the first bend is built.
         static void SetUpTestSuite() {
             int argc    = 0;
             char** argv = nullptr;
@@ -99,7 +100,7 @@ namespace {
             // In a full run the RealVariable exemplar creates and registers the P0 variable;
             // without it getP0() dereferences a null pointer. Created once for the suite and
             // intentionally never deleted, since OpalData keeps referring to it.
-            [[maybe_unused]] static RealVariable* p0Owner = new RealVariable();
+            opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
     };
 

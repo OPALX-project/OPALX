@@ -62,6 +62,9 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(const std::string& filename) : Fieldm
         if (parsing_passed) {
             ++acceptedValues;
             zend_m = zbegin_m;
+            // Keep the numbers: readMap() takes them from fileValues_m instead of reading again.
+            fileValues_m.push_back(zbegin_m);
+            fileValues_m.push_back(tmpDouble);
         }
 
         while (true) {
@@ -69,6 +72,8 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(const std::string& filename) : Fieldm
             if (!line_ok) {
                 break;
             }
+            fileValues_m.push_back(zend_m);
+            fileValues_m.push_back(tmpDouble);
 
             if (zend_m - lastAcceptedZ > 1e-10) {
                 lastAcceptedZ = zend_m;
@@ -115,11 +120,8 @@ void Astra1DMagnetoStatic::readMap() {
                 "Fieldmap must contain at least two valid sampling points");
     }
 
-    std::ifstream in(Filename_m.c_str());
-    if (!in.good()) {
-        throw GeneralOpalException(
-                "Astra1DMagnetoStatic::readMap", "Cannot open fieldmap '" + Filename_m + "'");
-    }
+    // The constructor read the data lines: (z, Bz) pairs in file order.
+    const std::vector<double>& values = getFileValues(2 * num_gridpz_m);
 
     const double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
 
@@ -142,21 +144,13 @@ void Astra1DMagnetoStatic::readMap() {
     FourCoefs_m    = Kokkos::DualView<double*>("FourCoefs", size);
     auto coefs     = FourCoefs_m.view_host();
 
-    std::string tmpString;
-    getLine(in, tmpString);
-
     double Bz_max        = 0.0;
     double lastAcceptedZ = zbegin_m - dz;
     int accepted         = 0;
 
-    while (accepted < num_gridpz_m) {
-        double ztmp  = 0.0;
-        double bztmp = 0.0;
-
-        const bool ok = interpretLine<double, double>(in, ztmp, bztmp, false);
-        if (!ok) {
-            break;
-        }
+    for (size_t next = 0; accepted < num_gridpz_m && next + 1 < values.size(); next += 2) {
+        const double ztmp  = values[next];
+        const double bztmp = values[next + 1];
 
         if (ztmp - lastAcceptedZ > 1e-10) {
             zvals[accepted]      = ztmp;
@@ -166,7 +160,6 @@ void Astra1DMagnetoStatic::readMap() {
             ++accepted;
         }
     }
-    in.close();
 
     if (accepted != num_gridpz_m) {
         gsl_spline_free(Bz_interpolant);

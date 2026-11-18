@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalSolenoid_HH
 #define OPAL_OpalSolenoid_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalSolenoid : public OpalElement {
@@ -37,19 +39,16 @@ public:
 
     virtual ~OpalSolenoid();
 
-    /// Make clone.
-    virtual OpalSolenoid* clone(const std::string& name);
-
-    /// Update the embedded OPALX solenoid.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+
     // Not implemented.
     OpalSolenoid(const OpalSolenoid&);
     void operator=(const OpalSolenoid&);
-
-    // Clone constructor.
-    OpalSolenoid(const std::string& name, OpalSolenoid* parent);
 };
 
 #endif  // OPAL_OpalSolenoid_HH

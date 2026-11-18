@@ -21,6 +21,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include "../KeywordObjects.h"
+#include "AbstractObjects/OpalData.h"
 
 namespace {
 
@@ -31,15 +33,13 @@ namespace {
         /**
          * @brief A COLLIMATOR as a input would define it.
          *
-         * The tests must run against a *clone*, not the exemplar: OpalData
-         * calls update() on the builtin prototype too, and the attribute
-         * validation is skipped there (same rule as
-         * OpalElement::validatePlacement).
+         * Made from the keyword table, as the parser does for "C1: COLLIMATOR;". Returns the
+         * runtime element a RUN builds for it.
          */
-        std::unique_ptr<OpalCollimator> makeCollimator(
+        std::shared_ptr<ElementBase> makeCollimator(
                 double length, const std::optional<std::string>& aperture,
                 const std::optional<bool>& deleteOnTransverseExit = std::nullopt) {
-            std::unique_ptr<OpalCollimator> coll(exemplar_m.clone("C1"));
+            auto coll = opalx::test::makeKeywordObject<OpalCollimator>("COLLIMATOR", "C1");
             Attributes::setReal(*coll->findAttribute("L"), length);
             Attributes::setReal(*coll->findAttribute("ELEMEDGE"), 0.5);
             if (aperture.has_value()) {
@@ -50,27 +50,22 @@ namespace {
                         *coll->findAttribute("DELETEONTRANSVERSEEXIT"),
                         deleteOnTransverseExit.value());
             }
-            coll->update();
-            return coll;
+            return opalx::test::buildFrom(*coll);
         }
-
-    private:
-        /// Outlives every clone made from it.
-        OpalCollimator exemplar_m;
     };
 
 }  // namespace
 
 TEST_F(TestOpalCollimator, ElementTypeIsCollimator) {
     auto coll            = makeCollimator(0.1, "CIRCLE(0.02)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
     EXPECT_EQ(element->getType(), ElementType::COLLIMATOR);
 }
 
 TEST_F(TestOpalCollimator, UpdateSetsGeometryLengthAndAperture) {
     auto coll            = makeCollimator(0.1, "CIRCLE(0.02)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
 
     // length is taken as-is (no minimum clamp like MONITOR applies)
@@ -85,7 +80,7 @@ TEST_F(TestOpalCollimator, UpdateSetsGeometryLengthAndAperture) {
 
 TEST_F(TestOpalCollimator, RectangularApertureStringReachesElement) {
     auto coll            = makeCollimator(0.05, "RECTANGLE(0.02,0.04)");
-    ElementBase* element = coll->getElement();
+    ElementBase* element = coll.get();
     ASSERT_NE(element, nullptr);
 
     const auto aperture = element->getAperture();
@@ -97,12 +92,12 @@ TEST_F(TestOpalCollimator, RectangularApertureStringReachesElement) {
 
 TEST_F(TestOpalCollimator, UpdateSetsDeleteOnTransverseExitDefaultTrue) {
     auto withDefault = makeCollimator(0.1, "CIRCLE(0.02)");
-    ASSERT_NE(withDefault->getElement(), nullptr);
-    EXPECT_TRUE(withDefault->getElement()->getFlagDeleteOnTransverseExit());
+    ASSERT_NE(withDefault, nullptr);
+    EXPECT_TRUE(withDefault->getFlagDeleteOnTransverseExit());
 
     auto disabled = makeCollimator(0.1, "CIRCLE(0.02)", false);
-    ASSERT_NE(disabled->getElement(), nullptr);
-    EXPECT_FALSE(disabled->getElement()->getFlagDeleteOnTransverseExit());
+    ASSERT_NE(disabled, nullptr);
+    EXPECT_FALSE(disabled->getFlagDeleteOnTransverseExit());
 }
 
 TEST_F(TestOpalCollimator, MissingApertureThrows) {
@@ -112,12 +107,14 @@ TEST_F(TestOpalCollimator, MissingApertureThrows) {
     EXPECT_THROW(makeCollimator(0.1, ""), OpalException);
 }
 
-TEST_F(TestOpalCollimator, BuiltinExemplarPassesValidation) {
-    // OpalData::update() runs update() on the prototype, whose attributes are
-    // all unset. Validating it would make every inputfile containing a COLLIMATOR
-    // abort during parsing.
-    OpalCollimator exemplar;
-    EXPECT_NO_THROW(exemplar.update());
+TEST_F(TestOpalCollimator, KeywordIsNotUpdatedWithTheInputObjects) {
+    // The COLLIMATOR keyword has no APERTURE and no length. Validating it would make every
+    // input file abort during parsing. It is kept in the keyword table, apart from the input
+    // objects, so updating all input objects leaves it alone.
+    OpalData* opal = OpalData::getInstance();
+    opalx::test::keyword<OpalCollimator>("COLLIMATOR");
+    opal->makeDirty(nullptr);
+    EXPECT_NO_THROW(opal->update());
 }
 
 TEST_F(TestOpalCollimator, NonPositiveLengthThrows) {

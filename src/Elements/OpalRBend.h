@@ -27,19 +27,16 @@ public:
 
     virtual ~OpalRBend();
 
-    /// Make clone.
-    virtual OpalRBend* clone(const std::string& name);
-
-    /// Update the embedded CLASSIC bend.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+
     // Not implemented.
     OpalRBend(const OpalRBend&);
     void operator=(const OpalRBend&);
-
-    // Clone constructor.
-    OpalRBend(const std::string& name, OpalRBend* parent);
 };
 
 #endif  // OPAL_OpalRBend_HH

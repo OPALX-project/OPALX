@@ -56,7 +56,8 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -70,8 +71,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual void goOnline(const double& kineticEnergy) override;
-
     virtual void goOffline() override;
 
     virtual ElementType getType() const override;
@@ -79,6 +78,13 @@ public:
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     void setCollectionType(CollectionType type);
+
+    /**
+     * @brief Whether a reference particle that crosses the monitor is recorded.
+     * @note The tracker turns this off for the reference start and the reference pass, and
+     *       SPECTRALTUNES for its rays; only the step loop records.
+     */
+    void setRecordReference(bool record) { recordReference_m = record; }
 
     static void writeStatistics();
 
@@ -98,6 +104,7 @@ private:
     Plane plane_m;
     CollectionType type_m;
     unsigned int numPassages_m;
+    bool recordReference_m = true;  ///< See setRecordReference().
 
     std::unique_ptr<LossDataSink> lossDs_m;
 

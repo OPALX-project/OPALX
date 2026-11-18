@@ -37,10 +37,8 @@ class TokenStream;
 //  All known Objects use standard C++ memory management.
 //
 //  Objects are linked by name to the OPAL directory, which resides in
-//  the global object [b]OpalData[/b].  Each Object has a pointer pointing
-//  to its parent object.  This may be an exemplar object, or a previously
-//  generated command or definition object.  This mechanism allows to find
-//  easily whether an Object belongs to a given class (see isTreeMember()).
+//  the global object [b]OpalData[/b]. getKeyword() gives the input keyword
+//  an object was made from.
 
 class Object {
 public:
@@ -49,11 +47,6 @@ public:
     /// Test if replacement is allowed.
     //  By default redefinition of an existing Object is not allowed.
     virtual bool canReplaceBy(Object* object);
-
-    /// Return a clone.
-    //  Call the [b]clone[/b] constructor to generate a copy of [b]this[/b]
-    //  with a new name [b]name[/b].
-    virtual Object* clone(const std::string& name) = 0;
 
     /// Copy attributes from another object.
     void copyAttributes(const Object&);
@@ -127,25 +120,8 @@ public:
     //  themselves or by replacing reference inside their data.
     virtual void replace(Object* oldObject, Object* newObject);
 
-    /// Update this object.
-    //  Called for all defined objects, before an action command is executed.
-    //  This default version does nothing.
-    //  Derived classes may use this call to update their internal state.
-    //  The beam line elements can update their OPALX counterpart.
-    virtual void update();
-
     /// True, if [b]this[/b] is a built-in object.
     bool isBuiltin() const;
-
-    /// Shared flag.
-    //  If true, this object cannot be cloned to create new elements.
-    //  If it is an element or a line, all references are to the same object.
-    virtual bool isShared() const;
-
-    /// Set/reset shared flag.
-    //  If true, this object cannot be cloned to create new elements.
-    //  If it is an element or a line, all references are to the same object.
-    virtual void setShared(bool);
 
     /// Set/reset the [b]modified[/b] flag.
     //  Set the flag when an object is created and modified,
@@ -162,28 +138,14 @@ public:
     /// True, if [b]this[/b] is flagged by setFlag(true).
     bool isFlagged() const;
 
-    /// Return the object's base type object.
-    //  Return the top-most ancestor of this object, i. e. the built-in
-    //  object from which [b]this[/b] is ultimately derived.
-    const Object* getBaseObject() const;
-
     /// Return object name.
     const std::string& getOpalName() const;
 
-    /// Return parent pointer.
-    Object* getParent() const;
-
-    /// Test for tree membership.
-    //  Return true, if [b]this[/b] has been directly or indirectly derived
-    //  from [b]subTree[/b].
-    bool isTreeMember(const Object* subTree) const;
+    /// The input keyword this object was made from, e.g. "QUADRUPOLE" (also for `Q2: Q1`).
+    const std::string& getKeyword() const;
 
     /// Set object name.
     void setOpalName(const std::string& name);
-
-    /// Set parent object.
-    //  This method should normally be called only from Directory.
-    void setParent(Object*);
 
     /// Clear the occurrence counter.
     void clear();
@@ -215,10 +177,9 @@ protected:
     //  text [b]help[/b]; it initially reserves [b]size[/b] attributes.
     Object(int size, const char* name, const char* help);
 
-    /// Constructor for clones.
-    //  The clone object will have the name [b]name[/b]; it inherits its
-    //  attributes (shared) from the object [b]*parent[/b].
-    Object(const std::string& name, Object* parent);
+    /// A new object named @p name with the keyword, help text and attribute values of
+    /// @p model (shared until set again). Used by the MACRO and LINE templates.
+    Object(const std::string& name, Object* model);
 
     /// Built-in flag.
     //  True, if the object is built-in to OPAL-9, i. e. if it is an exemplar
@@ -240,11 +201,11 @@ private:
     Object(const Object& object);
     void operator=(const Object&);
 
-    // Pointer to the parent object.
-    Object* itsParent;
-
     // The object name.
     std::string itsName;
+
+    /// The input keyword this object was made from.
+    std::string keyword_m;
 
     // The help text.
     std::string itsHelp;
@@ -258,9 +219,6 @@ private:
     // The set of all references to this object.
     // This allows to invalidate the references when [b]this[/b] is deleted.
     std::set<Invalidator*> references;
-
-    // If true, the object is shared.
-    bool sharedFlag;
 };
 
 // Implementation.

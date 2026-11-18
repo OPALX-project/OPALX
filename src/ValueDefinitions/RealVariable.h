@@ -26,16 +26,17 @@ public:
     RealVariable();
 
     /// Constructor for built-in variables.
-    RealVariable(const std::string& name, RealVariable* parent, double value);
+    RealVariable(const std::string& name, double value);
+
+    /// Define the built-in variable P0 (reference momentum for magnet strengths). Called once
+    /// by Configure.
+    static void defineBuiltins();
 
     virtual ~RealVariable();
 
     /// Test for allowed replacement.
     //  True, if [b]rhs[/b] is a real variable.
     virtual bool canReplaceBy(Object* rhs);
-
-    /// Make clone.
-    virtual RealVariable* clone(const std::string& name);
 
     /// Print the variable.
     virtual void print(std::ostream&) const;
@@ -50,9 +51,6 @@ private:
     // Not implemented.
     RealVariable(const RealVariable&);
     void operator=(const RealVariable&);
-
-    // Clone constructor.
-    RealVariable(const std::string& name, RealVariable* parent);
 };
 
 #endif  // OPAL_RealVariable_HH

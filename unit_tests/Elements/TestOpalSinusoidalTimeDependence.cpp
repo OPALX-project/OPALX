@@ -14,6 +14,7 @@
 //
 
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/SinusoidalTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalSinusoidalTimeDependence.h"
@@ -21,14 +22,16 @@
 
 TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
     // Make the UI
-    OpalSinusoidalTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalSinusoidalTimeDependence>(
+            "SINUSOIDAL_TIME_DEPENDENCE", "SINUSOIDAL_TIME_DEPENDENCE");
+    OpalSinusoidalTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::FREQUENCIES], {1, 2});
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::PHASE_OFFSETS], {3, 4});
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::AMPLITUDES], {5, 6});
     Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::DC_OFFSETS], {7, 8});
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<SinusoidalTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("SINUSOIDAL_TIME_DEPENDENCE").get());
@@ -40,8 +43,10 @@ TEST(TestOpalSinusoidalTimeDependence, UserInterface) {
 }
 
 TEST(TestOpalSinusoidalTimeDependence, ConstructorTest) {
-    OpalSinusoidalTimeDependence dep;
-    const OpalSinusoidalTimeDependence* dep_clone = dep.clone("new name");
+    auto depObject = opalx::test::makeKeywordObject<OpalSinusoidalTimeDependence>(
+            "SINUSOIDAL_TIME_DEPENDENCE", "SINUSOIDAL_TIME_DEPENDENCE");
+    OpalSinusoidalTimeDependence& dep = *depObject;
+    const auto dep_clone              = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 

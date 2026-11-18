@@ -17,6 +17,7 @@
 //
 #include "Elements/OpalBeamline.h"
 
+#include "AbsBeamline/Monitor.h"
 #include "Elements/PlacementResolver.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -55,10 +56,8 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
       referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
 
-OpalBeamline::~OpalBeamline() { elements_m.clear(); }
-
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
-    std::set<std::shared_ptr<ElementBase>> elementSet;
+ElementSet OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    ElementSet elementSet;
     const auto selectIfInside = [&](const std::shared_ptr<ElementBase>& element) {
         if (element->isInside(transformToLocalCS(element, x))) elementSet.insert(element);
     };
@@ -83,8 +82,8 @@ const GeneralElementMapping& OpalBeamline::getElementMapping() {
     return *elementMapping_m;
 }
 
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
-    std::set<std::shared_ptr<ElementBase>> elementSet;
+ElementSet OpalBeamline::getElements() {
+    ElementSet elementSet;
     for (auto& item : elements_m) {
         elementSet.insert(item);
     }
@@ -104,10 +103,10 @@ unsigned long OpalBeamline::getFieldAt(
         Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
 
-    std::set<std::shared_ptr<ElementBase>> elements = getElements(position);
+    ElementSet elements = getElements(position);
 
-    std::set<std::shared_ptr<ElementBase>>::const_iterator it        = elements.begin();
-    const std::set<std::shared_ptr<ElementBase>>::const_iterator end = elements.end();
+    ElementSet::const_iterator it        = elements.begin();
+    const ElementSet::const_iterator end = elements.end();
 
     for (; it != end; ++it) {
         ElementType type = (*it)->getType();
@@ -136,6 +135,11 @@ unsigned long OpalBeamline::getFieldAt(
 void OpalBeamline::switchElementsOff() {
     for (ElementList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
         (*flit)->goOffline();
+}
+
+void OpalBeamline::setMonitorsRecordReference(bool record) {
+    for (const auto& element : getElementByType(ElementType::MONITOR))
+        static_cast<Monitor*>(element.get())->setRecordReference(record);
 }
 
 void OpalBeamline::prepareSections() {
@@ -193,7 +197,7 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
 void OpalBeamline::save3DLattice() {
-    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0) return;
 
     // Write elements in s-sorted order (the order prepareSections established). This is stable
     // for 6D-posed elements too, unlike the former application-order sort.
@@ -317,7 +321,8 @@ namespace {
         bool priorEmpty = true;
 
         in.get(testBit);
-        while (!in.eof()) {
+        // good() also ends the loop if the input file could not be opened.
+        while (in.good()) {
             in.putback(testBit);
 
             std::getline(in, str);
@@ -379,7 +384,7 @@ namespace {
 }  // namespace
 
 void OpalBeamline::save3DInput() {
-    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0) return;
 
     ElementList::iterator it  = elements_m.begin();
     ElementList::iterator end = elements_m.end();
@@ -436,11 +441,4 @@ void OpalBeamline::save3DInput() {
     input = std::regex_replace(input, empty, emptyFormat);
 
     pos << input << std::endl;
-}
-
-void OpalBeamline::activateElements() {
-    const double designEnergy = 0.0;
-    for (auto it = elements_m.begin(); it != elements_m.end(); ++it) {
-        (*it)->goOnline(designEnergy);
-    }
 }

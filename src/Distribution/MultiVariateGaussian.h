@@ -4,7 +4,7 @@
 #include <Kokkos_Random.hpp>
 #include <cmath>
 #include <memory>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
@@ -34,9 +34,10 @@ public:
      * @brief Constructor for MultiVariateGaussian.
      *
      * @param pc Shared pointer to the particle container.
-     * @param opalDist Borrowed distribution.
+     * @param opalDist Values of the distribution; the sampler keeps a copy.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
+    MultiVariateGaussian(
+            std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.

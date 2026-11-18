@@ -14,6 +14,7 @@
 //
 
 #include <sstream>
+#include "../KeywordObjects.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
@@ -21,8 +22,10 @@
 #include "gtest/gtest.h"
 
 TEST(TestOpalPolynomialTimeDependence, ConstructorTest) {
-    OpalPolynomialTimeDependence dep;
-    const OpalPolynomialTimeDependence* dep_clone = dep.clone("new name");
+    auto depObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& dep = *depObject;
+    const auto dep_clone              = opalx::test::copyOf(dep, "new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 
@@ -34,13 +37,15 @@ TEST(TestOpalPolynomialTimeDependence, PrintTest) {
 }
 
 TEST(TestOpalPolynomialTimeDependence, UpdateTest) {
-    OpalPolynomialTimeDependence dependence;
+    auto dependenceObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& dependence = *dependenceObject;
     dependence.setOpalName("SCALE1");
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P0], 1.0);
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P1], 2.0);
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P2], 3.0);
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P3], 4.0);
-    dependence.update();
+    opalx::test::registerModel(dependence);
     const auto dep          = AbstractTimeDependence::getTimeDependence("SCALE1");
     const auto value        = dep->getValue(0.1);
     constexpr auto shouldBe = 1.0 + 2.0 * 0.1 + 3.0 * 0.1 * 0.1 + 4.0 * 0.1 * 0.1 * 0.1;
@@ -48,11 +53,13 @@ TEST(TestOpalPolynomialTimeDependence, UpdateTest) {
 }
 
 TEST(TestOpalPolynomialTimeDependence, UpdateTest2) {
-    OpalPolynomialTimeDependence dependence;
+    auto dependenceObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& dependence = *dependenceObject;
     dependence.setOpalName("SCALE1");
     Attributes::setRealArray(
             dependence.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {1.0, 2.0, 3.0, 4.0});
-    dependence.update();
+    opalx::test::registerModel(dependence);
     const auto dep          = AbstractTimeDependence::getTimeDependence("SCALE1");
     const auto value        = dep->getValue(0.1);
     constexpr auto shouldBe = 1.0 + 2.0 * 0.1 + 3.0 * 0.1 * 0.1 + 4.0 * 0.1 * 0.1 * 0.1;
@@ -60,7 +67,9 @@ TEST(TestOpalPolynomialTimeDependence, UpdateTest2) {
 }
 
 TEST(TestOpalPolynomialTimeDependence, UpdateTest3) {
-    OpalPolynomialTimeDependence dependence;
+    auto dependenceObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& dependence = *dependenceObject;
     dependence.setOpalName("SCALE1");
     Attributes::setRealArray(
             dependence.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {1.0, 2.0, 3.0, 4.0});
@@ -68,19 +77,21 @@ TEST(TestOpalPolynomialTimeDependence, UpdateTest3) {
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P1], 2.0);
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P2], 3.0);
     Attributes::setReal(dependence.itsAttr[OpalPolynomialTimeDependence::P3], 4.0);
-    EXPECT_ANY_THROW(dependence.update());
+    EXPECT_ANY_THROW(opalx::test::registerModel(dependence));
 }
 
 TEST(TestOpalPolynomialTimeDependence, UserInterfacePN) {
     // Make the UI
-    OpalPolynomialTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
@@ -94,12 +105,14 @@ TEST(TestOpalPolynomialTimeDependence, UserInterfacePN) {
 
 TEST(TestOpalPolynomialTimeDependence, UserInterfaceCoeffs) {
     // Make the UI
-    OpalPolynomialTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setRealArray(
             ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
     // Update the object
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::registerModel(ui));
     // Check the values
     auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
             AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
@@ -114,7 +127,9 @@ TEST(TestOpalPolynomialTimeDependence, UserInterfaceCoeffs) {
 
 TEST(TestOpalPolynomialTimeDependence, UserInterfaceBoth) {
     // Make the UI
-    OpalPolynomialTimeDependence ui;
+    auto uiObject = opalx::test::makeKeywordObject<OpalPolynomialTimeDependence>(
+            "POLYNOMIAL_TIME_DEPENDENCE", "POLYNOMIAL_TIME_DEPENDENCE");
+    OpalPolynomialTimeDependence& ui = *uiObject;
     // Set the attributes
     Attributes::setRealArray(
             ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
@@ -123,5 +138,5 @@ TEST(TestOpalPolynomialTimeDependence, UserInterfaceBoth) {
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
     // Update the object
-    EXPECT_THROW(ui.update(), std::invalid_argument);
+    EXPECT_THROW(opalx::test::registerModel(ui), std::invalid_argument);
 }

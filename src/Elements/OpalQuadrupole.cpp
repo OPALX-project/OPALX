@@ -21,6 +21,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalQuadrupole.h"
+
+#include <memory>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
@@ -43,28 +45,23 @@ OpalQuadrupole::OpalQuadrupole()
             "DK1S", "Normalised skew quadrupole strength error in m^(-2)", 0.0);
 
     registerOwnership();
-
-    setElement(new MultipoleRep("QUADRUPOLE"));
-}
-
-OpalQuadrupole::OpalQuadrupole(const std::string& name, OpalQuadrupole* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleRep(name));
 }
 
 OpalQuadrupole::~OpalQuadrupole() {}
 
-OpalQuadrupole* OpalQuadrupole::clone(const std::string& name) {
-    return new OpalQuadrupole(name, this);
-}
-
 void OpalQuadrupole::print(std::ostream& os) const { OpalElement::print(os); }
 
-void OpalQuadrupole::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalQuadrupole::build(const ObjectValues& values, double p0) {
+    auto element = std::make_shared<MultipoleRep>(values.getName());
+    fill(*element, values, p0);
+    return element;
+}
 
-    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
-    double length      = getLength();
+void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values, double p0) {
+    setCommonFields(element, values);
+
+    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(&element);
+    double length      = values.getReal("L");
     mult->getGeometry().setElementLength(length);
 
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
@@ -73,11 +70,11 @@ void OpalQuadrupole::update() {
     // Multipole is a physical gradient [T/m]. Convert with Brho = P0/c, exactly
     // as OpalSBend does for its K1..K3 (OpalSBend.cpp:71-76). Without this the
     // quad is over-focused by 1/Brho.
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k1     = Attributes::getReal(itsAttr[K1]) * factor;
-    double dk1    = Attributes::getReal(itsAttr[DK1]) * factor;
-    double k1s    = Attributes::getReal(itsAttr[K1S]) * factor;
-    double dk1s   = Attributes::getReal(itsAttr[DK1S]) * factor;
+    double factor = p0 / Physics::c;
+    double k1     = values.getReal("K1") * factor;
+    double dk1    = values.getReal("DK1") * factor;
+    double k1s    = values.getReal("K1S") * factor;
+    double dk1s   = values.getReal("DK1S") * factor;
 
     // comp 0 (dipole): strength = 0
     mult->setNormalComponent(0, 0.0, 0.0);
@@ -86,7 +83,4 @@ void OpalQuadrupole::update() {
     // comp 1 (quadrupole)
     mult->setNormalComponent(1, k1, dk1);
     mult->setSkewComponent(1, k1s, dk1s);
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(mult);
 }

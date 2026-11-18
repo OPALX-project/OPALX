@@ -55,7 +55,8 @@ public:
     virtual double getAutoPhaseEstimate(
             const double& E0, const double& t0, const double& q, const double& m) override;
 
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -67,14 +68,7 @@ public:
 
     virtual void initialise(PartBunch_t* bunch) override;
 
-    virtual void initialise(
-            PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-            std::shared_ptr<AbstractTimeDependence> ampl_atd,
-            std::shared_ptr<AbstractTimeDependence> phase_atd) override;
-
     virtual void finalise() override;
-
-    virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
 

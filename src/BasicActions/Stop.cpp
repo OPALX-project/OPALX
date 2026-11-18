@@ -22,10 +22,6 @@ Stop::Stop()
              "The \"STOP\" statement terminates program execution "
              "or reading of a called file.") {}
 
-Stop::Stop(const std::string& name, Stop* parent) : Action(name, parent) {}
-
 Stop::~Stop() {}
-
-Stop* Stop::clone(const std::string& name) { return new Stop(name, this); }
 
 void Stop::execute() {}

@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalCollimator.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
@@ -26,52 +28,38 @@ OpalCollimator::OpalCollimator()
               COMMON, "COLLIMATOR",
               "The \"COLLIMATOR\" element deletes particles that leave its transverse aperture.") {
     registerOwnership();
-
-    setElement(new CollimatorRep("COLLIMATOR"));
-}
-
-OpalCollimator::OpalCollimator(const std::string& name, OpalCollimator* parent)
-    : OpalElement(name, parent) {
-    setElement(new CollimatorRep(name));
 }
 
 OpalCollimator::~OpalCollimator() {}
 
-OpalCollimator* OpalCollimator::clone(const std::string& name) {
-    return new OpalCollimator(name, this);
+std::shared_ptr<ElementBase> OpalCollimator::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<CollimatorRep>(values.getName());
+    fill(*element, values);
+    return element;
 }
 
-void OpalCollimator::update() {
+void OpalCollimator::fill(ElementBase& element, const ObjectValues& values) {
     // Applies the common attributes, including APERTURE and
     // DELETEONTRANSVERSEEXIT, to the embedded element.
-    OpalElement::update();
+    setCommonFields(element, values);
 
-    // OpalData::update() calls update() on every object in the directory,
-    // including the unmodified builtin prototype whose attributes are all
-    // unset. Only validate real (cloned) element instances.
-    if (!isBuiltin()) {
-        // Unlike every other element, a collimator exists only to scrape, so
-        // an absent aperture is an error rather than the wide-open default.
-        if (!itsAttr[APERT] || Attributes::getString(itsAttr[APERT]).empty()) {
-            throw OpalException(
-                    "OpalCollimator::update()",
-                    "COLLIMATOR \"" + getOpalName() + "\" requires an APERTURE");
-        }
-
-        // The aperture is only enforced for z in [0, L), so L = 0 would never
-        // mark a particle.
-        if (Attributes::getReal(itsAttr[LENGTH]) <= 0.0) {
-            throw OpalException(
-                    "OpalCollimator::update()",
-                    "COLLIMATOR \"" + getOpalName() + "\" requires L > 0");
-        }
+    // Unlike every other element, a collimator exists only to scrape, so
+    // an absent aperture is an error rather than the wide-open default.
+    if (!values.hasValue("APERTURE") || values.getString("APERTURE").empty()) {
+        throw OpalException(
+                "OpalCollimator::build",
+                "COLLIMATOR \"" + values.getName() + "\" requires an APERTURE");
     }
 
-    const double length = Attributes::getReal(itsAttr[LENGTH]);
+    // The aperture is only enforced for z in [0, L), so L = 0 would never
+    // mark a particle.
+    if (values.getReal("L") <= 0.0) {
+        throw OpalException(
+                "OpalCollimator::build", "COLLIMATOR \"" + values.getName() + "\" requires L > 0");
+    }
 
-    CollimatorRep* coll = dynamic_cast<CollimatorRep*>(getElement());
+    const double length = values.getReal("L");
+
+    CollimatorRep* coll = dynamic_cast<CollimatorRep*>(&element);
     coll->getGeometry().setElementLength(length);
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(coll);
 }

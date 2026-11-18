@@ -31,9 +31,6 @@ public:
             h5_int32_t flags = H5_O_RDWR);
     virtual ~H5PartWrapperForPT();
 
-    virtual void readHeader();
-    virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle);
-
     virtual void writeHeader();
     virtual void writeStep(
             PartBunch_t*, const opalx::moments::BeamMoments& moments,
@@ -48,9 +45,6 @@ public:
     virtual bool predecessorIsSameFlavour() const;
 
 private:
-    void readStepHeader(PartBunch_t*);
-    void readStepData(PartBunch_t*, h5_ssize_t, h5_ssize_t);
-
     void writeStepHeader(
             PartBunch_t*, const opalx::moments::BeamMoments& moments,
             const std::map<std::string, double>&, size_t particleContainerIndex);

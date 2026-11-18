@@ -18,10 +18,11 @@
 #ifndef OPAL_OpalCavity_HH
 #define OPAL_OpalCavity_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalWake;
-class BoundaryGeometry;
 
 class OpalCavity : public OpalElement {
 public:
@@ -54,21 +55,16 @@ public:
 
     virtual ~OpalCavity();
 
-    /// Make clone.
-    virtual OpalCavity* clone(const std::string& name);
-
-    /// Update the embedded OPALX cavity.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalCavity(const OpalCavity&);
     void operator=(const OpalCavity&);
-
-    // Clone constructor.
-    OpalCavity(const std::string& name, OpalCavity* parent);
-
-    BoundaryGeometry* obgeo_m;
 };
 
 #endif  // OPAL_OpalCavity_HH

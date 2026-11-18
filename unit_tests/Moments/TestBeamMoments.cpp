@@ -264,7 +264,7 @@ TEST_F(BeamMomentsTest, KineticEnergyUsesReferenceMassWhenSet) {
     // The macro-particle mass differs from the species mass; the reference mass must win.
     auto pc = makeContainer(set, false, 1.0e3 * referenceMassGeV);
     const PartData species(1.0, referenceMassGeV * Units::GeV2eV, 1.0);
-    pc->setReference(&species);
+    pc->setReference(species);
 
     const BeamMoments m = compute(*pc, Moment::MeanMomentum | Moment::Spread);
     const Reference ref = reference(set);
@@ -398,8 +398,8 @@ TEST_F(BeamMomentsTest, UnionEqualsConcatenatedContainer) {
     auto empty = makeContainer({});
     const PartData proton(1.0, Physics::m_p * Units::GeV2eV, 1.0);
     const PartData electron(-1.0, Physics::m_e * Units::GeV2eV, 1.0);
-    a->setReference(&proton);
-    b->setReference(&electron);
+    a->setReference(proton);
+    b->setReference(electron);
 
     const std::vector<const PC_t*> containers = {a.get(), empty.get(), b.get()};
     const BeamMoments m                       = compute(containers, opalx::moments::allMoments);
@@ -499,7 +499,7 @@ TEST_F(BeamMomentsTest, RestFrameTemperatureRecoversBoostedAnisotropicSet) {
             }
             // The macro-particle mass differs from the species mass, which must be used.
             auto pc = makeContainer(set, false, 1.0e3 * massGeV);
-            pc->setReference(&proton);
+            pc->setReference(proton);
 
             const Vec3 temperature = compute(*pc, Moment::Spread).restFrameTemperature();
             for (int d = 0; d < 3; ++d) {

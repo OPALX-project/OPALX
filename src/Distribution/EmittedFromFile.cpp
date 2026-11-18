@@ -47,7 +47,7 @@ namespace {
                && lower.find("t") != std::string::npos && lower.find("pz") != std::string::npos;
     }
 
-    double getConfiguredEmissionTime(const Distribution_t* opalDist) {
+    double getConfiguredEmissionTime(const std::optional<DistributionSettings>& opalDist) {
         if (!opalDist || !opalDist->emitting_m) {
             return 0.0;
         }
@@ -103,10 +103,11 @@ namespace {
     }
 }  // namespace
 
-EmittedFromFile::EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+EmittedFromFile::EmittedFromFile(
+        std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist) {
-    filename_m      = opalDist->getFilename();
-    emissionSteps_m = opalDist->getEmissionSteps();
+    filename_m      = opalDist.getFilename();
+    emissionSteps_m = opalDist.getEmissionSteps();
     if (filename_m.empty()) {
         throw OpalException(
                 "EmittedFromFile::EmittedFromFile",
@@ -273,7 +274,6 @@ void EmittedFromFile::buildInventory(size_t requested) {
 
     if (selected == 0) {
         if (opalDist_m) {
-            opalDist_m->setTEmission(emissionTime_m);
         }
         inventoryBuilt_m = true;
         return;
@@ -328,7 +328,6 @@ void EmittedFromFile::buildInventory(size_t requested) {
         pulseCenter    = 0.5 * emissionTime_m;
     }
     if (opalDist_m) {
-        opalDist_m->setTEmission(emissionTime_m);
     }
 
     double pxSum = 0.0;

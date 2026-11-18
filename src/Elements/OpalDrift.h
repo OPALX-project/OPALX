@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalDrift_HH
 #define OPAL_OpalDrift_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalDrift : public OpalElement {
@@ -34,23 +36,20 @@ public:
 
     virtual ~OpalDrift();
 
-    /// Make clone.
-    virtual OpalDrift* clone(const std::string& name);
-
     /// Test for drift.
     //  Return true.
     virtual bool isDrift() const;
 
-    /// Update the embedded OPALX drift.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalDrift(const OpalDrift&);
     void operator=(const OpalDrift&);
-
-    // Clone constructor.
-    OpalDrift(const std::string& name, OpalDrift* parent);
 };
 
 #endif  // OPAL_OpalDrift_HH

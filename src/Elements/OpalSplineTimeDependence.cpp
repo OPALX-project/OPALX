@@ -17,6 +17,7 @@
 #include <string>
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
+#include "Track/ObjectValues.h"
 #include "Utilities/OpalException.h"
 
 const std::string OpalSplineTimeDependence::doc_string =
@@ -50,38 +51,30 @@ OpalSplineTimeDependence::OpalSplineTimeDependence()
     registerOwnership();
 }
 
-OpalSplineTimeDependence* OpalSplineTimeDependence::clone(const std::string& name) {
-    return new OpalSplineTimeDependence(name, this);
-}
-
 void OpalSplineTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-OpalSplineTimeDependence::OpalSplineTimeDependence(
-        const std::string& name, OpalSplineTimeDependence* parent)
-    : OpalElement(name, parent) {}
-
-void OpalSplineTimeDependence::update() {
-    const double order = Attributes::getReal(itsAttr[ORDER]);
+void OpalSplineTimeDependence::registerModel(const ObjectValues& values) {
+    const double order = values.getReal("ORDER");
     if (order != SplineTimeDependence::LinearInterpolation
         && order != SplineTimeDependence::CubicInterpolation) {
         throw OpalException(
-                "OpalSplineTimeDependence::update",
+                "OpalSplineTimeDependence::registerModel",
                 "SPLINE_TIME_DEPENDENCE \"ORDER\" should be 1 or 3.");
     }
     // Note we set array defaults as it seems that the default object must be valid
     std::vector<double> times;
-    if (itsAttr[TIMES]) {
-        times = Attributes::getRealArray(itsAttr[TIMES]);
+    if (values.hasValue("TIMES")) {
+        times = values.getRealArray("TIMES");
     } else {
         times = {0.0, 1.0};  // A default time array
     }
-    std::vector<double> values;
-    if (itsAttr[VALUES]) {
-        values = Attributes::getRealArray(itsAttr[VALUES]);
+    std::vector<double> splineValues;
+    if (values.hasValue("VALUES")) {
+        splineValues = values.getRealArray("VALUES");
     } else {
-        values = {0.0, 0.0};  // A default value array
+        splineValues = {0.0, 0.0};  // A default value array
     }
     const auto spline =
-            std::make_shared<SplineTimeDependence>(static_cast<size_t>(order), times, values);
-    AbstractTimeDependence::setTimeDependence(getOpalName(), spline);
+            std::make_shared<SplineTimeDependence>(static_cast<size_t>(order), times, splineValues);
+    AbstractTimeDependence::setTimeDependence(values.getName(), spline);
 }

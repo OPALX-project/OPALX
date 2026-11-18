@@ -26,16 +26,16 @@ public:
     RealConstant();
 
     /// Constructor for built-in constants.
-    RealConstant(const std::string& name, RealConstant* parent, double value);
+    RealConstant(const std::string& name, double value);
+
+    /// Define the built-in constants (PI, EMASS, ...). Called once by Configure.
+    static void defineBuiltins();
 
     virtual ~RealConstant();
 
     /// Test if object can be replaced.
     //  Always false for constants.
     virtual bool canReplaceBy(Object* object);
-
-    /// Make clone.
-    virtual RealConstant* clone(const std::string& name);
 
     /// Print the constant.
     virtual void print(std::ostream&) const;
@@ -50,9 +50,6 @@ private:
     // Not implemented.
     RealConstant(const RealConstant&);
     void operator=(const RealConstant&);
-
-    // Clone constructor.
-    RealConstant(const std::string& name, RealConstant* parent);
 };
 
 #endif  // OPAL_RealConstant_HH

@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 
 #include <memory>
 #include <random>
@@ -64,6 +65,7 @@ namespace {
 
             dataSink = std::make_shared<DataSink>();
             beam     = std::make_shared<Beam>();
+            Beam::defineBuiltins();
             testBeam = Beam::find("UNNAMED_BEAM");
             ASSERT_NE(testBeam, nullptr);
 
@@ -74,7 +76,9 @@ namespace {
 
             bunch = std::make_shared<PartBunch_t>(
                     std::vector<double>{q0, q1}, std::vector<double>{m0, m1},
-                    std::vector<Beam*>{testBeam, testBeam},
+                    std::vector{
+                            opalx::run::describeBeamForBunch(*testBeam),
+                            opalx::run::describeBeamForBunch(*testBeam)},
                     std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2", storageConfig);
@@ -210,17 +214,9 @@ namespace {
         EXPECT_THROW(
                 static_cast<void>(std::make_shared<PartBunch_t>(
                         std::vector<double>{1.0}, std::vector<double>{1.0, 1.0},
-                        std::vector<Beam*>{testBeam, testBeam},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        storageConfig)),
-                OpalException);
-    }
-
-    TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnNullBeam) {
-        EXPECT_THROW(
-                static_cast<void>(std::make_shared<PartBunch_t>(
-                        std::vector<double>{1.0, 1.0}, std::vector<double>{1.0, 1.0},
-                        std::vector<Beam*>{testBeam, nullptr},
+                        std::vector{
+                                opalx::run::describeBeamForBunch(*testBeam),
+                                opalx::run::describeBeamForBunch(*testBeam)},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
                         storageConfig)),
                 OpalException);
@@ -239,7 +235,9 @@ namespace {
         ASSERT_NO_THROW(
                 overlapBunch = std::make_shared<PartBunch_t>(
                         std::vector<double>{q0_m, q1_m}, std::vector<double>{m0_m, m1_m},
-                        std::vector<Beam*>{testBeam, testBeam},
+                        std::vector{
+                                opalx::run::describeBeamForBunch(*testBeam),
+                                opalx::run::describeBeamForBunch(*testBeam)},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
                         overlapConfig));
 
@@ -265,7 +263,8 @@ namespace {
         overlapConfig.overlapCutoffCells = 1.0;
 
         const auto overlapBunch = std::make_shared<PartBunch_t>(
-                std::vector<double>{q0_m}, std::vector<double>{m0_m}, std::vector<Beam*>{testBeam},
+                std::vector<double>{q0_m}, std::vector<double>{m0_m},
+                std::vector{opalx::run::describeBeamForBunch(*testBeam)},
                 std::vector<size_t>{kParticlesPerBeam}, 1.0, "LF2", overlapConfig);
         EXPECT_DOUBLE_EQ(
                 overlapBunch->getParticleContainer()->getP3MLayout().getCutoff(), 6.0 / 8.0);

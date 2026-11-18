@@ -16,7 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalMultipole.h"
+
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -53,65 +55,56 @@ OpalMultipole::OpalMultipole()
             "DKS", "Errors added to KS, in m^(-k). Same entries and rules as KN.");
 
     registerOwnership();
-
-    setElement(new MultipoleRep("MULTIPOLE"));
-}
-
-OpalMultipole::OpalMultipole(const std::string& name, OpalMultipole* parent)
-    : OpalElement(name, parent) {
-    setElement(new MultipoleRep(name));
 }
 
 OpalMultipole::~OpalMultipole() {}
 
-OpalMultipole* OpalMultipole::clone(const std::string& name) {
-    return new OpalMultipole(name, this);
-}
-
 void OpalMultipole::print(std::ostream& os) const { OpalElement::print(os); }
 
-void OpalMultipole::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalMultipole::build(const ObjectValues& values, double p0) {
+    auto element = std::make_shared<MultipoleRep>(values.getName());
+    fill(*element, values, p0);
+    return element;
+}
+
+void OpalMultipole::fill(ElementBase& element, const ObjectValues& values, double p0) {
+    setCommonFields(element, values);
 
     // Get pointer to MultipoleRep object to set length
-    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
-    double length      = getLength();
+    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(&element);
+    double length      = values.getReal("L");
     mult->getGeometry().setElementLength(length);
 
     // Get the vector with the multipole expansion components
-    const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);
-    std::vector<double> normErrors = Attributes::getRealArray(itsAttr[DKN]);
-    const std::vector<double> skew = Attributes::getRealArray(itsAttr[KS]);
-    std::vector<double> skewErrors = Attributes::getRealArray(itsAttr[DKS]);
+    const std::vector<double> norm = values.getRealArray("KN");
+    std::vector<double> normErrors = values.getRealArray("DKN");
+    const std::vector<double> skew = values.getRealArray("KS");
+    std::vector<double> skewErrors = values.getRealArray("DKS");
 
-    // OpalData::update() calls update() on every object in the directory, including the
-    // unmodified builtin prototype. Only check real (cloned) element instances.
-    if (!isBuiltin()) {
-        // MULTIPOLE is placed as a straight element, so a dipole entry would steer the beam away
-        // from the line the element sits on. The errors are added to the strengths, so their
-        // first entry would make a dipole too.
-        const auto check = [this](const std::string& name, const std::vector<double>& values) {
-            if (values.size() > static_cast<std::size_t>(MAX_MP_ORDER)) {
-                throw OpalException(
-                        "OpalMultipole::update",
-                        "MULTIPOLE \"" + getOpalName() + "\": " + name + " has "
-                                + std::to_string(values.size())
-                                + " entries. MULTIPOLE goes up to decapole: at most 5 entries "
-                                  "(dipole, quadrupole, sextupole, octupole, decapole).");
-            }
-            if (!values.empty() && values[0] != 0.0) {
-                throw OpalException(
-                        "OpalMultipole::update",
-                        "MULTIPOLE \"" + getOpalName() + "\": the first " + name
-                                + " entry is the dipole and must be 0. MULTIPOLE is a straight "
-                                  "element; use SBEND or RBEND for a dipole field.");
-            }
-        };
-        check("KN", norm);
-        check("DKN", normErrors);
-        check("KS", skew);
-        check("DKS", skewErrors);
-    }
+    // MULTIPOLE is placed as a straight element, so a dipole entry would steer the beam away
+    // from the line the element sits on. The errors are added to the strengths, so their
+    // first entry would make a dipole too.
+    const auto check = [&values](const std::string& name, const std::vector<double>& entries) {
+        if (entries.size() > static_cast<std::size_t>(MAX_MP_ORDER)) {
+            throw OpalException(
+                    "OpalMultipole::build",
+                    "MULTIPOLE \"" + values.getName() + "\": " + name + " has "
+                            + std::to_string(entries.size())
+                            + " entries. MULTIPOLE goes up to decapole: at most 5 entries "
+                              "(dipole, quadrupole, sextupole, octupole, decapole).");
+        }
+        if (!entries.empty() && entries[0] != 0.0) {
+            throw OpalException(
+                    "OpalMultipole::build",
+                    "MULTIPOLE \"" + values.getName() + "\": the first " + name
+                            + " entry is the dipole and must be 0. MULTIPOLE is a straight "
+                              "element; use SBEND or RBEND for a dipole field.");
+        }
+    };
+    check("KN", norm);
+    check("DKN", normErrors);
+    check("KS", skew);
+    check("DKS", skewErrors);
 
     // Resize error arrays
     unsigned int normSize = norm.size();
@@ -124,7 +117,7 @@ void OpalMultipole::update() {
     // KN/KS are NORMALISED strengths [m^-(n+1)]; the components stored/applied by
     // Multipole are physical field coefficients [T/m^n]. Convert with Brho = P0/c,
     // one factor for every order, exactly as OpalSBend does (OpalSBend.cpp:71-76).
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double factor = p0 / Physics::c;
 
     // Loop over components (0=Dipole, 1=Quadrupole, ...) populating the device
     // coefficient views read by Multipole::apply().
@@ -136,7 +129,4 @@ void OpalMultipole::update() {
             mult->setSkewComponent(comp, factor * skew[comp], factor * skewErrors[comp]);
         }
     }
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(mult);
 }

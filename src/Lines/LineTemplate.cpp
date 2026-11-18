@@ -42,10 +42,6 @@ LineTemplate::LineTemplate(const std::string& name, Object* parent)
 
 LineTemplate::~LineTemplate() {}
 
-LineTemplate* LineTemplate::clone(const std::string& /*name*/) {
-    throw ParseError("LineTemplate::clone()", "You cannot use this object without attributes.");
-}
-
 Object* LineTemplate::makeInstance(const std::string& name, Statement& statement, const Parser*) {
     Line* instance = 0;
 
@@ -82,8 +78,7 @@ Object* LineTemplate::makeInstance(const std::string& name, Statement& statement
         }
 
         // Parse the modified line.
-        Line* model = dynamic_cast<Line*>(OpalData::getInstance()->find("LINE"));
-        instance    = model->clone(name);
+        instance = static_cast<Line*>(OpalData::getInstance()->makeObject("LINE", name));
         instance->copyAttributes(*this);
         expansion.start();
         instance->parse(expansion);

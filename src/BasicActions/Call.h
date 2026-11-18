@@ -27,9 +27,6 @@ public:
 
     virtual ~Call();
 
-    /// Make clone.
-    virtual Call* clone(const std::string& name);
-
     /// Execute the command.
     virtual void execute();
 
@@ -40,9 +37,6 @@ private:
     // Not implemented.
     Call(const Call&);
     void operator=(const Call&);
-
-    // Clone constructor.
-    Call(const std::string& name, Call* parent);
 };
 
 #endif  // OPAL_Call_HH

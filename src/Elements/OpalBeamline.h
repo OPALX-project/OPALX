@@ -35,8 +35,6 @@
 
 #include "OPALTypes.h"
 
-class BoundaryGeometry;
-
 /**
  * @brief Placed runtime lattice used for external-field queries.
  *
@@ -47,13 +45,11 @@ class OpalBeamline {
 public:
     OpalBeamline();
     OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation);
-    ~OpalBeamline();
 
-    void activateElements();
     /// Select runtime elements whose isInside() support contains lab position x [m].
     /// Includes aperture checks; selection does not imply a nonzero field. Candidates come
     /// from the element grid once placement is final, otherwise every element is tested.
-    std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
+    ElementSet getElements(const Vector_t<double, 3>& x);
 
     /**
      * @brief Build the element grid from the placed elements with the current OPTION values.
@@ -70,7 +66,7 @@ public:
      * Get all elements in the beamline, regardless of their position.
      * @return Set of shared pointers to all runtime elements, not a reference-path ordering.
      */
-    std::set<std::shared_ptr<ElementBase>> getElements();
+    ElementSet getElements();
 
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
@@ -97,7 +93,8 @@ public:
 
     void switchElementsOff();
 
-    BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
+    /// Turn reference recording of every MONITOR on or off (Monitor::setRecordReference()).
+    void setMonitorsRecordReference(bool record);
 
     unsigned long getFieldAt(
             const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,
@@ -108,6 +105,17 @@ public:
 
     template <class T>
     void visit(const T&, BeamlineVisitor&, PartBunch_t&);
+
+    /**
+     * @brief Add a copy of @p element to the tracked elements and call its initialise().
+     * @note The copy gets the next line index (see ElementBase::getLineIndex()).
+     */
+    void addElement(const ElementBase& element, PartBunch_t& bunch);
+    /**
+     * @brief Add @p element itself (no copy) to the tracked elements and call its initialise().
+     * @note For elements built for one RUN only (opalx::run::buildElements()).
+     */
+    void addElement(std::shared_ptr<ElementBase> element, PartBunch_t& bunch);
 
     void prepareSections();
     void compute3DLattice();
@@ -146,17 +154,24 @@ private:
     CoordinateSystemTrafo coordTransformationTo_m;
 };
 
-template <class T>
-inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
+inline void OpalBeamline::addElement(const ElementBase& element, PartBunch_t& bunch) {
+    addElement(std::shared_ptr<ElementBase>(element.clone()), bunch);
+}
 
+inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBunch_t& bunch) {
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
-    elements_m.push_back(elptr);
+    elptr->setLineIndex(elements_m.size() + 1);
+    elements_m.push_back(std::move(elptr));
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
     elementMapping_m.reset();
+}
+
+template <class T>
+inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
+    addElement(element, bunch);
 }
 
 template <>

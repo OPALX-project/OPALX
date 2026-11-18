@@ -18,6 +18,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 // Class OpalMarker
@@ -29,25 +31,23 @@ public:
     /// Exemplar constructor.
     OpalMarker();
 
-    virtual ~OpalMarker();
+    /// Define the built-in markers #S and #E, which begin and end every LINE. Called once by
+    /// Configure.
+    static void defineBuiltins();
 
-    /// Make clone.
-    virtual OpalMarker* clone(const std::string& name);
+    virtual ~OpalMarker();
 
     /// Print the element.
     //  Handle printing in OPAL-8 format.
     virtual void print(std::ostream&) const;
 
-    /// Update the embedded OPALX marker.
-    virtual void update();
+    /// Build the runtime element of one occurrence: a marker has no settings.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
     // Not implemented.
     OpalMarker(const OpalMarker&);
     void operator=(const OpalMarker&);
-
-    // Clone constructor.
-    OpalMarker(const std::string& name, OpalMarker* parent);
 };
 
 #endif  // OPAL_OpalMarker_HH

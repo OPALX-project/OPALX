@@ -222,7 +222,7 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
  *
  * @note The kernel launch is moved inside this functions for GPU compatibility
  */
-void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     *gmsg << level3 << "Multipole::apply() called" << endl;
     // Get the views
     auto Rview          = pc->R.getView();

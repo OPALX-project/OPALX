@@ -1,0 +1,106 @@
+//
+// Tests for buildElement() and buildElements(): runtime elements built from a run description.
+//
+// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+#include <gtest/gtest.h>
+
+#include <memory>
+#include <sstream>
+#include <string>
+
+#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbstractObjects/Element.h"
+#include "AbstractObjects/OpalData.h"
+#include "Attributes/Attributes.h"
+#include "Ippl.h"
+#include "OpalConfigure/Configure.h"
+#include "Physics/Physics.h"
+#include "Track/BuildElements.h"
+#include "Track/FreezeRun.h"
+#include "Utilities/OpalException.h"
+#include "Utility/Inform.h"
+
+extern Inform* gmsg;
+
+using namespace opalx::run;
+
+namespace {
+
+    /// A QUADRUPOLE input object, the way the parser makes it, with L, ELEMEDGE and maybe K1.
+    std::unique_ptr<Object> quadrupoleObject(const std::string& name, bool withK1 = true) {
+        std::unique_ptr<Object> input(OpalData::getInstance()->makeObject("QUADRUPOLE", name));
+        Attributes::setReal(*input->findAttribute("L"), 0.1);
+        if (withK1) Attributes::setReal(*input->findAttribute("K1"), 2.5);
+        Attributes::setReal(*input->findAttribute("ELEMEDGE"), 0.3);
+        return input;
+    }
+
+    ElementDescription quadrupole(const std::string& name, bool withK1 = true) {
+        ElementDescription element;
+        element.object      = describeObject(*quadrupoleObject(name, withK1));
+        element.elementType = "Multipole";
+        return element;
+    }
+
+    class BuildElementsTest : public ::testing::Test {
+    protected:
+        void SetUp() override {
+            gmsg = new Inform("", output_m, INFORM_ALL_NODES);
+            Configure::configure();
+        }
+
+        void TearDown() override {
+            OpalData::deleteInstance();
+            delete gmsg;
+            gmsg = nullptr;
+        }
+
+        std::ostringstream output_m;
+    };
+
+}  // namespace
+
+/// The input variable P0 (eV/c) the tests build with.
+constexpr double kP0 = 2.0e8;
+
+TEST_F(BuildElementsTest, ElementHasTheValuesOfTheInputObject) {
+    const auto built = buildElement(quadrupole("Q1"), kP0);
+    const auto* got  = dynamic_cast<const Multipole*>(built.get());
+    ASSERT_NE(got, nullptr);
+    EXPECT_EQ(got->getName(), "Q1");
+    EXPECT_EQ(got->getGeometry().getElementLength(), 0.1);
+    EXPECT_EQ(got->getElementPosition(), 0.3);
+    // K1 is a normalised strength; the element stores K1 * P0 / c.
+    EXPECT_DOUBLE_EQ(got->getNormalComponent(1), 2.5 * kP0 / Physics::c);
+}
+
+TEST_F(BuildElementsTest, AttributesTheInputDidNotSetKeepTheKeywordDefault) {
+    const auto built = buildElement(quadrupole("Q2", false), kP0);
+    const auto* got  = dynamic_cast<const Multipole*>(built.get());
+    ASSERT_NE(got, nullptr);
+    EXPECT_EQ(got->getNormalComponent(1), 0.0);         // K1 has no default
+    EXPECT_TRUE(got->getFlagDeleteOnTransverseExit());  // DELETEONTRANSVERSEEXIT defaults to true
+}
+
+TEST_F(BuildElementsTest, UnknownKeywordOrFailedAttributeThrows) {
+    ElementDescription unknown = quadrupole("Q3");
+    unknown.object.keyword     = "NOT_A_KEYWORD";
+    EXPECT_THROW(buildElement(unknown, kP0), OpalException);
+
+    ElementDescription failed = quadrupole("Q4");
+    for (AttributeEntry& entry : failed.object.attributes) {
+        if (entry.name == "K1") entry.error = "Can't find variable 'X'";
+    }
+    EXPECT_THROW(buildElement(failed, kP0), OpalException);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    ippl::initialize(argc, argv);
+    const int result = RUN_ALL_TESTS();
+    ippl::finalize();
+    return result;
+}

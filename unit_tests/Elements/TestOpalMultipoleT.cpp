@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU General License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "../KeywordObjects.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalMultipoleT.h"
@@ -39,7 +40,8 @@ public:
 // Does the user interface affect the correct magnet configuration
 TEST_F(TestOpalMultipoleT, UserInterface) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -55,10 +57,11 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::MAXXORDER], 7.0);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
-    // Update the magnet
-    EXPECT_NO_THROW(ui.update());
+    // Build the magnet
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(ui));
     // Check the values
-    auto* myMagnet = dynamic_cast<MultipoleT*>(ui.getElement());
+    auto* myMagnet = dynamic_cast<MultipoleT*>(built.get());
     EXPECT_TRUE(myMagnet);
     EXPECT_NEAR(myMagnet->getGeometry().getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
@@ -83,26 +86,32 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     // Check rotation (only works for straight magnets)
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.0);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ROTATION], 0.1);
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(ui));
+    myMagnet = dynamic_cast<MultipoleT*>(built.get());
+    ASSERT_TRUE(myMagnet);
     EXPECT_NEAR(myMagnet->getRotation(), 0.1, 1e-6);
     // Check entry offset (only works for var radius magnets)
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ROTATION], 0.0);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 1.2);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], true);
-    EXPECT_ANY_THROW(ui.update());  // Currently throws 'cos var radius not yet supported
+    EXPECT_ANY_THROW(
+            opalx::test::buildFrom(ui));  // Currently throws 'cos var radius not yet supported
     // Check time dependency
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(built = opalx::test::buildFrom(ui));
+    myMagnet = dynamic_cast<MultipoleT*>(built.get());
+    ASSERT_TRUE(myMagnet);
     EXPECT_EQ(myMagnet->getScalingName(), "SCALING");
 }
 
 // Does the user interface clone have the correct magnet configuration
 TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -119,14 +128,15 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
-    // A non-builtin (cloned) element must be placed, otherwise update() rejects it.
+    // An input element must be placed, otherwise building it fails.
     Attributes::setReal(*ui.findAttribute("ELEMEDGE"), 0.0);
-    // Make the clone
-    std::unique_ptr<OpalMultipoleT> uiClone{ui.clone("Clone")};
-    // Update the magnet
-    EXPECT_NO_THROW(uiClone->update());
+    // Make a copy, as "CLONE: UI;" does
+    std::unique_ptr<OpalMultipoleT> uiClone = opalx::test::copyOf(ui, "Clone");
+    // Build the magnet
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(*uiClone));
     // Check the values
-    auto* myMagnet = dynamic_cast<MultipoleT*>(uiClone->getElement());
+    auto* myMagnet = dynamic_cast<MultipoleT*>(built.get());
     EXPECT_TRUE(myMagnet);
     EXPECT_NEAR(myMagnet->getGeometry().getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
@@ -158,7 +168,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
 // Check the various configuration validation tests
 TEST_F(TestOpalMultipoleT, UserInterfaceSanityCheck) {
     // Make the UI
-    OpalMultipoleT ui;
+    auto uiObject      = opalx::test::makePlacedElement<OpalMultipoleT>("MULTIPOLET", "MULTIPOLET");
+    OpalMultipoleT& ui = *uiObject;
     // Set the attributes
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::LENGTH], 4.1);
     Attributes::setRealArray(ui.itsAttr[OpalMultipoleT::TP], {0.2, 0.3});
@@ -175,39 +186,39 @@ TEST_F(TestOpalMultipoleT, UserInterfaceSanityCheck) {
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     // Try F order of zero
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::MAXFORDER], 0.0);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try F order of 21
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::MAXFORDER], 21.0);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try skew straight magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::MAXFORDER], 4);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.0);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ROTATION], 0.5);
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(opalx::test::buildFrom(ui));
     // Try skew bent magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ROTATION], 0.5);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try the variable radius magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ROTATION], 0.0);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], true);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try the entry offset with a straight magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.0);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 1.0);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try the entry offset with a bent magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 1.0);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
     // Try the entry offset with a variable radius bent magnet
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], true);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 1.0);
-    EXPECT_ANY_THROW(ui.update());
+    EXPECT_ANY_THROW(opalx::test::buildFrom(ui));
 }
 
 // Does the print API work

@@ -24,7 +24,7 @@
 
 #include <optional>
 #include "Algorithms/StepSizeConfig.h"
-#include "Algorithms/Tracker.h"
+#include "Algorithms/TrackingSetup.h"
 #include "Steppers/BorisPusher.h"
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
@@ -80,33 +80,27 @@ namespace opalx::spacecharge {
  * @note TRACK and RUN in the input file construct a ParallelTracker and run
  *       ParallelTracker::execute().
  */
-class ParallelTracker : public Tracker {
-public:
-    /// Position within drift-kick-drift at which the particle self-field is evaluated.
-    enum class SpaceChargeFieldUpdate {
-        MIDPOINT,  ///< Solve after the first half drift (default OPALX ordering).
-        PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
-    };
-
-    /// Reference momentum [beta*gamma] per container from BEAM for a file distribution;
-    /// an empty entry uses the bunch mean.
-    void setBeamReferenceMomenta(std::vector<std::optional<Vector_t<double, 3>>> momenta) {
-        beamReferenceMomenta_m = std::move(momenta);
-    }
-
-    /** Select the self-field evaluation point. This changes temporal discretization only;
-     * deposition, field solver, and Boris kick are unchanged.
-     */
-    void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
-        spaceChargeFieldUpdate_m = update;
-    }
-    /// Stop conditions of every beam, one per particle container; see BeamStop. On a restart
-    /// they include the planes and done flags restored from the checkpoint.
-    void setBeamStops(std::vector<BeamStop> stops) { beamStops_m = std::move(stops); }
-
+class ParallelTracker {
 private:
+    /// The particle bunch to track. Borrowed; opalx::run::RunObjects owns it.
+    PartBunch_t* itsBunch_m;
+    /// OPTION values of this RUN; the tracker reads no Options:: globals.
+    opalx::run::OptionValues options_m;
     /// Per-container reference momentum [beta*gamma] set on BEAM; empty uses the bunch mean.
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
+    /**
+     * @brief Everything before the first step that needs the tracker: the start of the
+     *        reference particles, the reference pass with autophase and the initial output.
+     * @return False if a restart is already at the end of the schedule.
+     */
+    bool startTracking();
+    /// Bunch time, time step and step number of the current step, passed to element apply().
+    StepTime stepTime() const {
+        return {itsBunch_m->getT(), itsBunch_m->getdT(),
+                static_cast<long long>(itsBunch_m->getGlobalTrackStep())};
+    }
+    /// The step loop and the final output; startTracking() must have returned true.
+    void trackSteps();
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
@@ -118,6 +112,7 @@ private:
     bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
     std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     double sStart_m;                    ///< Path-length start position for the track (m).
+    double globalPhaseShift_m;          ///< A fresh run starts this long before t = 0 (s).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -129,113 +124,26 @@ private:
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
+    CavityPhases cavityPhases_m;  ///< Phases autophase set (and a restart restored).
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef referencePassTimer_m;
 
 public:
     /**
-     * @brief Construct tracker with beamline only (no bunch attached here).
-     * @param bl       Beamline definition.
-     * @param revBeam  If true, reversed beam direction (s = C to 0); OPAL-T parallel
-     *                 tracking is forward-only; revTrack is not used.
+     * @brief Construct the tracker for one RUN.
+     * @param setup Everything buildTracking() built for this RUN; setup.bunch must be set.
      */
-    explicit ParallelTracker(const Beamline& bl, bool revBeam);
-
-    /**
-     * @brief Construct tracker with bunch, output sink, and step-size schedule.
-     * @param bl                Beamline definition.
-     * @param bunch             Borrowed particle bunch (multi-container).
-     * @param spaceChargeSolver   Borrowed solver owned by TrackRun.
-     * @param dirichletPlane      Dirichlet plane used by tracker-side loss handling.
-     * @param ds                Borrowed data sink for statistics and dumps.
-     * @param revBeam           Reversed beam flag (see single-argument constructor).
-     * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
-     * @param sStart            Starting path length (m).
-     * @param sStop             Stop path length per segment (m).
-     * @param dt                Time step per segment (s).
-     * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
-     * @param restarting        True when bunch state was restored from a checkpoint.
-     * @param restartGlobalStep Completed global integration steps restored from a checkpoint.
-     * @param restartDt         Time step stored in the checkpoint.
-     * @param restartPosition   Saved step-size segment and completed steps within that segment.
-     */
-    explicit ParallelTracker(
-            const Beamline& bl, PartBunch_t& bunch,
-            opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-            opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
-            const std::vector<unsigned long long>& maxSTEPS, double sStart,
-            const std::vector<double>& sStop, const std::vector<double>& dt,
-            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
-            bool restarting = false, unsigned long long restartGlobalStep = 0,
-            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0});
+    explicit ParallelTracker(TrackingSetup setup);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
-    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
-    /// DefaultVisitor.
-    void visitBeamline(const Beamline&) override;
-
-    /// @brief Visit a generic element using the base tracker behavior.
-    void visitElementBase(const ElementBase&) override;
-
-    /// @brief Apply the algorithm to a constant E-field cavity.
-    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
-
-    /// @brief Apply the algorithm to a constant linear focusing element.
-    void visitConstantFocusing(const ConstantFocusing&) override;
-    /// @brief Apply the algorithm to a box absorber.
-    void visitBox(const Box&) override;
-
-    /// @brief Apply the algorithm to a collimator.
-    void visitCollimator(const Collimator&) override;
-
-    /// @brief Apply the algorithm to a drift.
-    void visitDrift(const Drift&) override;
-
-    /// @brief Apply the algorithm to a field-map-driven element.
-    void visitFieldmapElement(const FieldmapElement&) override;
-
-    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
-    void visitLaser(const Laser&) override;
-
-    /// @brief Apply the algorithm to a monitor.
-    void visitMonitor(const Monitor&) override;
-
-    /// @brief Apply the algorithm to a marker.
-    void visitMarker(const Marker&) override;
-
-    /// @brief Apply the algorithm to a multipole.
-    void visitMultipole(const Multipole&) override;
-
-    /// @brief Apply the algorithm to a multipole (templated type).
-    void visitMultipoleT(const MultipoleT&) override;
-
-    /// @brief Apply the algorithm to a rectangular bend.
-    void visitRBend(const RBend&) override;
-
-    /// @brief Apply the algorithm to an RF cavity.
-    void visitRFCavity(const RFCavity&) override;
-
-    /// @brief Register and initialise an analytic time-dependent RF cavity.
-    void visitVariableRFCavity(const VariableRFCavity&) override;
-
-    /// @brief Apply the algorithm to a sector bend.
-    void visitSBend(const SBend&) override;
-
-    /// @brief Apply the algorithm to a traveling wave cavity.
-    void visitTravelingWave(const TravelingWave&) override;
-
-    /// @brief Apply the algorithm to a solenoid.
-    void visitSolenoid(const Solenoid&) override;
-
     /// @brief Run the main tracking loop until all step-size segments complete.
-    void execute() override;
+    void execute();
 
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.
@@ -302,9 +210,6 @@ public:
 
     /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
     void changeDT();
-
-    /// @brief Reset per-particle dt views to the current global bunch dt.
-    void setTime();
 
 private:
     struct SpaceChargeEmissionProgress {
@@ -376,9 +281,6 @@ private:
             bool psDump, bool statDump, bool stepLog,
             std::span<const opalx::moments::BeamMoments> computed) const;
 
-    /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
-    void prepareSections();
-
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
@@ -409,86 +311,6 @@ private:
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
     void autophaseCavities(const BorisPusher& pusher);
-
-    /**
-     * @brief Set stored RF phase on the named cavity or traveling-wave element.
-     * @param elName  Element name to match.
-     * @param maxPhi  RF phase to apply (rad).
-     */
-    void updateRFElement(std::string elName, double maxPhi);
-
-    /// @brief Print RF phases (debug/diagnostic hook).
-    void printRFPhases();
-
-    /// @brief Persist cavity phases to the data sink.
-    void saveCavityPhases();
-
-    /// @brief Restore cavity phases from a prior track or restart.
-    void restoreCavityPhases();
 };
-
-inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
-    itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
-    itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitBox(const Box& box) {
-    itsOpalBeamline_m.visit(box, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitCollimator(const Collimator& coll) {
-    itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitDrift(const Drift& drift) {
-    itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
-    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
-    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMarker(const Marker& marker) {
-    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMultipole(const Multipole& mult) {
-    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
-    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitRBend(const RBend& bend) {
-    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
-    itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitVariableRFCavity(const VariableRFCavity& cavity) {
-    itsOpalBeamline_m.visit(cavity, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitSBend(const SBend& bend) {
-    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
-    itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
-    itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
-}
 
 #endif  // OPALX_ParallelTracker_HH

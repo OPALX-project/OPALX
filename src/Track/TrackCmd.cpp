@@ -52,13 +52,6 @@ namespace {
     };
 }  // namespace
 
-const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegrator_s = {
-        {"RK-4", Steppers::TimeIntegrator::RK4},
-        {"RK4", Steppers::TimeIntegrator::RK4},
-        {"LF-2", Steppers::TimeIntegrator::LF2},
-        {"LF2", Steppers::TimeIntegrator::LF2},
-        {"MTS", Steppers::TimeIntegrator::MTS}};
-
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
 
@@ -104,11 +97,7 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "ENDTRACK");
 }
 
-TrackCmd::TrackCmd(const std::string& name, TrackCmd* parent) : Action(name, parent) {}
-
 TrackCmd::~TrackCmd() {}
-
-TrackCmd* TrackCmd::clone(const std::string& name) { return new TrackCmd(name, this); }
 
 std::vector<double> TrackCmd::getDT() const {
     std::vector<double> dTs = Attributes::getRealArray(itsAttr[DT]);
@@ -123,10 +112,6 @@ std::vector<double> TrackCmd::getDT() const {
     }
     return dTs;
 }
-
-double TrackCmd::getDTSCINIT() const { return Attributes::getReal(itsAttr[DTSCINIT]); }
-
-double TrackCmd::getDTAU() const { return Attributes::getReal(itsAttr[DTAU]); }
 
 double TrackCmd::getT0() const { return Attributes::getReal(itsAttr[T0]); }
 
@@ -160,17 +145,11 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
     return maxsteps_i;
 }
 
-Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
-    std::string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
-    return stringTimeIntegrator_s.at(name);
-}
-
 void TrackCmd::execute() {
     // Find BeamSequence
     BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
 
     // TRACK,SOURCES is optional (and ignored); emission sources come from the selected BEAM.
-    EmissionSourceList* emissionSourcesList = nullptr;
 
     // Resolve beams (BEAMS has precedence over BEAM).
     std::vector<std::string> beamNames = Attributes::getStringArray(itsAttr[BEAMS]);
@@ -198,13 +177,17 @@ void TrackCmd::execute() {
 
     std::vector<double> dt                   = getDT();
     double t0                                = getT0();
-    double dtScInit                          = getDTSCINIT();
-    double deltaTau                          = getDTAU();
     std::vector<unsigned long long> maxsteps = getMaxSteps();
     double zstart                            = getZStart();
     std::vector<double> zstop                = getZStop();
 
-    Steppers::TimeIntegrator timeintegrator = getTimeIntegrator();
+    // Accepted so that old input files read unchanged; nothing uses them.
+    for (const int attr : {TIMEINTEGRATOR, DTSCINIT, DTAU}) {
+        if (!itsAttr[attr].defaultUsed()) {
+            *gmsg << level1 << "* TRACK " << itsAttr[attr].getName() << " has no effect in OPALX."
+                  << endl;
+        }
+    }
 
     size_t numTracks = dt.size();
     numTracks        = std::max(numTracks, maxsteps.size());
@@ -222,9 +205,7 @@ void TrackCmd::execute() {
     /// \todo track block needs to be removed
     /// \todo here the tracker is constructed
 
-    Track::block = new Track(
-            theLineToTrack, beam->getReference(), dt, maxsteps, zstart, zstop, timeintegrator, t0,
-            dtScInit, deltaTau, emissionSourcesList, beamNames);
+    Track::block = new Track(theLineToTrack, dt, maxsteps, zstart, zstop, t0, beamNames);
     Track::block->zStopGiven = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
 
     Track::block->parser.run();

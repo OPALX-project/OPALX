@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalBox_HH
 #define OPAL_OpalBox_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalBox : public OpalElement {
@@ -34,24 +36,21 @@ public:
 
     virtual ~OpalBox();
 
-    /// Make clone.
-    virtual OpalBox* clone(const std::string& name);
-
     /**
-     * @brief Update the embedded OPALX box.
+     * @brief Build the runtime box of one occurrence from its attribute values.
      *
      * @throw OpalException if WIDTH, HEIGHT or L is not > 0, or if APERTURE is
      *        given. A box has no aperture: it removes particles inside its body.
      */
-    virtual void update();
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalBox(const OpalBox&);
     void operator=(const OpalBox&);
-
-    // Clone constructor.
-    OpalBox(const std::string& name, OpalBox* parent);
 };
 
 #endif  // OPAL_OpalBox_HH

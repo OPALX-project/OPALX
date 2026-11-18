@@ -148,7 +148,11 @@ namespace Expressions {
         if (itsObject == 0) {
             itsObject = OpalData::getInstance()->find(obj_name);
             if (itsObject == 0) {
-                if (att_name.empty()) {
+                if (OpalData::getInstance()->isKeyword(obj_name)) {
+                    throw ParseError(
+                            "SRefExpr::fill()",
+                            "\"" + obj_name + "\" is a keyword, not a defined object.");
+                } else if (att_name.empty()) {
                     throw ParseError(
                             "SRefExpr::fill()",
                             "\nThe <variable> \"" + obj_name + "\" is unknown.\n");

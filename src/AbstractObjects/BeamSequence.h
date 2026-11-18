@@ -20,8 +20,6 @@
 
 #include "AbstractObjects/Element.h"
 
-class Beamline;
-
 // Class BeamSequence
 // ------------------------------------------------------------------------
 /// The base class for all OPAL beam lines and sequences.
@@ -32,10 +30,6 @@ class BeamSequence : public Element {
 public:
     virtual ~BeamSequence();
 
-    /// Make complete copy.
-    //  Copy also the line list.
-    virtual BeamSequence* copy(const std::string& name) = 0;
-
     /// Find a BeamSequence by name.
     static BeamSequence* find(const std::string& name);
 
@@ -43,22 +37,9 @@ public:
     //  Return the string "SEQUENCE".
     virtual const std::string getCategory() const;
 
-    /// Return the embedded OPALX beam line.
-    //  The result it the ideal line.
-    virtual Beamline* fetchLine() const = 0;
-
-    /// Prepare occurrence-specific state before TrackRun constructs the tracking lattice.
-    /// The default is a no-op (LINE); Ring overrides it to clone/tag member occurrences.
-    virtual void prepareForTracking() {}
-
 protected:
     /// Constructor for exemplars.
     BeamSequence(int size, const char* name, const char* help);
-
-    /// Constructor for clones.
-    //  The clone will be [b]empty[/b].
-    //  It has to be filled in by the corresponding parser.
-    BeamSequence(const std::string& name, BeamSequence* parent);
 
 private:
     // Not implemented.

@@ -34,31 +34,16 @@ otherwise a new bunch is allocated in the dictionary.
 */
 
 Track::Track(
-        BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
+        BeamSequence* u, const std::vector<double>& dt,
         const std::vector<unsigned long long>& maxtsteps, double zStart,
-        const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-        double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList,
-        const std::vector<std::string>& beamNames)
-    : bunch(nullptr),
-      reference(ref),
-      use(u),
-      emissionSources(emissionSourcesList),
+        const std::vector<double>& zStop, double t0, const std::vector<std::string>& beamNames)
+    : use(u),
       parser(),
       dT(dt),
-      dtScInit(dtScInit),
-      deltaTau(deltaTau),
       t0_m(t0),
       localTimeSteps(maxtsteps),
       zstart(zStart),
       zstop(zStop),
-      timeIntegrator(timeintegrator),
-      beamNames_m(beamNames) {
-    if (!OpalData::getInstance()->hasBunchAllocated()) {
-        /// \todo can we do this anymore  OpalData::getInstance()->setPartBunch(new
-        /// PartBunch(&ref));
-    }
-    // \todo crashes here
-    // bunch = OpalData::getInstance()->getPartBunch();
-}
+      beamNames_m(beamNames) {}
 
 Track::~Track() {}

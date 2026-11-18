@@ -17,6 +17,8 @@
 //
 #include "Elements/OpalVariableRFCavity.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/VariableRFCavityRep.h"
 
@@ -45,46 +47,35 @@ OpalVariableRFCavity::OpalVariableRFCavity()
     itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT", "Full height of the cavity [m].");
 
     registerOwnership();
-
-    setElement(new VariableRFCavity("VARIABLE_RF_CAVITY"));
 }
 
-OpalVariableRFCavity::OpalVariableRFCavity(const std::string& name, OpalVariableRFCavity* parent)
-    : OpalElement(name, parent) {
-    const VariableRFCavity* cavity = dynamic_cast<VariableRFCavity*>(parent->getElement());
-    setElement(new VariableRFCavity(*cavity));
+std::shared_ptr<ElementBase> OpalVariableRFCavity::build(
+        const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<VariableRFCavity>(values.getName());
+    fill(*element, values);
+    return element;
 }
 
-OpalVariableRFCavity* OpalVariableRFCavity::clone(const std::string& name) {
-    return new OpalVariableRFCavity(name, this);
-}
+void OpalVariableRFCavity::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
 
-OpalVariableRFCavity* OpalVariableRFCavity::clone() {
-    return new OpalVariableRFCavity(this->getOpalName(), this);
-}
+    auto* cavity = dynamic_cast<VariableRfCavityRep*>(&element);
 
-void OpalVariableRFCavity::update() {
-    OpalElement::update();
-
-    auto* cavity = dynamic_cast<VariableRfCavityRep*>(getElement());
-
-    const double length = Attributes::getReal(itsAttr[LENGTH]);
+    const double length = values.getReal("L");
     cavity->setLength(length);
 
-    const std::string phaseName = Attributes::getString(itsAttr[PHASE_MODEL]);
+    const std::string phaseName = values.getString("PHASE_MODEL");
     cavity->setPhaseName(phaseName);
 
-    const std::string ampName = Attributes::getString(itsAttr[AMPLITUDE_MODEL]);
+    const std::string ampName = values.getString("AMPLITUDE_MODEL");
     cavity->setAmplitudeName(ampName);
 
-    const std::string freqName = Attributes::getString(itsAttr[FREQUENCY_MODEL]);
+    const std::string freqName = values.getString("FREQUENCY_MODEL");
     cavity->setFrequencyName(freqName);
 
-    const double width = Attributes::getReal(itsAttr[WIDTH]);
+    const double width = values.getReal("WIDTH");
     cavity->setWidth(width);
 
-    const double height = Attributes::getReal(itsAttr[HEIGHT]);
+    const double height = values.getReal("HEIGHT");
     cavity->setHeight(height);
-
-    setElement(cavity);
 }

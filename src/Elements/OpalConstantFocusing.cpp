@@ -1,5 +1,7 @@
 #include "Elements/OpalConstantFocusing.h"
 
+#include <memory>
+
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/ConstantFocusingRep.h"
 #include "Utilities/OpalException.h"
@@ -14,35 +16,29 @@ OpalConstantFocusing::OpalConstantFocusing()
     itsAttr[RADIUS] = Attributes::makeReal("RADIUS", "Initial beam radius in m.", 0.0);
 
     registerOwnership();
-    setElement(new ConstantFocusingRep("CONSTANTFOCUSING"));
-}
-
-OpalConstantFocusing::OpalConstantFocusing(const std::string& name, OpalConstantFocusing* parent)
-    : OpalElement(name, parent) {
-    setElement(new ConstantFocusingRep(name));
 }
 
 OpalConstantFocusing::~OpalConstantFocusing() {}
 
-OpalConstantFocusing* OpalConstantFocusing::clone(const std::string& name) {
-    return new OpalConstantFocusing(name, this);
+std::shared_ptr<ElementBase> OpalConstantFocusing::build(
+        const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<ConstantFocusingRep>(values.getName());
+    fill(*element, values);
+    return element;
 }
 
-void OpalConstantFocusing::update() {
-    OpalElement::update();
+void OpalConstantFocusing::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
 
-    const double radius = Attributes::getReal(itsAttr[RADIUS]);
-    if (!itsAttr[RADIUS].defaultUsed() && radius <= 0.0) {
-        throw OpalException(
-                "OpalConstantFocusing::update", "CONSTANTFOCUSING requires RADIUS > 0.");
+    const double radius = values.getReal("RADIUS");
+    if (!values.defaultUsed("RADIUS") && radius <= 0.0) {
+        throw OpalException("OpalConstantFocusing::build", "CONSTANTFOCUSING requires RADIUS > 0.");
     }
 
-    auto* rep = dynamic_cast<ConstantFocusingRep*>(getElement());
+    auto* rep = dynamic_cast<ConstantFocusingRep*>(&element);
     if (rep != nullptr) {
-        rep->getGeometry().setElementLength(getLength());
-        rep->setStrength(Attributes::getReal(itsAttr[STRENGTH]));
+        rep->getGeometry().setElementLength(values.getReal("L"));
+        rep->setStrength(values.getReal("STRENGTH"));
         rep->setRadius(radius);
     }
-
-    OpalElement::updateUnknown(getElement());
 }

@@ -23,6 +23,7 @@
 #include "Utility/IpplInfo.h"
 
 #include <iostream>
+#include <memory>
 
 Help::Help()
     : Action(1, "HELP",
@@ -33,18 +34,17 @@ Help::Help()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Help::Help(const std::string& name, Help* parent) : Action(name, parent) {}
-
 Help::~Help() {}
-
-Help* Help::clone(const std::string& name) { return new Help(name, this); }
 
 void Help::execute() {
     if (itsAttr[0]) {
         std::string name = Attributes::getString(itsAttr[0]);
 
-        if (Object* object = OpalData::getInstance()->find(name)) {
+        OpalData* opal = OpalData::getInstance();
+        if (Object* object = opal->find(name)) {
             object->printHelp(std::cerr);
+        } else if (std::unique_ptr<Object> keywordObject{opal->makeObject(name, name)}) {
+            keywordObject->printHelp(std::cerr);
         } else {
             *ippl::Error << "\n" << *this << "Unknown object \"" << name << "\".\n" << endl;
         }

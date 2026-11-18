@@ -18,6 +18,7 @@
 #ifndef OPALX_REFERENCE_TRACER_H
 #define OPALX_REFERENCE_TRACER_H
 
+#include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
 #include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/StepSizeConfig.h"
@@ -55,10 +56,11 @@ public:
      * @param beamline Placed lattice whose element grid is built.
      * @param stepSizes Tracking schedule: DT, ZSTOP and MAXSTEPS per segment.
      * @param dt Time step of the pass [s], normally the smallest DT of the schedule.
+     * @param cavityPhases If given, autophase adds the phase it sets on each cavity.
      */
     ReferenceTracer(
             const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-            double dt);
+            double dt, CavityPhases* cavityPhases = nullptr);
 
     /**
      * @brief Trace the reference particle.
@@ -76,7 +78,7 @@ public:
             const Vector_t<double, 3>& direction);
 
 private:
-    using ElementSet = std::set<std::shared_ptr<ElementBase>>;
+    using ElementSet = ::ElementSet;
 
     /// One Boris step with the elements at the step midpoint; returns false on a material hit.
     bool step(double dt, ElementSet& fields);
@@ -104,6 +106,8 @@ private:
 
     std::set<std::string> visitedElements_m;
     ElementSet previousFields_m;
+    /// Receives the phase autophase sets on each cavity; may be null.
+    CavityPhases* cavityPhases_m;
 };
 
 #endif  // OPALX_REFERENCE_TRACER_H

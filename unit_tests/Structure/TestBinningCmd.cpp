@@ -5,17 +5,16 @@
  * This file tests the behavior of the OPAL command object `BinningCmd`, focusing on:
  * - Default construction values (max bins, desired width, alpha/beta, default parameter, print
  * frequency).
- * - Getter/setter consistency via a small test helper (`TestableBinningCmd`) that writes to
- *   internal attributes using the standard `Attributes` interface.
- * - `update()` validation logic:
+ * - The getters, which read the values a RUN reads (opalx::test::valuesOf()), after a small
+ *   test helper (`TestableBinningCmd`) set the attributes.
+ * - `execute()` validation logic:
  *   - Appending `.json` to `DUMPBINSFILE` when a filename is provided without the suffix.
  *   - Enforcing that `DUMPBINSFREQ` is positive when dumping is enabled.
  *   - Rejecting negative `TABLEPRINTFREQ`.
  * - `execute()` behavior:
  *   - Mapping supported `PARAMETER` strings to the corresponding `BinningParameter` enum.
  *   - Throwing `OpalException` for unknown/unsupported parameter strings.
- * - `clone(name)`:
- *   - Copies attribute state and cached parameter selection into a new named command object.
+ * - The copy the parser makes for `NAME: OTHER;` has the same values.
  * - `printInfo()`:
  *   - Smoke test that the informational printing path can be invoked without throwing.
  *
@@ -33,6 +32,7 @@
 
 #include <memory>
 #include <string>
+#include "../KeywordObjects.h"
 
 // Test-only helper exposing minimal setters for internal attributes.
 class TestableBinningCmd : public BinningCmd {
@@ -84,21 +84,21 @@ protected:
     static void TearDownTestSuite() { ippl::finalize(); }
 };
 
-// UpdateAppendsJsonExtensionAndValidatesFreq:
-// If DUMPBINSFILE is set without .json, update() appends the extension and
+// AppendsJsonExtensionAndValidatesFreq:
+// If DUMPBINSFILE is set without .json, getDumpBinsFileName() appends the extension and
 // enforces a valid DUMPBINSFREQ.
-TEST_F(BinningCmdTest, UpdateAppendsJsonExtensionAndValidatesFreq) {
+TEST_F(BinningCmdTest, AppendsJsonExtensionAndValidatesFreq) {
     TestableBinningCmd cmd;
 
     // Enable dumping with a filename missing the .json suffix.
     cmd.setDumpBinsFile("bins_output");
     cmd.setDumpBinsFreq(5.0);
 
-    cmd.update();
+    cmd.execute();
 
-    EXPECT_TRUE(cmd.dumpBinsToFile());
-    EXPECT_EQ(cmd.getDumpBinsFileName(), "bins_output.json");
-    EXPECT_EQ(cmd.getDumpBinsFrequency(), 5);
+    EXPECT_TRUE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
+    EXPECT_EQ(BinningCmd::getDumpBinsFileName(opalx::test::valuesOf(cmd)), "bins_output.json");
+    EXPECT_EQ(BinningCmd::getDumpBinsFrequency(opalx::test::valuesOf(cmd)), 5);
 }
 
 // DumpBinsToFileRespectsNoneAndEmpty:
@@ -107,13 +107,13 @@ TEST_F(BinningCmdTest, DumpBinsToFileRespectsNoneAndEmpty) {
     TestableBinningCmd cmd;
 
     // Default is "NONE".
-    EXPECT_FALSE(cmd.dumpBinsToFile());
+    EXPECT_FALSE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 
     cmd.setDumpBinsFile("");
-    EXPECT_FALSE(cmd.dumpBinsToFile());
+    EXPECT_FALSE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 
     cmd.setDumpBinsFile("bins.json");
-    EXPECT_TRUE(cmd.dumpBinsToFile());
+    EXPECT_TRUE(BinningCmd::dumpBinsToFile(opalx::test::valuesOf(cmd)));
 }
 
 // InvalidDumpFreqThrowsWhenDumpingEnabled:
@@ -124,33 +124,35 @@ TEST_F(BinningCmdTest, InvalidDumpFreqThrowsWhenDumpingEnabled) {
     cmd.setDumpBinsFile("bins.json");
     cmd.setDumpBinsFreq(0.0);
 
-    EXPECT_THROW(cmd.update(), OpalException);
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // InvalidTablePrintFrequencyThrowsWhenNegative:
-// Negative TABLEPRINTFREQ values are rejected by update().
+// Negative TABLEPRINTFREQ values are rejected by execute().
 TEST_F(BinningCmdTest, InvalidTablePrintFrequencyThrowsWhenNegative) {
     TestableBinningCmd cmd;
 
     cmd.setTablePrintFrequency(-1.0);
-    EXPECT_THROW(cmd.update(), OpalException);
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // ConstructionDefaults:
 // Verify that a freshly constructed exemplar has the documented defaults.
 TEST_F(BinningCmdTest, ConstructionDefaults) {
-    BinningCmd cmd;
+    auto cmdObject  = opalx::test::makeKeywordObject<BinningCmd>("BINNING", "BINNING");
+    BinningCmd& cmd = *cmdObject;
 
-    EXPECT_EQ(cmd.getMaxBins(), 128);
-    EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.1);
-    EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 1.0);
-    EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.5);
-    EXPECT_TRUE(cmd.getAdaptiveBinning());
+    EXPECT_EQ(BinningCmd::getMaxBins(opalx::test::valuesOf(cmd)), 128);
+    EXPECT_DOUBLE_EQ(BinningCmd::getDesiredWidth(opalx::test::valuesOf(cmd)), 0.1);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningAlpha(opalx::test::valuesOf(cmd)), 1.0);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningBeta(opalx::test::valuesOf(cmd)), 1.5);
+    EXPECT_TRUE(BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(cmd)));
 
-    EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
-    EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
+    EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), "VELOCITYZ");
+    EXPECT_EQ(
+            BinningCmd::getParameterType(opalx::test::valuesOf(cmd)), BinningParameter::VELOCITYZ);
 
-    EXPECT_EQ(cmd.getTablePrintFrequency(), 10);
+    EXPECT_EQ(BinningCmd::getTablePrintFrequency(opalx::test::valuesOf(cmd)), 10);
 }
 
 // GettersReflectAttributes:
@@ -166,18 +168,18 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setParameterString("PZ");
     cmd.setTablePrintFrequency(3.0);
 
-    // update() refreshes the internal cached parameter string.
-    cmd.update();
+    // execute() checks the values.
+    cmd.execute();
 
-    EXPECT_EQ(cmd.getMaxBins(), 42);
-    EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.25);
-    EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 0.5);
-    EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
-    EXPECT_FALSE(cmd.getAdaptiveBinning());
+    EXPECT_EQ(BinningCmd::getMaxBins(opalx::test::valuesOf(cmd)), 42);
+    EXPECT_DOUBLE_EQ(BinningCmd::getDesiredWidth(opalx::test::valuesOf(cmd)), 0.25);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningAlpha(opalx::test::valuesOf(cmd)), 0.5);
+    EXPECT_DOUBLE_EQ(BinningCmd::getBinningBeta(opalx::test::valuesOf(cmd)), 1.75);
+    EXPECT_FALSE(BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(cmd)));
 
-    EXPECT_EQ(cmd.getParameter(), "PZ");
+    EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), "PZ");
 
-    EXPECT_EQ(cmd.getTablePrintFrequency(), 3);
+    EXPECT_EQ(BinningCmd::getTablePrintFrequency(opalx::test::valuesOf(cmd)), 3);
 }
 
 // ExecuteMapsKnownParameters:
@@ -196,11 +198,11 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         TestableBinningCmd cmd;
         cmd.setParameterString(c.name);
 
-        // execute() calls setParameterType() and then update().
+        // execute() checks that PARAMETER is known.
         cmd.execute();
 
-        EXPECT_EQ(cmd.getParameter(), std::string(c.name));
-        EXPECT_EQ(cmd.getParameterType(), c.expected);
+        EXPECT_EQ(BinningCmd::getParameter(opalx::test::valuesOf(cmd)), std::string(c.name));
+        EXPECT_EQ(BinningCmd::getParameterType(opalx::test::valuesOf(cmd)), c.expected);
     }
 }
 
@@ -216,9 +218,10 @@ TEST_F(BinningCmdTest, ExecuteThrowsOnUnknownParameter) {
     EXPECT_THROW(cmd.execute(), OpalException);
 }
 
-// CloneCopiesState:
-// clone(name) should copy attribute state and cached parameter type/name.
-TEST_F(BinningCmdTest, CloneCopiesState) {
+// CopyCopiesState:
+// The copy the parser makes for "NAME: OTHER;" has the same values once executed.
+TEST_F(BinningCmdTest, CopyCopiesState) {
+    opalx::test::keyword<BinningCmd>("BINNING");
     TestableBinningCmd original;
     original.setMaxBins(7);
     original.setDesiredWidth(0.3);
@@ -227,31 +230,47 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     original.setAdaptiveBinning(false);
     original.setParameterString("POSITIONZ");
 
-    original.execute();  // ensure parameterType_m is updated
+    original.execute();
 
-    std::unique_ptr<BinningCmd> copy(original.clone("BINNING_COPY"));
+    std::unique_ptr<BinningCmd> copy = opalx::test::copyOf<BinningCmd>(original, "BINNING_COPY");
+    copy->execute();  // the parser executes every definition before storing it
 
     ASSERT_NE(copy, nullptr);
     EXPECT_EQ(copy->getOpalName(), "BINNING_COPY");
 
-    EXPECT_EQ(copy->getMaxBins(), original.getMaxBins());
-    EXPECT_DOUBLE_EQ(copy->getDesiredWidth(), original.getDesiredWidth());
-    EXPECT_DOUBLE_EQ(copy->getBinningAlpha(), original.getBinningAlpha());
-    EXPECT_DOUBLE_EQ(copy->getBinningBeta(), original.getBinningBeta());
-    EXPECT_EQ(copy->getAdaptiveBinning(), original.getAdaptiveBinning());
+    EXPECT_EQ(
+            BinningCmd::getMaxBins(opalx::test::valuesOf(*copy)),
+            BinningCmd::getMaxBins(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getDesiredWidth(opalx::test::valuesOf(*copy)),
+            BinningCmd::getDesiredWidth(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getBinningAlpha(opalx::test::valuesOf(*copy)),
+            BinningCmd::getBinningAlpha(opalx::test::valuesOf(original)));
+    EXPECT_DOUBLE_EQ(
+            BinningCmd::getBinningBeta(opalx::test::valuesOf(*copy)),
+            BinningCmd::getBinningBeta(opalx::test::valuesOf(original)));
+    EXPECT_EQ(
+            BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(*copy)),
+            BinningCmd::getAdaptiveBinning(opalx::test::valuesOf(original)));
 
-    EXPECT_EQ(copy->getParameter(), original.getParameter());
-    EXPECT_EQ(copy->getParameterType(), original.getParameterType());
+    EXPECT_EQ(
+            BinningCmd::getParameter(opalx::test::valuesOf(*copy)),
+            BinningCmd::getParameter(opalx::test::valuesOf(original)));
+    EXPECT_EQ(
+            BinningCmd::getParameterType(opalx::test::valuesOf(*copy)),
+            BinningCmd::getParameterType(opalx::test::valuesOf(original)));
 }
 
 // PrintInfoDoesNotThrow:
 // Smoke test that printInfo can be called without throwing.
 TEST_F(BinningCmdTest, PrintInfoDoesNotThrow) {
-    BinningCmd cmd;
+    auto cmdObject  = opalx::test::makeKeywordObject<BinningCmd>("BINNING", "BINNING");
+    BinningCmd& cmd = *cmdObject;
 
     // Inform is defined in Ippl; using a simple instance here is sufficient
     // to exercise the printing path.
     Inform os("BinningCmd::printInfo");
 
-    EXPECT_NO_THROW({ cmd.printInfo(os); });
+    EXPECT_NO_THROW({ BinningCmd::printInfo(os, opalx::test::valuesOf(cmd)); });
 }

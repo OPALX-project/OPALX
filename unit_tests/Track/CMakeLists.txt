@@ -2,3 +2,7 @@ file(RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}
 message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestDecayChain USE_GTEST_MAIN)
+add_opalx_test(TestRunDescription)
+add_opalx_test(TestValidateRun USE_GTEST_MAIN)
+add_opalx_test(TestBuildElements)
+add_opalx_test(TestBuildTracking)

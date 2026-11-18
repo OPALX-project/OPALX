@@ -5,7 +5,6 @@
 
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
 
-#include "Distribution/Distribution.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
 #include "Structure/EmissionSource.h"
@@ -95,49 +94,43 @@ namespace opalx::spacecharge {
             return static_cast<std::size_t>(value);
         }
 
-        bool usesLongitudinalResizeDecomposition(
-                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
-            for (const auto& sourceList : emissionSources) {
-                for (const EmissionSource* source : sourceList) {
-                    if (source == nullptr) {
-                        continue;
-                    }
-                    const DistributionType type =
-                            Distribution::find(source->getDistributionName())->getType();
-                    if (type == DistributionType::FLATTOP
-                        || type == DistributionType::OPALFLATTOP) {
-                        return true;
-                    }
+        bool usesLongitudinalResizeDecomposition(const std::vector<ObjectValues>& distributions) {
+            for (const ObjectValues& distribution : distributions) {
+                const std::string type = distribution.getString("TYPE");
+                if (type == "FLATTOP" || type == "OPALFLATTOP") {
+                    return true;
                 }
             }
             return false;
         }
 
-        std::optional<BinningConfig> buildBinningConfig(const BinningCmd* command) {
-            if (command == nullptr) {
+        std::optional<BinningConfig> buildBinningConfig(
+                const std::optional<ObjectValues>& command) {
+            if (!command) {
                 return std::nullopt;
             }
 
-            const int maximumBins = command->getMaxBins();
+            const int maximumBins = BinningCmd::getMaxBins(*command);
             if (maximumBins < 1) {
                 throw OpalException(
                         "SpaceChargeConfigBuilder::build", "BINNING MAXBINS must be positive.");
             }
 
             BinningConfig values;
-            values.name         = command->getOpalName();
+            values.name         = command->getName();
             values.maximumBins  = static_cast<std::size_t>(maximumBins);
-            values.desiredWidth = command->getDesiredWidth();
-            values.alpha        = command->getBinningAlpha();
-            values.beta         = command->getBinningBeta();
-            values.parameter    = convertBinningParameter(command->getParameterType());
-            values.adaptive     = command->getAdaptiveBinning();
+            values.desiredWidth = BinningCmd::getDesiredWidth(*command);
+            values.alpha        = BinningCmd::getBinningAlpha(*command);
+            values.beta         = BinningCmd::getBinningBeta(*command);
+            values.parameter    = convertBinningParameter(BinningCmd::getParameterType(*command));
+            values.adaptive     = BinningCmd::getAdaptiveBinning(*command);
             values.tablePrintFrequency =
-                    static_cast<std::size_t>(command->getTablePrintFrequency());
+                    static_cast<std::size_t>(BinningCmd::getTablePrintFrequency(*command));
 
-            if (command->dumpBinsToFile()) {
-                values.dumpFile      = command->getDumpBinsFileName();
-                values.dumpFrequency = static_cast<std::size_t>(command->getDumpBinsFrequency());
+            if (BinningCmd::dumpBinsToFile(*command)) {
+                values.dumpFile = BinningCmd::getDumpBinsFileName(*command);
+                values.dumpFrequency =
+                        static_cast<std::size_t>(BinningCmd::getDumpBinsFrequency(*command));
             } else {
                 values.dumpFile.clear();
                 values.dumpFrequency = 0;
@@ -146,7 +139,7 @@ namespace opalx::spacecharge {
         }
 
         DirichletPlaneConfig buildDirichletPlaneConfig(
-                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+                const std::vector<ObjectValues>& emissionSources) {
             bool enableImageCharge      = false;
             bool enableShiftedGreens    = false;
             double planeZ               = 0.0;
@@ -155,55 +148,50 @@ namespace opalx::spacecharge {
             std::size_t zeroFaceSources = 0;
             std::size_t shiftedSources  = 0;
 
-            for (const auto& sourceList : emissionSources) {
-                for (const EmissionSource* source : sourceList) {
-                    if (source == nullptr) {
-                        continue;
-                    }
+            for (const ObjectValues& source : emissionSources) {
+                const bool zeroFace = EmissionSource::getZeroFaceR0Z(source);
+                const bool shifted  = EmissionSource::getShiftedGreensFunction(source);
+                const int sourceDumpFrequency =
+                        EmissionSource::getZeroFacePlaneDumpFrequency(source);
 
-                    const bool zeroFace           = source->getZeroFaceR0Z();
-                    const bool shifted            = source->getShiftedGreensFunction();
-                    const int sourceDumpFrequency = source->getZeroFacePlaneDumpFrequency();
+                if (zeroFace && shifted) {
+                    throw OpalException(
+                            "SpaceChargeConfigBuilder::build",
+                            "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive "
+                            "on the same EMISSIONSOURCE. Enable exactly one.");
+                }
 
-                    if (zeroFace && shifted) {
+                if (!zeroFace && !shifted) {
+                    if (sourceDumpFrequency > 0) {
                         throw OpalException(
                                 "SpaceChargeConfigBuilder::build",
-                                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive "
-                                "on the same EMISSIONSOURCE. Enable exactly one.");
+                                "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the "
+                                "same EMISSIONSOURCE. (Dumping is not supported for "
+                                "SHIFTED_GREENS_FUNCTION since the computational domain may "
+                                "be far from R0Z.)");
                     }
+                    continue;
+                }
 
-                    if (!zeroFace && !shifted) {
-                        if (sourceDumpFrequency > 0) {
-                            throw OpalException(
-                                    "SpaceChargeConfigBuilder::build",
-                                    "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the "
-                                    "same EMISSIONSOURCE. (Dumping is not supported for "
-                                    "SHIFTED_GREENS_FUNCTION since the computational domain may "
-                                    "be far from R0Z.)");
-                        }
-                        continue;
+                if (zeroFace) {
+                    ++zeroFaceSources;
+                    enableImageCharge = true;
+                    planeZ            = EmissionSource::getR0(source)[2];
+                    dumpFrequency     = sourceDumpFrequency;
+                    maximumSteps      = EmissionSource::getZerofaceMaxSteps(source);
+                } else {
+                    ++shiftedSources;
+                    enableShiftedGreens = true;
+                    planeZ              = EmissionSource::getR0(source)[2];
+                    if (sourceDumpFrequency > 0) {
+                        throw OpalException(
+                                "SpaceChargeConfigBuilder::build",
+                                "ZEROFACEPLANEDUMP > 0 is not supported with "
+                                "SHIFTED_GREENS_FUNCTION=true (the computational domain may "
+                                "be far from R0Z, making the interpolated plane dump "
+                                "meaningless).");
                     }
-
-                    if (zeroFace) {
-                        ++zeroFaceSources;
-                        enableImageCharge = true;
-                        planeZ            = source->getR0()[2];
-                        dumpFrequency     = sourceDumpFrequency;
-                        maximumSteps      = source->getZerofaceMaxSteps();
-                    } else {
-                        ++shiftedSources;
-                        enableShiftedGreens = true;
-                        planeZ              = source->getR0()[2];
-                        if (sourceDumpFrequency > 0) {
-                            throw OpalException(
-                                    "SpaceChargeConfigBuilder::build",
-                                    "ZEROFACEPLANEDUMP > 0 is not supported with "
-                                    "SHIFTED_GREENS_FUNCTION=true (the computational domain may "
-                                    "be far from R0Z, making the interpolated plane dump "
-                                    "meaningless).");
-                        }
-                        maximumSteps = source->getZerofaceMaxSteps();
-                    }
+                    maximumSteps = EmissionSource::getZerofaceMaxSteps(source);
                 }
             }
 
@@ -245,9 +233,10 @@ namespace opalx::spacecharge {
     }  // namespace
 
     SpaceChargeConfig buildSpaceChargeConfig(
-            const FieldSolverCmd& fieldSolver,
-            const std::vector<std::vector<EmissionSource*>>& emissionSources) {
-        const FieldSolverCmdType solverType = fieldSolver.getFieldSolverCmdType();
+            const ObjectValues& fieldSolver, const std::optional<ObjectValues>& binning,
+            const std::vector<ObjectValues>& emissionSources,
+            const std::vector<ObjectValues>& distributions) {
+        const FieldSolverCmdType solverType = FieldSolverCmd::getFieldSolverCmdType(fieldSolver);
         if (solverType == FieldSolverCmdType::CG) {
             throw OpalException(
                     "SpaceChargeConfigBuilder::build",
@@ -255,40 +244,43 @@ namespace opalx::spacecharge {
         }
 
         const std::array<std::size_t, 3> meshSize{
-                convertMeshSize(fieldSolver.getNX(), "NX"),
-                convertMeshSize(fieldSolver.getNY(), "NY"),
-                convertMeshSize(fieldSolver.getNZ(), "NZ")};
-        const auto decomposition = fieldSolver.getDomainDecomposition();
+                convertMeshSize(FieldSolverCmd::getNX(fieldSolver), "NX"),
+                convertMeshSize(FieldSolverCmd::getNY(fieldSolver), "NY"),
+                convertMeshSize(FieldSolverCmd::getNZ(fieldSolver), "NZ")};
+        const auto decomposition = FieldSolverCmd::getDomainDecomposition(fieldSolver);
         CartesianGridConfig grid;
         grid.meshSize                   = meshSize;
         grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
-        grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
+        grid.boundingBoxIncreasePercent = FieldSolverCmd::getBoxIncr(fieldSolver);
 
         CartesianPIC3DConfig values;
         values.grid                       = grid;
         values.backend                    = convertPoissonSolverType(solverType);
-        values.layoutRebuildDecomposition = usesLongitudinalResizeDecomposition(emissionSources)
+        values.layoutRebuildDecomposition = usesLongitudinalResizeDecomposition(distributions)
                                                     ? std::array<bool, 3>{false, false, true}
                                                     : values.grid.decomposition;
-        values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
-        values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
-        if (fieldSolver.hasP3MCutoff() && fieldSolver.hasP3MCutoffCells()) {
+        values.boundaryConditions =
+                convertBoundaryConditions(FieldSolverCmd::constructBCHandler(fieldSolver));
+        values.greenFunction = convertGreenFunction(FieldSolverCmd::getGreensFunction(fieldSolver));
+        if (FieldSolverCmd::hasP3MCutoff(fieldSolver)
+            && FieldSolverCmd::hasP3MCutoffCells(fieldSolver)) {
             throw OpalException(
                     "buildSpaceChargeConfig",
                     "FIELDSOLVER sets both RCUT and RCUT_CELLS. Set RCUT for a fixed P3M cutoff "
                     "in metres or RCUT_CELLS for a cutoff in units of the largest mesh spacing, "
                     "not both.");
         }
-        values.p3mCutoff = fieldSolver.getP3MCutoff();
+        values.p3mCutoff = FieldSolverCmd::getP3MCutoff(fieldSolver);
         // Without RCUT, P3M ties its cutoff to the mesh (RCUT_CELLS, default 2).
-        const bool meshTiedCutoff =
-                fieldSolver.hasP3MCutoffCells()
-                || (values.backend == PoissonSolverType::P3M && !fieldSolver.hasP3MCutoff());
-        values.p3mCutoffCells = meshTiedCutoff ? fieldSolver.getP3MCutoffCells() : 0.0;
-        values.repeatCount    = fieldSolver.getRepeatCount();
-        values.repeatSpacing  = fieldSolver.getRepeatSpacing();
-        values.periodicBox    = fieldSolver.getPeriodicBox();
-        values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
+        const bool meshTiedCutoff = FieldSolverCmd::hasP3MCutoffCells(fieldSolver)
+                                    || (values.backend == PoissonSolverType::P3M
+                                        && !FieldSolverCmd::hasP3MCutoff(fieldSolver));
+        values.p3mCutoffCells =
+                meshTiedCutoff ? FieldSolverCmd::getP3MCutoffCells(fieldSolver) : 0.0;
+        values.repeatCount   = FieldSolverCmd::getRepeatCount(fieldSolver);
+        values.repeatSpacing = FieldSolverCmd::getRepeatSpacing(fieldSolver);
+        values.periodicBox   = FieldSolverCmd::getPeriodicBox(fieldSolver);
+        values.binning       = buildBinningConfig(binning);
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
         values.loadBalancingThreshold  = Options::loadBalancingThreshold;

@@ -69,7 +69,8 @@ void ConstantFocusing::setRadius(double radius) {
     gradientInitialized_m = false;
 }
 
-void ConstantFocusing::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void ConstantFocusing::apply(
+        const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     const size_t nTotal = pc->getTotalNum();
     const size_t nLocal = pc->getLocalNum();
     if (nTotal == 0 || strength_m == 0.0) {

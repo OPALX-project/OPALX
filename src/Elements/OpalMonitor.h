@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalMonitor_HH
 #define OPAL_OpalMonitor_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalMonitor : public OpalElement {
@@ -27,19 +29,16 @@ public:
 
     virtual ~OpalMonitor();
 
-    /// Make clone.
-    virtual OpalMonitor* clone(const std::string& name);
-
-    /// Update the embedded OPALX monitor.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalMonitor(const OpalMonitor&);
     void operator=(const OpalMonitor&);
-
-    // Clone constructor.
-    OpalMonitor(const std::string& name, OpalMonitor* parent);
 };
 
 #endif  // OPAL_OpalMonitor_HH

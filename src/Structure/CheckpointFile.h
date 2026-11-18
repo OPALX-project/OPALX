@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Algorithms/BeamStop.h"
+#include "Algorithms/CavityAutophaser.h"
 #include "OPALTypes.h"
 
 class CheckpointFile {
@@ -26,6 +27,8 @@ public:
         /// Per container: stop plane and done flag (zStop and untilMaxSteps come from the
         /// input). Empty for checkpoints written before they were stored.
         std::vector<BeamStop> beamStops;
+        /// Phases autophase had set when the checkpoint was written; a restart keeps them.
+        CavityPhases cavityPhases;
     };
 
     /// Return the default checkpoint path for an OPAL input basename.
@@ -37,8 +40,8 @@ public:
      */
     static void write(
             const std::string& fileName, PartBunch_t& bunch, std::size_t stepSizeSegment,
-            unsigned long long stepsCompletedInSegment,
-            const std::vector<BeamStop>& beamStops = {});
+            unsigned long long stepsCompletedInSegment, const std::vector<BeamStop>& beamStops = {},
+            const CavityPhases& cavityPhases = {});
 
     /// Read metadata without changing a bunch.
     static Metadata inspect(const std::string& fileName);

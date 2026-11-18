@@ -81,9 +81,6 @@ protected:
     /// Constructor for exemplars.
     ValueDefinition(int size, const char* name, const char* help);
 
-    /// Constructor for clones.
-    ValueDefinition(const std::string& name, ValueDefinition* parent);
-
     /// The declaration prefix.
     //  A string representing the value type in OPAL-9 input format:
     //  "BOOL", "REAL", "REAL CONST", "REAL VECTOR", etc.

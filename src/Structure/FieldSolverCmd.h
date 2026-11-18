@@ -27,6 +27,7 @@
 #include "Attributes/Attributes.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
+#include "Track/ObjectValues.h"
 
 #include "Ippl.h"
 
@@ -65,38 +66,35 @@ public:
 
     virtual ~FieldSolverCmd();
 
-    /// Make clone.
-    virtual FieldSolverCmd* clone(const std::string& name);
-
     /// Find named FieldSolverCmd.
     static FieldSolverCmd* find(const std::string& name);
 
-    std::string getType() const;
-    std::string getBinsName() const;
+    static std::string getType(const ObjectValues& values);
+    static std::string getBinsName(const ObjectValues& values);
     BinningCmd* getBinningCmd() const;
-    std::string getGreensFunction() const;
-    double getP3MCutoff() const;
+    static std::string getGreensFunction(const ObjectValues& values);
+    static double getP3MCutoff(const ObjectValues& values);
     /// P3M cutoff in units of the largest mesh spacing (default 2 when RCUT is not given).
-    double getP3MCutoffCells() const;
-    double getPeriodicBox() const;
+    static double getP3MCutoffCells(const ObjectValues& values);
+    static double getPeriodicBox(const ObjectValues& values);
     /// Whether RCUT or RCUT_CELLS was set in the input, rather than left at its default.
-    bool hasP3MCutoff() const;
-    bool hasP3MCutoffCells() const;
+    static bool hasP3MCutoff(const ObjectValues& values);
+    static bool hasP3MCutoffCells(const ObjectValues& values);
     /// Copies of the bunch field on each side along z (REPEATS) and their spacing [m].
-    int getRepeatCount() const;
-    double getRepeatSpacing() const;
+    static int getRepeatCount(const ObjectValues& values);
+    static double getRepeatSpacing(const ObjectValues& values);
 
     /// Returns solver boundary conditions handler object.
-    BCHandler<3> constructBCHandler() const;
+    static BCHandler<3> constructBCHandler(const ObjectValues& values);
 
     /// Return meshsize
-    double getNX() const;
+    static double getNX(const ObjectValues& values);
 
     /// Return meshsize
-    double getNY() const;
+    static double getNY(const ObjectValues& values);
 
     /// Return meshsize
-    double getNZ() const;
+    static double getNZ(const ObjectValues& values);
 
     void setNX(double);
 
@@ -104,31 +102,21 @@ public:
 
     void setNZ(double);
 
-    double getBoxIncr() const;
-
-    /// Update the field solver data.
-    virtual void update();
+    static double getBoxIncr(const ObjectValues& values);
 
     /// Execute (init) the field solver data.
     virtual void execute();
 
-    bool hasBinningCmd() const { return getBinningCmd() != nullptr; }
+    static FieldSolverCmdType getFieldSolverCmdType(const ObjectValues& values);
 
-    FieldSolverCmdType getFieldSolverCmdType() const;
+    static ippl::Vector<bool, 3> getDomainDecomposition(const ObjectValues& values);
 
-    ippl::Vector<bool, 3> getDomainDecomposition() const;
-
-    Inform& printInfo(Inform& os) const;
+    static Inform& printInfo(Inform& os, const ObjectValues& values);
 
 private:
     // Not implemented.
     FieldSolverCmd(const FieldSolverCmd&);
     void operator=(const FieldSolverCmd&);
-
-    // Clone constructor.
-    FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
 };
-
-inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }
 
 #endif  // OPAL_FieldSolverCmd_HH

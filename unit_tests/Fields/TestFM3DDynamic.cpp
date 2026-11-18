@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 
 #include "BeamlineCore/RFCavityRep.h"
 #include "Fields/FM3DDynamic.h"
@@ -17,6 +18,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include "../KeywordObjects.h"
 
 namespace {
     using Vector  = Vector_t<double, 3>;
@@ -278,9 +280,11 @@ TEST_F(FM3DDynamicTest, ParticleKernelAccumulatesWithIndependentRFScalesAndBound
     const auto path = writeMap();
     auto* map       = dynamic_cast<FM3DDynamic*>(load(path));
     ASSERT_NE(map, nullptr);
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     auto particles = bunch.getParticleContainer();
     const std::vector<Vector> positions{Vector(0.005, 0.005, 0.025), Vector(0.039, 0.029, 0.149),
                                         Vector(-0.02, -0.03, -0.05), Vector(0, 0, -0.025),
@@ -319,9 +323,11 @@ TEST_F(FM3DDynamicTest, ParticleKernelAccumulatesWithIndependentRFScalesAndBound
 
 TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     const auto path = writeMap();
-    Beam beam;
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
     bunch.setT(1.3e-9);
     bunch.setdT(0.4e-9);
     auto particles = bunch.getParticleContainer();
@@ -335,12 +341,11 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     cavity.setAmplitudeError(0.3);
     cavity.setPhaseError(-0.15);
     cavity.initialise(&bunch);
-    cavity.goOnline(0.0);
     for (const double phase : {0.0, 0.7, Physics::pi / 2, Physics::pi}) {
         cavity.setPhasem(phase);
         Kokkos::deep_copy(particles->E.getView(), Vector(7.0));
         Kokkos::deep_copy(particles->B.getView(), Vector(-0.25));
-        cavity.apply(particles);
+        cavity.apply(particles, StepTime{bunch.getT(), bunch.getdT(), 0});
         const auto electric =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->E.getView());
         const auto magnetic =

@@ -205,6 +205,11 @@ namespace Expressions {
     void SRefAttr<T>::fill() const {
         if (itsObject == 0) {
             itsObject = OpalData::getInstance()->find(obj_name);
+            if (itsObject == 0 && OpalData::getInstance()->isKeyword(obj_name)) {
+                throw ParseError(
+                        "SRefAttr::fill()",
+                        "\"" + obj_name + "\" is a keyword, not a defined object.");
+            }
             if (itsObject == 0) {
                 if (att_name.empty() && itsIndex <= 0) {
                     throw ParseError(

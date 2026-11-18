@@ -116,7 +116,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
  * statement
  */
-void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -126,8 +126,7 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double endField   = endField_m;
 
     // Reference particle time
-    const double t =
-            RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();  // To be consistent with OPAL
+    const double t = time.t + 0.5 * time.dt;  // To be consistent with OPAL
 
     // RF phase for all particles at this step
     const double phi    = freq * t + phase;
@@ -227,6 +226,7 @@ void RFCavity::validateIdeal() const {
 }
 
 void RFCavity::initialise(PartBunch_t* bunch) {
+    takeDesignParticle(bunch);
     if (isIdeal()) {
         validateIdeal();
         RefPartBunch_m = bunch;
@@ -268,67 +268,20 @@ void RFCavity::initialise(PartBunch_t* bunch) {
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-}
 
-// In current version ,this function reads in the cavity voltage profile data from file.
-void RFCavity::initialise(
-        PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-        std::shared_ptr<AbstractTimeDependence> ampl_atd,
-        std::shared_ptr<AbstractTimeDependence> phase_atd) {
-    RefPartBunch_m = bunch;
-
-    /// set the time dependent models
-    setAmplitudeModel(ampl_atd);
-    setPhaseModel(phase_atd);
-    setFrequencyModel(freq_atd);
-
-    std::ifstream in(filename_m.c_str());
-    in >> num_points_m;
-
-    RNormal_m  = std::unique_ptr<double[]>(new double[num_points_m]);
-    VrNormal_m = std::unique_ptr<double[]>(new double[num_points_m]);
-    DvDr_m     = std::unique_ptr<double[]>(new double[num_points_m]);
-
-    for (int i = 0; i < num_points_m; i++) {
-        if (in.eof()) {
-            throw GeneralOpalException(
-                    "RFCavity::initialise",
-                    "Not enough data in file '" + filename_m + "', please check the data format");
-        }
-        in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
-
-        const auto pc = RefPartBunch_m->getParticleContainer();
-        VrNormal_m[i] *= pc->getTotalCharge();
-        DvDr_m[i] *= pc->getTotalCharge();
-    }
-    sinAngle_m = std::sin(angle_m * Units::deg2rad);
-    cosAngle_m = std::cos(angle_m * Units::deg2rad);
-
-    if (!frequencyName_m.empty()) {
-        *gmsg << "* Timedependent frequency model " << frequencyName_m << endl;
-    }
-
-    *gmsg << "* Cavity voltage data read successfully!" << endl;
+    Fieldmap::readMap(filename_m);
 }
 
 void RFCavity::finalise() {}
-
-void RFCavity::goOnline(const double&) {
-    if (isIdeal()) {
-        online_m = true;
-        return;
-    }
-    Fieldmap::readMap(filename_m);
-
-    online_m = true;
-}
 
 void RFCavity::goOffline() {
     if (isIdeal()) {
         online_m = false;
         return;
     }
+    // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
     Fieldmap::freeMap(filename_m);
+    fieldmap_m = nullptr;
 
     online_m = false;
 }
@@ -709,7 +662,6 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     double t = t0;
 
     BorisPusher integrator;
-    const PartData& ref = *RefPartBunch_m->getParticleContainer()->getReference();
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend   = endField_m;
@@ -732,7 +684,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
 
-        integrator.kick(z, p, Ef, Bf, dt, ref.getM(), ref.getQ());
+        integrator.kick(z, p, Ef, Bf, dt, designMass_m, designCharge_m);
 
         dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;

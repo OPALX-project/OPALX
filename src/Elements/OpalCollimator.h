@@ -18,6 +18,8 @@
 #ifndef OPAL_OpalCollimator_HH
 #define OPAL_OpalCollimator_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalCollimator : public OpalElement {
@@ -27,25 +29,22 @@ public:
 
     virtual ~OpalCollimator();
 
-    /// Make clone.
-    virtual OpalCollimator* clone(const std::string& name);
-
     /**
-     * @brief Update the embedded OPALX collimator.
+     * @brief Build the runtime collimator of one occurrence from its attribute values.
      *
      * @throw OpalException if the input gives no APERTURE or a length L <= 0.
      *        Scraping only happens for z in [0, L) outside the aperture, so a
      *        collimator missing either would silently transmit everything.
      */
-    virtual void update();
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalCollimator(const OpalCollimator&);
     void operator=(const OpalCollimator&);
-
-    // Clone constructor.
-    OpalCollimator(const std::string& name, OpalCollimator* parent);
 };
 
 #endif  // OPAL_OpalCollimator_HH

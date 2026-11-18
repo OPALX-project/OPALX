@@ -23,6 +23,8 @@
 #ifndef OPAL_OpalQuadrupole_HH
 #define OPAL_OpalQuadrupole_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 class OpalQuadrupole : public OpalElement {
@@ -41,22 +43,19 @@ public:
 
     virtual ~OpalQuadrupole();
 
-    /// Make clone.
-    virtual OpalQuadrupole* clone(const std::string& name);
-
     /// Print the object.
     virtual void print(std::ostream&) const;
 
-    /// Update the embedded OPALX multipole.
-    virtual void update();
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+
     // Not implemented.
     OpalQuadrupole(const OpalQuadrupole&);
     void operator=(const OpalQuadrupole&);
-
-    // Clone constructor.
-    OpalQuadrupole(const std::string& name, OpalQuadrupole* parent);
 };
 
 #endif  // OPAL_OpalQuadrupole_HH

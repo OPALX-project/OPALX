@@ -38,11 +38,7 @@ Call::Call()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Call::Call(const std::string& name, Call* parent) : Action(name, parent) {}
-
 Call::~Call() {}
-
-Call* Call::clone(const std::string& name) { return new Call(name, this); }
 
 void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);

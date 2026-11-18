@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <cmath>
 
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "Physics/Physics.h"
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
 
-OpalFlatTop::OpalFlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+OpalFlatTop::OpalFlatTop(
+        std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist),
       rand_pool_m(determineRandInit()),
       host_rng_m(determineHostSeed()) {
@@ -45,14 +46,13 @@ size_t OpalFlatTop::determineHostSeed() {
     return static_cast<size_t>(Options::seed);
 }
 
-void OpalFlatTop::setParameters(Distribution_t* opalDist) {
+void OpalFlatTop::setParameters(const DistributionSettings& opalDist) {
     setInternalVariables(
-            opalDist->emitting_m, opalDist->getSigmaTFall(), opalDist->getSigmaTRise(),
-            opalDist->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist->getSigmaR(),
-            opalDist->getFTOSCAmplitude(), opalDist->getFTOSCPeriods());
+            opalDist.emitting_m, opalDist.getSigmaTFall(), opalDist.getSigmaTRise(),
+            opalDist.getCutoffR(), opalDist.getTPulseLengthFWHM(), opalDist.getSigmaR(),
+            opalDist.getFTOSCAmplitude(), opalDist.getFTOSCPeriods());
 
-    emissionSteps_m = opalDist->getEmissionSteps();
-    opalDist->setTEmission(emissionTime_m);
+    emissionSteps_m = opalDist.getEmissionSteps();
 }
 
 void OpalFlatTop::setInternalVariables(

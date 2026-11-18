@@ -16,6 +16,7 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
 
+#include "../KeywordObjects.h"
 #include "../TemporaryDirectory.h"
 
 namespace {
@@ -39,8 +40,8 @@ namespace {
             int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
-            gmsg                             = new Inform(nullptr, -1);
-            [[maybe_unused]] static auto* p0 = new RealVariable();
+            gmsg = new Inform(nullptr, -1);
+            opalx::test::keyword<RealVariable>("REAL_VARIABLE");
         }
         static void TearDownTestSuite() {
             delete gmsg;
@@ -56,7 +57,7 @@ namespace {
         }
         void TearDown() override { directory.reset(); }
         std::unique_ptr<OpalRBend> element(double theta = angle, double e1 = 0.0) {
-            auto el = std::make_unique<OpalRBend>();
+            auto el = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
             for (const auto& [name, value] : std::vector<std::pair<std::string, double>>{
                          {"L", 0.3},
                          {"ANGLE", theta},
@@ -81,9 +82,9 @@ namespace {
 }  // namespace
 
 TEST_F(RBendSettingsTest, ParserConvertsCentimetresAndUsesMapGap) {
-    auto el = element();
-    el->update();
-    auto& b = dynamic_cast<RBend&>(*el->getElement());
+    auto el          = element();
+    const auto built = opalx::test::buildFrom(*el);
+    auto& b          = dynamic_cast<RBend&>(*built);
     double begin, end;
     b.getFieldExtent(begin, end);
     EXPECT_DOUBLE_EQ(begin, -0.25);
@@ -104,9 +105,9 @@ TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
     awaProfile();
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
-            auto el = element(sign * angle, e1);
-            el->update();
-            auto& bend = dynamic_cast<RBend&>(*el->getElement());
+            auto el          = element(sign * angle, e1);
+            const auto built = opalx::test::buildFrom(*el);
+            auto& bend       = dynamic_cast<RBend&>(*built);
             bend.initialiseField(electronMass, -1.0);
             EXPECT_THROW(bend.getPlacementPathLength(), OpalException);
             const auto idealLength = bend.getGeometry().getArcLength();
@@ -133,10 +134,9 @@ TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
 TEST_F(RBendSettingsTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase) {
     awaProfile();
     auto first = element(-angle, 0.0), second = element(angle, angle);
-    first->update();
-    second->update();
-    std::shared_ptr<ElementBase> b1(first->getElement()->clone()),
-            b2(second->getElement()->clone());
+    const auto firstBuilt  = opalx::test::buildFrom(*first);
+    const auto secondBuilt = opalx::test::buildFrom(*second);
+    std::shared_ptr<ElementBase> b1(firstBuilt->clone()), b2(secondBuilt->clone());
     b1->setElementPosition(.623686);
     b2->setElementPosition(2.431686);
     for (auto bend : {b1, b2}) {
@@ -165,16 +165,19 @@ TEST_F(RBendSettingsTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
     RBendRep native;
     native.getGeometry() = Geometry::makeRBend(.3, angle);
     EXPECT_DOUBLE_EQ(native.getPlacementPathLength(), native.getGeometry().getArcLength());
-    auto el = element();
-    el->update();
-    auto& bend = dynamic_cast<RBend&>(*el->getElement());
+    auto el          = element();
+    const auto built = opalx::test::buildFrom(*el);
+    auto& bend       = dynamic_cast<RBend&>(*built);
     bend.initialiseField(electronMass, -1.0);
     EXPECT_THROW(bend.initialiseReferencePath(electronMass, -1.0, 0.0), OpalException);
     EXPECT_THROW(bend.initialiseReferencePath(electronMass, -1.0, -1e-13), OpalException);
 }
 
 TEST_F(RBendSettingsTest, GapAliasKeepsNativeModelAndItsAperture) {
-    OpalRBend a, b;
+    auto aObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "A");
+    auto bObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "B");
+    OpalRBend& a = *aObject;
+    OpalRBend& b = *bObject;
     for (auto* p : {&a, &b}) {
         Attributes::setReal(*p->findAttribute("L"), .3);
         Attributes::setReal(*p->findAttribute("ELEMEDGE"), 0);
@@ -182,10 +185,10 @@ TEST_F(RBendSettingsTest, GapAliasKeepsNativeModelAndItsAperture) {
     }
     Attributes::setReal(*a.findAttribute("GAP"), .05);
     Attributes::setReal(*b.findAttribute("HGAP"), .025);
-    a.update();
-    b.update();
-    auto& ar = dynamic_cast<RBend&>(*a.getElement());
-    auto& br = dynamic_cast<RBend&>(*b.getElement());
+    const auto aBuilt = opalx::test::buildFrom(a);
+    const auto bBuilt = opalx::test::buildFrom(b);
+    auto& ar          = dynamic_cast<RBend&>(*aBuilt);
+    auto& br          = dynamic_cast<RBend&>(*bBuilt);
     EXPECT_FALSE(ar.hasFieldMap());
     EXPECT_FALSE(ar.getGeometry().hasPoleFaceAngles());
     EXPECT_EQ(ar.getAperture(), br.getAperture());
@@ -195,9 +198,9 @@ TEST_F(RBendSettingsTest, GapAliasKeepsNativeModelAndItsAperture) {
 }
 
 TEST_F(RBendSettingsTest, CalibrationUsesSpeciesChargeAndDesignEnergy) {
-    auto el = element();
-    el->update();
-    auto& b = dynamic_cast<RBend&>(*el->getElement());
+    auto el          = element();
+    const auto built = opalx::test::buildFrom(*el);
+    auto& b          = dynamic_cast<RBend&>(*built);
     b.initialiseField(electronMass, -1);
     double electronField = field(b, 0, 0, .1)(1);
     b.initialiseField(electronMass, 1);
@@ -213,10 +216,10 @@ TEST_F(RBendSettingsTest, GapAndHgapScaleTheSameProfile) {
     auto a = element(), b = element();
     Attributes::setReal(*a->findAttribute("GAP"), 0.10);
     Attributes::setReal(*b->findAttribute("HGAP"), 0.05);
-    a->update();
-    b->update();
-    for (auto* el : {a.get(), b.get()}) {
-        auto& bend = dynamic_cast<RBend&>(*el->getElement());
+    const auto aBuilt = opalx::test::buildFrom(*a);
+    const auto bBuilt = opalx::test::buildFrom(*b);
+    for (const auto& built : {aBuilt, bBuilt}) {
+        auto& bend = dynamic_cast<RBend&>(*built);
         bend.initialiseField(electronMass, -1);
         double start, end;
         bend.getFieldExtent(start, end);
@@ -224,20 +227,20 @@ TEST_F(RBendSettingsTest, GapAndHgapScaleTheSameProfile) {
         EXPECT_DOUBLE_EQ(end, 0.8);
     }
     EXPECT_DOUBLE_EQ(
-            field(dynamic_cast<RBend&>(*a->getElement()), 0, 0, .1)(1),
-            field(dynamic_cast<RBend&>(*b->getElement()), 0, 0, .1)(1));
+            field(dynamic_cast<RBend&>(*aBuilt), 0, 0, .1)(1),
+            field(dynamic_cast<RBend&>(*bBuilt), 0, 0, .1)(1));
     Attributes::setReal(*a->findAttribute("HGAP"), 0.05);
-    EXPECT_THROW(a->update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(*a), OpalException);
 }
 
 TEST_F(RBendSettingsTest, RejectsInconsistentFacesAndUnsupportedProfileOptions) {
     auto el = element();
     Attributes::setReal(*el->findAttribute("E2"), 0.0);
-    EXPECT_THROW(el->update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(*el), OpalException);
     Attributes::setReal(*el->findAttribute("E2"), angle);
-    EXPECT_NO_THROW(el->update());
+    EXPECT_NO_THROW(opalx::test::buildFrom(*el));
     Attributes::setReal(*el->findAttribute("FINT"), 0.5);
-    EXPECT_THROW(el->update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(*el), OpalException);
 }
 
 TEST_F(RBendSettingsTest, RejectsMalformedOrUnsupportedMaps) {
@@ -246,7 +249,7 @@ TEST_F(RBendSettingsTest, RejectsMalformedOrUnsupportedMaps) {
           "1DProfile1 1 1 -5\n-25 0 15 0\n-15 0 25 0\n0\n2\n0\n2\n",
           "1DProfile1 1 1 5\n-25 0 15 0\n-15 0 25 0\n0\n2\n"}) {
         std::ofstream(filename) << contents;
-        EXPECT_THROW(element()->update(), OpalException);
+        EXPECT_THROW(opalx::test::buildFrom(*element()), OpalException);
     }
 }
 
@@ -284,9 +287,9 @@ TEST_F(RBendSettingsTest, ProfileDerivativesAndDeviceEvaluation) {
 TEST_F(RBendSettingsTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngles) {
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
-            auto el = element(sign * angle, e1);
-            el->update();
-            auto& bend = dynamic_cast<RBend&>(*el->getElement());
+            auto el          = element(sign * angle, e1);
+            const auto built = opalx::test::buildFrom(*el);
+            auto& bend       = dynamic_cast<RBend&>(*built);
             bend.initialiseField(electronMass, -1);
             const double betaGamma = std::sqrt(energy * (energy + 2 * electronMass)) / electronMass;
             Vec p                  = betaGamma * Vec(std::sin(e1), 0, std::cos(e1));
@@ -309,8 +312,8 @@ TEST_F(RBendSettingsTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngle
 TEST_F(RBendSettingsTest, DefaultProfileAndRepeatedInitialisation) {
     auto el = element();
     Attributes::setString(*el->findAttribute("FMAPFN"), "1DPROFILE1-DEFAULT");
-    el->update();
-    auto& b = dynamic_cast<RBend&>(*el->getElement());
+    const auto built = opalx::test::buildFrom(*el);
+    auto& b          = dynamic_cast<RBend&>(*built);
     b.initialiseField(electronMass, -1);
     auto first = field(b, 0, .001, .02);
     b.initialiseField(electronMass, -1);
@@ -349,15 +352,17 @@ TEST_F(RBendSettingsTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent)
 
 TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) {
     for (bool useExit : {false, true}) {
-        OpalRBend el;
+        auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+        OpalRBend& el = *elObject;
         Attributes::setReal(*el.findAttribute("L"), .3);
         Attributes::setReal(*el.findAttribute("ANGLE"), angle);
         Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
         Attributes::setReal(*el.findAttribute(useExit ? "E2" : "E1"), useExit ? angle : 0.0);
         Attributes::setReal(*el.findAttribute("K1"), .2);
         Attributes::setReal(*el.findAttribute("FINT"), .4);
-        ASSERT_NO_THROW(el.update());
-        auto& bend = dynamic_cast<RBend&>(*el.getElement());
+        std::shared_ptr<ElementBase> built;
+        ASSERT_NO_THROW(built = opalx::test::buildFrom(el));
+        auto& bend = dynamic_cast<RBend&>(*built);
         EXPECT_FALSE(bend.hasFieldMap());
         EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
         EXPECT_TRUE(bend.getGeometry().hasPoleFaceAngles());
@@ -369,15 +374,16 @@ TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy
 }
 
 TEST_F(RBendSettingsTest, ZeroFintKeepsMaxwellFocusingWithoutAdditionalEdgeField) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("E1"), 0.0);
     Attributes::setReal(*el.findAttribute("GAP"), .05);
     Attributes::setReal(*el.findAttribute("FINT"), 0.0);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
-    el.update();
-    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    const auto built = opalx::test::buildFrom(el);
+    auto& bend       = dynamic_cast<RBend&>(*built);
     bend.setB(1.0);
     for (double z : {0.0, .3}) {
         const auto b = field(bend, 0.0, .001, z);
@@ -387,13 +393,14 @@ TEST_F(RBendSettingsTest, ZeroFintKeepsMaxwellFocusingWithoutAdditionalEdgeField
 }
 
 TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*el.findAttribute("DESIGNENERGY"), 42.411);
-    el.update();
-    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    const auto built = opalx::test::buildFrom(el);
+    auto& bend       = dynamic_cast<RBend&>(*built);
     EXPECT_FALSE(bend.hasFieldMap());
     EXPECT_FALSE(bend.getGeometry().hasPoleFaceAngles());
     EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), .3);
@@ -409,22 +416,24 @@ TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
 }
 
 TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("E1"), 0.0);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setString(*el.findAttribute("FMAPFN"), filename);
-    ASSERT_NO_THROW(el.update());
-    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(el));
+    auto& bend = dynamic_cast<RBend&>(*built);
     EXPECT_TRUE(bend.hasFieldMap());
     EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
     bend.setReferenceMomentum(std::sqrt(energy * (energy + 2 * electronMass)));
     bend.initialiseField(electronMass, -1.0);
     bend.initialiseReferencePath(electronMass, -1.0, 1e-13);
-    auto explicitEnergy = element();
-    explicitEnergy->update();
-    auto& reference = dynamic_cast<RBend&>(*explicitEnergy->getElement());
+    auto explicitEnergy       = element();
+    const auto referenceBuilt = opalx::test::buildFrom(*explicitEnergy);
+    auto& reference           = dynamic_cast<RBend&>(*referenceBuilt);
     reference.initialiseField(electronMass, -1.0);
     reference.initialiseReferencePath(electronMass, -1.0, 1e-13);
     EXPECT_DOUBLE_EQ(field(bend, 0.0, .001, .1)(1), field(reference, 0.0, .001, .1)(1));
@@ -432,13 +441,14 @@ TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
 }
 
 TEST_F(RBendSettingsTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
-    OpalRBend el;
+    auto elObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& el = *elObject;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
     Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setString(*el.findAttribute("FMAPFN"), filename);
-    el.update();
-    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    const auto built = opalx::test::buildFrom(el);
+    auto& bend       = dynamic_cast<RBend&>(*built);
     EXPECT_TRUE(bend.hasFieldMap());
     EXPECT_FALSE(bend.getGeometry().hasPoleFaceAngles());
     EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), .3);
@@ -450,28 +460,25 @@ TEST_F(RBendSettingsTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
     EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), chord);
 }
 
-TEST_F(RBendSettingsTest, ProfilePreservesPositionedNegativeBendConvention) {
-    OpalRBend standard, mapped;
-    for (auto* el : {&standard, &mapped}) {
+TEST_F(RBendSettingsTest, ProfileKeepsTheNegativeBendGeometry) {
+    auto standardObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "STANDARD");
+    auto mappedObject   = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "MAPPED");
+    for (auto* el : {standardObject.get(), mappedObject.get()}) {
         Attributes::setReal(*el->findAttribute("L"), .3);
         Attributes::setReal(*el->findAttribute("ANGLE"), -angle);
         Attributes::setReal(*el->findAttribute("ELEMEDGE"), 0.0);
     }
-    Attributes::setString(*mapped.findAttribute("FMAPFN"), filename);
-    standard.update();
-    mapped.update();
-    standard.getElement()->fixPosition();
-    mapped.getElement()->fixPosition();
-    standard.update();
-    mapped.update();
-    const auto& a = standard.getElement()->getGeometry();
-    const auto& b = mapped.getElement()->getGeometry();
+    Attributes::setString(*mappedObject->findAttribute("FMAPFN"), filename);
+    const auto standard = opalx::test::buildFrom(*standardObject);
+    const auto mapped   = opalx::test::buildFrom(*mappedObject);
+    const auto& a       = standard->getGeometry();
+    const auto& b       = mapped->getGeometry();
     EXPECT_DOUBLE_EQ(a.getBendAngle(), b.getBendAngle());
     EXPECT_DOUBLE_EQ(a.getEntranceAngle(), b.getEntranceAngle());
     EXPECT_DOUBLE_EQ(a.getExitAngle(), b.getExitAngle());
     EXPECT_DOUBLE_EQ(a.getChordLength(), b.getChordLength());
-    const auto da = standard.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
-    const auto db = mapped.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    const auto da = standard->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    const auto db = mapped->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
     for (int d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(da(d), db(d));
 }

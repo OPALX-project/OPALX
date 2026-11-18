@@ -30,6 +30,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -70,7 +71,7 @@ enum class BeamlineTopology : unsigned short { LINE, RING };
  * @brief Logical RING membership carried by a sequence member or runtime occurrence.
  *
  * An occurrence is one use of an element in a sequence, rather than its reusable input
- * definition. Ring::prepareForTracking() clones occurrences recursively and assigns the
+ * definition. opalx::run::buildElements() builds one element per occurrence and assigns the
  * enclosing RING name to each, including members inside nested LINEs. For example, two
  * uses of a quadrupole in ring R1 have distinct element objects but both carry
  * {BeamlineTopology::RING, "R1"}; neither the quadrupole name nor an inner LINE name
@@ -125,6 +126,24 @@ struct SupportBox {
  * marked sharable (makeSharable()). Algorithms dispatch on the concrete
  * element type through accept(BeamlineVisitor&).
  */
+/**
+ * @brief Time of the current tracking step, passed to ElementBase::apply().
+ *
+ * Elements used to read these values from the bunch (RefPartBunch_m).
+ */
+struct StepTime {
+    double t       = 0.0;  ///< Bunch time at the start of the step (s).
+    double dt      = 0.0;  ///< Time step (s).
+    long long step = 0;    ///< Global step number.
+};
+
+/// How ParallelTracker uses an element of the tracked line.
+enum class TrackedAs {
+    FieldElement,  ///< Copied into OpalBeamline: applies its field or aperture, or records.
+    Ignored,       ///< Left out of tracking (MARKER).
+    Unsupported    ///< Tracking it is an error (LASER).
+};
+
 class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /* ========================= Construction & lifecycle ====================== */
@@ -353,6 +372,15 @@ public:
     /// @return True if ELEMEDGE has been set.
     bool isElementPositionSet() const;
 
+    /**
+     * @brief Path length this element adds to the reference path when placing the elements
+     *        after it by ELEMEDGE. Default: the arc length of its geometry.
+     */
+    virtual double getPlacementPathLength() const { return getGeometry().getArcLength(); }
+
+    /// How ParallelTracker uses this element; most elements are field elements.
+    virtual TrackedAs trackedAs() const { return TrackedAs::FieldElement; }
+
     /* =============================== Aperture ================================ */
 
     void setAperture(const ApertureType& type, const std::vector<double>& args);
@@ -366,8 +394,10 @@ public:
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
+     * @param pc   The particles, in the element's local frame.
+     * @param time Bunch time, time step and step number of the current step.
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time);
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -425,9 +455,8 @@ public:
     // Clean-up
     virtual void finalise() = 0;
 
-    /// Prepare runtime resources for tracking (e.g. load a field map); sets online_m.
-    virtual void goOnline(const double& kineticEnergy);
     /// Release runtime resources / flush element output (e.g. loss data); clears online_m.
+    /// initialise() prepares them (field maps, output files) and sets online_m where it is read.
     virtual void goOffline();
 
     /**
@@ -530,9 +559,17 @@ protected:
     static const std::vector<double> defaultAperture_m;
 
     // --- Field / physics ---
-    // The reference bunch (not owned)
+    // The reference bunch (not owned). Only Monitor still reads it, to save the bunch when
+    // the reference particle crosses a TEMPORAL monitor.
     PartBunch_t* RefPartBunch_m;
     bool online_m;
+
+    /// Rest mass (eV) and charge (elementary charges) of the first beam, stored by
+    /// takeDesignParticle(); the charge stays 1 for an element without a bunch.
+    double designMass_m   = 0.0;
+    double designCharge_m = 1.0;
+    /// Store the first beam's mass and charge (a charge of zero keeps 1).
+    void takeDesignParticle(const PartBunch_t* bunch);
 
 private:
     // Not implemented.
@@ -559,7 +596,36 @@ private:
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
     std::optional<double> reach_m;
+
+    /// Position in the tracked line, counted from 1 by OpalBeamline; 0 if not in a line.
+    std::size_t lineIndex_m = 0;
+
+public:
+    /// Position in the tracked line, counted from 1; 0 for an element outside a tracked line.
+    std::size_t getLineIndex() const { return lineIndex_m; }
+    /// Set by OpalBeamline when it takes its copy of the element.
+    void setLineIndex(std::size_t index) { lineIndex_m = index; }
 };
+
+/**
+ * @brief Orders elements by their position in the tracked line.
+ *
+ * Loops over the elements at one point sum their fields; with this order the sum is the same in
+ * every run. Ordering by address made the last digits of the results change from run to run.
+ * Elements outside a tracked line (index 0) fall back to their addresses.
+ */
+struct ByLinePosition {
+    bool operator()(
+            const std::shared_ptr<ElementBase>& a, const std::shared_ptr<ElementBase>& b) const {
+        // A null pointer sorts first, by address like before.
+        if (a && b && a->getLineIndex() != b->getLineIndex())
+            return a->getLineIndex() < b->getLineIndex();
+        return std::less<std::shared_ptr<ElementBase>>()(a, b);
+    }
+};
+
+/// A set of elements in line order; see ByLinePosition.
+using ElementSet = std::set<std::shared_ptr<ElementBase>, ByLinePosition>;
 
 // Inline functions.
 // ------------------------------------------------------------------------

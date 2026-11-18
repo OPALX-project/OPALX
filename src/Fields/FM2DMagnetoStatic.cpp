@@ -21,7 +21,6 @@
 FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename) {
     std::ifstream file;
     std::string tmpString;
-    double tmpDouble;
 
     Type = T2DMagnetoStatic;
 
@@ -70,9 +69,14 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
             parsing_passed = false;
         }
 
+        // Keep the numbers: readMap() takes them from fileValues_m instead of reading again.
         for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++i) {
-            parsing_passed =
-                    parsing_passed && interpretLine<double, double>(file, tmpDouble, tmpDouble);
+            double first = 0.0, second = 0.0;
+            parsing_passed = parsing_passed && interpretLine<double, double>(file, first, second);
+            if (parsing_passed) {
+                fileValues_m.push_back(first);
+                fileValues_m.push_back(second);
+            }
         }
 
         parsing_passed = parsing_passed && interpreteEOF(file);
@@ -111,45 +115,31 @@ FM2DMagnetoStatic::~FM2DMagnetoStatic() { freeMap(); }
 
 void FM2DMagnetoStatic::readMap() {
     if (FieldstrengthBz_m.extent(0) == 0) {
-        // declare variables and allocate memory
-        std::ifstream in;
-        std::string tmpString;
-
-        const size_t size = num_gridpz_m * num_gridpr_m;
-        FieldstrengthBz_m = Kokkos::DualView<double*>("FieldstrengthBz", size);
-        FieldstrengthBr_m = Kokkos::DualView<double*>("FieldstrengthBr", size);
+        // The constructor read the data lines; take their numbers in file order.
+        const size_t size                 = num_gridpz_m * num_gridpr_m;
+        const std::vector<double>& values = getFileValues(2 * size);
+        FieldstrengthBz_m                 = Kokkos::DualView<double*>("FieldstrengthBz", size);
+        FieldstrengthBr_m                 = Kokkos::DualView<double*>("FieldstrengthBr", size);
 
         auto Bz = FieldstrengthBz_m.view_host();
         auto Br = FieldstrengthBr_m.view_host();
 
-        // read in and parse field map
-        in.open(Filename_m.c_str());
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-
+        size_t next = 0;
         if (swap_m) {
             for (int i = 0; i < num_gridpz_m; i++) {
                 for (int j = 0; j < num_gridpr_m; j++) {
-                    interpretLine<double, double>(
-                            in,                        // input stream
-                            Br(j * num_gridpz_m + i),  // radial component
-                            Bz(j * num_gridpz_m + i)   // longitudinal component
-                    );
+                    Br(j * num_gridpz_m + i) = values[next++];  // radial component
+                    Bz(j * num_gridpz_m + i) = values[next++];  // longitudinal component
                 }
             }
         } else {
             for (int j = 0; j < num_gridpr_m; j++) {
                 for (int i = 0; i < num_gridpz_m; i++) {
-                    interpretLine<double, double>(
-                            in,                        // input stream
-                            Bz(j * num_gridpz_m + i),  // longitudinal component
-                            Br(j * num_gridpz_m + i)   // radial component
-                    );
+                    Bz(j * num_gridpz_m + i) = values[next++];  // longitudinal component
+                    Br(j * num_gridpz_m + i) = values[next++];  // radial component
                 }
             }
         }
-        in.close();
 
         if (normalize_m) {
             double Bzmax = 0.0;

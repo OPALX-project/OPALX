@@ -48,7 +48,7 @@ class Fieldmap;
  * @note Placement is restricted to the 6D lab pose. ELEMEDGE positions an element by path
  *       length along the reference orbit, which needs the element's length along that orbit;
  *       this element's extent comes from its map and is not a path length. The rejection
- *       lives in OpalFieldmapElement::update().
+ *       lives in OpalFieldmapElement::build().
  */
 class FieldmapElement : public ElementBase {
 public:
@@ -65,7 +65,8 @@ public:
      * Delegates straight to Fieldmap::applyField(). Particles outside the map get no
      * contribution; the reader kernels already skip them.
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /**
      * @brief Add the map's field at a single position.
@@ -97,19 +98,15 @@ public:
     virtual void accept(BeamlineVisitor&) const override;
 
     /**
-     * @brief Load the map, check its type, and take the element's box from its extent.
+     * @brief Load the map, check its type, take the element's box from its extent, and read
+     *        the map data.
      *
-     * The map header is parsed by the reader's constructor inside Fieldmap::getFieldmap(),
-     * so both extents are available here -- before goOnline() reads the data. This runs on
-     * the tracked clone in OpalBeamline::visit(), which is before the element list is sorted
-     * and before PlacementResolver runs, so the map-derived length reaches every consumer.
+     * This runs in OpalBeamline::addElement(), before the element list is sorted and before
+     * PlacementResolver runs, so the map-derived length reaches every consumer.
      */
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
-
-    /// @brief Read the map data and go online.
-    virtual void goOnline(const double& kineticEnergy) override;
 
     /// @brief Release the map data and go offline.
     virtual void goOffline() override;

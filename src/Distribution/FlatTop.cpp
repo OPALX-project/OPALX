@@ -1,14 +1,15 @@
 #include "FlatTop.h"
 #include <mpi.h>
 #include <cmath>
+#include <fstream>
 #include <memory>
-#include "Distribution.h"
+#include "Distribution/DistributionSettings.h"
 #include "SamplingBase.hpp"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
-FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
@@ -32,12 +33,10 @@ size_t FlatTop::determineRandInit() {
     return randInit;
 }
 
-void FlatTop::setParameters(Distribution_t* opalDist) {
+void FlatTop::setParameters(const DistributionSettings& opalDist) {
     setInternalVariables(
-            opalDist->emitting_m, opalDist_m->getSigmaTFall(), opalDist_m->getSigmaTRise(),
-            opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR());
-
-    opalDist_m->setTEmission(emissionTime_m);
+            opalDist.emitting_m, opalDist_m->getSigmaTFall(), opalDist_m->getSigmaTRise(),
+            opalDist_m->getCutoffR(), opalDist.getTPulseLengthFWHM(), opalDist_m->getSigmaR());
 }
 
 void FlatTop::setInternalVariables(

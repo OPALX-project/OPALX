@@ -263,6 +263,18 @@ protected:
     /// @brief Load the map mirrored in z, with the longitudinal component negated
     bool zReverse_m;
 
+    /// The numbers of the data lines, in file order, as the constructor read them while it
+    /// checked the file. readMap() takes them from here, so the file is read once; they are
+    /// kept so readMap() can run again after freeMap(). Only the 1D and 2D readers use it.
+    std::vector<double> fileValues_m;
+
+    /**
+     * @brief The numbers the constructor read, for readMap().
+     * @param minimum How many numbers readMap() needs at least.
+     * @throws GeneralOpalException if there are fewer.
+     */
+    const std::vector<double>& getFileValues(std::size_t minimum) const;
+
     void getLine(std::ifstream& in, std::string& buffer) { getLine(in, lines_read_m, buffer); }
 
     static void getLine(std::ifstream& in, int& lines_read, std::string& buffer);

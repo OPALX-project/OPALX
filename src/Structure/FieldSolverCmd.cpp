@@ -112,16 +112,9 @@ FieldSolverCmd::FieldSolverCmd()
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
 
-FieldSolverCmd::FieldSolverCmd(const std::string& name, FieldSolverCmd* parent)
-    : Definition(name, parent) {}
-
 FieldSolverCmd::~FieldSolverCmd() {}
 
-FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
-    return new FieldSolverCmd(name, this);
-}
-
-void FieldSolverCmd::execute() { update(); }
+void FieldSolverCmd::execute() {}
 
 FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     FieldSolverCmd* fs = dynamic_cast<FieldSolverCmd*>(OpalData::getInstance()->find(name));
@@ -132,38 +125,36 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     return fs;
 }
 
-std::string FieldSolverCmd::getType() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+std::string FieldSolverCmd::getType(const ObjectValues& values) { return values.getString("TYPE"); }
+
+std::string FieldSolverCmd::getBinsName(const ObjectValues& values) {
+    return values.getString("BINS");
 }
 
-std::string FieldSolverCmd::getBinsName() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
+std::string FieldSolverCmd::getGreensFunction(const ObjectValues& values) {
+    return values.getString("GREENSF");
 }
 
-std::string FieldSolverCmd::getGreensFunction() const {
-    return Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
+double FieldSolverCmd::getP3MCutoff(const ObjectValues& values) { return values.getReal("RCUT"); }
+
+double FieldSolverCmd::getP3MCutoffCells(const ObjectValues& values) {
+    return values.getReal("RCUT_CELLS");
 }
 
-double FieldSolverCmd::getP3MCutoff() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUT]);
+double FieldSolverCmd::getPeriodicBox(const ObjectValues& values) {
+    return values.getReal("PERIODICBOX");
 }
 
-double FieldSolverCmd::getP3MCutoffCells() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
+bool FieldSolverCmd::hasP3MCutoff(const ObjectValues& values) {
+    return !values.defaultUsed("RCUT");
 }
 
-double FieldSolverCmd::getPeriodicBox() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::PERIODICBOX]);
+bool FieldSolverCmd::hasP3MCutoffCells(const ObjectValues& values) {
+    return !values.defaultUsed("RCUT_CELLS");
 }
 
-bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
-
-bool FieldSolverCmd::hasP3MCutoffCells() const {
-    return !itsAttr[FIELDSOLVER::P3MRCUTCELLS].defaultUsed();
-}
-
-int FieldSolverCmd::getRepeatCount() const {
-    const double repeats = Attributes::getReal(itsAttr[FIELDSOLVER::REPEATS]);
+int FieldSolverCmd::getRepeatCount(const ObjectValues& values) {
+    const double repeats = values.getReal("REPEATS");
     if (repeats < 0.0 || repeats != std::floor(repeats)) {
         throw OpalException(
                 "FieldSolverCmd::getRepeatCount", "REPEATS must be a non-negative integer.");
@@ -171,26 +162,26 @@ int FieldSolverCmd::getRepeatCount() const {
     return static_cast<int>(repeats);
 }
 
-double FieldSolverCmd::getRepeatSpacing() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::REPEATSPACING]);
+double FieldSolverCmd::getRepeatSpacing(const ObjectValues& values) {
+    return values.getReal("REPEAT_SPACING");
 }
 
-BCHandler<3> FieldSolverCmd::constructBCHandler() const {
+BCHandler<3> FieldSolverCmd::constructBCHandler(const ObjectValues& values) {
     using BCH_t = BCHandler<3>;
 
     BCH_t boundary_conditions(
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
-            BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
+            BCH_t::strToBCType(values.getString("BCFFTX")),
+            BCH_t::strToBCType(values.getString("BCFFTY")),
+            BCH_t::strToBCType(values.getString("BCFFTZ")));
 
     return boundary_conditions;
 }
 
-double FieldSolverCmd::getNX() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NX]); }
+double FieldSolverCmd::getNX(const ObjectValues& values) { return values.getReal("NX"); }
 
-double FieldSolverCmd::getNY() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NY]); }
+double FieldSolverCmd::getNY(const ObjectValues& values) { return values.getReal("NY"); }
 
-double FieldSolverCmd::getNZ() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NZ]); }
+double FieldSolverCmd::getNZ(const ObjectValues& values) { return values.getReal("NZ"); }
 
 void FieldSolverCmd::setNX(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NX], value); }
 
@@ -198,82 +189,77 @@ void FieldSolverCmd::setNY(double value) { Attributes::setReal(itsAttr[FIELDSOLV
 
 void FieldSolverCmd::setNZ(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NZ], value); }
 
-double FieldSolverCmd::getBoxIncr() const {
-    return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
-}
+double FieldSolverCmd::getBoxIncr(const ObjectValues& values) { return values.getReal("BBOXINCR"); }
 
-void FieldSolverCmd::update() {}
-
-FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
+FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType(const ObjectValues& values) {
     static const std::map<std::string, FieldSolverCmdType> types = {
             {"NONE", FieldSolverCmdType::NONE},
             {"FFT", FieldSolverCmdType::FFT},
             {"P3M", FieldSolverCmdType::P3M},
             {"OPEN", FieldSolverCmdType::OPEN},
             {"CG", FieldSolverCmdType::CG}};
-    const auto found = types.find(getType());
+    const auto found = types.find(getType(values));
     if (found == types.end()) {
         throw OpalException("FieldSolverCmd::getFieldSolverCmdType", "Unknown or missing TYPE.");
     }
     return found->second;
 }
 
-ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition() const {
-    return {Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])};
+ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition(const ObjectValues& values) {
+    return {values.getBool("PARFFTX"), values.getBool("PARFFTY"), values.getBool("PARFFTZ")};
 }
 
 BinningCmd* FieldSolverCmd::getBinningCmd() const {
-    const std::string binsName = getBinsName();
+    const std::string binsName = Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
     if (binsName == "NONE" || binsName.empty()) {
         return nullptr;
     }
     return BinningCmd::find(binsName);
 }
 
-Inform& FieldSolverCmd::printInfo(Inform& os) const {
+Inform& FieldSolverCmd::printInfo(Inform& os, const ObjectValues& values) {
     os << "* ************* F I E L D S O L V E R ********************************************** "
        << endl;
-    os << "* FIELDSOLVER  " << getOpalName() << '\n'
-       << "* BINS         " << getBinsName() << '\n'
-       << "* TYPE         " << getType() << '\n'
+    os << "* FIELDSOLVER  " << values.getName() << '\n'
+       << "* BINS         " << getBinsName(values) << '\n'
+       << "* TYPE         " << getType(values) << '\n'
        << "* RANKS        " << ippl::Comm->size() << '\n'
-       << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
-       << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
-       << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
-       << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
-       << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+       << "* NX           " << values.getReal("NX") << '\n'
+       << "* NY           " << values.getReal("NY") << '\n'
+       << "* NZ           " << values.getReal("NZ") << '\n'
+       << "* BBOXINCR     " << values.getReal("BBOXINCR") << '\n'
+       << "* GREENSF      " << values.getString("GREENSF") << endl;
 
-    if (getType() == "P3M") {
-        if (hasP3MCutoff()) {
-            const double cutoff = getP3MCutoff();
+    if (getType(values) == "P3M") {
+        if (hasP3MCutoff(values)) {
+            const double cutoff = getP3MCutoff(values);
             os << "* RCUT         " << cutoff << " [m]" << '\n'
                << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
         } else {
-            os << "* RCUT_CELLS   " << getP3MCutoffCells() << " [largest mesh spacing]" << '\n'
+            os << "* RCUT_CELLS   " << getP3MCutoffCells(values) << " [largest mesh spacing]"
+               << '\n'
                << "* ALPHA        2/RCUT, updated with the mesh" << endl;
         }
     }
 
-    if (getRepeatCount() > 0) {
-        os << "* REPEATS      " << getRepeatCount() << " on each side, spacing "
-           << getRepeatSpacing() << " [m]" << endl;
+    if (getRepeatCount(values) > 0) {
+        os << "* REPEATS      " << getRepeatCount(values) << " on each side, spacing "
+           << getRepeatSpacing(values) << " [m]" << endl;
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
+    if (values.getBool("PARFFTX")) {
         os << "* XDIM         parallel  " << endl;
     } else {
         os << "* XDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY])) {
+    if (values.getBool("PARFFTY")) {
         os << "* YDIM         parallel  " << endl;
     } else {
         os << "* YDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])) {
+    if (values.getBool("PARFFTZ")) {
         os << "* ZDIM         parallel  " << endl;
     } else {
         os << "* ZDIM         serial  " << endl;

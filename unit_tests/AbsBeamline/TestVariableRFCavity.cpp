@@ -29,6 +29,7 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 class TestVariableRFCavity : public testing::Test, public VariableRFCavity, public BeamlineVisitor {
@@ -109,11 +110,12 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
-        auto beam    = std::make_shared<Beam>();
+        auto beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         auto bunch   = std::make_shared<PartBunch_t>(
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector<Beam*>{opBeam},
+                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
@@ -369,7 +371,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
-    apply(pc);
+    apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     // Extract the fields from the GPU
     Kokkos::deep_copy(hostE, pc->E.getView());
     Kokkos::fence();
@@ -483,7 +485,7 @@ TEST_F(TestVariableRFCavity, DeviceSamplesAllTimeModelsAtBorisMidpoint) {
         b(0) = initialB;
         Kokkos::deep_copy(pc->E.getView(), e);
         Kokkos::deep_copy(pc->B.getView(), b);
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         Kokkos::deep_copy(e, pc->E.getView());
         Kokkos::deep_copy(b, pc->B.getView());
         const double tm = t + 0.5 * dt;
@@ -551,7 +553,7 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
     bunch->setT(-1.e-9);
     bunch->setdT(2.e-9);  // Peak field at the physical midpoint t=0.
     initialise(bunch.get());
-    apply(pc);
+    apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     Kokkos::deep_copy(e, pc->E.getView());
     Kokkos::deep_copy(b, pc->B.getView());
     for (size_t i = 0; i < samples.size(); ++i) {
@@ -573,8 +575,8 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
     finalise();
 }
 
-TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
-    // Exercise real visitor dispatch without executing an OPALX tracking run.
+TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
+    // Exercise the tracker's element registration without executing an OPALX tracking run.
     // Previously the inherited DefaultVisitor handler silently dropped this
     // element, despite the cavity's direct host/device field tests passing.
     struct Observation {
@@ -597,12 +599,6 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
         }
         Observation& state;
     } cavity(observed);
-    struct BorrowedBunchTracker final : ParallelTracker {
-        BorrowedBunchTracker(const Beamline& line, PartBunch_t& bunch)
-            : ParallelTracker(line, false) {
-            itsBunch_m = &bunch;
-        }
-    };
     AbstractTimeDependence::setTimeDependence(
             "REGISTER_RF_A", std::make_shared<PolynomialTimeDependence>(std::vector{0.05}));
     AbstractTimeDependence::setTimeDependence(
@@ -618,9 +614,11 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
     cavity.setHeight(0.2);
     const auto bunch = makeBunch(1);
     const auto pc    = bunch->getParticleContainer();
-    FlaggedBeamline line;
-    BorrowedBunchTracker tracker(line, *bunch);
-    cavity.accept(tracker);
+    // ParallelTracker copies every element whose trackedAs() is FieldElement into its
+    // OpalBeamline with addElement().
+    ASSERT_EQ(cavity.trackedAs(), TrackedAs::FieldElement);
+    OpalBeamline lattice;
+    lattice.addElement(cavity, *bunch);
     ASSERT_EQ(observed.clones, 1u);
     ASSERT_EQ(observed.attached, bunch.get());
     ASSERT_NE(observed.runtime, nullptr);
@@ -633,7 +631,7 @@ TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
     bunch->setT(-1.e-9);
     bunch->setdT(2.e-9);
-    observed.runtime->apply(pc);
+    observed.runtime->apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     for (unsigned d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(fields(0)[d], hostE[d]);

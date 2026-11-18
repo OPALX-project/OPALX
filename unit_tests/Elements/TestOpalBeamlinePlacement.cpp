@@ -1,5 +1,6 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Elements/PlacementResolver.h"
+#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -23,6 +24,7 @@
 
 #include <cmath>
 #include <tuple>
+#include "../KeywordObjects.h"
 
 extern Inform* gmsg;
 
@@ -123,12 +125,14 @@ protected:
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
 
-        auto beam    = std::make_shared<Beam>();
+        auto beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
 
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{opBeam},
+                std::vector{1.0}, std::vector{1.0},
+                std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 std::vector<size_t>{numParticles}, 1.0, "LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
@@ -430,23 +434,26 @@ TEST_F(OpalBeamlinePlacementTest, RBendModeAMatchesModeB) {
 TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
     // E1/E2 pole-face rotations are not wired yet; specifying one must error instead of being
     // silently ignored.
-    OpalSBend sbend;
+    auto sbendObject = opalx::test::makeKeywordObject<OpalSBend>("SBEND", "SBEND");
+    OpalSBend& sbend = *sbendObject;
     Attributes::setReal(*sbend.findAttribute("L"), 0.5);
     Attributes::setReal(*sbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*sbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*sbend.findAttribute("E1"), 0.05);
-    EXPECT_THROW(sbend.update(), OpalException);
+    EXPECT_THROW(opalx::test::buildFrom(sbend), OpalException);
 }
 
 TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
-    [[maybe_unused]] static auto* p0Owner = new RealVariable();
-    OpalRBend rbend;
+    opalx::test::keyword<RealVariable>("REAL_VARIABLE");
+    auto rbendObject = opalx::test::makeKeywordObject<OpalRBend>("RBEND", "RBEND");
+    OpalRBend& rbend = *rbendObject;
     Attributes::setReal(*rbend.findAttribute("L"), 0.5);
     Attributes::setReal(*rbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*rbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*rbend.findAttribute("E2"), 0.05);
-    ASSERT_NO_THROW(rbend.update());
-    auto& bend = dynamic_cast<RBend&>(*rbend.getElement());
+    std::shared_ptr<ElementBase> built;
+    ASSERT_NO_THROW(built = opalx::test::buildFrom(rbend));
+    auto& bend = dynamic_cast<RBend&>(*built);
     EXPECT_FALSE(bend.hasFieldMap());
     EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
     EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), 0.25);

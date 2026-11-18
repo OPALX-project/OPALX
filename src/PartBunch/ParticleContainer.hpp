@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -409,11 +410,11 @@ public:
     /// @brief Set the reference particle momentum.
     void setRefPartP(const Vector_t<double, Dim>& refPartP) { refPartP_m = refPartP; }
 
-    /// @brief Set reference particle data.
-    void setReference(const PartData* ref) { reference_m = ref; }
+    /// @brief Set reference particle data; the container keeps its own copy.
+    void setReference(const PartData& ref) { reference_m = ref; }
 
-    /// @brief Get reference particle data.
-    const PartData* getReference() const { return reference_m; }
+    /// @brief Get reference particle data; nullptr until setReference() is called.
+    const PartData* getReference() const { return reference_m ? &*reference_m : nullptr; }
 
     /// @brief Set longitudinal position along design trajectory.
     void set_sPos(double sPos) { sPos_m = sPos; }
@@ -905,7 +906,7 @@ private:
     CoordinateSystemTrafo toLabTrafo_m;
 
     // Particle reference data (!= reference particle)
-    const PartData* reference_m = nullptr;
+    std::optional<PartData> reference_m;
 
     // Distance along the beamline
     double sPos_m = 0.0;

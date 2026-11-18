@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-#define CREATE_STRINGCONSTANT(x) opal->create(new StringConstant(x, this, x));
+#define CREATE_STRINGCONSTANT(x) opal->create(new StringConstant(x, x));
 
 StringConstant::StringConstant()
     : ValueDefinition(
@@ -34,9 +34,11 @@ StringConstant::StringConstant()
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
     registerOwnership(AttributeHandler::STATEMENT);
+}
 
+void StringConstant::defineBuiltins() {
     OpalData* opal = OpalData::getInstance();
-    opal->create(new StringConstant("GITREVISION", this, Util::getGitRevision()));
+    opal->create(new StringConstant("GITREVISION", Util::getGitRevision()));
 
     // NOTE: Strings that contain a hyphen can't be written without quotes and
     // no string constant should be defined for them
@@ -210,11 +212,11 @@ StringConstant::StringConstant()
     CREATE_STRINGCONSTANT("LF2");
     CREATE_STRINGCONSTANT("MTS");
 
-    // OpalVacuum / GAS
+    // GAS of the removed VACUUM element; kept so old inputs still parse.
     CREATE_STRINGCONSTANT("H2");
     // additionally: AIR
 
-    // BoundaryGeometry / TOPO
+    // TOPO of the removed BOUNDARYGEOMETRY command; kept so old inputs still parse.
     CREATE_STRINGCONSTANT("RECTANGULAR");
     CREATE_STRINGCONSTANT("BOXCORNER");
     CREATE_STRINGCONSTANT("ELLIPTIC");
@@ -224,12 +226,9 @@ StringConstant::StringConstant()
     CREATE_STRINGCONSTANT("CYLINDRICAL");
 }
 
-StringConstant::StringConstant(const std::string& name, StringConstant* parent)
-    : ValueDefinition(name, parent) {}
-
-StringConstant::StringConstant(
-        const std::string& name, StringConstant* parent, const std::string& value)
-    : ValueDefinition(name, parent) {
+StringConstant::StringConstant(const std::string& name, const std::string& value)
+    : StringConstant() {
+    setOpalName(name);
     Attributes::setString(itsAttr[0], value);
     itsAttr[0].setReadOnly(true);
     builtin = true;
@@ -238,10 +237,6 @@ StringConstant::StringConstant(
 StringConstant::~StringConstant() {}
 
 bool StringConstant::canReplaceBy(Object*) { return false; }
-
-StringConstant* StringConstant::clone(const std::string& name) {
-    return new StringConstant(name, this);
-}
 
 std::string StringConstant::getString() const { return Attributes::getString(itsAttr[0]); }
 

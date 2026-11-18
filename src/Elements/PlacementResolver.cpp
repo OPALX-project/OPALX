@@ -15,7 +15,6 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/RBend.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/OpalException.h"
@@ -24,9 +23,7 @@
 
 namespace {
     double placementPathLength(const ElementBase& element) {
-        if (const auto* bend = dynamic_cast<const RBend*>(&element))
-            return bend->getPlacementPathLength();
-        return element.getGeometry().getArcLength();
+        return element.getPlacementPathLength();
     }
     void validatePlacementModes(ElementList& elements) {
         const auto end = elements.end();

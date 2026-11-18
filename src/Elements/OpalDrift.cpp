@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalDrift.h"
+
+#include <memory>
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 
@@ -27,34 +29,19 @@ OpalDrift::OpalDrift()
             "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerOwnership();
-
-    setElement(new DriftRep("DRIFT"));
-}
-
-OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent) : OpalElement(name, parent) {
-    setElement(new DriftRep(name));
 }
 
 OpalDrift::~OpalDrift() {}
 
-OpalDrift* OpalDrift::clone(const std::string& name) { return new OpalDrift(name, this); }
-
 bool OpalDrift::isDrift() const { return true; }
 
-void OpalDrift::update() {
-    OpalElement::update();
+std::shared_ptr<ElementBase> OpalDrift::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<DriftRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-    //    DriftRep* drf = static_cast<DriftRep*>(getElement());
-
-    // drf->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
-
-    auto drf = getElement();
-    if (drf) {
-        auto L = Attributes::getReal(itsAttr[LENGTH]);
-        drf->getGeometry().setElementLength(L);
-    } else
-        std::cout << "error drf->setElementLength " << std::endl;
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(drf);
+void OpalDrift::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
+    element.getGeometry().setElementLength(values.getReal("L"));
 }

@@ -1,5 +1,6 @@
 set (_SRCS
     Distribution.cpp
+    DistributionSettings.cpp
     EmittedFromFile.cpp
     FlatTop.cpp
     FromFile.cpp
@@ -13,6 +14,7 @@ set (_SRCS
 
 set (HDRS
     Distribution.h
+    DistributionSettings.h
     EmittedFromFile.h
     FlatTop.h
     FromFile.h

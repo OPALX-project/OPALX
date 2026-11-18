@@ -262,13 +262,13 @@ TEST_F(FieldmapVsAnalyticTest, DeviceFieldMatchesToRoundOff) {
     }
 
     Kokkos::deep_copy(B, zeroB);
-    mp->apply(pc);
+    mp->apply(pc, StepTime{});
     Kokkos::fence();
     auto analyticB = Kokkos::create_mirror_view(B);
     Kokkos::deep_copy(analyticB, B);
 
     Kokkos::deep_copy(B, zeroB);
-    fm->apply(pc);
+    fm->apply(pc, StepTime{});
     Kokkos::fence();
     auto mapB = Kokkos::create_mirror_view(B);
     Kokkos::deep_copy(mapB, B);

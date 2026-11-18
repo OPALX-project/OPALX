@@ -18,6 +18,8 @@
 #ifndef OPALX_OpalFieldmapElement_HH
 #define OPALX_OpalFieldmapElement_HH
 
+#include <memory>
+
 #include "Elements/OpalElement.h"
 
 /**
@@ -45,19 +47,16 @@ public:
 
     virtual ~OpalFieldmapElement();
 
-    /// Make clone.
-    virtual OpalFieldmapElement* clone(const std::string& name) override;
-
-    /// Update the embedded OPALX element.
-    virtual void update() override;
+    /// Build the runtime element of one occurrence from its attribute values.
+    static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 
 private:
+    /// Set the fields of @p element from @p values.
+    static void fill(ElementBase& element, const ObjectValues& values);
+
     // Not implemented.
     OpalFieldmapElement(const OpalFieldmapElement&);
     void operator=(const OpalFieldmapElement&);
-
-    // Clone constructor.
-    OpalFieldmapElement(const std::string& name, OpalFieldmapElement* parent);
 };
 
 #endif  // OPALX_OpalFieldmapElement_HH

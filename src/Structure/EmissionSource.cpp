@@ -70,17 +70,10 @@ EmissionSource::EmissionSource()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-EmissionSource::EmissionSource(const std::string& name, EmissionSource* parent)
-    : Definition(name, parent) {}
-
 EmissionSource::~EmissionSource() {}
 
 bool EmissionSource::canReplaceBy(Object* object) {
     return dynamic_cast<EmissionSource*>(object) != nullptr;
-}
-
-EmissionSource* EmissionSource::clone(const std::string& name) {
-    return new EmissionSource(name, this);
 }
 
 void EmissionSource::execute() {}
@@ -94,32 +87,32 @@ EmissionSource* EmissionSource::find(const std::string& name) {
     return es;
 }
 
-std::string EmissionSource::getDistributionName() const {
-    return Attributes::getString(itsAttr[DISTRIBUTION]);
+std::string EmissionSource::getDistributionName(const ObjectValues& values) {
+    return values.getString("DISTRIBUTION");
 }
 
-ippl::Vector<double, 3> EmissionSource::getR0() const {
+ippl::Vector<double, 3> EmissionSource::getR0(const ObjectValues& values) {
     return ippl::Vector<double, 3>(
-            Attributes::getReal(itsAttr[R0X]), Attributes::getReal(itsAttr[R0Y]),
-            Attributes::getReal(itsAttr[R0Z]));
+            values.getReal("R0X"), values.getReal("R0Y"), values.getReal("R0Z"));
 }
 
-ippl::Vector<double, 3> EmissionSource::getP0() const {
+ippl::Vector<double, 3> EmissionSource::getP0(const ObjectValues& values) {
     return ippl::Vector<double, 3>(
-            Attributes::getReal(itsAttr[P0X]), Attributes::getReal(itsAttr[P0Y]),
-            Attributes::getReal(itsAttr[P0Z]));
+            values.getReal("P0X"), values.getReal("P0Y"), values.getReal("P0Z"));
 }
 
-double EmissionSource::getT0() const { return Attributes::getReal(itsAttr[T0]); }
+double EmissionSource::getT0(const ObjectValues& values) { return values.getReal("T0"); }
 
-bool EmissionSource::getZeroFaceR0Z() const { return Attributes::getBool(itsAttr[ZEROFACE_R0Z]); }
-
-bool EmissionSource::getShiftedGreensFunction() const {
-    return Attributes::getBool(itsAttr[SHIFTED_GREENS_FUNCTION]);
+bool EmissionSource::getZeroFaceR0Z(const ObjectValues& values) {
+    return values.getBool("ZEROFACE_R0Z");
 }
 
-int EmissionSource::getZeroFacePlaneDumpFrequency() const {
-    const double rawFrequency = Attributes::getReal(itsAttr[ZEROFACEPLANEDUMP]);
+bool EmissionSource::getShiftedGreensFunction(const ObjectValues& values) {
+    return values.getBool("SHIFTED_GREENS_FUNCTION");
+}
+
+int EmissionSource::getZeroFacePlaneDumpFrequency(const ObjectValues& values) {
+    const double rawFrequency = values.getReal("ZEROFACEPLANEDUMP");
     const int frequency       = static_cast<int>(rawFrequency);
     if (rawFrequency < 0.0 || std::floor(rawFrequency) != rawFrequency) {
         throw OpalException(
@@ -129,8 +122,8 @@ int EmissionSource::getZeroFacePlaneDumpFrequency() const {
     return frequency;
 }
 
-int EmissionSource::getZerofaceMaxSteps() const {
-    const double rawValue = Attributes::getReal(itsAttr[ZEROFACE_MAXSTEPS]);
+int EmissionSource::getZerofaceMaxSteps(const ObjectValues& values) {
+    const double rawValue = values.getReal("ZEROFACE_MAXSTEPS");
     const int value       = static_cast<int>(rawValue);
     if (rawValue < 0.0 || std::floor(rawValue) != rawValue) {
         throw OpalException(
@@ -140,10 +133,10 @@ int EmissionSource::getZerofaceMaxSteps() const {
     return value;
 }
 
-std::string EmissionSource::getEmissionModel() const {
-    return Attributes::getString(itsAttr[EMISSIONMODEL]);
+std::string EmissionSource::getEmissionModel(const ObjectValues& values) {
+    return values.getString("EMISSIONMODEL");
 }
 
-double EmissionSource::getKineticEnergy() const {
-    return std::abs(Attributes::getReal(itsAttr[EKIN]));
+double EmissionSource::getKineticEnergy(const ObjectValues& values) {
+    return std::abs(values.getReal("EKIN"));
 }

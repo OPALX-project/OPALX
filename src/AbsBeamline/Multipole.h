@@ -66,7 +66,8 @@ public:
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /**
      * @brief Apply to particle with position R and momentum P

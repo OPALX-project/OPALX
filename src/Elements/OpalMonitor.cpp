@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalMonitor.h"
+
+#include <memory>
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MonitorRep.h"
@@ -24,33 +26,28 @@
 OpalMonitor::OpalMonitor()
     : OpalElement(COMMON, "MONITOR", "The \"MONITOR\" element defines a monitor for both planes.") {
     registerOwnership();
-
-    setElement(new MonitorRep("MONITOR"));
-}
-
-OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent) : OpalElement(name, parent) {
-    setElement(new MonitorRep(name));
 }
 
 OpalMonitor::~OpalMonitor() {}
 
-OpalMonitor* OpalMonitor::clone(const std::string& name) { return new OpalMonitor(name, this); }
+std::shared_ptr<ElementBase> OpalMonitor::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<MonitorRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-void OpalMonitor::update() {
-    OpalElement::update();
+void OpalMonitor::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
 
-    MonitorRep* mon = dynamic_cast<MonitorRep*>(getElement());
+    MonitorRep* mon = dynamic_cast<MonitorRep*>(&element);
 
-    double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
+    double length = std::max(0.01, values.getReal("L"));
     mon->getGeometry().setElementLength(length);
-    mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
+    mon->setOutputFN(values.getString("OUTFN"));
 
-    if (Attributes::getString(itsAttr[TYPE]) == "TEMPORAL") {
+    if (values.getString("TYPE") == "TEMPORAL") {
         mon->setCollectionType(CollectionType::TEMPORAL);
     } else {
         mon->setCollectionType(CollectionType::SPATIAL);
     }
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(mon);
 }

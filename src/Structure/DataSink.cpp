@@ -30,7 +30,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Structure/LBalWriter.h"
@@ -154,37 +153,6 @@ void DataSink::dumpSDDS(
     beam.gatherLoadBalanceStatistics();
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
-}
-
-void DataSink::storeCavityInformation() {
-    if (!Options::enableHDF5 || h5Writers_m.empty()) {
-        return;
-    }
-
-    h5Writers_m[0]->storeCavityInformation();
-}
-
-void DataSink::changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers) {
-    if (!Options::enableHDF5) {
-        return;
-    }
-
-    if (h5wrappers.size() != h5Writers_m.size()) {
-        throw OpalException(
-                "DataSink::changeH5Wrappers", "Expected " + std::to_string(h5Writers_m.size())
-                                                      + " wrappers, got "
-                                                      + std::to_string(h5wrappers.size()) + ".");
-    }
-
-    for (size_t i = 0; i < h5wrappers.size(); ++i) {
-        h5Writers_m[i]->changeH5Wrapper(h5wrappers[i]);
-    }
-}
-
-void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
-    if (ippl::Comm->rank() == 0 && Options::enableVTK) {
-        bg.writeGeomToVtk(fn);
-    }
 }
 
 void DataSink::writeImpactStatistics(

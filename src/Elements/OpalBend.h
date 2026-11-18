@@ -67,9 +67,6 @@ public:
     virtual void print(std::ostream&) const;
 
 protected:
-    /// Clone constructor.
-    OpalBend(const std::string& name, OpalBend* parent);
-
 private:
     // Not implemented.
     OpalBend(const OpalBend&);

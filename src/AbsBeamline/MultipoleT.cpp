@@ -54,10 +54,10 @@ double MultipoleT::getScaling(const double t) const {
     return scaling;
 }
 
-void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     validateConfiguration();
     implementation_->getField(
-            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(RefPartBunch_m->getT()),
+            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(time.t),
             pc->getLocalNum(), getRegions());
 }
 
@@ -146,6 +146,8 @@ void MultipoleT::setEntryOffset(const double offset) { config_m.entryOffset_m = 
 
 void MultipoleT::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
+    // Every tracked copy looks up its scaling model by name.
+    initialiseTimeDependencies();
     implementation_->initialise();
 }
 

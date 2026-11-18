@@ -6,7 +6,9 @@
 #include <limits>
 #include <memory>
 
+#include "../KeywordObjects.h"
 #include "Attributes/Attributes.h"
+#include "Distribution/Distribution.h"
 #include "Distribution/Gaussian.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
@@ -524,17 +526,20 @@ TEST_F(GaussianTest, ZeroWidthAppendPreservesExistingParticlesAndCutoff) {
 }
 
 TEST_F(GaussianTest, OmittedSpatialWidthsCollapseWithoutSuppressingMomentumSpread) {
-    Distribution distribution;
+    auto distributionObject =
+            opalx::test::makeKeywordObject<Distribution>("DISTRIBUTION", "DISTRIBUTION");
+    Distribution& distribution = *distributionObject;
     Attributes::setPredefinedString(*distribution.findAttribute("TYPE"), "GAUSS");
     const Vector_t<double, 3> sigmaP(0.02, 0.03, 0.04);
     Attributes::setReal(*distribution.findAttribute("SIGMAPX"), sigmaP[0]);
     Attributes::setReal(*distribution.findAttribute("SIGMAPY"), sigmaP[1]);
     Attributes::setReal(*distribution.findAttribute("SIGMAPZ"), sigmaP[2]);
     distribution.execute();
+    const DistributionSettings settings(opalx::test::valuesOf(distribution), 0.0);
     for (unsigned d = 0; d < 3; ++d)
-        EXPECT_EQ(distribution.getSigmaR()[d], 0.0);
+        EXPECT_EQ(settings.getSigmaR()[d], 0.0);
 
-    Gaussian sampler(pc, &distribution);
+    Gaussian sampler(pc, settings);
     sampler.setAvrgpz(0.25);
     const Vector_t<double, 3> offset(0.01, -0.02, 0.03);
     const Vector_t<double, 3> momentumOffset(0.02, -0.01, 0.03);

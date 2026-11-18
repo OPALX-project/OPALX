@@ -77,17 +77,9 @@ public:
     DumpEMFields();
 
     /** Constructor */
-    DumpEMFields(const std::string& name, DumpEMFields* parent);
 
     /** Destructor */
     ~DumpEMFields() override = default;
-
-    /** Make a clone (overloadable copy-constructor).
-     *    @param name not used
-     *  If this is in the dumpsSet_m, so will the clone. Not sure how the
-     *  itsAttr stuff works, so this may not get properly copied?
-     */
-    DumpEMFields* clone(const std::string& name) override;
 
     /** Builds the grid but does not write the field map
      *
@@ -111,7 +103,7 @@ public:
      *  0
      *  <field map data>
      */
-    static void writeFields(const std::set<std::shared_ptr<ElementBase>>& elements);
+    static void writeFields(const ElementSet& elements);
 
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const override;
@@ -132,13 +124,13 @@ public:
     static void clearDumps() { dumpsSet_m.clear(); }
 
 private:
-    virtual void writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements);
+    virtual void writeFieldThis(const ElementSet& elements);
     virtual void buildGrid();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(
-            const std::set<std::shared_ptr<ElementBase>>& elements,
-            const Vector_t<double, 3>& point, const double& time, std::ofstream& fout) const;
+            const ElementSet& elements, const Vector_t<double, 3>& point, const double& time,
+            std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
     std::string filename_m{};

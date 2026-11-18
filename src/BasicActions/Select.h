@@ -20,17 +20,12 @@
 
 #include "AbstractObjects/Action.h"
 
-class Beamline;
-
 class Select : public Action {
 public:
     /// Exemplar constructor.
     Select();
 
     virtual ~Select();
-
-    /// Make clone.
-    virtual Select* clone(const std::string& name);
 
     /// Execute the command.
     virtual void execute();
@@ -39,12 +34,6 @@ private:
     // Not implemented.
     Select(const Select&);
     void operator=(const Select&);
-
-    // Clone constructor.
-    Select(const std::string& name, Select* parent);
-
-    // Do the selection.
-    void select(const Beamline&);
 };
 
 #endif  // OPAL_Select_H

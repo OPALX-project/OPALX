@@ -22,6 +22,7 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
@@ -82,7 +83,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -119,7 +120,7 @@ public:
         bunch->setT(0.0);
         initialise(bunch.get());
         // Get the fields
-        apply(pc);
+        apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -199,12 +200,13 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
-        auto beam    = std::make_shared<Beam>();
+        auto beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector<Beam*>{opBeam},
+                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
@@ -656,7 +658,9 @@ TEST_F(TestMultipoleTStraight, AnalyticFringeFieldsAgreeForParticlesAndReference
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0.));
     bunch->setT(0.);
     initialise(bunch.get());
-    apply(pc);  // Actual particle-view kernel, including host/device data movement.
+    apply(pc, StepTime{
+                      bunch->getT(), bunch->getdT(),
+                      0});  // Actual particle-view kernel, including host/device data movement.
     const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
 
     // At y=0, a pure quadrupole has Bx=Bz=0 and By=g*x*S(z), with g [T/m],

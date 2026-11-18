@@ -51,7 +51,7 @@ TEST_F(ConstantFocusingTest, UsesInitialSpaceChargeScaleAboutCentroid) {
     focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(2.0);
     focusing.setStrength(3.0);
-    focusing.apply(pc);
+    focusing.apply(pc, StepTime{});
 
     Kokkos::deep_copy(hostE, E);
     EXPECT_DOUBLE_EQ(focusing.getGradient(), 4.5);
@@ -86,7 +86,7 @@ TEST_F(ConstantFocusingTest, AppliesOnlyInsideLongitudinalElementExtent) {
     focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(1.0);
     focusing.setStrength(1.0);
-    focusing.apply(pc);
+    focusing.apply(pc, StepTime{});
 
     Kokkos::deep_copy(hostE, E);
     EXPECT_DOUBLE_EQ(focusing.getGradient(), 1.0);

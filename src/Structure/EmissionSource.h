@@ -3,6 +3,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Ippl.h"
+#include "Track/ObjectValues.h"
 
 #include <string>
 
@@ -33,27 +34,24 @@ public:
     virtual ~EmissionSource();
 
     virtual bool canReplaceBy(Object* object);
-    virtual EmissionSource* clone(const std::string& name);
     virtual void execute();
 
     static EmissionSource* find(const std::string& name);
 
-    std::string getDistributionName() const;
-    ippl::Vector<double, 3> getR0() const;
-    ippl::Vector<double, 3> getP0() const;
-    double getT0() const;
-    bool getZeroFaceR0Z() const;
-    bool getShiftedGreensFunction() const;
-    int getZeroFacePlaneDumpFrequency() const;
-    int getZerofaceMaxSteps() const;
-    std::string getEmissionModel() const;
-    double getKineticEnergy() const;
+    static std::string getDistributionName(const ObjectValues& values);
+    static ippl::Vector<double, 3> getR0(const ObjectValues& values);
+    static ippl::Vector<double, 3> getP0(const ObjectValues& values);
+    static double getT0(const ObjectValues& values);
+    static bool getZeroFaceR0Z(const ObjectValues& values);
+    static bool getShiftedGreensFunction(const ObjectValues& values);
+    static int getZeroFacePlaneDumpFrequency(const ObjectValues& values);
+    static int getZerofaceMaxSteps(const ObjectValues& values);
+    static std::string getEmissionModel(const ObjectValues& values);
+    static double getKineticEnergy(const ObjectValues& values);
 
 private:
     EmissionSource(const EmissionSource&);
     void operator=(const EmissionSource&);
-
-    EmissionSource(const std::string& name, EmissionSource* parent);
 };
 
 #endif  // OPAL_EMISSIONSOURCE_HH

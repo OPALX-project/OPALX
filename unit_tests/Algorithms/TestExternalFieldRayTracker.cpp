@@ -1,4 +1,5 @@
 #include "../TemporaryDirectory.h"
+#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -145,7 +146,8 @@ namespace {
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        void apply(const std::shared_ptr<ParticleContainer_t>&) override {}
+        void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
+        }
 
         void apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
@@ -257,12 +259,14 @@ protected:
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
 
-        auto beam    = std::make_shared<Beam>();
+        auto beam = std::make_shared<Beam>();
+        Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
 
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{opBeam},
+                std::vector{1.0}, std::vector{1.0},
+                std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 std::vector<size_t>{numParticles}, 1.0, "LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);

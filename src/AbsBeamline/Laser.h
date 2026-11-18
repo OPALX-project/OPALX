@@ -57,6 +57,7 @@ public:
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
+    TrackedAs trackedAs() const override { return TrackedAs::Unsupported; }
 
     /** @brief Return the minimum number of time steps required by this passive element. */
     int getRequiredNumberOfTimeSteps() const override;

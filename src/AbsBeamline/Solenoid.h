@@ -43,7 +43,8 @@ public:
      * @brief apply the solenoid field to all particles in the bunch
      *
      */
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(
+            const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
     /**
      * @brief apply the solenoid field to particle i
@@ -108,9 +109,6 @@ public:
 
     /// @note not implemented
     virtual void finalise() override;
-
-    /// @brief Load field map and go online
-    virtual void goOnline(const double& kineticEnergy) override;
 
     /// @brief Free field map and go offline
     virtual void goOffline() override;

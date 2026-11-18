@@ -108,12 +108,15 @@ namespace {
             gmsg = new Inform("", output_m, INFORM_ALL_NODES);
             gmsg->setOutputLevel(5);
             auto* data = OpalData::getInstance();
-            data->create(new RealConstant());
-            data->create(new RealVariable());
-            data->create(new RealVector());
-            data->create(new StringConstant());
-            data->create(new MacroCmd());
-            data->create(new Value());
+            data->addKeyword<RealConstant>();
+            RealConstant::defineBuiltins();
+            data->addKeyword<RealVariable>();
+            RealVariable::defineBuiltins();
+            data->addKeyword<RealVector>();
+            data->addKeyword<StringConstant>();
+            StringConstant::defineBuiltins();
+            data->addKeyword<MacroCmd>();
+            data->addKeyword<Value>();
         }
 
         void TearDown() override {
@@ -297,7 +300,6 @@ TEST(MacroFactoryTest, RejectsDuplicateAndMalformedFormalsAndBodies) {
         EXPECT_THROW(makeTemplate(model, text), ParseError);
     }
     EXPECT_THROW(model.execute(), ParseError);
-    EXPECT_THROW(model.clone("INVALID"), ParseError);
     auto macro = makeTemplate(model, "): MACRO {}");
     EXPECT_THROW(macro->execute(), ParseError);
     EXPECT_EQ(macro->getCategory(), "MACRO");

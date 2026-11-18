@@ -17,18 +17,18 @@
 //
 #include "Elements/OpalCavity.h"
 
+#include <memory>
+
 #include "AbstractObjects/Attribute.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RFCavityRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalException.h"
 
 OpalCavity::OpalCavity()
-    : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity."),
-      obgeo_m(nullptr) {
+    : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity.") {
     itsAttr[TYPE] = Attributes::makePredefinedString(
             "TYPE", "RF cavity model: mapped STANDING (default) or uniform IDEAL.",
             {"STANDING", "IDEAL"});
@@ -60,42 +60,39 @@ OpalCavity::OpalCavity()
             "FREQUENCY_MODEL", "The name of the frequency time dependence model.");
 
     registerOwnership();
-
-    setElement(new RFCavityRep("RFCAVITY"));
-}
-
-OpalCavity::OpalCavity(const std::string& name, OpalCavity* parent)
-    : OpalElement(name, parent), obgeo_m(nullptr) {
-    setElement(new RFCavityRep(name));
 }
 
 OpalCavity::~OpalCavity() {}
 
-OpalCavity* OpalCavity::clone(const std::string& name) { return new OpalCavity(name, this); }
+std::shared_ptr<ElementBase> OpalCavity::build(const ObjectValues& values, double /*p0*/) {
+    auto element = std::make_shared<RFCavityRep>(values.getName());
+    fill(*element, values);
+    return element;
+}
 
-void OpalCavity::update() {
-    OpalElement::update();
+void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
+    setCommonFields(element, values);
 
-    RFCavityRep* rfc = dynamic_cast<RFCavityRep*>(getElement());
+    RFCavityRep* rfc = dynamic_cast<RFCavityRep*>(&element);
 
-    double length      = Attributes::getReal(itsAttr[LENGTH]);
-    double peak        = Attributes::getReal(itsAttr[VOLT]);
-    double peakError   = Attributes::getReal(itsAttr[DVOLT]);
-    double phase       = Attributes::getReal(itsAttr[LAG]);
-    double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq        = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
-    std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
-    std::string type   = Attributes::getString(itsAttr[TYPE]);
-    bool fast          = Attributes::getBool(itsAttr[FAST]);
-    bool apVeto        = (Attributes::getBool(itsAttr[APVETO]));
+    double length      = values.getReal("L");
+    double peak        = values.getReal("VOLT");
+    double peakError   = values.getReal("DVOLT");
+    double phase       = values.getReal("LAG");
+    double phaseError  = values.getReal("DLAG");
+    double freq        = Physics::two_pi * values.getReal("FREQ") * Units::MHz2Hz;
+    std::string fmapfn = values.getString("FMAPFN");
+    std::string type   = values.getString("TYPE");
+    bool fast          = values.getBool("FAST");
+    bool apVeto        = (values.getBool("APVETO"));
 
-    double rmin          = Attributes::getReal(itsAttr[RMIN]);
-    double rmax          = Attributes::getReal(itsAttr[RMAX]);
-    double angle         = Attributes::getReal(itsAttr[ANGLE]);
-    double pdis          = Attributes::getReal(itsAttr[PDIS]);
-    double gapwidth      = Attributes::getReal(itsAttr[GAPWIDTH]);
-    double phi0          = Attributes::getReal(itsAttr[PHI0]);
-    double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+    double rmin          = values.getReal("RMIN");
+    double rmax          = values.getReal("RMAX");
+    double angle         = values.getReal("ANGLE");
+    double pdis          = values.getReal("PDIS");
+    double gapwidth      = values.getReal("GAPWIDTH");
+    double phi0          = values.getReal("PHI0");
+    double kineticEnergy = values.getReal("DESIGNENERGY");
 
     rfc->getGeometry().setElementLength(length);
 
@@ -119,12 +116,9 @@ void OpalCavity::update() {
     rfc->setPhi0(phi0);
     rfc->setDesignEnergy(kineticEnergy);
 
-    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));
-    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));
-    rfc->setFrequencyModelName(Attributes::getString(itsAttr[FREQUENCY_MODEL]));
+    rfc->setPhaseModelName(values.getString("PHASE_MODEL"));
+    rfc->setAmplitudeModelName(values.getString("AMPLITUDE_MODEL"));
+    rfc->setFrequencyModelName(values.getString("FREQUENCY_MODEL"));
 
     rfc->validateIdeal();
-
-    // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(rfc);
 }

@@ -41,21 +41,12 @@ OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence()
     registerOwnership();
 }
 
-OpalSinusoidalTimeDependence* OpalSinusoidalTimeDependence::clone(const std::string& name) {
-    return new OpalSinusoidalTimeDependence(name, this);
-}
-
 void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
-OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence(
-        const std::string& name, OpalSinusoidalTimeDependence* parent)
-    : OpalElement(name, parent) {}
-
-void OpalSinusoidalTimeDependence::update() {
+void OpalSinusoidalTimeDependence::registerModel(const ObjectValues& values) {
     AbstractTimeDependence::setTimeDependence(
-            getOpalName(), std::make_shared<SinusoidalTimeDependence>(
-                                   Attributes::getRealArray(itsAttr[FREQUENCIES]),
-                                   Attributes::getRealArray(itsAttr[PHASE_OFFSETS]),
-                                   Attributes::getRealArray(itsAttr[AMPLITUDES]),
-                                   Attributes::getRealArray(itsAttr[DC_OFFSETS])));
+            values.getName(),
+            std::make_shared<SinusoidalTimeDependence>(
+                    values.getRealArray("FREQUENCIES"), values.getRealArray("PHASE_OFFSETS"),
+                    values.getRealArray("AMPLITUDES"), values.getRealArray("DC_OFFSETS")));
 }

@@ -25,14 +25,17 @@ public:
     /// Exemplar constructor.
     StringConstant();
 
+    /// Constructor for built-in constants.
+    StringConstant(const std::string& name, const std::string& value);
+
+    /// Define the built-in string constants (GITREVISION, GAUSS, ...). Called once by Configure.
+    static void defineBuiltins();
+
     virtual ~StringConstant();
 
     /// Test if object can be replaced.
     //  True, if [b]rhs[/b] is a string constant.
     virtual bool canReplaceBy(Object* object);
-
-    /// Make clone.
-    virtual StringConstant* clone(const std::string& name);
 
     /// Print the constant.
     virtual void print(std::ostream&) const;
@@ -47,10 +50,6 @@ private:
     // Not implemented.
     StringConstant(const StringConstant&);
     void operator=(const StringConstant&);
-
-    // Clone constructor.
-    StringConstant(const std::string& name, StringConstant* parent);
-    StringConstant(const std::string& name, StringConstant* parent, const std::string& value);
 };
 
 #endif  // OPAL_StringConstant_HH

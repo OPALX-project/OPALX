@@ -41,7 +41,6 @@
 #include <string>
 #include <vector>
 
-class BoundaryGeometry;
 class H5PartWrapper;
 class BinConfigWriter;
 class DirichletPlaneWriter;
@@ -117,20 +116,12 @@ public:
             std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
             const losses_t& losses, const double& azimuth) const;
 
-    /** \brief Write cavity information from  H5 file
-     */
-    void storeCavityInformation();
-
-    void changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers);
-
     /**
      * Write geometry points and surface triangles to vtk file
      *
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeGeomToVtk(BoundaryGeometry& bg, std::string fn);
-    // void writeGeoContourToVtk(BoundaryGeometry &bg, std::string fn);
 
     /**
      * Write impact number and outgoing secondaries in each time step
