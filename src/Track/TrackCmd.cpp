@@ -225,6 +225,7 @@ void TrackCmd::execute() {
     Track::block = new Track(
             theLineToTrack, beam->getReference(), dt, maxsteps, zstart, zstop, timeintegrator, t0,
             dtScInit, deltaTau, emissionSourcesList, beamNames);
+    Track::block->zStopGiven = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
 
     Track::block->parser.run();
 

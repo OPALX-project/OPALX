@@ -45,14 +45,14 @@ void ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
     auto Eview          = pc->E.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    const double elemLength = getGeometry().getElementLength();
-    const double Ex         = Ex_m;
-    const double Ey         = Ey_m;
-    const double Ez         = Ez_m;
+    const ElementRegions regions = getRegions();
+    const double Ex              = Ex_m;
+    const double Ey              = Ey_m;
+    const double Ez              = Ez_m;
 
     Kokkos::parallel_for(
             "ConstantEFieldCavity::apply()", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (Rview(i)[2] > 0.0 && Rview(i)[2] <= elemLength) {
+                if (regions.fieldAppliesAt(Rview(i))) {
                     Eview(i)[0] += Ex;
                     Eview(i)[1] += Ey;
                     Eview(i)[2] += Ez;
@@ -63,10 +63,7 @@ void ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 void ConstantEFieldCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return;
-    }
+    if (!getRegions().fieldAppliesAt(R)) return;
 
     E(0) += Ex_m;
     E(1) += Ey_m;
@@ -76,10 +73,8 @@ void ConstantEFieldCavity::apply(
 bool ConstantEFieldCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return true;
-    }
+    const ElementRegions regions = getRegions();
+    if (!regions.fieldAppliesAt(R)) return regions.particleLostAt(R);
 
     E(0) += Ex_m;
     E(1) += Ey_m;

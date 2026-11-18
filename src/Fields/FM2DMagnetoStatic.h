@@ -5,6 +5,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
+#include <cmath>
 
 class FM2DMagnetoStatic : public Fieldmap {
 public:
@@ -73,6 +74,15 @@ public:
      * @note Not implemented yet
      */
     virtual void setFrequency(double freq) override;
+
+    /// The map is defined for r < max(|rbegin|, |rend|).
+    std::optional<ApertureShape> getTransverseRange() const override {
+        ApertureShape range;
+        range.type  = ApertureType::ELLIPTICAL;
+        range.halfX = std::max(std::abs(rbegin_m), std::abs(rend_m));
+        range.halfY = range.halfX;
+        return range;
+    }
 
     /**
      * @brief Checks if the given coordinate is inside the volume covered by the
@@ -147,8 +157,8 @@ public:
      * @param pc Particle container
      */
     void applyField(
-            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0,
-            double escale = 1.0) override;
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0,
+            const ElementRegions& regions = ElementRegions()) override;
 
 private:
     FM2DMagnetoStatic(std::string aFilename);

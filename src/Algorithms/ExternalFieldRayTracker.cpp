@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include "Algorithms/CompensatedSum.h"
-#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/RungeKuttaTableau.h"
 #include "Elements/OpalBeamline.h"
@@ -43,7 +42,6 @@ namespace {
         const double force  = h * reference.getQ() * Physics::c / reference.getM();
         const auto evaluate = [&](const State& ray, unsigned i) {
             Vector_t<double, 3> electric(0.0), magnetic(0.0);
-            orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
             if (fields(ray, electric, magnetic)) {
                 hitMaterial = true;
                 return;
@@ -142,7 +140,6 @@ ExternalFieldRayTracker::ExternalFieldRayTracker(
 
 ExternalFieldRayTracker::Step ExternalFieldRayTracker::step(
         const State& initial, const double dt, const FieldEvaluator& fields) const {
-    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::trials);
     if (!std::isfinite(dt))
         throw OpalException("ExternalFieldRayTracker::step", "The ray time step must be finite.");
     switch (integrationMethod_m) {
@@ -174,7 +171,6 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::rungeKuttaStep(
                 initial, 0.5 * dt, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
     }
     if (result.hitMaterial) return result;
-    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
     result.hitMaterial = fields(result.midpoint, result.electric, result.magnetic);
     return result;
 }
@@ -197,7 +193,6 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::borisStep(
     };
     auto& ray = result.midpoint;
     halfDrift(ray);
-    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
     result.hitMaterial = fields(ray, result.electric, result.magnetic);
     result.end         = ray;
     if (result.hitMaterial) return result;
@@ -210,44 +205,8 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::borisStep(
     return result;
 }
 
-ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceToPathLength(
-        const State& initial, const double dt, const double target) const {
-    const auto distance = [target](const State& ray) {
-        return compensated::difference(ray.pathLength, ray.pathLengthCorrection, target, 0.0);
-    };
-    if (!std::isfinite(target))
-        throw OpalException(
-                "ExternalFieldRayTracker::advanceToPathLength", "Non-finite path target.");
-    State trial            = advance(initial, dt);
-    const double direction = std::copysign(1.0, dt);
-    if (direction * distance(initial) > 0.0 || direction * distance(trial) < 0.0)
-        throw OpalException(
-                "ExternalFieldRayTracker::advanceToPathLength", "Path target is not bracketed.");
-    if (distance(initial) == 0.0) return initial;
-    if (distance(trial) == 0.0) return trial;
-    const double timeTolerance = std::max(
-            1.e-12 * std::abs(dt), 64.0 * std::numeric_limits<double>::epsilon()
-                                           * std::max(1.0, euclidean_norm(initial.position))
-                                           / Physics::c);
-    double lower = 0.0, upper = dt;
-    for (unsigned iteration = 0; iteration < 64; ++iteration) {
-        const double middle = 0.5 * (lower + upper);
-        trial               = advance(initial, middle);
-        if (distance(trial) == 0.0) break;
-        if (direction * distance(trial) >= 0.0)
-            upper = middle;
-        else
-            lower = middle;
-        if (std::abs(upper - lower) <= timeTolerance) break;
-    }
-    return trial;
-}
-
 ExternalFieldRayTracker::State ExternalFieldRayTracker::advance(
         const State& initial, const double dt, std::vector<Step>* accepted) const {
-    using namespace orbit_threader_diagnostics;
-    count(&Work::advances);
-    if (activeWork) activeWork->stepCap = std::min(activeWork->stepCap, maximumStep_m);
     if (!std::isfinite(dt)) {
         throw OpalException(
                 "ExternalFieldRayTracker::advance", "The ray time step must be finite.");
@@ -260,8 +219,6 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
         const State& initial, const double dt, const double tolerance, std::vector<Step>* accepted,
         const unsigned depth, const ElementSet* initialElements,
         std::optional<ElementSet>* finalElements) const {
-    using namespace orbit_threader_diagnostics;
-    if (activeWork) activeWork->maxDepth = std::max(activeWork->maxDepth, depth);
     const double timeFloor = 64.0 * std::numeric_limits<double>::epsilon()
                              * std::max(1.0, euclidean_norm(initial.position)) / Physics::c;
     const bool resolved = std::abs(dt) <= std::max(tolerance, timeFloor);
@@ -279,7 +236,6 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
                 middleElements ? &*middleElements : nullptr, finalElements);
     };
     if (!resolved && std::abs(dt) > maximumStep_m) {
-        count(&Work::capSplits);
         return split(initialElements);
     }
 
@@ -287,8 +243,6 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     if (!initialElements) {
         selectedInitial = beamline_m.getElements(initial.position);
         initialElements = &*selectedInitial;
-    } else {
-        count(&Work::membershipReuses);
     }
     const auto& initialSet = *initialElements;
     bool crossedSupport    = false;
@@ -302,7 +256,6 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
             const auto localR = beamline_m.transformToLocalCS(element, ray.position);
             const auto localP = beamline_m.rotateToLocalCS(element, ray.momentum);
             Vector_t<double, 3> localE(0.0), localB(0.0);
-            count(&Work::elementFields);
             if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB))
                 return true;
             electric += beamline_m.rotateFromLocalCS(element, localE);
@@ -315,7 +268,6 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     std::optional<ElementSet> endElements;
     if (!resolved && !crossedSupport) endElements = beamline_m.getElements(trial.end.position);
     if (!resolved && (crossedSupport || initialSet != *endElements)) {
-        count(&Work::supportSplits);
         return split(initialElements);
     }
     if (trial.hitMaterial) {
@@ -325,6 +277,5 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     }
     if (accepted) accepted->push_back(trial);
     if (finalElements) *finalElements = std::move(endElements);
-    orbit_threader_diagnostics::accepted(dt);
     return trial.end;
 }

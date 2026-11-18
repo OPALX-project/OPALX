@@ -266,7 +266,8 @@ void Astra1DMagnetoStatic::freeMap() {
  * @param pc Particle container
  */
 void Astra1DMagnetoStatic::applyField(
-        std::shared_ptr<ParticleContainer_t> pc, double scale, double) {
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double,
+        const ElementRegions& regions) {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
     const double length = length_m;
@@ -281,6 +282,7 @@ void Astra1DMagnetoStatic::applyField(
 
     Kokkos::parallel_for(
             "Astra1DMagnetoStatic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 const auto& R = Rview(i);
 
                 if (R(2) >= zbegin && R(2) < zend) {

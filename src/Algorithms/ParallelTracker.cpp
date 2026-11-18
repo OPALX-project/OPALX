@@ -40,7 +40,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
-#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/ReferenceTracer.h"
 #include "BasicActions/Option.h"
 
 #include "Beamlines/Beamline.h"
@@ -77,7 +77,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       dirichletPlane_m(),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      globalEOL_m(false),
+      referenceHitMaterial_m(false),
       sStart_m(0.0),
       dtCurrentTrack_m(0.0),
       restarting_m(false),
@@ -87,7 +87,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {}
+      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {}
 
 /**
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
@@ -107,7 +107,7 @@ ParallelTracker::ParallelTracker(
       dirichletPlane_m(std::move(dirichletPlane)),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      globalEOL_m(false),
+      referenceHitMaterial_m(false),
       sStart_m(sStart),
       dtCurrentTrack_m(0.0),
       emittingSamplers_m(emittingSamplers),
@@ -118,7 +118,7 @@ ParallelTracker::ParallelTracker(
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {
     for (unsigned int i = 0; i < sStop.size(); ++i) {
         stepSizes_m.push_back(dt[i], sStop[i], maxSteps[i]);
     }
@@ -365,8 +365,8 @@ void ParallelTracker::execute() {
     // Print reference particle information for all containers
     printInitialContainerRefs(m);
 
-    // Start timing for the OrbitThreader section
-    IpplTimings::startTimer(OrbThreader_m);
+    // Start timing for the reference pass
+    IpplTimings::startTimer(referencePassTimer_m);
 
     // Flags to control phase space and statistics dumping for the initial step
     bool const psDump0   = 0;
@@ -376,48 +376,33 @@ void ParallelTracker::execute() {
     writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
-    // Create one OrbitThreader per container, each threaded with its own reference orbit.
-    // The first container (container 0 in the normal case) is the design beam and runs
-    // the full pass (autophasing, design energy, geometry dumps); the rest build only
-    // their own map and reuse that shared element state, so the design beam threads first.
+    // The primary beam (the first container with a reference) traces its reference particle once
+    // through the lattice: autophasing, element-length and reach checks, design path output.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
-    bool designBeamAssigned = false;
+    // Placement, misalignment and field-map extents are final here: each element's aperture must
+    // lie inside its reach before the grid is built from the reaches.
+    for (const auto& element : itsOpalBeamline_m.getElementByType(ElementType::ANY))
+        element->checkRegions();
+    itsOpalBeamline_m.buildElementMapping();
+
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
-            continue;  // a decay daughter container uses its root's orbit, set below
+            continue;  // a decay daughter container follows its root's reference
         }
-
-        const bool isDesignBeam = !designBeamAssigned;
-        designBeamAssigned      = true;
-        oths[ci]                = std::make_shared<OrbitThreader>(
-                *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
-                -rmin(2),            // Negative minimum z bound
-                itsBunch_m->getT(),  // Current bunch time
-                minTimeStep,
-                stepSizes_m,        // Step size configuration
-                itsOpalBeamline_m,  // OpalBeamline object
-                isDesignBeam);
-        oths[ci]->execute();
+        ReferenceTracer tracer(
+                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, 0.0);
+        ReferenceTracer::RayState start;
+        start.position   = pc->getRefPartR();
+        start.momentum   = pc->getRefPartP();
+        start.time       = itsBunch_m->getT();
+        start.pathLength = pc->get_sPos();
+        tracer.execute(start, -rmin(2));
+        break;  // only the primary beam
     }
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (itsBunch_m->isFollower(ci)) {
-            oths[ci] = oths[itsBunch_m->getPcRoot(ci)];
-        }
-    }
-    m << level4 << "Orbit threader execution done." << endl;
-    // Stop timing for the OrbitThreader section
-    IpplTimings::stopTimer(OrbThreader_m);
-
-    // Bounding box spanning every species' threaded orbit (duplicates re-add the same
-    // box, which is idempotent).
-    BoundingBox globalBoundingBox;
-    for (const auto& oth : oths) {
-        if (oth) {
-            globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
-        }
-    }
+    m << level4 << "Reference pass done." << endl;
+    // Stop timing for the reference pass
+    IpplTimings::stopTimer(referencePassTimer_m);
 
     // Set the time view of the particle bunch
     setTime();
@@ -446,7 +431,17 @@ void ParallelTracker::execute() {
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
           << endl;
 
-    globalEOL_m = false;
+    referenceHitMaterial_m = false;
+    beamStops_m.resize(itsBunch_m->getNumParticleContainers());
+    for (size_t i = 0; i < beamStops_m.size(); ++i) {
+        const BeamStop& stop = beamStops_m[i];
+        if (stop.zStop) {
+            *gmsg << level1 << "* Beam " << i << " stops when its last particle passes ZSTOP = "
+                  << Util::getLengthString(*stop.zStop) << "." << endl;
+        } else if (stop.untilMaxSteps) {
+            *gmsg << level1 << "* Beam " << i << " is tracked until MAXSTEPS." << endl;
+        }
+    }
     // wakeStatus_m       = false;
 
     stepSizes_m.printDirect(*gmsg);
@@ -454,13 +449,14 @@ void ParallelTracker::execute() {
     // Handle any dump field requests
     DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
 
-    // OrbitThreader and the other setup stages may cross diagnostic elements while constructing
-    // the reference map. Only crossings produced by the real tracking loop may write output.
+    // The reference pass and the other setup stages may cross diagnostic elements. Only
+    // crossings produced by the real tracking loop may write output.
     preparationState.finish();
 
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     bool firstSegment = true;
+    bool stopRun      = false;
     while (!stepSizes_m.reachedEnd()) {
         step                                    = itsBunch_m->getGlobalTrackStep();
         const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
@@ -474,6 +470,10 @@ void ParallelTracker::execute() {
         }
         activateEmittingContainers(itsBunch_m->getT());
         firstSegment = false;
+        // Beams that passed their ZSTOP plane stay stopped.
+        for (size_t i = 0; i < beamStops_m.size(); ++i) {
+            if (beamStops_m[i].done) itsBunch_m->setPcAtSStop(i);
+        }
 
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m)
@@ -490,10 +490,6 @@ void ParallelTracker::execute() {
 
             // Particle R and mesh are in the reference frame for the whole step except during
             // solver-owned frame transformations inside computeSpaceChargeFields().
-
-            // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
-            // bounds immediately after first emission) must not persist across steps.
-            globalEOL_m = false;
 
             // Historical OPAL evaluated the self-field at R_n and carried the gathered
             // per-particle field through the first half drift. Keep this as an explicit
@@ -526,7 +522,7 @@ void ParallelTracker::execute() {
               << endl;
 
             // External field computation
-            computeExternalFields(oths);
+            computeExternalFields();
             m << level4 << "External field computation done at step " << step << "." << endl;
 
             // First half of the Thomas-BMT spin rotation (momentum before the kick);
@@ -577,7 +573,7 @@ void ParallelTracker::execute() {
             }
 
             // Enforce the transverse aperture of every nearby element (collective call).
-            size_t nStepMarked = applyElementApertures(oths);
+            size_t nStepMarked = applyElementApertures();
             if (nStepMarked > 0) {
                 m << level2 << "Marked " << nStepMarked
                   << " particles outside a transverse aperture for deletion." << endl;
@@ -620,8 +616,6 @@ void ParallelTracker::execute() {
                 stepMoments.assign(particleContainersStep.size(), {});
             }
 
-            // if (hasEndOfLineReached(globalBoundingBox)) break;
-
             // Dump phase space and statistics at configured intervals
             dumpStats(step, psDump, statDump, stepMoments);
 
@@ -643,9 +637,9 @@ void ParallelTracker::execute() {
             ++stepsCompletedInSegment;
             m << level5 << "Track steps incremented." << endl;
 
-            // Check if active containers have reached the end of the current step size
-            // configuration (sStop), and if so prepare to switch to the next configuration on the
-            // next iteration.
+            // The primary reference switches to the next DT segment at each ZSTOP entry before the
+            // last, and a beam with a ZSTOP stops once its last particle has passed its stop plane.
+            bool switchSegment = false;
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
@@ -658,17 +652,37 @@ void ParallelTracker::execute() {
                 m << level4 << "Calculated drift per time step (container " << i
                   << "): " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
-                if (std::abs(stepSizes_m.getSStop() - pc->get_sPos()) < 0.5 * driftPerTimeStep) {
-                    m << level2
-                      << "Approaching end of current step size configuration for container " << i
-                      << " (sStop = " << Util::getLengthString(stepSizes_m.getSStop())
-                      << ", path length = " << Util::getLengthString(pc->get_sPos()) << ")."
-                      << endl;
-                    itsBunch_m->setPcAtSStop(i);
+                if (i == 0 && !stepSizes_m.isLastSegment()
+                    && beam_stop::reached(
+                            pc->get_sPos(), stepSizes_m.getSStop(), driftPerTimeStep)) {
+                    m << level2 << "Primary reference reached sStop = "
+                      << Util::getLengthString(stepSizes_m.getSStop())
+                      << "; switching to the next DT segment." << endl;
+                    switchSegment = true;
+                }
+                if (i < beamStops_m.size() && !itsBunch_m->isFollower(i)) {
+                    BeamStop& stop = beamStops_m[i];
+                    if (stop.zStop && !stop.planeSet
+                        && beam_stop::reached(pc->get_sPos(), *stop.zStop, driftPerTimeStep)) {
+                        beam_stop::setPlane(
+                                stop, pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos());
+                        *gmsg << level1 << "* Beam " << i << ": reference reached ZSTOP = "
+                              << Util::getLengthString(*stop.zStop)
+                              << " at t = " << Util::getTimeString(itsBunch_m->getT())
+                              << "; tracking until its last particle passes." << endl;
+                    }
                 }
             }
-            const bool segmentComplete =
-                    !itsBunch_m->anyPcActive() || stepsCompletedInSegment == stepsInSegment;
+            updateBeamStops();
+
+            ippl::Comm->allreduce(referenceHitMaterial_m, 1, std::logical_or<bool>());
+            if (referenceHitMaterial_m) {
+                *gmsg << level1 << "* A reference particle hit an element; the run ends." << endl;
+            }
+            const bool runFinished = referenceHitMaterial_m || beam_stop::runFinished(beamStops_m);
+            const bool segmentComplete = !itsBunch_m->anyPcActive()
+                                         || stepsCompletedInSegment == stepsInSegment
+                                         || switchSegment;
 
             if (Options::checkpointFreq > 0
                 && itsBunch_m->getGlobalTrackStep() % Options::checkpointFreq == 0) {
@@ -677,11 +691,18 @@ void ParallelTracker::execute() {
                         segmentComplete ? 0 : stepsCompletedInSegment;
                 const std::string checkpointPath =
                         CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
-                CheckpointFile::write(checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps);
+                CheckpointFile::write(
+                        checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m);
                 m << level2 << "Wrote checkpoint '" << checkpointPath << "' after global step "
                   << itsBunch_m->getGlobalTrackStep() << "." << endl;
             }
 
+            if (runFinished) {
+                *gmsg << level1 << "* Every beam with a ZSTOP is done; the run ends." << endl;
+                stopRun = true;
+                break;
+            }
+            if (switchSegment) break;
             if (!itsBunch_m->anyPcActive()) {
                 m << level2
                   << "All active containers reached current sStop. Preparing to switch to "
@@ -690,12 +711,7 @@ void ParallelTracker::execute() {
             }
         }
 
-        // globalEOL_m is reset at the start of each step, so if it is still true
-        // here the last step genuinely ended with an out-of-bounds or reference
-        // particle hitting an element. Synchronize across ranks before deciding.
-        ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
-
-        if (globalEOL_m) break;
+        if (stopRun) break;
         ++stepSizes_m;
         ++segmentIndex;
         stepsCompletedInSegment = 0;
@@ -910,8 +926,7 @@ void ParallelTracker::computeSpaceChargeFields() {
 /**
  * @copybrief ParallelTracker::computeExternalFields
  */
-void ParallelTracker::computeExternalFields(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+void ParallelTracker::computeExternalFields() {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -929,11 +944,10 @@ void ParallelTracker::computeExternalFields(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
-    forEachElementInBunchFrame(
-            oths, [](const std::shared_ptr<ElementBase>& element,
-                     const std::shared_ptr<ParticleContainer_t>& pc) {
-                element->apply(pc);
-            });
+    forEachElementInBunchFrame([](const std::shared_ptr<ElementBase>& element,
+                                  const std::shared_ptr<ParticleContainer_t>& pc) {
+        element->apply(pc);
+    });
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
@@ -942,7 +956,6 @@ void ParallelTracker::computeExternalFields(
  * @copybrief ParallelTracker::forEachElementInBunchFrame
  */
 void ParallelTracker::forEachElementInBunchFrame(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func) {
@@ -955,12 +968,15 @@ void ParallelTracker::forEachElementInBunchFrame(
         if (!pc) {
             continue;
         }
-        // Each container queries its own species' threaded orbit / IndexMap.
-        if (ci >= oths.size() || !oths[ci]) {
+        // A container without its own or its root's reference particle has no bunch frame.
+        const auto root = itsBunch_m->getParticleContainer(
+                itsBunch_m->isFollower(ci) ? itsBunch_m->getPcRoot(ci) : ci);
+        if (!root || !root->getReference()) {
             continue;
         }
 
-        // Bunch bounds for this container; an empty container queries the path length itself.
+        // Bunch bounds for this container; an empty container queries the point at the reference
+        // particle.
         Vector_t<double, 3> rmin(0.0), rmax(0.0);
         if (pc->getTotalNum() > 0) {
             const auto bounds = opalx::moments::compute(*pc, Moment::Bounds);
@@ -968,18 +984,13 @@ void ParallelTracker::forEachElementInBunchFrame(
             rmax              = bounds.maxR();
         }
 
-        // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
-        // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
-        // approximation: local-Z adds linearly to the path length s (exact only for a straight
-        // reference path).
-        IndexMap::value_t elements;
-        try {
-            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-            elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
-        } catch (IndexMap::OutOfBounds& e) {
-            globalEOL_m = true;
-            continue;
-        }
+        // The bunch box, extended forward by the distance one step can cover, c dt: a MONITOR
+        // records particles that cross its plane during the next step. Elements come in lattice
+        // order.
+        Vector_t<double, 3> upper = rmax;
+        upper(2) += Physics::c * itsBunch_m->getdT();
+        const GeneralElementMapping::ElementSet elements =
+                itsOpalBeamline_m.getElementMapping().query(rmin, upper, pc->getToLabTrafo());
 
         for (const auto& element : elements) {
             CoordinateSystemTrafo refToLocalCSTrafo =
@@ -1000,16 +1011,14 @@ void ParallelTracker::forEachElementInBunchFrame(
 /**
  * @copybrief ParallelTracker::applyElementApertures
  */
-size_t ParallelTracker::applyElementApertures(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+size_t ParallelTracker::applyElementApertures() {
     size_t localMarked = 0;
-    forEachElementInBunchFrame(
-            oths, [&localMarked](
-                          const std::shared_ptr<ElementBase>& element,
-                          const std::shared_ptr<ParticleContainer_t>& pc) {
-                // Marks are flushed by the single end-of-step deletion in execute().
-                localMarked += element->markOutsideAperture(pc);
-            });
+    forEachElementInBunchFrame([&localMarked](
+                                       const std::shared_ptr<ElementBase>& element,
+                                       const std::shared_ptr<ParticleContainer_t>& pc) {
+        // Marks are flushed by the single end-of-step deletion in execute().
+        localMarked += element->markOutsideAperture(pc);
+    });
 
     size_t globalMarked = 0;
     ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
@@ -1098,6 +1107,30 @@ size_t ParallelTracker::applyGlobalProcesses(double dt) {
         itsBunch_m->refreshPcActiveAfterEmit();
     }
     return nMarked;
+}
+
+void ParallelTracker::updateBeamStops() {
+    for (size_t i = 0; i < beamStops_m.size(); ++i) {
+        BeamStop& stop = beamStops_m[i];
+        if (!stop.planeSet || stop.done) continue;
+
+        // Particles are in the bunch frame: move the lab plane into it.
+        double minimum = std::numeric_limits<double>::max();
+        if (const auto pc = itsBunch_m->getParticleContainer(i)) {
+            const CoordinateSystemTrafo& toLab = pc->getToLabTrafo();
+            minimum                            = beam_stop::minDistanceToPlane(
+                    pc->R.getView(), pc->getLocalNum(), toLab.transformFrom(stop.planeOrigin),
+                    toLab.rotateFrom(stop.planeNormal));
+        }
+        ippl::Comm->allreduce(minimum, 1, std::less<double>());
+        if (minimum >= 0.0) {
+            stop.done = true;
+            itsBunch_m->setPcAtSStop(i);
+            *gmsg << level1 << "* Beam " << i << ": its last particle passed ZSTOP at t = "
+                  << Util::getTimeString(itsBunch_m->getT()) << "; it is no longer tracked."
+                  << endl;
+        }
+    }
 }
 
 size_t ParallelTracker::deleteInvalidParticles(
@@ -1482,7 +1515,7 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
         pc.getRefPartP() = end.momentum;
         if (end.hitMaterial) {
             *gmsg << level1 << "The reference particle hit an element" << endl;
-            globalEOL_m = true;
+            referenceHitMaterial_m = true;
         }
     }
 }
@@ -1715,19 +1748,6 @@ void ParallelTracker::dumpStats(
     if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump, moments);
     }
-}
-
-/**
- * @copybrief ParallelTracker::hasEndOfLineReached
- */
-bool ParallelTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
-    // Old IPPL used OpBitwiseAndAssign() via reduce(); new IPPL needs allreduce
-    // so that all ranks receive the result (reduce sends only to root).
-    // In-place allreduce avoids the aliased-buffer error of MPI_Reduce.
-    ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
-    globalEOL_m = globalEOL_m
-                  || globalBoundingBox.isOutside(itsBunch_m->getParticleContainer()->getRefPartR());
-    return globalEOL_m;
 }
 
 /**

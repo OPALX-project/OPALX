@@ -2,9 +2,11 @@
 #define OPALX_FIELDMAP_HH
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "AbsBeamline/ElementRegions.h"
 #include "OPALTypes.h"
 
 #include "Utilities/GSLSpline.h"
@@ -126,10 +128,19 @@ public:
      *               separate because G4beamline scales the two independently, with
      *               current/normB for the magnetic field and gradient/normE for the
      *               electric one. Readers with only one field ignore it.
+     * @param regions where the owning element applies its field; particles outside get none.
+     *               The default applies the map wherever it has data.
      * @note The time-dependent readers (Astra1DDynamic, FM2DDynamic) ignore both scales.
      */
     virtual void applyField(
-            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0) = 0;
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0,
+            const ElementRegions& regions = ElementRegions()) = 0;
+
+    /**
+     * @brief Transverse range of the map data in the element frame.
+     * @return A rectangle for 3D maps, a circle for r-z maps; empty for on-axis (1D) maps.
+     */
+    virtual std::optional<ApertureShape> getTransverseRange() const { return std::nullopt; }
 
     /**
      * @brief Get the field strength at a given point.

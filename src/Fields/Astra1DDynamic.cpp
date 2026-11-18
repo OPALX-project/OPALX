@@ -269,7 +269,8 @@ void Astra1DDynamic::freeMap() {
  * @param pc Particle container
  * @param scale Scaling factor for the field (currently not used)
  */
-void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) {
+void Astra1DDynamic::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double, double, const ElementRegions& regions) {
     // Local copies of member variables for use in the lambda function
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
@@ -287,6 +288,7 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double,
 
     Kokkos::parallel_for(
             "Astra1DDynamic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 const auto& R = Rview(i);
 
                 // 1D Astra field map is only bounded in z
@@ -300,7 +302,7 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double,
 
 void Astra1DDynamic::applyRFField(
         std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
-        double startField, double endField) {
+        double startField, double endField, const ElementRegions& regions) {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
     const double length = length_m;
@@ -317,6 +319,7 @@ void Astra1DDynamic::applyRFField(
 
     Kokkos::parallel_for(
             "Astra1DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 computeRFField(
                         Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
                         accuracy, electricScale, magneticScale, startField, endField);
@@ -329,7 +332,7 @@ void Astra1DDynamic::applyTravelingWave(
         double core2ElectricScale, double core2MagneticScale, double exitElectricScale,
         double exitMagneticScale, double /*startField*/, double startCoreField,
         double startExitField, double mappedStartExitField, double periodLength, double cellLength,
-        double elementLength) {
+        double elementLength, const ElementRegions& regions) {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
     const double length = length_m;
@@ -345,6 +348,7 @@ void Astra1DDynamic::applyTravelingWave(
 
     Kokkos::parallel_for(
             "Astra1DDynamic::applyTravelingWave", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 computeTravelingWaveField(
                         Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
                         accuracy, entryElectricScale, entryMagneticScale, core1ElectricScale,

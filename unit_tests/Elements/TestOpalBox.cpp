@@ -37,7 +37,8 @@ namespace {
          */
         std::unique_ptr<OpalBox> makeBox(
                 double length, double width, double height,
-                const std::optional<std::string>& aperture = std::nullopt) {
+                const std::optional<std::string>& aperture = std::nullopt,
+                const std::optional<double>& reach         = std::nullopt) {
             std::unique_ptr<OpalBox> box(exemplar_m.clone("B1"));
             Attributes::setReal(*box->findAttribute("L"), length);
             Attributes::setReal(*box->findAttribute("WIDTH"), width);
@@ -45,6 +46,9 @@ namespace {
             Attributes::setReal(*box->findAttribute("ELEMEDGE"), 0.5);
             if (aperture.has_value()) {
                 Attributes::setString(*box->findAttribute("APERTURE"), aperture.value());
+            }
+            if (reach.has_value()) {
+                Attributes::setReal(*box->findAttribute("REACH"), reach.value());
             }
             box->update();
             return box;
@@ -69,6 +73,10 @@ TEST_F(TestOpalBox, UpdateSetsTypeLengthAndHalfSize) {
     ASSERT_NE(boxElement, nullptr);
     EXPECT_DOUBLE_EQ(boxElement->getHalfWidth(), 0.01);
     EXPECT_DOUBLE_EQ(boxElement->getHalfHeight(), 0.02);
+
+    // The reach is the larger half-size, so the element's box in the grid covers the block.
+    ASSERT_TRUE(element->getReach().has_value());
+    EXPECT_DOUBLE_EQ(*element->getReach(), 0.02);
 }
 
 TEST_F(TestOpalBox, NonPositiveSizeThrows) {
@@ -77,10 +85,10 @@ TEST_F(TestOpalBox, NonPositiveSizeThrows) {
     EXPECT_THROW(makeBox(0.1, 0.02, -0.04), OpalException);
 }
 
-TEST_F(TestOpalBox, ApertureThrows) {
-    // The aperture decides whether the element is registered along the
-    // reference path, so a BOX must keep the wide-open default.
+TEST_F(TestOpalBox, ApertureOrReachThrows) {
+    // WIDTH and HEIGHT set the size of a BOX.
     EXPECT_THROW(makeBox(0.1, 0.02, 0.04, "CIRCLE(0.02)"), OpalException);
+    EXPECT_THROW(makeBox(0.1, 0.02, 0.04, std::nullopt, 1.0), OpalException);
 }
 
 TEST_F(TestOpalBox, BuiltinExemplarPassesValidation) {

@@ -4,10 +4,9 @@ set (_SRCS
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     Flagger.cpp
-    IndexMap.cpp
+    GeneralElementMapping.cpp
     ExternalFieldRayTracker.cpp
-    LinearTransferMapBuilder.cpp
-    OrbitThreader.cpp
+    ReferenceTracer.cpp
     ParallelTracker.cpp
     TrackReferenceStep.cpp
     PartData.cpp
@@ -23,18 +22,16 @@ set (_SRCS
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
+    BeamStop.h
     CavityAutophaser.h
     CompensatedSum.h
     RungeKuttaTableau.h
     DefaultVisitor.h
     Flagger.h
-    IndexMap.h
+    GeneralElementMapping.h
     ExternalFieldRayTracker.h
-    LinearTransferMapBuilder.h
-    LinearTransferMap.h
-    OrbitThreader.h
-    OrbitThreaderDiagnostics.h
     ParallelTracker.h
+    ReferenceTracer.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

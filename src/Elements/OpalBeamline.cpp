@@ -16,7 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalBeamline.h"
-#include "Algorithms/OrbitThreaderDiagnostics.h"
 
 #include "Elements/PlacementResolver.h"
 
@@ -58,32 +57,30 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
-        const Vector_t<double, 3>& x) const {
-    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::bodyLookups);
-    orbit_threader_diagnostics::count(
-            &orbit_threader_diagnostics::Work::elementTests, elements_m.size());
-    std::set<std::shared_ptr<ElementBase>> result;
-    for (const auto& element : elements_m) {
-        if (element->isInsideBody(transformToLocalCS(element, x))) result.insert(element);
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    std::set<std::shared_ptr<ElementBase>> elementSet;
+    const auto selectIfInside = [&](const std::shared_ptr<ElementBase>& element) {
+        if (element->isInside(transformToLocalCS(element, x))) elementSet.insert(element);
+    };
+    // Before placement is final the grid cannot be built; test every element then.
+    if (!elementMapping_m && !referencePathPlacementCompiled_m) {
+        for (const auto& element : elements_m)
+            selectIfInside(element);
+        return elementSet;
     }
-    return result;
+    for (const auto& element : getElementMapping().elementsAt(x))
+        selectIfInside(element);
+    return elementSet;
 }
 
-std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
-    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::supportLookups);
-    orbit_threader_diagnostics::count(
-            &orbit_threader_diagnostics::Work::elementTests, elements_m.size());
-    std::set<std::shared_ptr<ElementBase>> elementSet;
-    for (const auto& element : elements_m) {
-        const Vector_t<double, 3> r = getCSTrafoLab2Local(element).transformTo(x);
+void OpalBeamline::buildElementMapping() {
+    elementMapping_m = std::make_shared<const GeneralElementMapping>(
+            elements_m, Options::elementMappingGrid, Options::elementMappingReach);
+}
 
-        if (element->isInside(r)) {
-            elementSet.insert(element);
-        }
-    }
-
-    return elementSet;
+const GeneralElementMapping& OpalBeamline::getElementMapping() {
+    if (!elementMapping_m) buildElementMapping();
+    return *elementMapping_m;
 }
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
@@ -148,44 +145,25 @@ void OpalBeamline::prepareSections() {
     }
     elements_m.sort(byFieldStart);
     placeElementsAlongReferencePath();
+    elementMapping_m.reset();
     prepared_m = true;
 }
 
 void OpalBeamline::print(Inform& /*msg*/) const {}
-
-std::vector<ElementTransferMapRef> OpalBeamline::getLinearTransferMapsInReferenceOrder() const {
-    std::vector<ElementTransferMapRef> result;
-    std::set<std::size_t> seenSegments;
-    for (const auto& element : elements_m) {
-        for (const auto& map : element->getLinearTransferMaps()) {
-            if (map.segment != std::numeric_limits<std::size_t>::max()
-                && !seenSegments.insert(map.segment).second) {
-                continue;
-            }
-            result.push_back({element, &map});
-        }
-    }
-    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
-        if (left.map->entrance.pathLength != right.map->entrance.pathLength) {
-            return left.map->entrance.pathLength < right.map->entrance.pathLength;
-        }
-        if (left.map->pass != right.map->pass) return left.map->pass < right.map->pass;
-        return left.element->getName() < right.element->getName();
-    });
-    return result;
-}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
+    std::swap(elementMapping_m, rhs.elementMapping_m);
 }
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
+    elementMapping_m.reset();
 }
 
 ElementList OpalBeamline::getElementByType(ElementType type) {

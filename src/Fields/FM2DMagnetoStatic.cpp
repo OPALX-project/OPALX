@@ -192,7 +192,9 @@ void FM2DMagnetoStatic::freeMap() {
  *
  * @param pc Particle container
  */
-void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale, double) {
+void FM2DMagnetoStatic::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double,
+        const ElementRegions& regions) {
     // Local copies of member variables for use in the lambda function
     double zbegin  = zbegin_m;
     double zend    = zend_m;
@@ -211,6 +213,7 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, doub
 
     Kokkos::parallel_for(
             "FM2DMagnetoStatic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 // Check bounds
                 if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
                     && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {

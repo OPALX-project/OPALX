@@ -123,7 +123,7 @@ namespace {
     }
 
     TEST_F(CollimatorTest, RequiredNumberOfTimeStepsIsOne) {
-        // The ElementBase default of 10 makes OrbitThreader::checkElementLengths
+        // The ElementBase default of 10 makes ReferenceTracer::checkElementLengths
         // throw for short elements, which a collimator typically is.
         CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
         EXPECT_EQ(coll.getRequiredNumberOfTimeSteps(), 1);

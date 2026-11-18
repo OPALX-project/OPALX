@@ -35,7 +35,7 @@ public:
     void getField(
             const Kokkos::View<Vector_t<double, 3>*> /*R*/,
             Kokkos::View<Vector_t<double, 3>*> /*E*/, Kokkos::View<Vector_t<double, 3>*> /*B*/,
-            double /*scaling*/, size_t /*count*/) override {}
+            double /*scaling*/, size_t /*count*/, const ElementRegions& /*regions*/) override {}
     bool getField(
             const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/,
             Vector_t<double, 3>& /*B*/, double /*scaling*/) override {

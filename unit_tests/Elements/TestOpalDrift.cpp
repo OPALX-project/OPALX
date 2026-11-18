@@ -143,3 +143,26 @@ TEST_F(TestOpalDrift, UnknownApertureStringThrows) {
 TEST_F(TestOpalDrift, NoApertureDefaults1e6Ellipse) {
     expectAperture(makeDrift(std::nullopt), ApertureType::ELLIPTICAL, {1e6, 1e6});
 }
+
+TEST_F(TestOpalDrift, ReachIsUnsetUnlessGiven) {
+    EXPECT_FALSE(makeDrift(std::nullopt)->getElement()->getReach().has_value());
+}
+
+TEST_F(TestOpalDrift, ReachAttributeSetsTheElementReach) {
+    auto drift = std::make_unique<OpalDrift>();
+    Attributes::setReal(*drift->findAttribute("L"), 2.0);
+    Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
+    Attributes::setReal(*drift->findAttribute("REACH"), 0.2);
+    drift->update();
+
+    ASSERT_TRUE(drift->getElement()->getReach().has_value());
+    EXPECT_DOUBLE_EQ(*drift->getElement()->getReach(), 0.2);
+}
+
+TEST_F(TestOpalDrift, NonPositiveReachIsRejected) {
+    auto drift = std::make_unique<OpalDrift>();
+    Attributes::setReal(*drift->findAttribute("L"), 2.0);
+    Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
+    Attributes::setReal(*drift->findAttribute("REACH"), 0.0);
+    EXPECT_THROW(drift->update(), OpalException);
+}

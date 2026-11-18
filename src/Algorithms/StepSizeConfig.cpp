@@ -78,6 +78,10 @@ StepSizeConfig& StepSizeConfig::advanceToResumePosition(const ResumePosition& po
     return *this;
 }
 
+bool StepSizeConfig::isLastSegment() const {
+    return it_m != configurations_m.end() && std::next(it_m) == configurations_m.end();
+}
+
 std::size_t StepSizeConfig::getCurrentIndex() {
     return static_cast<std::size_t>(std::distance(configurations_m.begin(), it_m));
 }
@@ -218,12 +222,4 @@ void StepSizeConfig::printDirect(Inform& out) const {
         out << std::setw(20) << std::get<0>(*it) << std::setw(20) << std::get<1>(*it)
             << std::setw(20) << std::get<2>(*it) << endl;
     }
-}
-
-ValueRange<double> StepSizeConfig::getPathLengthRange() const {
-    ValueRange<double> result;
-    for (const entry_t& entry : configurations_m) {
-        result.enlargeIfOutside(std::get<1>(entry));
-    }
-    return result;
 }

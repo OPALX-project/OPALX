@@ -21,7 +21,6 @@
 #ifndef STEPSIZECONFIG_H
 #define STEPSIZECONFIG_H
 
-#include "Structure/ValueRange.h"
 #include "Utility/Inform.h"
 
 #include <list>
@@ -49,6 +48,9 @@ public:
     bool reachedStart() const;
 
     bool reachedEnd() const;
+
+    /// Whether the current segment is the last one.
+    bool isLastSegment() const;
 
     void clear();
 
@@ -87,8 +89,6 @@ public:
 
     Inform& print(Inform& out) const;
     void printDirect(Inform& out) const;
-
-    ValueRange<double> getPathLengthRange() const;
 
 private:
     typedef std::tuple<double, double, unsigned long> entry_t;

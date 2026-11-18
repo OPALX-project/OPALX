@@ -86,6 +86,9 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /// The isInside() window |z| <= L/2 around the monitor plane joined with the body [0, L).
+    BoundingBox getLocalSupportBox(double reach) const override;
+
 private:
     void driftToCorrectPositionAndSave(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P);
 

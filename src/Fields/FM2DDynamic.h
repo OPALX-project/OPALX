@@ -5,6 +5,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
+#include <cmath>
 
 class FM2DDynamic : public Fieldmap {
 public:
@@ -78,6 +79,15 @@ public:
      */
     virtual void setFrequency(double freq) override;
 
+    /// The map is defined for r < max(|rbegin|, |rend|).
+    std::optional<ApertureShape> getTransverseRange() const override {
+        ApertureShape range;
+        range.type  = ApertureType::ELLIPTICAL;
+        range.halfX = std::max(std::abs(rbegin_m), std::abs(rend_m));
+        range.halfY = range.halfX;
+        return range;
+    }
+
     /**
      * @brief Checks if the given coordinate is inside the volume covered by the
      * fieldmap
@@ -139,7 +149,9 @@ public:
      *
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) override;
+    void applyField(
+            std::shared_ptr<ParticleContainer_t> pc, double, double,
+            const ElementRegions& regions = ElementRegions()) override;
 
     /**
      * @brief Apply the RF-scaled dynamic field map to all particles.
@@ -155,7 +167,7 @@ public:
      */
     void applyRFField(
             std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
-            double startField, double endField);
+            double startField, double endField, const ElementRegions& regions = ElementRegions());
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double> >& F) override;
 

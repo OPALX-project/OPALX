@@ -23,6 +23,7 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 
+#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -98,6 +99,12 @@ public:
     /// Return the initial polarization vector P (rest-frame, lab-frame axes). Default {0,0,0}.
     /// Caller must check |Pol| in [0, 1]; validation is performed in execute().
     std::vector<double> getPolarization() const;
+
+    /// Path length [m] at which this beam stops, if BEAM ZSTOP was given.
+    std::optional<double> getZStop() const;
+
+    /// Whether the run continues for this beam until MAXSTEPS (BEAM UNTILMAXSTEPS).
+    bool getUntilMaxSteps() const;
 
     /// True if POLARIZATION was explicitly set on this beam. Used both as the initial
     /// polarization source and as the switch that enables per-particle spin tracking.

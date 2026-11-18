@@ -25,8 +25,7 @@
 class ElementBase;
 
 /// The tracking-side list of placed beamline elements. Membership order is the s-sorted
-/// order established by OpalBeamline::prepareSections(); the active s-range of each element
-/// lives in the derived IndexMap, not here.
+/// order established by OpalBeamline::prepareSections().
 using ElementList = std::list<std::shared_ptr<ElementBase>>;
 
 #endif  // OPALX_ElementList_HH

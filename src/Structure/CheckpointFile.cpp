@@ -143,10 +143,41 @@ namespace {
                             + " container records, found " + std::to_string(H5GetNumSteps(file)));
         }
 
-        return CheckpointFile::Metadata{
+        CheckpointFile::Metadata metadata{
                 static_cast<long long>(step),      static_cast<double>(time),
                 static_cast<double>(dt),           static_cast<std::size_t>(count),
                 static_cast<std::size_t>(segment), static_cast<unsigned long long>(segmentSteps)};
+
+        // Stop planes are optional: older checkpoints have none.
+        if (H5HasFileAttrib(file, "NumBeamStops") > 0) {
+            h5_int64_t stops = 0;
+            requireSuccess(
+                    H5ReadFileAttribInt64(file, "NumBeamStops", &stops), "reading beam stop count");
+            metadata.beamStops.resize(static_cast<std::size_t>(stops));
+            for (std::size_t i = 0; i < metadata.beamStops.size(); ++i) {
+                const std::string prefix = "BeamStop" + std::to_string(i);
+                BeamStop& stop           = metadata.beamStops[i];
+                h5_int64_t planeSet = 0, done = 0;
+                h5_float64_t origin[3] = {0, 0, 0}, normal[3] = {0, 0, 0};
+                requireSuccess(
+                        H5ReadFileAttribInt64(file, (prefix + "PlaneSet").c_str(), &planeSet),
+                        "reading beam stop plane flag");
+                requireSuccess(
+                        H5ReadFileAttribInt64(file, (prefix + "Done").c_str(), &done),
+                        "reading beam stop done flag");
+                requireSuccess(
+                        H5ReadFileAttribFloat64(file, (prefix + "PlaneOrigin").c_str(), origin),
+                        "reading beam stop plane origin");
+                requireSuccess(
+                        H5ReadFileAttribFloat64(file, (prefix + "PlaneNormal").c_str(), normal),
+                        "reading beam stop plane normal");
+                stop.planeSet    = planeSet != 0;
+                stop.done        = done != 0;
+                stop.planeOrigin = Vector_t<double, 3>({origin[0], origin[1], origin[2]});
+                stop.planeNormal = Vector_t<double, 3>({normal[0], normal[1], normal[2]});
+            }
+        }
+        return metadata;
     }
 
     std::string readStringFileAttribute(h5_file_t file, const std::string& name) {
@@ -271,7 +302,7 @@ std::string CheckpointFile::defaultPath(const std::string& inputBasename) {
 
 void CheckpointFile::write(
         const std::string& fileName, PartBunch_t& bunch, std::size_t stepSizeSegment,
-        unsigned long long stepsCompletedInSegment) {
+        unsigned long long stepsCompletedInSegment, const std::vector<BeamStop>& beamStops) {
     namespace fs                    = std::filesystem;
     const std::string temporaryName = fileName + ".tmp";
 
@@ -307,6 +338,33 @@ void CheckpointFile::write(
         requireSuccess(
                 H5WriteFileAttribInt64(file, "StepsCompletedInSegment", &segmentSteps, 1),
                 "writing completed steps in segment");
+
+        h5_int64_t stopCount = static_cast<h5_int64_t>(beamStops.size());
+        requireSuccess(
+                H5WriteFileAttribInt64(file, "NumBeamStops", &stopCount, 1),
+                "writing beam stop count");
+        for (std::size_t i = 0; i < beamStops.size(); ++i) {
+            const std::string prefix = "BeamStop" + std::to_string(i);
+            const BeamStop& stop     = beamStops[i];
+            h5_int64_t planeSet      = stop.planeSet ? 1 : 0;
+            h5_int64_t done          = stop.done ? 1 : 0;
+            h5_float64_t origin[3]   = {
+                    stop.planeOrigin(0), stop.planeOrigin(1), stop.planeOrigin(2)};
+            h5_float64_t normal[3] = {
+                    stop.planeNormal(0), stop.planeNormal(1), stop.planeNormal(2)};
+            requireSuccess(
+                    H5WriteFileAttribInt64(file, (prefix + "PlaneSet").c_str(), &planeSet, 1),
+                    "writing beam stop plane flag");
+            requireSuccess(
+                    H5WriteFileAttribInt64(file, (prefix + "Done").c_str(), &done, 1),
+                    "writing beam stop done flag");
+            requireSuccess(
+                    H5WriteFileAttribFloat64(file, (prefix + "PlaneOrigin").c_str(), origin, 3),
+                    "writing beam stop plane origin");
+            requireSuccess(
+                    H5WriteFileAttribFloat64(file, (prefix + "PlaneNormal").c_str(), normal, 3),
+                    "writing beam stop plane normal");
+        }
 
         h5_int64_t phaseCount = OpalData::getInstance()->getNumberOfMaxPhases();
         requireSuccess(

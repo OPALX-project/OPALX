@@ -55,12 +55,8 @@ void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    // Calc. field extent.
-    double zBegin = 0.0;
-    double zEnd   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    const ApertureType apertureType = aperture_m.first;
-    const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
+    // Field window and aperture, shared with isInside() and the loss test.
+    const ElementRegions regions = getRegions();
 
     // Field info capture by value for kernel.
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
@@ -68,10 +64,8 @@ void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Kokkos::parallel_for(
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 const Vector_t<double, 3>& point = Rview(i);
-                // Match isInside(): entrance belongs to this support, exit does not.
-                if (point(2) < zBegin || point(2) >= zEnd
-                    || !ApertureHelper::isInsideAperture(
-                            point(0), point(1), apertureType, apertureX, apertureY)) {
+                // The entrance belongs to the field window, the exit does not.
+                if (!regions.fieldAppliesAt(point)) {
                     return;  // exits the lambda for current particle
                 }
 
@@ -86,12 +80,7 @@ void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 void RBend::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    double zBegin = 0.0, zEnd = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    if (R(2) < zBegin || R(2) >= zEnd) {
-        return;
-    }
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
+    if (!getRegions().fieldAppliesAt(R)) {
         return;
     }
 
@@ -102,13 +91,9 @@ void RBend::apply(
 bool RBend::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    double zBegin = 0.0, zEnd = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    if (R(2) < zBegin || R(2) >= zEnd) {
-        return false;
-    }
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return true;
+    const ElementRegions regions = getRegions();
+    if (!regions.fieldAppliesAt(R)) {
+        return regions.particleLostAt(R);
     }
 
     computeFieldHost(R, B);
@@ -151,13 +136,6 @@ double RBend::edgeAngleEntrance() const {
 double RBend::edgeAngleExit() const {
     return getGeometry().hasPoleFaceAngles() ? getGeometry().getExitAngle()
                                              : 0.5 * getGeometry().getBendAngle();
-}
-
-bool RBend::isInside(const Vector_t<double, 3>& r) const {
-    double zBegin = 0.0;
-    double zEnd   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    return r(2) >= zBegin && r(2) < zEnd && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 BendFieldModel::FieldInputs RBend::makeFieldInputs() const {

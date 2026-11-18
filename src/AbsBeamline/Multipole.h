@@ -100,9 +100,6 @@ public:
     // @brief Apply visitor to Multipole.
     virtual void accept(BeamlineVisitor&) const override;
 
-    // @returns Is the n-th component focusing?
-    bool isFocusing(int n) const;
-
     /**
      * @brief Setup, multipole goes online
      *
@@ -154,7 +151,7 @@ private:
     /**
      * @brief Computes the E and B field at position R of the reference particle
      *
-     * @note Host version for the orbitthreader
+     * @note Host version for the reference particle
      *
      * @param R Position
      * @param E Reference to electric field
