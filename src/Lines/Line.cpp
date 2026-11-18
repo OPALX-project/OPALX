@@ -35,7 +35,6 @@
 #include "Expressions/TFunction2.h"
 #include "Lines/LineTemplate.h"
 #include "Lines/Replacer.h"
-#include "Lines/Ring.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -335,10 +334,7 @@ void Line::parseList(Statement& stat, bool allowModifiers) {
                         0);  // std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
 
-            if (dynamic_cast<Ring*>(obj)) {
-                throw ParseError(
-                        "Line::parseList()", "A RING cannot be nested in a LINE or another RING.");
-            } else if (Element* elem = dynamic_cast<Element*>(obj)) {
+            if (Element* elem = dynamic_cast<Element*>(obj)) {
                 while (repeat-- > 0) {
                     FlaggedElmPtr member(ElmPtr(elem->getElementPtr()), rev);
                     line->push_back(member);
