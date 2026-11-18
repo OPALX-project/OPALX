@@ -63,36 +63,6 @@ enum class ElementType : unsigned short {
     CONSTANTFOCUSING
 };
 
-/// Logical sequence topology, independent of ElementType and field-support overlap.
-/// RING is a sequence declaration, not a new physical element type or a closure test.
-enum class BeamlineTopology : unsigned short { LINE, RING };
-
-/**
- * @brief Logical RING membership carried by a sequence member or runtime occurrence.
- *
- * An occurrence is one use of an element in a sequence, rather than its reusable input
- * definition. opalx::run::buildElements() builds one element per occurrence and assigns the
- * enclosing RING name to each, including members inside nested LINEs. For example, two
- * uses of a quadrupole in ring R1 have distinct element objects but both carry
- * {BeamlineTopology::RING, "R1"}; neither the quadrupole name nor an inner LINE name
- * is the ownerName. The original quadrupole definition is not retagged.
- *
- * Ordinary LINE membership is {BeamlineTopology::LINE, ""}: LINE names and a full
- * parent hierarchy are deliberately not recorded. ElementBase's copy constructor
- * preserves this metadata, including when OpalBeamline clones tracking elements.
- * This is host-side value metadata, not a pointer to a sequence, C++ memory ownership,
- * a unique occurrence identifier, a turn counter, or evidence of orbit closure.
- *
- * Do not use membership to select fields; that uses ElementBase::isInside(). Field tails
- * can act in another element's nominal body without changing either element's membership.
- */
-struct BeamlineMembership {
-    /// LINE by default; RING after assignment by the enclosing Ring.
-    BeamlineTopology topology = BeamlineTopology::LINE;
-    /// Enclosing RING's name (required for RING), empty for LINE; stored by value.
-    std::string ownerName;
-};
-
 /// Oriented box: centre, orthonormal axes and half-extents along those axes [m].
 struct SupportBox {
     Vector_t<double, 3> centre;
@@ -203,27 +173,6 @@ public:
     /// @param type The element type.
     /// @return The element type string.
     static std::string getTypeString(ElementType type);
-
-    /* ======================= Beamline membership =========================== */
-
-    /// Read the logical sequence tag; the returned reference is owned by this element.
-    /// See BeamlineMembership for its distinction from map ownership and field support.
-    const BeamlineMembership& getBeamlineMembership() const;
-
-    /// Return the topology of the owning beam sequence.
-    BeamlineTopology getBeamlineTopology() const;
-
-    /// Return the owning RING name, or an empty string for LINE membership.
-    const std::string& getBeamlineOwnerName() const;
-
-    /// Assign the logical sequence tag only; does not change placement.
-    /// @param topology LINE or RING.
-    /// @param ownerName Enclosing RING name, or empty for LINE.
-    /// @throws GeneralOpalException If RING has an empty name or LINE a nonempty name.
-    void setBeamlineMembership(BeamlineTopology topology, std::string ownerName = {});
-
-    /// Restore {BeamlineTopology::LINE, ""} only; maps and overlap flags are unchanged.
-    void clearBeamlineMembership();
 
     /// @brief Apply a visitor.
     /// @note This method must be overridden by derived classes. It should call
@@ -579,10 +528,6 @@ private:
     // The element's name
     std::string elementID;
     static const std::map<ElementType, std::string> elementTypeToString_s;
-
-    // --- Beamline membership ---
-    /// Logical sequence tag, preserved by the copy constructor; see BeamlineMembership.
-    BeamlineMembership beamlineMembership_m;
 
     // --- User-defined attributes ---
     AttributeSet userAttribs;

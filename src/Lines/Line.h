@@ -70,15 +70,6 @@ public:
     const Quaternion& getDirection() const { return direction_m; }
 
 protected:
-    /// Exemplar constructor for LINE-compatible sequence statements.
-    Line(const char* keyword, const char* help);
-
-    /// Parse a LINE-compatible definition.
-    void parseDefinition(Statement& stat, bool allowModifiers);
-
-    /// Return the keyword used when printing this sequence.
-    virtual const char* getSequenceKeyword() const;
-
     /// The members in line order, the #S and #E markers included.
     std::vector<Member> members_m;
 
@@ -88,7 +79,7 @@ private:
     void operator=(const Line&);
 
     // Parse sub-list.
-    void parseList(Statement&, bool allowModifiers);
+    void parseList(Statement&);
 
     Vector_t<double, 3> origin_m{0.0, 0.0, 0.0};
     Quaternion direction_m{1.0, 0.0, 0.0, 0.0};

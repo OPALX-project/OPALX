@@ -58,11 +58,10 @@ namespace {
 }  // namespace
 
 Line::Line()
-    : Line("LINE",
-           "The \"LINE\" statement defines a beamline list.\n"
-           "\t<name> : line = (<list>)") {}
-
-Line::Line(const char* keyword, const char* help) : BeamSequence(SIZE, keyword, help) {
+    : BeamSequence(
+              SIZE, "LINE",
+              "The \"LINE\" statement defines a beamline list.\n"
+              "\t<name> : line = (<list>)") {
     itsAttr[TYPE] = Attributes::makeString("TYPE", "Design type");
 
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of line in m");
@@ -111,9 +110,7 @@ Object* Line::makeTemplate(const std::string& name, TokenStream& is, Statement& 
     }
 }
 
-void Line::parse(Statement& stat) { parseDefinition(stat, true); }
-
-void Line::parseDefinition(Statement& stat, bool allowModifiers) {
+void Line::parse(Statement& stat) {
     static const TFunction2<double, double> plus = {"+", 4, AttAdd};
 
     // Check for delimiters.
@@ -121,7 +118,7 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
     parseDelimiter(stat, '(');
 
     // Parse the line list.
-    parseList(stat, allowModifiers);
+    parseList(stat);
 
     // Insert the begin and end markers.
     members_m.insert(members_m.begin(), Member{"#S", false});
@@ -206,7 +203,7 @@ void Line::parseDefinition(Statement& stat, bool allowModifiers) {
 }
 
 void Line::print(std::ostream& os) const {
-    os << getOpalName() << ':' << getSequenceKeyword() << "=(";
+    os << getOpalName() << ":LINE=(";
     bool seen = false;
 
     for (const Member& member : members_m) {
@@ -223,31 +220,21 @@ void Line::print(std::ostream& os) const {
     os << std::endl;
 }
 
-const char* Line::getSequenceKeyword() const { return "LINE"; }
-
-void Line::parseList(Statement& stat, bool allowModifiers) {
+void Line::parseList(Statement& stat) {
     do {
         // Reversed member ?
         bool rev = stat.delimiter('-');
-        if (rev && !allowModifiers) {
-            throw ParseError("Ring::parseList()", "RING members cannot be reflected.");
-        }
 
         // Repetition count.
         int repeat = 1;
-        if (stat.integer(repeat)) {
-            if (!allowModifiers) {
-                throw ParseError("Ring::parseList()", "RING members cannot be repeated.");
-            }
-            parseDelimiter(stat, '*');
-        }
+        if (stat.integer(repeat)) parseDelimiter(stat, '*');
 
         // List member.
         if (stat.delimiter('(')) {
             // Anonymous sub-line is expanded immediately. Reversing it reverses the order of
             // its members and drops their own reflection.
             Line nestedLine;
-            nestedLine.parseList(stat, allowModifiers);
+            nestedLine.parseList(stat);
             const std::vector<Member>& subLine = nestedLine.members_m;
 
             while (repeat-- > 0) {
