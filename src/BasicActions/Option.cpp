@@ -25,7 +25,6 @@
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
 #include "Utilities/ExpressionRandom.h"
-#include "Utilities/InputVersion.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
@@ -363,11 +362,11 @@ Option::Option()
             "every bend to disk. Default: false",
             writeBendTrajectories);
 
-    itsAttr[VERSION] = Attributes::makeString(
-            "VERSION", "OPALX release the input was written for, as a string such as \"1.1\"");
-    if (!version.empty()) {
-        Attributes::setString(itsAttr[VERSION], version);
-    }
+    itsAttr[VERSION] = Attributes::makeReal(
+            "VERSION",
+            "Optional OPALX release the input was written for, as major * 10000 + minor * 100 "
+            "(10100 for 1.1). Default: this release",
+            version);
 
     itsAttr[MEMORYDUMP] =
             Attributes::makeBool("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
@@ -472,9 +471,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
     Attributes::setBool(itsAttr[IDEALIZED], idealized);
     Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
-    if (!version.empty()) {
-        Attributes::setString(itsAttr[VERSION], version);
-    }
+    Attributes::setReal(itsAttr[VERSION], version);
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
@@ -529,14 +526,9 @@ void Option::execute() {
     linearTransferMapIntegrator =
             ExternalFieldRayTracker::integrationMethodName(mapSettings.integrationMethod);
 
-    idealized = Attributes::getBool(itsAttr[IDEALIZED]);
-    asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
-    if (itsAttr[VERSION]) {
-        // Reject malformed text here, at the statement that contains it.
-        const std::string inputVersion = Attributes::getString(itsAttr[VERSION]);
-        InputVersion::parse(inputVersion);
-        version = inputVersion;
-    }
+    idealized             = Attributes::getBool(itsAttr[IDEALIZED]);
+    asciidump             = Attributes::getBool(itsAttr[ASCIIDUMP]);
+    version               = Attributes::getReal(itsAttr[VERSION]);
     seed                  = Attributes::getReal(itsAttr[SEED]);
     writeBendTrajectories = Attributes::getBool(itsAttr[LOGBENDTRAJECTORY]);
 

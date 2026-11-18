@@ -99,6 +99,8 @@
 #include "Lines/EmissionSourceList.h"
 #include "Lines/Line.h"
 
+#include "changes.h"
+
 // Modify these methods to add new commands.
 // ------------------------------------------------------------------------
 
@@ -183,5 +185,6 @@ namespace Configure {
         makeDefinitions();
         makeElements();
         makeActions();
+        Versions::fillChanges();
     }
 };  // namespace Configure

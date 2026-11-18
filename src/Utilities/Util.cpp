@@ -18,7 +18,6 @@
 #include "Utilities/Util.h"
 #include "OPALXrevision.h"
 #include "Physics/Physics.h"
-#include "Utility/Inform.h"
 
 #include <filesystem>
 #include <regex>
@@ -28,10 +27,6 @@
 #include <iostream>
 #include <iterator>
 #include <queue>
-
-// Message stream shared by the library. The executable and the unit tests that print through
-// it assign it before use.
-Inform* gmsg;
 
 namespace Util {
     std::string getGitRevision() { return std::string(GIT_VERSION); }

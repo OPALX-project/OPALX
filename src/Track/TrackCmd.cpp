@@ -26,7 +26,6 @@
 #include "Structure/Beam.h"
 #include "Track/Track.h"
 #include "Track/TrackParser.h"
-#include "Utilities/InputVersion.h"
 #include "Utilities/OpalException.h"
 
 namespace {
@@ -181,8 +180,6 @@ Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
 }
 
 void TrackCmd::execute() {
-    InputVersion::enforce();
-
     // Find BeamSequence
     BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
 

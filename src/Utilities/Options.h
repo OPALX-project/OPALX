@@ -174,9 +174,10 @@ namespace Options {
 
     extern bool writeBendTrajectories;
 
-    /// OPALX release the input was written for, as "major.minor"; empty if the input does
-    /// not state it. Checked by InputVersion::enforce().
-    extern std::string version;
+    /// OPALX release the input was written for, packed as major * 10000 + minor * 100.
+    /// Defaults to this release, so an input without OPTION, VERSION always runs; only an
+    /// older stated version can be stopped by the input change check in TrackRun::execute().
+    extern int version;
 
     extern bool memoryDump;
 

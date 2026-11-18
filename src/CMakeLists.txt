@@ -55,6 +55,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
 # ------------------------------------------------------------------
 
 add_library(opalx)
+target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
 

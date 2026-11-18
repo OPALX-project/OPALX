@@ -73,7 +73,9 @@
 #include "SpaceCharge/SpaceChargeFactory.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
 
+#include "BuildInfo.h"
 #include "Utility/Inform.h"
+#include "changes.h"
 
 #include "Utilities/BiMap.h"
 #include "Utilities/Util.h"
@@ -283,6 +285,38 @@ TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, t
 
 void TrackRun::execute() {
     OpalData::getInstance()->hasTrackingRun = true;
+    const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
+
+    if (Options::version < currentVersion) {
+        unsigned int fileVersion = Options::version / 100;
+        bool newerChanges        = false;
+        for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
+            if (it->first > fileVersion) {
+                newerChanges = true;
+                break;
+            }
+        }
+        if (newerChanges) {
+            Inform errorMsg("Error");
+            errorMsg << "\n******************** V E R S I O N   M I S M A T C H "
+                        "***********************\n"
+                     << endl;
+            for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
+                if (it->first > fileVersion) {
+                    errorMsg << it->second << endl;
+                }
+            }
+            errorMsg << "\n"
+                     << "* Make sure you do understand these changes and adjust your input file \n"
+                     << "* accordingly. Then add\n"
+                     << "* OPTION, VERSION = " << currentVersion << ";\n"
+                     << "* to your input file. " << endl;
+            errorMsg << "\n************************************************************************"
+                        "****\n"
+                     << endl;
+            throw OpalException("TrackRun::execute", "Version mismatch");
+        }
+    }
 
     // Follow-up behavior is still based on whether a bunch was allocated already.
     // Emission sources are resolved from the selected BEAM later.
