@@ -17,6 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Options.h"
+#include "BuildInfo.h"
 #include "Utilities/ExpressionRandom.h"
 
 #include <string>
@@ -108,7 +109,7 @@ namespace Options {
 
     bool writeBendTrajectories = false;
 
-    int version = 10000;
+    int version = (buildinfo::version_major * 100 + buildinfo::version_minor) * 100;
 
     bool memoryDump = false;
 
