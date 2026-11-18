@@ -569,8 +569,6 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
       H5call_m(0),
       collectionType_m(collectionType) {
     particles_m.clear();
-    turnNumber_m.clear();
-    bunchNumber_m.clear();
 
     if (h5hut_mode_m && !Options::enableHDF5) {
         throw GeneralOpalException(
@@ -598,8 +596,6 @@ LossDataSink::LossDataSink(const LossDataSink& rhs)
       spos_m(rhs.spos_m),
       collectionType_m(rhs.collectionType_m) {
     particles_m.clear();
-    turnNumber_m.clear();
-    bunchNumber_m.clear();
 }
 
 LossDataSink::~LossDataSink() noexcept(false) {
@@ -607,7 +603,7 @@ LossDataSink::~LossDataSink() noexcept(false) {
         closeFile();
     }
     // save() owns normal file close and synchronization. Do not add a barrier
-    // here: a rank can unwind after a probe kernel/serialization exception while
+    // here: a rank can unwind after a kernel/serialization exception while
     // its peers wait for migration data. A destructor collective would hide the
     // original exception behind a deadlock. The fallback close above still needs
     // coordinated ranks if a failed save left a parallel HDF5 file open.
@@ -656,9 +652,6 @@ void LossDataSink::writeHeaderH5() {
     writeFileAttribString("qUnit", "C");
     writeFileAttribString("mUnit", "MeV");
 
-    writeFileAttribString("turnUnit", "1");
-    writeFileAttribString("bunchNumUnit", "1");
-
     writeFileAttribString("timeUnit", "s");
     writeFileAttribString("meanTimeUnit", "s");
     writeFileAttribString("rmsTimeUnit", "s");
@@ -682,12 +675,8 @@ void LossDataSink::writeHeaderH5() {
 }
 
 void LossDataSink::writeHeaderASCII() {
-    bool hasTurn = hasTurnInformations();
     if (ippl::Comm->rank() == 0) {
         os_m << "# x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
-        if (hasTurn) {
-            os_m << ",  turn ( ), bunchNumber ( )";
-        }
         os_m << ", time (s)";
         if (hasPolData_m) {
             os_m << ",  polx ( ),  poly ( ),  polz ( )";
@@ -706,27 +695,7 @@ void LossDataSink::addReferenceParticle(
     refTime_m.push_back(time);
 }
 
-void LossDataSink::addParticle(
-        const OpalParticle& particle,
-        const std::optional<std::pair<int, short>>& turnBunchNumPair) {
-    if (turnBunchNumPair) {
-        if (turnNumber_m.size() != particles_m.size()) {
-            throw GeneralOpalException(
-                    "LossDataSink::addParticle",
-                    "Either all particles or no particles must have turn number and bunch number");
-        }
-
-        turnNumber_m.push_back(turnBunchNumPair.value().first);
-        bunchNumber_m.push_back(turnBunchNumPair.value().second);
-
-    } else {
-        if (!turnNumber_m.empty()) {
-            throw GeneralOpalException(
-                    "LossDataSink::addParticle",
-                    "Either all particles or no particles must have turn number and bunch number");
-        }
-    }
-
+void LossDataSink::addParticle(const OpalParticle& particle) {
     particles_m.push_back(particle);
     if (particle.hasPol()) {
         hasPolData_m = true;
@@ -752,7 +721,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     hasPolData_m = (globalHas > 0);
 
     fileName_m = outputName_m + (h5hut_mode_m ? ".h5" : ".loss");
-    // Header output contains collectives, including hasTurnInformations(). A
+    // Header output may contain collectives. A
     // rank-local exists() check can observe the file another rank just created
     // and skip that header, shifting every subsequent collective. Let rank 0
     // decide before any file is opened, for both ASCII and parallel HDF5.
@@ -802,8 +771,6 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     ippl::Comm->barrier();
 
     particles_m.clear();
-    turnNumber_m.clear();
-    bunchNumber_m.clear();
     spos_m.clear();
     refTime_m.clear();
     RefPartR_m.clear();
@@ -827,14 +794,6 @@ bool LossDataSink::hasNoParticlesToDump() const {
     return nGlobal == 0;
 }
 
-bool LossDataSink::hasTurnInformations() const {
-    bool hasTurnInformation = !turnNumber_m.empty();
-
-    ippl::Comm->allreduce(hasTurnInformation, 1, std::logical_or<bool>());
-
-    return hasTurnInformation > 0;
-}
-
 void LossDataSink::saveH5(unsigned int setIdx) {
     size_t nLoc     = particles_m.size();
     size_t startIdx = 0;
@@ -849,16 +808,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 
     if (stat.nTotal_m == 0) {
         return;
-    }
-
-    const bool hasTurn = hasTurnInformations();
-
-    if (hasTurn
-        && (turnNumber_m.size() < startIdx + nLoc || bunchNumber_m.size() < startIdx + nLoc)) {
-        throw GeneralOpalException(
-                "LossDataSink::saveH5",
-                "Turn/bunch information is globally present, but this rank does not have "
-                "turn/bunch data for all particles in this loss set.");
     }
 
     /// Set current record/time step.
@@ -1007,17 +956,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     });
     writeDataFloat64("m", f64buffer);
 
-    if (hasTurn) {
-        std::copy(
-                turnNumber_m.begin() + startIdx, turnNumber_m.begin() + startIdx + nLoc, i64buffer);
-        writeDataInt64("turn", i64buffer);
-
-        std::copy(
-                bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc,
-                i64buffer);
-        writeDataInt64("bunchNumber", i64buffer);
-    }
-
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getTime();
     });
@@ -1044,17 +982,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 }
 
 void LossDataSink::saveASCII() {
-    const bool hasTurn = hasTurnInformations();
-
-    if (hasTurn
-        && (turnNumber_m.size() != particles_m.size()
-            || bunchNumber_m.size() != particles_m.size())) {
-        throw GeneralOpalException(
-                "LossDataSink::saveASCII",
-                "Turn/bunch information is globally present, but this rank does not have "
-                "turn/bunch data for all particles.");
-    }
-
     constexpr int tagCount  = 43001;
     constexpr int tagDouble = 43002;
     constexpr int tagInt    = 43003;
@@ -1065,7 +992,7 @@ void LossDataSink::saveASCII() {
     const int size = ippl::Comm->size();
 
     const std::size_t nLoc        = particles_m.size();
-    const std::size_t nIntColumns = hasTurn ? 3 : 1;
+    const std::size_t nIntColumns = 1;  // id
     // Per-particle double column count: x, y, z, px, py, pz, time (+ polx, poly, polz)
     const std::size_t nDblColumns = hasPolData_m ? 10 : 7;
 
@@ -1101,12 +1028,6 @@ void LossDataSink::saveASCII() {
             const OpalParticle& particle = particles_m[i];
 
             data[nIntColumns * i + 0] = static_cast<long long>(particle.getId());
-
-            if (hasTurn) {
-                data[nIntColumns * i + 1] = static_cast<long long>(turnNumber_m[i]);
-
-                data[nIntColumns * i + 2] = static_cast<long long>(bunchNumber_m[i]);
-            }
         }
 
         return data;
@@ -1122,11 +1043,6 @@ void LossDataSink::saveASCII() {
             os_m << doubleData[nDblColumns * i + 4] << "   ";
             os_m << doubleData[nDblColumns * i + 5] << "   ";
             os_m << integerData[nIntColumns * i + 0] << "   ";
-
-            if (hasTurn) {
-                os_m << integerData[nIntColumns * i + 1] << "   ";
-                os_m << integerData[nIntColumns * i + 2] << "   ";
-            }
 
             os_m << doubleData[nDblColumns * i + 6];
             if (hasPolData_m) {

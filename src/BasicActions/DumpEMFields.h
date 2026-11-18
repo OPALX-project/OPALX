@@ -1,7 +1,7 @@
 //
 // Class DumpEMFields
-//   DumpEMFields dumps the dynamically changing fields of a Ring in a user-
-//   defined grid.
+//   DumpEMFields dumps the dynamically changing fields of the lattice on a
+//   user-defined Cartesian grid.
 //
 // Copyright (c) 2017, Chris Rogers
 // All rights reserved
@@ -32,8 +32,8 @@ namespace interpolation {
 }
 class ElementBase;
 
-/** DumpEMFields dumps the dynamically changing fields of a Ring in a user-
- *  defined grid.
+/** DumpEMFields dumps the dynamically changing fields of the lattice on a
+ *  user-defined Cartesian grid.
  *
  *  The idea is to print out the field map across a 4D grid in space-time for
  *  debugging purposes. The problem is to manage the DumpEMFields object
@@ -43,7 +43,7 @@ class ElementBase;
  *  store in a set. When the execute() method is called, DumpEMFields builds a
  *  grid using the parsed information.
  *
- *  When the ParallelCyclotronTracker is about to start tracking, it calls
+ *  When the ParallelTracker is about to start tracking, it calls
  *  writeFields method which loops over the static set of DumpEMFields and
  *  writes each one. It is not the cleanest implementation, but I can't see a
  *  better way.
@@ -70,15 +70,6 @@ public:
         T_START,
         DT,
         T_STEPS,
-        R_START,
-        DR,
-        R_STEPS,
-        PHI_START,
-        DPHI,
-        PHI_STEPS,
-        CYL_ORIGIN_X,
-        CYL_ORIGIN_Y,
-        CYL_ORIGIN_Z,
         SIZE
     };
 
@@ -141,11 +132,8 @@ public:
     static void clearDumps() { dumpsSet_m.clear(); }
 
 private:
-    enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };
-
     virtual void writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements);
     virtual void buildGrid();
-    void parseCoordinateSystem();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(
@@ -153,10 +141,7 @@ private:
             const Vector_t<double, 3>& point, const double& time, std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
-    Vector_t<double, 3> cylindricalOrigin_m{};
     std::string filename_m{};
-
-    CoordinateSystem coordinates_m{CoordinateSystem::CARTESIAN};
 
     static std::unordered_set<std::unique_ptr<DumpEMFields>> dumpsSet_m;
 

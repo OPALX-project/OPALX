@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <fstream>
 #include <functional>
-#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -116,9 +115,7 @@ public:
             const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
             long long globalTrackStep);
 
-    void addParticle(
-            const OpalParticle&,
-            const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt);
+    void addParticle(const OpalParticle&);
 
     size_t size() const;
 
@@ -170,7 +167,6 @@ private:
     }
 
     bool hasNoParticlesToDump() const;
-    bool hasTurnInformations() const;
 
     void splitSets(unsigned int numSets);
     SetStatistics computeSetStatistics(unsigned int setIdx);
@@ -193,8 +189,6 @@ private:
     h5_int64_t H5call_m = 0;
 
     std::vector<OpalParticle> particles_m;
-    std::vector<size_t> bunchNumber_m;
-    std::vector<size_t> turnNumber_m;
 
     /// True once any particle added through addParticle() carried a polarization
     /// vector. Controls whether polx/poly/polz columns appear in the lossfile.

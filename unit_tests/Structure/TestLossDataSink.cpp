@@ -11,40 +11,36 @@
  * Coverage
  * ---------------------------------------------------------------------------
  *
- * 1. Particle bookkeeping
- *    - plain particles and turn/bunch particles cannot be mixed
- *    - inconsistent turn/bunch information is rejected
- *
- * 2. Basic statistics
+ * 1. Basic statistics
  *    - total particle count
  *    - centroids in position and momentum
  *    - RMS position and momentum
  *    - total charge and total mass
  *
- * 3. Time statistics
+ * 2. Time statistics
  *    - mean particle time
  *    - RMS particle time
  *
- * 4. Spatial extent statistics
+ * 3. Spatial extent statistics
  *    - rmin / rmax are computed correctly
  *    - maxR uses the maximum absolute position extent
  *
- * 5. Energy statistics
+ * 4. Energy statistics
  *    - mean kinetic energy is computed from particle momentum and mass
  *    - kinetic-energy RMS is stable for identical particle energies
  *
- * 6. Set splitting
+ * 5. Set splitting
  *    - splitSets() clears stale state
  *    - split boundaries are monotonic
  *    - split boundaries cover all local particles
  *
- * 7. Monitor HDF5 checkpoint rewind
+ * 6. Monitor HDF5 checkpoint rewind
  *    - records at and after the checkpoint global step are removed
  *    - earlier records are preserved
  *    - repeated rewind and append does not accumulate duplicate records
  *    - malformed records without GlobalTrackStep are rejected
  *
- * 8. HDF5 file-space management
+ * 7. HDF5 file-space management
  *    - rewind physically compacts discarded steps
  *    - repeated rewind and append cycles do not grow the file
  *
@@ -355,8 +351,7 @@ namespace {
             for (int batch = 0; batch < 2; ++batch) {
                 if (rank == owner) {
                     sink.addParticle(
-                            makeParticle(batch + 1, makeVector(batch, 0, 0), makeVector(0, 0, 1)),
-                            std::make_pair(batch, static_cast<short>(0)));
+                            makeParticle(batch + 1, makeVector(batch, 0, 0), makeVector(0, 0, 1)));
                 }
                 sink.save(1, OpalData::OpenMode::APPEND);
             }
@@ -415,31 +410,6 @@ namespace {
             EXPECT_FALSE(std::filesystem::exists(directory + "/peer-view-ascii.loss"));
             EXPECT_FALSE(std::filesystem::exists(directory + "/peer-view-h5.h5"));
         }
-    }
-
-    TEST_F(LossDataSinkTest, AddParticleRejectsTurnInformationAfterPlainParticle) {
-        LossDataSink sink;
-
-        sink.addParticle(makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)));
-
-        EXPECT_THROW(
-                sink.addParticle(
-                        makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)),
-                        std::make_pair(3, static_cast<short>(4))),
-                GeneralOpalException);
-    }
-
-    TEST_F(LossDataSinkTest, AddParticleRejectsPlainParticleAfterTurnInformation) {
-        LossDataSink sink;
-
-        sink.addParticle(
-                makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)),
-                std::make_pair(3, static_cast<short>(4)));
-
-        EXPECT_THROW(
-                sink.addParticle(
-                        makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0))),
-                GeneralOpalException);
     }
 
     TEST_F(LossDataSinkTest, ComputeStatisticsSingleParticle) {

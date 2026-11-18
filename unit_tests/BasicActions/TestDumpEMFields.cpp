@@ -1,7 +1,7 @@
 //
 // Class DumpEMFields
-//   DumpEMFields dumps the dynamically changing fields of a Ring in a user-
-//   defined grid.
+//   DumpEMFields dumps the dynamically changing fields of the lattice on a
+//   user-defined Cartesian grid.
 //
 // Copyright (c) 2017, Chris Rogers
 // All rights reserved
@@ -99,33 +99,6 @@ namespace {
         setOneAttribute(dump, "DT", dt);
         setOneAttribute(dump, "T_STEPS", nt);
         Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
-    }
-
-    void setOriginCyl(DumpEMFields* dump, const double xc, const double yc, const double zc) {
-        setOneAttribute(dump, "CYL_ORIGIN_X", xc);
-        setOneAttribute(dump, "CYL_ORIGIN_Y", yc);
-        setOneAttribute(dump, "CYL_ORIGIN_Z", zc);
-    }
-
-    void setAttributesCyl(
-            DumpEMFields* dump, const double r0, const double dr, const double nr,
-            const double phi0, const double dphi, const double nphi, const double y0,
-            const double dy, const double ny, const double t0, const double dt, const double nt,
-            const std::string& filename) {
-        setOneAttribute(dump, "R_START", r0);
-        setOneAttribute(dump, "DR", dr);
-        setOneAttribute(dump, "R_STEPS", nr);
-        setOneAttribute(dump, "PHI_START", phi0);
-        setOneAttribute(dump, "DPHI", dphi);
-        setOneAttribute(dump, "PHI_STEPS", nphi);
-        setOneAttribute(dump, "Y_START", y0);
-        setOneAttribute(dump, "DY", dy);
-        setOneAttribute(dump, "Y_STEPS", ny);
-        setOneAttribute(dump, "T_START", t0);
-        setOneAttribute(dump, "DT", dt);
-        setOneAttribute(dump, "T_STEPS", nt);
-        Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
-        Attributes::setPredefinedString(*dump->findAttribute("COORDINATE_SYSTEM"), "cYLindriCAL");
     }
 
     TEST(TestDumpEMFields, ConstructorDestructor) {
@@ -261,149 +234,16 @@ namespace {
         DumpEMFields::clearDumps();
     }
 
-    TEST(TestDumpEMFields, writeFieldsCylTest) {
-        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
-        const std::string auxDirectory = directory.path().string();
-        gmsg                           = new Inform(nullptr, -1);
-
-        std::string fnameCyl = (directory.path() / "testCyl").string();
-
-        clear_files({fnameCyl});
-        DumpEMFields dump;
-        setAttributesCyl(
-                &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
-                1., 1., 2., fnameCyl);
-        dump.execute();
-        // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<ElementBase>> elements;
-        elements.insert(std::make_shared<MockComponent>());
-        try {
-            DumpEMFields::writeFields(elements);
-        } catch (OpalException& exc) {
-            EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;
-        }
-        std::ifstream fin(Util::combineFilePath({auxDirectory, fnameCyl}));
-        EXPECT_TRUE(fin.good());
-        int n_lines;
-        fin >> n_lines;
-        EXPECT_EQ(n_lines, 192);
-        std::string test_line;
-        for (size_t i = 0; i < 12; ++i) {
-            std::getline(fin, test_line);
-        }
-        std::vector line(10, 0.);
-        for (size_t line_index = 0; line_index < 24; ++line_index) {
-            constexpr double tol = 1e-9;
-            for (size_t i = 0; i < 10; ++i) {
-                fin >> line[i];
-            }
-            if (line_index == 0) {
-                EXPECT_NEAR(line[0], 0.1, tol);
-                EXPECT_NEAR(line[1], 90, tol);
-                EXPECT_NEAR(line[2], 0.2, tol);
-                EXPECT_NEAR(line[3], 1., tol);
-            }
-            while (line[1] > 360.) {
-                line[1] -= 360.;
-            }
-            if (line[1] < 90.) {
-                EXPECT_NEAR(line[4] * line[4] + line[5] * line[5], line[0] * line[0], tol);
-                EXPECT_NEAR(line[6], line[2], tol);
-            } else {
-                EXPECT_NEAR(line[4], 0., tol);
-                EXPECT_NEAR(line[5], 0., tol);
-                EXPECT_NEAR(line[6], 0., tol);
-            }
-            EXPECT_NEAR(line[7] * Units::MVpm2Vpm, -line[4], tol);
-            EXPECT_NEAR(line[8] * Units::MVpm2Vpm, -line[5], tol);
-            EXPECT_NEAR(line[9] * Units::MVpm2Vpm, -line[6], tol);
-        }
-        clear_files({fnameCyl});
-
-        // EXPECT_TRUE(false) << "Do DumpEMFields cylindrical documentation!";
-        DumpEMFields::clearDumps();
-    }
-
-    TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
-        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
-        const std::string auxDirectory = directory.path().string();
-        gmsg                           = new Inform(nullptr, -1);
-
-        std::string fnameCyl1 = (directory.path() / "testCyl1").string();
-        std::string fnameCyl2 = (directory.path() / "testCyl2").string();
-
-        clear_files({fnameCyl1, fnameCyl2});
-        DumpEMFields dump1;
-        setAttributesCyl(
-                &dump1, 0.1, 0., 1., 45. * Units::deg2rad, 0., 1, -0.1, 0., 1., 1., 0., 1.,
-                fnameCyl1);
-        dump1.execute();
-        DumpEMFields dump2;
-        setAttributesCyl(
-                &dump2, 0.1, 0., 1., 45. * Units::deg2rad, 0., 1, -0.1, 0., 1., 1., 0., 1.,
-                fnameCyl2);
-        setOriginCyl(&dump2, 0.01, 0.02, 0.03);
-        dump2.execute();
-        // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<ElementBase>> elements;
-        elements.insert(std::make_shared<MockComponent>());
-        try {
-            DumpEMFields::writeFields(elements);
-        } catch (OpalException& exc) {
-            EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;
-        }
-        // Read the origin (0,0,0) file
-        std::ifstream fin1(Util::combineFilePath({auxDirectory, fnameCyl1}));
-        EXPECT_TRUE(fin1.good());
-        int n_lines;
-        fin1 >> n_lines;
-        EXPECT_EQ(n_lines, 1);
-        std::string test_line;
-        for (size_t i = 0; i < 12; ++i) {
-            std::getline(fin1, test_line);
-        }
-        std::vector line1(10, 0.);
-        for (size_t i = 0; i < 10; ++i) {
-            fin1 >> line1[i];
-        }
-        // Read the origin (1,2,3) file
-        std::ifstream fin2(Util::combineFilePath({auxDirectory, fnameCyl2}));
-        EXPECT_TRUE(fin2.good());
-        fin2 >> n_lines;
-        EXPECT_EQ(n_lines, 1);
-        for (size_t i = 0; i < 12; ++i) {
-            std::getline(fin2, test_line);
-        }
-        std::vector line2(10, 0.);
-        for (size_t i = 0; i < 10; ++i) {
-            fin2 >> line2[i];
-        }
-        EXPECT_EQ(line1[0], line2[0]);
-        EXPECT_EQ(line1[1], line2[1]);
-        EXPECT_EQ(line1[2], line2[2]);
-        EXPECT_EQ(line1[3], line2[3]);
-        EXPECT_NE(line1[4], line2[4]);
-        EXPECT_NE(line1[5], line2[5]);
-        EXPECT_NE(line1[6], line2[6]);
-        EXPECT_NE(line1[7], line2[7]);
-        EXPECT_NE(line1[8], line2[8]);
-        EXPECT_NE(line1[9], line2[9]);
-        clear_files({fnameCyl1, fnameCyl2});
-        DumpEMFields::clearDumps();
-    }
-
     TEST(TestDumpEMFields, BadGrid) {
         opalx::test::TemporaryDirectory directory("opalx-dump-fields");
         const std::string auxDirectory = directory.path().string();
         gmsg                           = new Inform(nullptr, -1);
 
-        std::string fnameCyl = (directory.path() / "testCyl").string();
+        std::string fname = (directory.path() / "test").string();
 
-        clear_files({fnameCyl});
+        clear_files({fname});
         DumpEMFields dump;
-        setAttributesCyl(
-                &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
-                1., 1., 2., fnameCyl);
+        setAttributesCart(&dump, 0.1, 0.1, 3., 0.2, 0.3, 2., 0.1, 0.1, 2., 1., 1., 2., fname);
         dump.execute();
         DumpEMFields::failGrid();
         std::set<std::shared_ptr<ElementBase>> elements;
@@ -416,11 +256,9 @@ namespace {
         opalx::test::TemporaryDirectory directory("opalx-dump-fields");
         const std::string auxDirectory = directory.path().string();
         gmsg                           = new Inform(nullptr, -1);
-        std::string fnameCyl = directory.path().string();  // Opening a directory for write fails
+        std::string fname = directory.path().string();  // Opening a directory for write fails
         DumpEMFields dump;
-        setAttributesCyl(
-                &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
-                1., 1., 2., fnameCyl);
+        setAttributesCart(&dump, 0.1, 0.1, 3., 0.2, 0.3, 2., 0.1, 0.1, 2., 1., 1., 2., fname);
         dump.execute();
         std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
@@ -432,11 +270,9 @@ namespace {
         opalx::test::TemporaryDirectory directory("opalx-dump-fields");
         const std::string auxDirectory = directory.path().string();
         gmsg                           = new Inform(nullptr, -1);
-        std::string fnameCyl           = (directory.path() / "testCyl").string();
+        std::string fname              = (directory.path() / "test").string();
         DumpEMFields dump;
-        setAttributesCyl(
-                &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
-                1., 1., 2., fnameCyl);
+        setAttributesCart(&dump, 0.1, 0.1, 3., 0.2, 0.3, 2., 0.1, 0.1, 2., 1., 1., 2., fname);
         dump.execute();
         DumpEMFields::failWrite();
         std::set<std::shared_ptr<ElementBase>> elements;
