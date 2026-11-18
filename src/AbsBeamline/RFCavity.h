@@ -121,36 +121,6 @@ public:
     virtual void setDesignEnergy(const double& ekin, bool changeable = true) override;
     virtual double getDesignEnergy() const override;
 
-    void setRmin(double rmin);
-    virtual double getRmin() const;
-
-    void setRmax(double rmax);
-    virtual double getRmax() const;
-
-    void setAzimuth(double angle);
-    virtual double getAzimuth() const;
-
-    void setPerpenDistance(double pdis);
-    virtual double getPerpenDistance() const;
-
-    void setGapWidth(double gapwidth);
-    virtual double getGapWidth() const;
-
-    void setPhi0(double phi0);
-    virtual double getPhi0() const;
-
-    virtual double getCosAzimuth() const;
-
-    virtual double getSinAzimuth() const;
-
-    virtual double getCycFrequency() const;
-
-    void getMomentaKick(
-            const double normalRadius, double momentum[], const double t, const double dtCorrt,
-            const int PID, const double restMass, const int chargenumber);
-
-    double spline(double z, double* za);
-
     virtual ElementType getType() const override;
 
     /**
@@ -166,7 +136,7 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
-    /// Transverse range of the field map; none for IDEAL and SINGLEGAP.
+    /// Transverse range of the field map; none for IDEAL.
     std::optional<ApertureShape> getFieldMapRange() const override;
 
     void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
@@ -218,20 +188,6 @@ private:
     CavityType type_m;
 
     static const BiMap<CavityType, std::string> bmCavityTypeString_s;
-
-    double rmin_m;
-    double rmax_m;
-    double angle_m;
-    double sinAngle_m;
-    double cosAngle_m;
-    double pdis_m;
-    double gapwidth_m;
-    double phi0_m;
-
-    std::unique_ptr<double[]> RNormal_m;
-    std::unique_ptr<double[]> VrNormal_m;
-    std::unique_ptr<double[]> DvDr_m;
-    int num_points_m;
 
     double getdE(
             const int& i, const std::vector<double>& t, const double& dz, const double& phi,

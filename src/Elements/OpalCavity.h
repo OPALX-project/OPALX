@@ -28,23 +28,17 @@ class OpalCavity : public OpalElement {
 public:
     /// The attributes of class OpalCavity.
     enum {
-        VOLT = COMMON,  // Peak field [MV/m].
-        DVOLT,          // The peak field error [MV/m].
-        GEOMETRY,       // geometry of boundary
-        FREQ,           // The RF frequency.
-        LAG,            // The phase lag.
-        DLAG,           // The phase lag error.
-        FMAPFN,         // The filename of the fieldmap
-        FAST,           // Faster but less accurate
-        APVETO,         // Do not use this cavity in the Autophase procedure
-        RMIN,           // Minimal Radius
-        RMAX,           // Maximal Radius
-        ANGLE,          // the azimuth position of the cavity
-        PDIS,          // perpendicular distance from symmetric line of cavity gap to machine center
-        GAPWIDTH,      // constant gap width of cavity
-        PHI0,          // initial phase of cavity
-        DESIGNENERGY,  // The mean kinetic energy at exit
-        PHASE_MODEL,   // time dependent phase
+        VOLT = COMMON,    // Peak field [MV/m].
+        DVOLT,            // The peak field error [MV/m].
+        GEOMETRY,         // geometry of boundary
+        FREQ,             // The RF frequency.
+        LAG,              // The phase lag.
+        DLAG,             // The phase lag error.
+        FMAPFN,           // The filename of the fieldmap
+        FAST,             // Faster but less accurate
+        APVETO,           // Do not use this cavity in the Autophase procedure
+        DESIGNENERGY,     // The mean kinetic energy at exit
+        PHASE_MODEL,      // time dependent phase
         AMPLITUDE_MODEL,  // time dependent amplitude
         FREQUENCY_MODEL,  // time dependent frequency
         SIZE

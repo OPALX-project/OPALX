@@ -59,19 +59,7 @@ RFCavity::RFCavity(const RFCavity& right)
       fieldmap_m(right.fieldmap_m),
       startField_m(right.startField_m),
       endField_m(right.endField_m),
-      type_m(right.type_m),
-      rmin_m(right.rmin_m),
-      rmax_m(right.rmax_m),
-      angle_m(right.angle_m),
-      sinAngle_m(right.sinAngle_m),
-      cosAngle_m(right.cosAngle_m),
-      pdis_m(right.pdis_m),
-      gapwidth_m(right.gapwidth_m),
-      phi0_m(right.phi0_m),
-      RNormal_m(nullptr),
-      VrNormal_m(nullptr),
-      DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {}
+      type_m(right.type_m) {}
 
 RFCavity::RFCavity(const std::string& name)
     : ElementBase(name),
@@ -90,19 +78,7 @@ RFCavity::RFCavity(const std::string& name)
       fieldmap_m(nullptr),
       startField_m(0.0),
       endField_m(0.0),
-      type_m(CavityType::SW),
-      rmin_m(0.0),
-      rmax_m(0.0),
-      angle_m(0.0),
-      sinAngle_m(0.0),
-      cosAngle_m(0.0),
-      pdis_m(0.0),
-      gapwidth_m(0.0),
-      phi0_m(0.0),
-      RNormal_m(nullptr),
-      VrNormal_m(nullptr),
-      DvDr_m(nullptr),
-      num_points_m(0) {}
+      type_m(CavityType::SW) {}
 
 RFCavity::~RFCavity() {}
 
@@ -286,34 +262,6 @@ void RFCavity::goOffline() {
     online_m = false;
 }
 
-void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
-
-void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
-
-void RFCavity::setAzimuth(double angle) { angle_m = angle; }
-
-void RFCavity::setPerpenDistance(double pdis) { pdis_m = pdis; }
-
-void RFCavity::setGapWidth(double gapwidth) { gapwidth_m = gapwidth; }
-
-void RFCavity::setPhi0(double phi0) { phi0_m = phi0; }
-
-double RFCavity::getRmin() const { return rmin_m; }
-
-double RFCavity::getRmax() const { return rmax_m; }
-
-double RFCavity::getAzimuth() const { return angle_m; }
-
-double RFCavity::getSinAzimuth() const { return sinAngle_m; }
-
-double RFCavity::getCosAzimuth() const { return cosAngle_m; }
-
-double RFCavity::getPerpenDistance() const { return pdis_m; }
-
-double RFCavity::getGapWidth() const { return gapwidth_m; }
-
-double RFCavity::getPhi0() const { return phi0_m; }
-
 void RFCavity::setCavityType(const std::string& name) {
     auto it = bmCavityTypeString_s.right.find(name);
     if (it != bmCavityTypeString_s.right.end()) {
@@ -340,137 +288,7 @@ std::string RFCavity::getFieldMapFN() const {
     }
 }
 
-double RFCavity::getCycFrequency() const { return frequency_m; }
-
-/**
-   \brief used in OPAL-cycl
-
-   Is called from OPAL-cycl and can handle
-   time dependent frequency, amplitude and phase
-
-   At the moment (test) only the frequency is time
-   dependent
-
- */
-void RFCavity::getMomentaKick(
-        const double normalRadius, double momentum[], const double t, const double dtCorrt,
-        const int PID, const double restMass, const int chargenumber) {
-    double derivate;
-
-    double momentum2 =
-            momentum[0] * momentum[0] + momentum[1] * momentum[1] + momentum[2] * momentum[2];
-    double betgam = std::sqrt(momentum2);
-
-    double gamma = std::sqrt(1.0 + momentum2);
-    double beta  = betgam / gamma;
-
-    double Voltage = spline(normalRadius, &derivate) * scale_m * Units::MVpm2Vpm;
-
-    double Ufactor = 1.0;
-
-    double frequency = frequency_m * frequencyTD_m->getValue(t);
-
-    if (gapwidth_m > 0.0) {
-        double transit_factor = 0.5 * frequency * gapwidth_m * Units::mm2m / (Physics::c * beta);
-        Ufactor               = std::sin(transit_factor) / transit_factor;
-    }
-
-    Voltage *= Ufactor;
-    // rad/s, ns --> rad
-    double nphase = (frequency * (t + dtCorrt) * Units::ns2s) - phi0_m * Units::deg2rad;
-    double dgam   = Voltage * std::cos(nphase) / (restMass);
-
-    double tempdegree = std::fmod(nphase * Units::rad2deg, 360.0);
-    if (tempdegree > 270.0) tempdegree -= 360.0;
-
-    gamma += dgam;
-
-    double newmomentum2 = std::pow(gamma, 2) - 1.0;
-
-    double pr     = momentum[0] * cosAngle_m + momentum[1] * sinAngle_m;
-    double ptheta = std::sqrt(newmomentum2 - std::pow(pr, 2));
-    double px     = pr * cosAngle_m - ptheta * sinAngle_m;  // x
-    double py     = pr * sinAngle_m + ptheta * cosAngle_m;  // y
-
-    double rotate = -derivate * (scale_m * Units::MVpm2Vpm) / ((rmax_m - rmin_m) * Units::mm2m)
-                    * std::sin(nphase) / (frequency * Physics::two_pi)
-                    / (betgam * restMass / Physics::c / chargenumber);  // radian
-
-    /// B field effects
-    momentum[0] = std::cos(rotate) * px + std::sin(rotate) * py;
-    momentum[1] = -std::sin(rotate) * px + std::cos(rotate) * py;
-
-    if (PID == 0) {
-        Inform m("OPAL", *gmsg, ippl::Comm->rank());
-
-        m << "* Cavity " << getName() << " Phase= " << tempdegree
-          << " [deg] transit time factor=  " << Ufactor
-          << " dE= " << dgam * restMass * Units::eV2MeV << " [MeV]"
-          << " E_kin= " << (gamma - 1.0) * restMass * Units::eV2MeV
-          << " [MeV] Time dep freq = " << frequencyTD_m->getValue(t) << endl;
-    }
-}
-
 /* cubic spline subrutine */
-double RFCavity::spline(double z, double* za) {
-    double splint;
-
-    // domain-test and handling of case "1-support-point"
-    if (num_points_m < 1) {
-        throw GeneralOpalException("RFCavity::spline", "no support points!");
-    }
-    if (num_points_m == 1) {
-        splint = RNormal_m[0];
-        *za    = 0.0;
-        return splint;
-    }
-
-    // search the two support-points
-    int il, ih;
-    il = 0;
-    ih = num_points_m - 1;
-    while ((ih - il) > 1) {
-        int i = (int)((il + ih) / 2.0);
-        if (z < RNormal_m[i]) {
-            ih = i;
-        } else if (z > RNormal_m[i]) {
-            il = i;
-        } else if (z == RNormal_m[i]) {
-            il = i;
-            ih = i + 1;
-            break;
-        }
-    }
-
-    double x1  = RNormal_m[il];
-    double x2  = RNormal_m[ih];
-    double y1  = VrNormal_m[il];
-    double y2  = VrNormal_m[ih];
-    double y1a = DvDr_m[il];
-    double y2a = DvDr_m[ih];
-    //
-    // determination of the requested function-values and its derivatives
-    //
-    double dx  = x2 - x1;
-    double dy  = y2 - y1;
-    double u   = (z - x1) / dx;
-    double u2  = u * u;
-    double u3  = u2 * u;
-    double dy2 = -2.0 * dy;
-    double ya2 = y2a + 2.0 * y1a;
-    double dy3 = 3.0 * dy;
-    double ya3 = y2a + y1a;
-    double yb2 = dy2 + dx * ya3;
-    double yb4 = dy3 - dx * ya2;
-    splint     = y1 + u * dx * y1a + u2 * yb4 + u3 * yb2;
-    *za        = y1a + 2.0 * u / dx * yb4 + 3.0 * u2 / dx * yb2;
-    // if(m>=1) za=y1a+2.0*u/dx*yb4+3.0*u2/dx*yb2;
-    // if(m>=2) za[1]=2.0/dx2*yb4+6.0*u/dx2*yb2;
-    // if(m>=3) za[2]=6.0/dx3*yb2;
-
-    return splint;
-}
-
 void RFCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = isIdeal() ? 0.0 : startField_m;
     zEnd   = isIdeal() ? getGeometry().getElementLength() : endField_m;

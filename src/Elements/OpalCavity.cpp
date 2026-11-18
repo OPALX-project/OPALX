@@ -42,13 +42,6 @@ OpalCavity::OpalCavity()
     itsAttr[FAST]     = Attributes::makeBool("FAST", "Faster but less accurate", true);
     itsAttr[APVETO]   = Attributes::makeBool(
             "APVETO", "Do not use this cavity in the Autophase procedure", false);
-    itsAttr[RMIN]  = Attributes::makeReal("RMIN", "SINGLEGAP lower local-x profile bound [m]");
-    itsAttr[RMAX]  = Attributes::makeReal("RMAX", "SINGLEGAP upper local-x profile bound [m]");
-    itsAttr[ANGLE] = Attributes::makeReal("ANGLE", "Azimuth position of a cyclotron cavity [deg]");
-    itsAttr[PDIS]  = Attributes::makeReal(
-            "PDIS", "Shift distance of cavity gap from center of cyclotron [mm]");
-    itsAttr[GAPWIDTH] = Attributes::makeReal("GAPWIDTH", "SINGLEGAP transit-time width [m]");
-    itsAttr[PHI0]     = Attributes::makeReal("PHI0", "Initial phase of cavity [deg]");
     itsAttr[DESIGNENERGY] =
             Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
     // attibutes for timedependent values
@@ -86,12 +79,6 @@ void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
     bool fast          = values.getBool("FAST");
     bool apVeto        = (values.getBool("APVETO"));
 
-    double rmin          = values.getReal("RMIN");
-    double rmax          = values.getReal("RMAX");
-    double angle         = values.getReal("ANGLE");
-    double pdis          = values.getReal("PDIS");
-    double gapwidth      = values.getReal("GAPWIDTH");
-    double phi0          = values.getReal("PHI0");
     double kineticEnergy = values.getReal("DESIGNENERGY");
 
     rfc->getGeometry().setElementLength(length);
@@ -108,12 +95,6 @@ void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
     rfc->setFast(fast);
     rfc->setAutophaseVeto(apVeto);
     rfc->setCavityType(type);
-    rfc->setRmin(rmin);
-    rfc->setRmax(rmax);
-    rfc->setAzimuth(angle);
-    rfc->setPerpenDistance(pdis);
-    rfc->setGapWidth(gapwidth);
-    rfc->setPhi0(phi0);
     rfc->setDesignEnergy(kineticEnergy);
 
     rfc->setPhaseModelName(values.getString("PHASE_MODEL"));
