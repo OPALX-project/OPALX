@@ -174,7 +174,9 @@ namespace Options {
 
     extern bool writeBendTrajectories;
 
-    /// opal version of input file
+    /// OPALX release the input was written for, packed as major * 10000 + minor * 100.
+    /// Defaults to this release, so an input without OPTION, VERSION always runs; only an
+    /// older stated version can be stopped by the input change check in TrackRun::execute().
     extern int version;
 
     extern bool memoryDump;

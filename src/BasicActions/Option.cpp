@@ -363,7 +363,10 @@ Option::Option()
             writeBendTrajectories);
 
     itsAttr[VERSION] = Attributes::makeReal(
-            "VERSION", "Version of OPAL for which input file was written", version);
+            "VERSION",
+            "Optional OPALX release the input was written for, as major * 10000 + minor * 100 "
+            "(10100 for 1.1). Default: this release",
+            version);
 
     itsAttr[MEMORYDUMP] =
             Attributes::makeBool("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
