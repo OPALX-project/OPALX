@@ -28,7 +28,7 @@ def run(executable, fixture, target, probes, ascii_output=False):
         # A single turn misses periodic field-index drift; check ten unchanged-dt turns.
         text = text.replace("MAXSTEPS=2000", "MAXSTEPS=20000").replace("TURNS=1", "TURNS=10")
     if ascii_output:
-        text = text.replace("OPTION, VERSION=", "OPTION, ASCIIDUMP=TRUE;\nOPTION, VERSION=", 1)
+        text = re.sub(r"^OPTION,", "OPTION, ASCIIDUMP=TRUE;\nOPTION,", text, count=1, flags=re.M)
     if probes:
         definitions = (
             'P1: PROBE, XSTART=-10000, XEND=10000, YSTART=1000, YEND=1000, STEP=100, OUTFN="hits";\n'
