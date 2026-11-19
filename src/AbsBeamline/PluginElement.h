@@ -53,6 +53,8 @@ public:
     /// apply(pc) is the no-op base; the tracker skips it and its transform.
     ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
+    using ElementBase::apply;
+
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;

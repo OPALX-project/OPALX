@@ -416,6 +416,8 @@ public:
         // We only keep the slot: per-container flags own their own sync, so
         // no back-reference to the handler is needed. The handler itself
         // manages bunch-wide state, which ParticleContainer never touches.
+        // The new slot starts in the reference frame.
+        requireReferenceFrame("ParticleContainer::setBunchStateHandler");
         containerState_m = handler->registerContainer();
     }
 
@@ -575,6 +577,7 @@ public:
      * @param root Container whose reference particle this container uses.
      */
     void copyReferenceOf(const ParticleContainer& root) {
+        requireReferenceFrame("ParticleContainer::copyReferenceOf");
         refPartR_m   = root.refPartR_m;
         refPartP_m   = root.refPartP_m;
         toLabTrafo_m = root.toLabTrafo_m;

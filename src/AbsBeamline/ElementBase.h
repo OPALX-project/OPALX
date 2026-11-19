@@ -402,7 +402,8 @@ public:
      * @brief Frame that apply(pc) needs; the tracker moves the particles there before the call.
      *
      * Return ElementFrame::None only while apply(pc) is the no-op of this base class: the tracker
-     * then skips both the call and the transform. The default keeps a new element correct.
+     * then skips both the call and the transform. The default keeps a new element correct; a
+     * subclass of a None element that overrides apply(pc) must return Local again.
      */
     virtual ElementFrame fieldFrame() const { return ElementFrame::Local; }
 

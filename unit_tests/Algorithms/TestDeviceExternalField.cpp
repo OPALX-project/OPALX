@@ -155,15 +155,15 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
         Kokkos::deep_copy(particles->P.getView(), p);
         Kokkos::deep_copy(particles->E.getView(), Vector(0.123456789, -0.234567891, 0.345678912));
         Kokkos::deep_copy(particles->B.getView(), Vector(0.));
-        // Exercise the actual device element kernel and the same R/P/E/B
-        // round trips used by production, including overlapping field supports.
+        // Exercise the actual device element kernel and the same R/P/E/B frame changes as
+        // production (element to element, then back), including overlapping field supports.
         for (const auto& element : ordered) {
             particles->enterFrame(ParticleFrame(
                     ParticleFrame::Kind::Element, lattice.getCSTrafoLab2Local(element),
                     element.get()));
             element->apply(particles);
-            particles->enterReferenceFrame();
         }
+        particles->enterReferenceFrame();
         const auto outR =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->R.getView());
         const auto outP =
