@@ -91,6 +91,9 @@ namespace opalx::spacecharge {
                 FFT2D5Config config, std::span<ParticleContainer* const> particles,
                 std::shared_ptr<const BunchStateHandler> bunchState);
         [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
+
+        /// The reference path and the projections keep the established path-length frame.
+        [[nodiscard]] SolveFrame solveFrame() const override { return SolveFrame::PathLength; }
         void ensureInitialized();
         [[nodiscard]] bool initialized() const { return fieldStorage_m != nullptr; }
         [[nodiscard]] std::size_t sliceCount() const;

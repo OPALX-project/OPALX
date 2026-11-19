@@ -1460,37 +1460,22 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
-opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFrameTransforms()
-        const {
-    constexpr double momentumTolerance = 1e-12;
-    const auto primary                 = itsBunch_m->getParticleContainer();
-    primary->requireReferenceFrame("ParallelTracker::makeSpaceChargeFrameTransforms");
-    Vector_t<double, 3> meanMomentum =
-            opalx::moments::compute(*primary, Moment::MeanMomentum).meanP();
-    double momentumLengthSquared = dot(meanMomentum, meanMomentum);
-
-    // The bunch mean can vanish with zero or one particle, or on an empty MPI rank. Prefer the
-    // reference-particle direction in that case and finally use +z so getQuaternion always
-    // receives a well-defined direction.
-    if (momentumLengthSquared < momentumTolerance * momentumTolerance) {
-        meanMomentum          = primary->getRefPartP();
-        momentumLengthSquared = dot(meanMomentum, meanMomentum);
-    }
-    if (momentumLengthSquared < momentumTolerance * momentumTolerance) {
-        meanMomentum = Vector_t<double, 3>(0, 0, 1);
-    }
-
-    const Quaternion alignment = getQuaternion(meanMomentum, Vector_t<double, 3>(0, 0, 1));
-    // Eligible bare NONE ring solves have no fixed/image boundary. Keep their
-    // particles near the tracking origin
-    // instead of translating a microscopic bunch by the ever-growing sPos;
-    // that round trip quantizes R and biases repeated boundary trials.
-    // All other configurations, including PIC and cyclotron tracking, retain
-    // the established longitudinal origin.
-    const double originZ = boundaryControlled_m ? 0.0 : primary->get_sPos();
-    const CoordinateSystemTrafo solveToTracker(
-            Vector_t<double, 3>(0, 0, originZ), alignment.conjugate());
-    return {solveToTracker.inverted(), solveToTracker};
+ParticleFrame ParallelTracker::makeSpaceChargeFrame(opalx::spacecharge::SolveFrame request) const {
+    using opalx::spacecharge::SolveFrame;
+    if (request == SolveFrame::Reference) return ParticleFrame();
+    const auto primary = itsBunch_m->getParticleContainer();
+    primary->requireReferenceFrame("ParallelTracker::makeSpaceChargeFrame");
+    const bool centroid = request == SolveFrame::Centroid;
+    const auto moments  = opalx::moments::compute(
+            *primary, centroid ? Moment::MeanPosition | Moment::MeanMomentum
+                                : opalx::moments::Request(Moment::MeanMomentum));
+    // A bare boundary-controlled ring keeps its particles near the tracking origin instead of
+    // translating a microscopic bunch by the ever-growing sPos; that round trip quantizes R and
+    // biases repeated boundary trials.
+    const double pathOrigin = boundaryControlled_m ? 0.0 : primary->get_sPos();
+    return opalx::spacecharge::makeSolveFrame(
+            request, centroid ? moments.meanR() : Vector_t<double, 3>(0.0), moments.meanP(),
+            primary->getRefPartP(), pathOrigin);
 }
 
 ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
@@ -1536,10 +1521,9 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
  * @copybrief ParallelTracker::computeSpaceChargeFields
  *
  * @par Frame of reference
- * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
- * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside the selected algorithm: temporary solver-specific frames are restored on success.
- * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
+ * The algorithm requests its solve frame (SpaceChargeAlgorithm::solveFrame), which is built here
+ * from the primary container's moments. The particles are in their reference frame on entry and
+ * again on return; the algorithm enters the solve frame and leaves it.
  */
 void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
@@ -1558,7 +1542,7 @@ void ParallelTracker::computeSpaceChargeFields() {
         return;
     }
 
-    const auto frames   = makeSpaceChargeFrameTransforms();
+    const auto frame    = makeSpaceChargeFrame(spaceChargeSolver_m->solveFrame());
     const auto emission = spaceChargeEmissionProgress();
 
     for (std::size_t index = 0; index < spaceChargeContainerActivity_m.size(); ++index) {
@@ -1576,9 +1560,11 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.active,
             emission.fraction,
             ippl::Comm->size(),
-            frames};
+            frame};
     SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
     spaceChargeSolver_m->solve(context);
+    for (const auto& pc : itsBunch_m->getParticleContainers())
+        if (pc) pc->requireReferenceFrame("ParallelTracker::computeSpaceChargeFields");
     m << level3 << "Compute space-charge fields done." << endl;
 }
 

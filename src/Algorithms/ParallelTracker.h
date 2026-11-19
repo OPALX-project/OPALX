@@ -473,9 +473,9 @@ private:
     /// @brief Build stable native particle and field identities once.
     void initializeSpaceChargeContainerActivity();
 
-    /// @brief Solve-frame transforms from the primary container's mean momentum. Collective.
-    [[nodiscard]] opalx::spacecharge::CoordinateFrameTransforms makeSpaceChargeFrameTransforms()
-            const;
+    /// @brief The requested solve frame, from the primary container's moments. Collective
+    /// unless @p request is the reference frame.
+    [[nodiscard]] ParticleFrame makeSpaceChargeFrame(opalx::spacecharge::SolveFrame request) const;
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
 
     /// @brief Update reference trajectories and lab/reference coordinate transforms.

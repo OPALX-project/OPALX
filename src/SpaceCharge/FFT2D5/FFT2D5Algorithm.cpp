@@ -68,7 +68,7 @@ namespace opalx::spacecharge {
             // Design-path points are fixed in lab coordinates; particle arrays live in each
             // container's moving reference frame. Use the primary container to define the
             // common aligned solve frame, then map both the path and every container into it.
-            const auto labToSolve = context.stepState().frames.trackerToSolve
+            const auto labToSolve = context.stepState().solveFrame.fromReference()
                                     * particles_m.front()->getToLabTrafo().inverted();
             Kokkos::deep_copy(solveReferencePath_m, referencePath_m->deviceView());
             labToSolve.transformBunchTo(solveReferencePath_m, solveReferencePath_m.extent(0));
@@ -98,7 +98,9 @@ namespace opalx::spacecharge {
                 auto& particles           = *particles_m[index];
                 const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
                 clearSelfFields(particles);
-                enterSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
+                enterSolveFrame(
+                        ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve),
+                        particles);
             }
         }
     }

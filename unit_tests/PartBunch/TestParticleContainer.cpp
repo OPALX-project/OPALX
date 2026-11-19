@@ -562,8 +562,7 @@ namespace {
         const CoordinateSystemTrafo solveToTracker(
                 Vector_t<double, 3>(0.0, 0.0, 1.5),
                 getQuaternion(Vector_t<double, 3>(1, 1, 1), Vector_t<double, 3>(0, 0, 1)));
-        const opalx::spacecharge::CoordinateFrameTransforms frames{
-                solveToTracker.inverted(), solveToTracker};
+        const ParticleFrame frames(ParticleFrame::Kind::SpaceChargeSolve, solveToTracker.inverted(), solveToTracker);
 
         opalx::spacecharge::enterSolveFrame(frames, *pc);
         EXPECT_GT(std::abs(firstOf(pc->Pol)[1] - Pol0[1]), 0.01);  // Pol is in the solve axes

@@ -236,7 +236,7 @@ namespace opalx::spacecharge {
                                         *particles_m, opalx::moments::Moment::MeanMomentum)
                                         .meanP(),
                                 Vector(0.0, 0.0, 1.0)));
-                step.frames = {trackerToSolve, trackerToSolve.inverted()};
+                step.solveFrame = ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve);
                 return step;
             }
 
@@ -356,7 +356,7 @@ namespace opalx::spacecharge {
                     config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
             EXPECT_FALSE(solver.initialized());
 
-            CoordinateFrameTransforms frames{trackerToSolve_m, solveToTracker_m};
+            ParticleFrame frames(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve_m, solveToTracker_m);
             SpaceChargeStepState step{
                     0, 0.0, 1.0e-12, false, 1.0, ippl::Comm->size(), std::move(frames)};
             const std::array<std::uint8_t, 1> activity{1};
@@ -403,7 +403,7 @@ namespace opalx::spacecharge {
                     Vector_t<double, 3>(0.0, 0.0, 0.1), Quaternion(1.0, 0.0, 0.0, 0.0));
             SpaceChargeStepState step;
             step.timeStep = 1.0e-12;
-            step.frames   = {trackerToSolve, trackerToSolve.inverted()};
+            step.solveFrame = ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve);
             const std::array<std::uint8_t, 1> activity{1};
             SpaceChargeSolveContext context(activity, step);
 

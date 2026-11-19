@@ -60,6 +60,8 @@ namespace opalx::spacecharge {
 
         [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
 
+        [[nodiscard]] SolveFrame solveFrame() const override;
+
     private:
         enum class PassKind { Primary, PrimaryAndImage, Image, ShiftedImage };
 

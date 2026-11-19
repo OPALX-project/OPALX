@@ -20,13 +20,8 @@ namespace opalx::spacecharge {
     }
 
     /** @brief Move R, P and Pol into the solve frame; E and B are cleared, so not rotated. */
-    inline void enterSolveFrame(
-            const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles) {
-        particles.enterFrame(
-                ParticleFrame(
-                        ParticleFrame::Kind::SpaceChargeSolve, frames.trackerToSolve,
-                        frames.solveToTracker),
-                true);
+    inline void enterSolveFrame(const ParticleFrame& frame, SpaceChargeParticleContainer& particles) {
+        particles.enterFrame(frame, true);
     }
 
     /** @brief Return to the reference frame, rotating the computed E/B; not a Lorentz boost. */

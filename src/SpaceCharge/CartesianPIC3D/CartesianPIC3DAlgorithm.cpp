@@ -129,6 +129,8 @@ namespace opalx::spacecharge {
         throw OpalException("CartesianPIC3DAlgorithm::passProperties", "Unknown solve pass.");
     }
 
+    SolveFrame CartesianPIC3DAlgorithm::solveFrame() const { return SolveFrame::PathLength; }
+
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
@@ -175,7 +177,7 @@ namespace opalx::spacecharge {
         // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
         // Fixed bounds remain valid and must still be applied.
         if (fixedDomain || primary_m->getTotalNum() > 1) {
-            enterSolveFrame(context.stepState().frames, *primary_m);
+            enterSolveFrame(context.stepState().solveFrame, *primary_m);
             result.redistributions += domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
                     fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
