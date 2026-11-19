@@ -1716,11 +1716,9 @@ std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(
         elements = device_external::selectCyclotronCandidates(
                 cyclotronSectors, pc->getToLabTrafo(), rmin, rmax, std::move(elements));
 
-    // Frame changes do not commute exactly in floating point. Use the prepared occurrence order
-    // for spatial cyclotron callbacks as well as bare analytic rings.
-    if (!cyclotronSectors.empty() || (spatialRing_m && bareTracking_m))
-        return device_external::orderedCandidates(itsOpalBeamline_m, elements);
-    return {elements.begin(), elements.end()};
+    // Frame changes and field sums do not commute exactly in floating point. Apply candidates in
+    // beamline order, not in the pointer order of the set, so that a run reproduces itself.
+    return device_external::orderedCandidates(itsOpalBeamline_m, elements);
 }
 
 ParticleFrame ParallelTracker::beamlineFrame(const ParticleContainer_t& pc) const {

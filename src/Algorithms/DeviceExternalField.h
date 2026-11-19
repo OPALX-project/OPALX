@@ -34,13 +34,11 @@ namespace device_external {
     using Vector = Vector_t<double, 3>;
 
     /** Return selected occurrences in the beamline's prepared order.
-     * Host-only ordering for spatial analytic-ring and mapped cyclotron callbacks:
-     * repeated frame transformations must not depend on allocated element
-     * addresses. Selection remains set-valued; distinct same-name occurrences
-     * are preserved, while a
-     * repeated pointer is applied once. Unknown candidates throw rather than
-     * silently omitting a field. Does not change geometry, field formulas,
-     * descriptor indices, or the legacy ordering used by other tracking modes.
+     * Host-only ordering for every element callback of the tracker: repeated frame
+     * transformations and field sums must not depend on allocated element addresses.
+     * Selection remains set-valued; distinct same-name occurrences are preserved, while a
+     * repeated pointer is applied once. Unknown candidates throw rather than silently
+     * omitting a field. Does not change geometry, field formulas or descriptor indices.
      */
     std::vector<std::shared_ptr<ElementBase>> orderedCandidates(
             OpalBeamline&, const std::set<std::shared_ptr<ElementBase>>&);
