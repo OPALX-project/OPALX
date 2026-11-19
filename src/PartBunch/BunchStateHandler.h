@@ -18,8 +18,8 @@
  *
  * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$.
  * `Options::aggressiveStateSync` optionally converges it across MPI ranks. `frame` is the frame the
- * container's particle data is in; only ParticleContainer::enterFrame() changes it, the same way on
- * every rank, so it needs no synchronization.
+ * container's particle data is in; only ParticleContainer::enterFrame() changes it. Every rank is
+ * back in the reference frame at the same points of a step, so it needs no synchronization.
  */
 class BunchStateHandler {
 public:

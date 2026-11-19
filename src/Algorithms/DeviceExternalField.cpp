@@ -12,17 +12,17 @@
 
 std::vector<std::shared_ptr<ElementBase>> device_external::orderedCandidates(
         OpalBeamline& beamline, const std::set<std::shared_ptr<ElementBase>>& candidates) {
-    auto remaining = candidates;
     std::vector<std::shared_ptr<ElementBase>> ordered;
+    if (candidates.empty()) return ordered;
+    auto remaining = candidates;
     ordered.reserve(candidates.size());
-    for (const auto& element : beamline.getElementByType(ElementType::ANY)) {
+    for (const auto& element : beamline.getElementList()) {
         if (remaining.erase(element)) ordered.push_back(element);
+        if (remaining.empty()) return ordered;
     }
-    if (!remaining.empty())
-        throw OpalException(
-                "DeviceExternalField::orderedCandidates",
-                "Candidate element is not a prepared beamline occurrence.");
-    return ordered;
+    throw OpalException(
+            "DeviceExternalField::orderedCandidates",
+            "Candidate element is not a prepared beamline occurrence.");
 }
 
 bool device_external::cyclotronSectorMayIntersect(

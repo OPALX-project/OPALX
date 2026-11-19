@@ -129,6 +129,8 @@ public:
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     ElementList getElementByType(ElementType);
+    /// All elements in prepared beamline order, without copying the list.
+    const ElementList& getElementList() const { return elements_m; }
 
     /**
      * @brief Return an ordered view of all element-owned linear transfer maps.

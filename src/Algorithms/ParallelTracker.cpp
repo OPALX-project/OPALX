@@ -1658,6 +1658,7 @@ std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(
     if (!itsBunch_m->isPcActive(ci) || !pc || ci >= oths.size() || !oths[ci]) {
         return {};
     }
+    pc->requireReferenceFrame("ParallelTracker::candidateElements");
     const auto cyclotronSectors =
             ringPeriod_m > 0 ? itsOpalBeamline_m.getElementByType(ElementType::CYCLOTRONSECTOR)
                              : ElementList{};
@@ -1693,9 +1694,9 @@ std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(
                 });
         auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), active);
         // Element application and frame changes operate on local particles
-        // only. Keep these flags local: this pointer-ordered element set
-        // has no common index across MPI ranks. The timestep decision is
-        // separately collective in boundaryCrossed().
+        // only. Keep these flags local: the candidate set may differ between
+        // MPI ranks. The timestep decision is separately collective in
+        // boundaryCrossed().
         size_t j = 0;
         for (const auto& element : all) {
             if (host(j++)) elements.insert(element);
@@ -1824,6 +1825,8 @@ size_t ParallelTracker::applyGlobalProcesses(double dt) {
         if (!pc) {
             continue;
         }
+        // Decay writes daughters in the shared reference frame of parent and daughter.
+        pc->requireReferenceFrame("ParallelTracker::applyGlobalProcesses");
         const auto& processes = pc->getGlobalProcesses();
         if (processes.empty()) {
             continue;

@@ -4,7 +4,7 @@
  *
  * Covers:
  * - A request for the frame the data is already in does not touch it.
- * - A change from or to the reference frame applies the stored transform bitwise.
+ * - A change from or to the reference frame applies the stored transform itself.
  * - A direct change between two element frames equals the path through the reference frame.
  * - `fieldsCleared` leaves E and B unrotated.
  * - `adoptParticles` moves only the appended particles.
@@ -114,10 +114,20 @@ namespace {
         EXPECT_TRUE(pc->frame().isReference());
     }
 
-    TEST_F(ParticleFrameTest, ChangeFromReferenceAppliesStoredTransformBitwise) {
+    /// Same origin and quaternion, bit for bit.
+    static void expectSameTransform(const CoordinateSystemTrafo& a, const CoordinateSystemTrafo& b) {
+        for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(a.getOrigin()[d], b.getOrigin()[d]);
+        for (unsigned d = 0; d < 4; ++d) EXPECT_EQ(a.getRotation()(d), b.getRotation()(d));
+    }
+
+    TEST_F(ParticleFrameTest, ChangeFromOrToReferenceUsesStoredTransform) {
+        const auto frame = elementFrame(Vec(0.2, -0.1, 1.5), Vec(0.1, 0.05, 1.0), 0.3);
+        expectSameTransform(ParticleFrame().to(frame), frame.fromReference());
+        expectSameTransform(frame.to(ParticleFrame()), frame.toReference());
+
+        // The kernel may contract to FMA on a device; compare to the host within rounding.
         auto pc = makeContainer();
         append(*pc, r_);
-        const auto frame = elementFrame(Vec(0.2, -0.1, 1.5), Vec(0.1, 0.05, 1.0), 0.3);
         pc->enterFrame(frame);
         const auto R = host(pc->R, r_.size()), P = host(pc->P, r_.size());
         for (size_t i = 0; i < r_.size(); ++i) {
@@ -125,8 +135,8 @@ namespace {
             const Vec p = frame.fromReference().rotateTo(
                     Vec(0.1 * r_[i][0], -0.2 * r_[i][1], 5.0 + r_[i][2]));
             for (unsigned d = 0; d < 3; ++d) {
-                EXPECT_EQ(R[i][d], r[d]);
-                EXPECT_EQ(P[i][d], p[d]);
+                EXPECT_NEAR(R[i][d], r[d], 1e-15);
+                EXPECT_NEAR(P[i][d], p[d], 1e-14);
             }
         }
     }
@@ -179,7 +189,7 @@ namespace {
             for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(R[i][d], old[i][d]);
         for (size_t i = 0; i < created.size(); ++i) {
             const Vec expected = source.toReference().transformTo(created[i]);
-            for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(R[r_.size() + i][d], expected[d]);
+            for (unsigned d = 0; d < 3; ++d) EXPECT_NEAR(R[r_.size() + i][d], expected[d], 1e-15);
         }
     }
 

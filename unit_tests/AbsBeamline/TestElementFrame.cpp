@@ -142,25 +142,30 @@ namespace {
     }
 
     TEST_F(ElementFrameTest, ApertureThroughTransformMatchesMovedBunch) {
-        // Element frame: shifted, tilted and rolled relative to the particles' frame.
+        // Element frame: shifted by more than the aperture and tilted relative to the particles'
+        // frame, so a transform applied the wrong way round marks different particles.
         const CoordinateSystemTrafo toLocal(
-                Vec(0.003, -0.002, -0.1), getQuaternion(Vec(0.01, -0.02, 1.0), Vec(0, 0, 1)));
+                Vec(0.008, -0.006, -0.1), getQuaternion(Vec(0.01, -0.02, 1.0), Vec(0, 0, 1)));
         DriftRep drift("drift");
         drift.getGeometry().setElementLength(1.0);
         drift.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
 
-        auto lazy = makeContainer(r_), moved = makeContainer(r_);
-        const auto R0 = host(lazy->R, r_.size());
-        const size_t lazyMarked = drift.markOutsideAperture(lazy, toLocal.rigid());
+        // r_ holds element-local positions; the particles are stored in the other frame.
+        std::vector<Vec> stored;
+        for (const auto& local : r_) stored.push_back(toLocal.transformFrom(local));
+        const std::vector<int> expected = {0, 1, 1, 0, 0};
+
+        auto lazy = makeContainer(stored), moved = makeContainer(stored);
+        const auto R0 = host(lazy->R, stored.size());
+        EXPECT_EQ(drift.markOutsideAperture(lazy, toLocal.rigid()), 2u);
+        EXPECT_EQ(invalid(*lazy), expected);
 
         moved->enterFrame(ParticleFrame(ParticleFrame::Kind::Element, toLocal, &drift));
-        const size_t movedMarked = drift.markOutsideAperture(moved, RigidTransform{});
+        EXPECT_EQ(drift.markOutsideAperture(moved, RigidTransform{}), 2u);
+        EXPECT_EQ(invalid(*moved), expected);
 
-        EXPECT_GT(lazyMarked, 0u);
-        EXPECT_EQ(lazyMarked, movedMarked);
-        EXPECT_EQ(invalid(*lazy), invalid(*moved));
-        const auto R = host(lazy->R, r_.size());
-        for (size_t i = 0; i < r_.size(); ++i)
+        const auto R = host(lazy->R, stored.size());
+        for (size_t i = 0; i < stored.size(); ++i)
             for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(R[i][d], R0[i][d]);
     }
 
