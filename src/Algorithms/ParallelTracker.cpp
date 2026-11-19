@@ -1772,7 +1772,9 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
-        pc->enterFrame(beamlineFrame(*pc));
+        // Samplers append new particles in the beamline frame and do not touch the others, so
+        // only the new particles change frame.
+        const size_t nBefore = pc->getLocalNum();
         if (ci < emittingSamplers_m.size()) {
             for (const auto& sampler : emittingSamplers_m[ci]) {
                 if (sampler) {
@@ -1780,7 +1782,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 }
             }
         }
-        pc->enterReferenceFrame();
+        pc->adoptParticles(beamlineFrame(*pc), nBefore);
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());

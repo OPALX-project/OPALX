@@ -340,6 +340,16 @@ public:
     }
 
     void enterReferenceFrame() { enterFrame(ParticleFrame()); }
+
+    /**
+     * @brief Bring the local particles from index @p first on, written in @p createdIn, into
+     * the current frame. The particles before @p first do not move.
+     *
+     * For emission: samplers append new particles in their own frame.
+     */
+    void adoptParticles(const ParticleFrame& createdIn, size_t first) {
+        if (!(createdIn == frame())) transformBunch(createdIn.to(frame()), false, first);
+    }
     SpatialLayout_t& getPL() {
         return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
     }
@@ -966,17 +976,22 @@ public:
     }
 
 private:
-    /// Translate R and rotate P, E, B and Pol of the local particles; see enterFrame().
-    void transformBunch(const CoordinateSystemTrafo& trafo, bool fieldsCleared = false) {
+    /// Translate R and rotate P, E, B and Pol of the local particles from index @p first on;
+    /// see enterFrame().
+    void transformBunch(
+            const CoordinateSystemTrafo& trafo, bool fieldsCleared = false, size_t first = 0) {
         const size_t nLoc = this->getLocalNum();
-        trafo.transformBunchTo(this->R.getView(), nLoc);
-        trafo.rotateBunchTo(this->P.getView(), nLoc);
+        if (first >= nLoc) return;
+        const auto range = std::make_pair(first, nLoc);
+        const size_t n   = nLoc - first;
+        trafo.transformBunchTo(Kokkos::subview(this->R.getView(), range), n);
+        trafo.rotateBunchTo(Kokkos::subview(this->P.getView(), range), n);
         if (!fieldsCleared) {
-            trafo.rotateBunchTo(this->E.getView(), nLoc);
-            trafo.rotateBunchTo(this->B.getView(), nLoc);
+            trafo.rotateBunchTo(Kokkos::subview(this->E.getView(), range), n);
+            trafo.rotateBunchTo(Kokkos::subview(this->B.getView(), range), n);
         }
         if (spinEnabled_m) {
-            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+            trafo.rotateBunchTo(Kokkos::subview(this->Pol.getView(), range), n);
         }
     }
 
