@@ -424,6 +424,10 @@ public:
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
 
+    /// Local frame of @p element, misalignment included, for the particles of @p pc.
+    ParticleFrame elementFrame(
+            const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const;
+
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
     /// @return global number of newly marked particles (allreduced) - collective call.

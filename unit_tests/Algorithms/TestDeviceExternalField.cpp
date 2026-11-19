@@ -158,10 +158,11 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
         // Exercise the actual device element kernel and the same R/P/E/B
         // round trips used by production, including overlapping field supports.
         for (const auto& element : ordered) {
-            const auto transform = lattice.getCSTrafoLab2Local(element);
-            particles->transformBunch(transform);
+            particles->enterFrame(ParticleFrame(
+                    ParticleFrame::Kind::Element, lattice.getCSTrafoLab2Local(element),
+                    element.get()));
             element->apply(particles);
-            particles->transformBunch(transform.inverted());
+            particles->enterReferenceFrame();
         }
         const auto outR =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->R.getView());

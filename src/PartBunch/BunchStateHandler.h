@@ -6,6 +6,8 @@
 #include <optional>
 #include <vector>
 
+#include "PartBunch/ParticleFrame.h"
+
 /**
  * @class BunchStateHandler
  * @brief Centralised tracking of mutable bunch-level and per-container status flags.
@@ -15,7 +17,9 @@
  * independently of container lifetimes.
  *
  * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$.
- * `Options::aggressiveStateSync` optionally converges it across MPI ranks.
+ * `Options::aggressiveStateSync` optionally converges it across MPI ranks. `frame` is the frame the
+ * container's particle data is in; only ParticleContainer::enterFrame() and the reference update
+ * change it, so it is rank-local and needs no synchronization.
  */
 class BunchStateHandler {
 public:
@@ -35,6 +39,7 @@ public:
     /** @brief Per-container coordinate-representation state. */
     struct ContainerState {
         bool unitlessPositions = false;
+        ParticleFrame frame;
 
         void setUnitlessPositions(bool v);
     };

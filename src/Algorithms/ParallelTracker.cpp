@@ -1716,19 +1716,20 @@ void ParallelTracker::forEachElementInBunchFrame(
                         : std::vector<std::shared_ptr<ElementBase>>(
                                   elements.begin(), elements.end());
         for (const auto& element : ordered) {
-            CoordinateSystemTrafo refToLocalCSTrafo =
-                    (itsOpalBeamline_m.getMisalignment(element)
-                     * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo()));
-
-            CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            pc->transformBunch(refToLocalCSTrafo);
-
+            pc->enterFrame(elementFrame(element, *pc));
             func(element, pc);
-
-            pc->transformBunch(localToRefCSTrafo);
+            pc->enterReferenceFrame();
         }
     }
+}
+
+ParticleFrame ParallelTracker::elementFrame(
+        const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const {
+    return ParticleFrame(
+            ParticleFrame::Kind::Element,
+            itsOpalBeamline_m.getMisalignment(element)
+                    * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc.getToLabTrafo()),
+            element.get());
 }
 
 /**
@@ -1771,9 +1772,9 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
-        CoordinateSystemTrafo refToGun =
-                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
-        pc->transformBunch(refToGun);
+        pc->enterFrame(ParticleFrame(
+                ParticleFrame::Kind::Beamline,
+                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo()));
         if (ci < emittingSamplers_m.size()) {
             for (const auto& sampler : emittingSamplers_m[ci]) {
                 if (sampler) {
@@ -1781,7 +1782,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 }
             }
         }
-        pc->transformBunch(refToGun.inverted());
+        pc->enterReferenceFrame();
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());

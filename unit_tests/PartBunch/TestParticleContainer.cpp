@@ -7,7 +7,7 @@
  * - Round-trip `scaleDtByCharge` / `unscaleDtByCharge` in both QM modes.
  * - `markParticlesOutside` and `deleteInvalidParticles` mask-driven deletion.
  * - Propagation of periodic and open boundary conditions to the P3M overlap layout.
- * - Rotation of `Pol` together with `P` in every frame change (`transformBunch`,
+ * - Rotation of `Pol` together with `P` in every frame change (`enterFrame`,
  *   `updateRefToLabCSTrafo`, space-charge solve frame round trip).
  *
  * The fixture constructs a lightweight `ParticleContainer` on a minimal 8^3
@@ -483,7 +483,7 @@ namespace {
         const CoordinateSystemTrafo trafo(
                 Vector_t<double, 3>(0.05, 0.0, 0.1),
                 getQuaternion(Vector_t<double, 3>(1, 0, 1), Vector_t<double, 3>(0, 0, 1)));
-        pc->transformBunch(trafo);
+        pc->enterFrame(ParticleFrame(ParticleFrame::Kind::Element, trafo));
 
         const Vector_t<double, 3> P = firstOf(pc->P), Pol = firstOf(pc->Pol);
         const Vector_t<double, 3> expected = trafo.rotateTo(Pol0);
@@ -567,7 +567,7 @@ namespace {
 
         opalx::spacecharge::enterSolveFrame(frames, *pc);
         EXPECT_GT(std::abs(firstOf(pc->Pol)[1] - Pol0[1]), 0.01);  // Pol is in the solve axes
-        opalx::spacecharge::leaveSolveFrame(frames, *pc);
+        opalx::spacecharge::leaveSolveFrame(*pc);
 
         const Vector_t<double, 3> Pol = firstOf(pc->Pol);
         for (unsigned d = 0; d < 3; ++d) {

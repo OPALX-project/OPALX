@@ -182,7 +182,7 @@ namespace opalx::spacecharge {
 
             solveInBeamFrame(context, plan, result);
 
-            leaveSolveFrame(context.stepState().frames, *primary_m);
+            leaveSolveFrame(*primary_m);
         }
         if (!fixedDomain) {
             result.redistributions += domainUpdater_m.updateForSolve(

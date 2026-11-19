@@ -757,10 +757,9 @@ namespace opalx::spacecharge {
          */
         void enterParticleSolveFrames(
                 const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
-        /** @internal @brief Restore tracker frames and their moments, also after solver exceptions.
-         * @param context Activity flags. @param labToSolve Transform used for entry. */
-        void restoreParticleSolveFrames(
-                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
+        /** @internal @brief Return every container to its reference frame, also after solver
+         * exceptions. */
+        void restoreParticleSolveFrames();
         /** @internal @brief Reject transverse ownership outside the fixed open FFT domain.
          * @param container Active container index. All ranks participate in the error reduction. */
         void checkMigrationDomain(size_t container);

@@ -320,17 +320,26 @@ public:
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
-    void transformBunch(const CoordinateSystemTrafo& trafo) {
-        const size_t nLoc = this->getLocalNum();
-        trafo.transformBunchTo(this->R.getView(), nLoc);
-        trafo.rotateBunchTo(this->P.getView(), nLoc);
-        trafo.rotateBunchTo(this->E.getView(), nLoc);
-        trafo.rotateBunchTo(this->B.getView(), nLoc);
-        if (spinEnabled_m) {
-            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
-        }
+    /// Frame the local particle data is in now.
+    const ParticleFrame& frame() const { return containerState_m->frame; }
+
+    /**
+     * @brief Move the local particle data into @p target with one transform, or none if it is
+     * already there.
+     *
+     * This is the only way particle data changes frame. It translates R and rotates P, E, B and
+     * Pol; it is rank-local. Build @p target from the current reference frame (see
+     * ParticleFrame).
+     *
+     * @param fieldsCleared E and B were just zeroed, so they are not rotated.
+     */
+    void enterFrame(const ParticleFrame& target, bool fieldsCleared = false) {
+        if (frame() == target) return;
+        transformBunch(frame().to(target), fieldsCleared);
+        containerState_m->frame = target;
     }
+
+    void enterReferenceFrame() { enterFrame(ParticleFrame()); }
     SpatialLayout_t& getPL() {
         return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
     }
@@ -957,17 +966,32 @@ public:
     }
 
 private:
+    /// Translate R and rotate P, E, B and Pol of the local particles; see enterFrame().
+    void transformBunch(const CoordinateSystemTrafo& trafo, bool fieldsCleared = false) {
+        const size_t nLoc = this->getLocalNum();
+        trafo.transformBunchTo(this->R.getView(), nLoc);
+        trafo.rotateBunchTo(this->P.getView(), nLoc);
+        if (!fieldsCleared) {
+            trafo.rotateBunchTo(this->E.getView(), nLoc);
+            trafo.rotateBunchTo(this->B.getView(), nLoc);
+        }
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+        }
+    }
+
     std::unique_ptr<ippl::ParticleAttrib<ippl::Vector<T, Dim>>> migrationPositions_m;
     std::unique_ptr<SpatialLayout_t> spatialLayout_m;
     std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 
-    /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
-    /// Owned here as the only strong reference; the handler keeps a weak_ptr, so
-    /// destroying this container automatically releases the slot. The slot's own
+    /// Per-container state slot; standalone until `setBunchStateHandler` replaces it with a slot
+    /// allocated by the handler. Owned here as the only strong reference; the handler keeps a
+    /// weak_ptr, so destroying this container automatically releases the slot. The slot's own
     /// methods handle MPI consistency, so no direct handler reference is needed.
-    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
+    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m =
+            std::make_shared<BunchStateHandler::ContainerState>();
 
     // Single shared scalar mode stored as a length-1 Kokkos view.
     qm_view_type QView_m;

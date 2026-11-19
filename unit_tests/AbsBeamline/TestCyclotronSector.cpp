@@ -278,10 +278,10 @@ TEST_F(CyclotronTest, SpatialSelectionRestoresOmittedDeviceFieldAndPreservesOthe
     Kokkos::deep_copy(pc->P.getView(), momentum);
     Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>(0));
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
-    pc->transformBunch(frame);
+    pc->enterFrame(ParticleFrame(ParticleFrame::Kind::Element, frame, sector.get()));
     // Exercise the existing Kokkos kernel, not a host replacement field.
     sector->apply(pc);
-    pc->transformBunch(frame.inverted());
+    pc->enterReferenceFrame();
     const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     const auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
     const auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());

@@ -19,22 +19,19 @@ namespace opalx::spacecharge {
         particles.B = Vector_t<double, 3>(0.0);
     }
 
-    /** @brief Apply a spatial transform to R and rotate normalized momentum P into the same axes.
-     *  @note Pol is rotated too, because leaveSolveFrame() rotates it back via transformBunch().
-     */
+    /** @brief Move R, P and Pol into the solve frame; E and B are cleared, so not rotated. */
     inline void enterSolveFrame(
             const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles) {
-        frames.trackerToSolve.transformBunchTo(particles.R.getView(), particles.getLocalNum());
-        frames.trackerToSolve.rotateBunchTo(particles.P.getView(), particles.getLocalNum());
-        if (particles.hasSpin()) {
-            frames.trackerToSolve.rotateBunchTo(particles.Pol.getView(), particles.getLocalNum());
-        }
+        particles.enterFrame(
+                ParticleFrame(
+                        ParticleFrame::Kind::SpaceChargeSolve, frames.trackerToSolve,
+                        frames.solveToTracker),
+                true);
     }
 
-    /** @brief Restore R/P and rotate computed E/B to tracker axes; this is not a Lorentz boost. */
-    inline void leaveSolveFrame(
-            const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles) {
-        particles.transformBunch(frames.solveToTracker);
+    /** @brief Return to the reference frame, rotating the computed E/B; not a Lorentz boost. */
+    inline void leaveSolveFrame(SpaceChargeParticleContainer& particles) {
+        particles.enterReferenceFrame();
     }
 
 }  // namespace opalx::spacecharge
