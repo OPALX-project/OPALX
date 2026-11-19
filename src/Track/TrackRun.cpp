@@ -69,7 +69,6 @@ TrackRun::TrackRun()
             Attributes::makeBool("TRACKBACK", "Track in reverse direction, default: false.", false);
 
     registerOwnership(AttributeHandler::SUB_COMMAND);
-    opal_m = OpalData::getInstance();
 }
 
 TrackRun::~TrackRun() {}
@@ -81,12 +80,13 @@ void TrackRun::execute() {
     if (track == nullptr) {
         throw OpalException("TrackRun::execute", "RUN is only valid inside TRACK.");
     }
+    OpalData* opal = OpalData::getInstance();
     opalx::run::RunDescription description =
-            opalx::run::freeze(*this, *track, ++opal_m->numberOfRuns);
+            opalx::run::freeze(*this, *track, ++opal->numberOfRuns);
     std::vector<std::shared_ptr<ElementBase>> elements =
             opalx::run::buildElements(description.line, description.context.p0);
     const std::vector<std::string> errors = opalx::run::validate(description);
-    if (opal_m->checkOnly) {
+    if (opal->checkOnly) {
         const std::string fileName = opalx::run::dumpFileName(description);
         if (ippl::Comm->rank() == 0) {
             std::ofstream out(fileName);
@@ -99,7 +99,7 @@ void TrackRun::execute() {
     if (!errors.empty()) {
         throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
     }
-    if (opal_m->checkOnly) return;
+    if (opal->checkOnly) return;
 
     // The tracker is destroyed before the objects it borrows.
     opalx::run::RunObjects objects;

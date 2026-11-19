@@ -20,8 +20,6 @@
 
 #include "AbstractObjects/Action.h"
 
-class OpalData;
-
 class TrackRun : public Action {
 public:
     /// Exemplar constructor.
@@ -39,8 +37,6 @@ private:
     // Not implemented.
     TrackRun(const TrackRun&);
     void operator=(const TrackRun&);
-
-    OpalData* opal_m;
 };
 
 #endif  // OPAL_TrackRun_HH
