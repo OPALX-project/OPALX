@@ -81,7 +81,8 @@ namespace {
         static std::vector<Vec> host(const Attribute& a, size_t n) {
             auto h = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), a.getView());
             std::vector<Vec> out(n);
-            for (size_t i = 0; i < n; ++i) out[i] = h(i);
+            for (size_t i = 0; i < n; ++i)
+                out[i] = h(i);
             return out;
         }
 
@@ -89,18 +90,19 @@ namespace {
             auto h = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), pc.InvalidMask.getView());
             std::vector<int> out(pc.getLocalNum());
-            for (size_t i = 0; i < out.size(); ++i) out[i] = h(i) ? 1 : 0;
+            for (size_t i = 0; i < out.size(); ++i)
+                out[i] = h(i) ? 1 : 0;
             return out;
         }
 
         /// apply(pc) of a frameless element must leave every particle attribute unchanged.
         static void expectNoOp(ElementBase& element, const std::shared_ptr<PC_t>& pc) {
             SCOPED_TRACE(element.getName());
-            const size_t n   = pc->getLocalNum();
-            const auto R0    = host(pc->R, n);
-            const auto P0    = host(pc->P, n);
-            const auto E0    = host(pc->E, n);
-            const auto B0    = host(pc->B, n);
+            const size_t n = pc->getLocalNum();
+            const auto R0  = host(pc->R, n);
+            const auto P0  = host(pc->P, n);
+            const auto E0  = host(pc->E, n);
+            const auto B0  = host(pc->B, n);
             element.getGeometry().setElementLength(1.0);
             EXPECT_EQ(element.fieldFrame(), ElementFrame::None);
             element.apply(pc);
@@ -152,7 +154,8 @@ namespace {
 
         // r_ holds element-local positions; the particles are stored in the other frame.
         std::vector<Vec> stored;
-        for (const auto& local : r_) stored.push_back(toLocal.transformFrom(local));
+        for (const auto& local : r_)
+            stored.push_back(toLocal.transformFrom(local));
         const std::vector<int> expected = {0, 1, 1, 0, 0};
 
         auto lazy = makeContainer(stored), moved = makeContainer(stored);
@@ -166,7 +169,8 @@ namespace {
 
         const auto R = host(lazy->R, stored.size());
         for (size_t i = 0; i < stored.size(); ++i)
-            for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(R[i][d], R0[i][d]);
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_EQ(R[i][d], R0[i][d]);
     }
 
 }  // namespace

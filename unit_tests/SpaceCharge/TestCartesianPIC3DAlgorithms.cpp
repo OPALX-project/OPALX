@@ -146,11 +146,10 @@ namespace opalx::spacecharge {
                             state);
                 }
 
-                SpaceChargeSolveResult solve(
-                        std::size_t step = 0, ParticleFrame frame = {}) {
+                SpaceChargeSolveResult solve(std::size_t step = 0, ParticleFrame frame = {}) {
                     SpaceChargeStepState state;
-                    state.step     = step;
-                    state.timeStep = 1.0e-12;
+                    state.step       = step;
+                    state.timeStep   = 1.0e-12;
                     state.solveFrame = frame;
                     return algorithm->solve(SpaceChargeSolveContext(activity, state));
                 }
@@ -853,7 +852,10 @@ namespace opalx::spacecharge {
                     const auto expectedSolves = backend == PoissonSolverType::Open ? 1u : 0u;
                     EXPECT_EQ(centred.solve(step).backendSolves, expectedSolves);
                     EXPECT_EQ(
-                            translated.solve(step, ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, solveToTracker.inverted(), solveToTracker))
+                            translated
+                                    .solve(step, ParticleFrame(
+                                                         ParticleFrame::Kind::SpaceChargeSolve,
+                                                         solveToTracker.inverted(), solveToTracker))
                                     .backendSolves,
                             expectedSolves);
                     expectFieldsEqual(translated.particles, centred.particles);
@@ -896,7 +898,11 @@ namespace opalx::spacecharge {
                     Vector(0.0, 0.0, pathTranslation), Quaternion(1.0, 0.0, 0.0, 0.0));
             EXPECT_EQ(centred.solve().backendSolves, 0u);
             EXPECT_EQ(
-                    translated.solve(0, ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, solveToTracker.inverted(), solveToTracker)).backendSolves,
+                    translated
+                            .solve(0, ParticleFrame(
+                                              ParticleFrame::Kind::SpaceChargeSolve,
+                                              solveToTracker.inverted(), solveToTracker))
+                            .backendSolves,
                     0u);
             const auto centredR = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), centred.particles.R.getView());
@@ -969,7 +975,8 @@ namespace opalx::spacecharge {
                 step.mpiSize  = ippl::Comm->size();
                 const CoordinateSystemTrafo pose(
                         Vector(0.1, 0.2, 0.3), Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0));
-                step.solveFrame = ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, pose.inverted(), pose);
+                step.solveFrame =
+                        ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, pose.inverted(), pose);
                 const SpaceChargeSolveContext context(activity, step);
 
                 EXPECT_EQ(algorithm.solve(context).backendSolves, 0u);

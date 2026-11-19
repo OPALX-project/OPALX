@@ -20,7 +20,8 @@ namespace opalx::spacecharge {
     }
 
     /** @brief Move R, P and Pol into the solve frame; E and B are cleared, so not rotated. */
-    inline void enterSolveFrame(const ParticleFrame& frame, SpaceChargeParticleContainer& particles) {
+    inline void enterSolveFrame(
+            const ParticleFrame& frame, SpaceChargeParticleContainer& particles) {
         particles.enterFrame(frame, true);
     }
 

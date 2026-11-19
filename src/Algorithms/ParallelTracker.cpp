@@ -1316,7 +1316,7 @@ void ParallelTracker::prepareCyclotronBunchLattice() {
 }
 
 void ParallelTracker::advanceCyclotronParticle() {
-    auto pc           = itsBunch_m->getParticleContainer();
+    auto pc = itsBunch_m->getParticleContainer();
     pc->requireReferenceFrame("ParallelTracker::advanceCyclotronParticle");
     auto r            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
     auto p            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
@@ -1350,15 +1350,15 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         // Emission or loss may change the single-particle fast-path eligibility.
         // Keep the immutable setup lazy for that transition as well as preparation.
         if (!cyclotronBunchLattice_m) prepareCyclotronBunchLattice();
-        auto pc                  = itsBunch_m->getParticleContainer();
+        auto pc = itsBunch_m->getParticleContainer();
         pc->requireReferenceFrame("ParallelTracker::timeIntegration2");
         const auto& toLab        = pc->getToLabTrafo();
         const double requestedDt = itsBunch_m->getdT();
         double actualDt          = requestedDt;
         const auto lattice       = *cyclotronBunchLattice_m;
         const auto r = pc->R.getView(), p = pc->P.getView(), e = pc->E.getView(),
-                   b = pc->B.getView();
-        const auto frame = toLab.rigid();
+                   b      = pc->B.getView();
+        const auto frame  = toLab.rigid();
         const double time = itsBunch_m->getT(), mass = pc->getReference()->getM();
         const bool charged          = !bareTracking_m;
         const bool terminalEndpoint = energyTargetReached_m;
@@ -1589,7 +1589,9 @@ void ParallelTracker::computeExternalFields(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
-    const auto apply = [](const auto& element, const auto& pc) { element->apply(pc); };
+    const auto apply = [](const auto& element, const auto& pc) {
+        element->apply(pc);
+    };
     forEachElementInBunchFrame(
             oths,
             [this](const ElementBase& element) {
@@ -1665,8 +1667,8 @@ std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(
         const auto all     = itsOpalBeamline_m.getElements();
         const auto lattice = deviceRingFields_m;
         Kokkos::View<int*> active("Boris::activeElements", all.size());
-        const auto r       = pc->R.getView();
-        const auto toLab   = pc->getToLabTrafo().rigid();
+        const auto r     = pc->R.getView();
+        const auto toLab = pc->getToLabTrafo().rigid();
         Kokkos::parallel_for(
                 "Boris::spatialCandidates", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
                     const auto lab = toLab.pointTo(r(i));
@@ -1920,7 +1922,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
 bool ParallelTracker::boundaryCrossed(double dt) {
     const auto pc = itsBunch_m->getParticleContainer();
     pc->requireReferenceFrame("ParallelTracker::boundaryCrossed");
-    const auto toLab = pc->getToLabTrafo().rigid();
+    const auto toLab   = pc->getToLabTrafo().rigid();
     const auto lattice = deviceRingFields_m;
     const auto r = pc->R.getView(), p = pc->P.getView();
     const auto e = pc->E.getView(), b = pc->B.getView();
@@ -2025,10 +2027,9 @@ void ParallelTracker::prepareBoundaryStep(
         const bool crossed = boundaryCrossed(boundaryStepDt_m);
         if (!schedule.canSplit() || !crossed) {
             // Commit passive diagnostics exactly once at the accepted midpoint.
-            forEachElementInBunchFrame(
-                    oths, isMonitor, [](const auto& element, const auto& pc) {
-                        element->apply(pc);
-                    });
+            forEachElementInBunchFrame(oths, isMonitor, [](const auto& element, const auto& pc) {
+                element->apply(pc);
+            });
             return;
         }
         reverseTrialDrift(boundaryStepDt_m);

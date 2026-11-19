@@ -68,8 +68,8 @@ size_t Box::markOutsideAperture(
     Kokkos::parallel_reduce(
             "Box::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                const auto r     = toLocal.pointTo(Rview(i));
-                const bool hit   = r[2] >= zBegin && r[2] < zEnd && Kokkos::fabs(r[0]) < xLimit
+                const auto r   = toLocal.pointTo(Rview(i));
+                const bool hit = r[2] >= zBegin && r[2] < zEnd && Kokkos::fabs(r[0]) < xLimit
                                  && Kokkos::fabs(r[1]) < yLimit;
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;

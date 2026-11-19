@@ -106,7 +106,8 @@ namespace opalx::spacecharge {
     }
 
     void FFT2D5Algorithm::restoreParticleSolveFrames() {
-        for (auto* particles : particles_m) leaveSolveFrame(*particles);
+        for (auto* particles : particles_m)
+            leaveSolveFrame(*particles);
     }
 
     void FFT2D5Algorithm::migrateToSlabs(const SpaceChargeSolveContext& context) {

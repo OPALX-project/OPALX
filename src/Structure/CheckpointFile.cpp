@@ -346,10 +346,10 @@ void CheckpointFile::write(
             h5_float64_t spos      = pc->get_sPos();
             // Attribute-mode Q/M can vary per particle and some ranks may be empty. The particle
             // datasets are authoritative in that mode; use rank-independent placeholders here.
-            h5_float64_t macroQ        = qmMode != 0 ? 0.0 : pc->getChargePerParticle();
-            h5_float64_t macroM        = qmMode != 0 ? 0.0 : pc->getMassPerParticle();
-            Vector_t<double, 3> refR   = pc->getRefPartR();
-            Vector_t<double, 3> refP   = pc->getRefPartP();
+            h5_float64_t macroQ      = qmMode != 0 ? 0.0 : pc->getChargePerParticle();
+            h5_float64_t macroM      = qmMode != 0 ? 0.0 : pc->getMassPerParticle();
+            Vector_t<double, 3> refR = pc->getRefPartR();
+            Vector_t<double, 3> refP = pc->getRefPartP();
             pc->requireReferenceFrame("CheckpointFile::write");
             Vector_t<double, 3> origin = pc->getToLabTrafo().getOrigin();
             Quaternion rotation        = pc->getToLabTrafo().getRotation();

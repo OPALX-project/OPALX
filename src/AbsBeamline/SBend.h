@@ -82,8 +82,7 @@ public:
     /// @note Overrides the base version to measure the z-window and the aperture
     ///       in arc-length coordinates, matching isInside().
     size_t markOutsideAperture(
-            const std::shared_ptr<ParticleContainer_t>& pc,
-            const RigidTransform& toLocal) override;
+            const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) override;
 
     /// @brief Calculate the SBend field extent in the element's coordinatesystem
     /// @param zBegin Where the field begins (negative for fringe fields)

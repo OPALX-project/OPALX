@@ -205,9 +205,8 @@ size_t MultipoleT::markOutsideAperture(
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
                 // The aperture belongs to the body, so the window is the geometric body
                 // [0, L) in arc coordinates, not the wider field extent used by isInside().
-                const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(
-                                toLocal.pointTo(Rview(i)), curvature, bodyLength);
+                const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(
+                        toLocal.pointTo(Rview(i)), curvature, bodyLength);
 
                 const bool inZ = arc(2) >= 0.0 && arc(2) < bodyLength;
                 const bool hit =

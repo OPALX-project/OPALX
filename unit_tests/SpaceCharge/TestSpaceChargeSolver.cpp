@@ -83,18 +83,17 @@ namespace opalx::spacecharge {
             const double norm =
                     std::sqrt(meanP[0] * meanP[0] + meanP[1] * meanP[1] + meanP[2] * meanP[2]);
             const auto expectNear = [](const Vec& a, const Vec& b) {
-                for (unsigned d = 0; d < 3; ++d) EXPECT_NEAR(a[d], b[d], 1e-14) << d;
+                for (unsigned d = 0; d < 3; ++d)
+                    EXPECT_NEAR(a[d], b[d], 1e-14) << d;
             };
 
             EXPECT_TRUE(makeSolveFrame(SolveFrame::Reference, meanR, meanP, fallback, 7.0)
                                 .isReference());
 
             // Centroid: the centroid is the origin and the mean momentum points along +z.
-            const auto centroid =
-                    makeSolveFrame(SolveFrame::Centroid, meanR, meanP, fallback, 7.0);
+            const auto centroid = makeSolveFrame(SolveFrame::Centroid, meanR, meanP, fallback, 7.0);
             expectNear(centroid.fromReference().transformTo(meanR), Vec(0.0));
-            expectNear(
-                    centroid.fromReference().rotateTo(meanP), Vec(0, 0, norm));
+            expectNear(centroid.fromReference().rotateTo(meanP), Vec(0, 0, norm));
 
             // PathLength: the reference particle sits at z = path length on the aligned axis.
             const auto path = makeSolveFrame(SolveFrame::PathLength, meanR, meanP, fallback, 7.0);

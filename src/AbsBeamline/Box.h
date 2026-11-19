@@ -72,8 +72,7 @@ public:
      * @return Number of particles newly marked on this rank.
      */
     virtual size_t markOutsideAperture(
-            const std::shared_ptr<ParticleContainer_t>& pc,
-            const RigidTransform& toLocal) override;
+            const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) override;
 
     /**
      * @brief Set the transverse size of the block.

@@ -145,9 +145,8 @@ size_t SBend::markOutsideAperture(
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
                 // Convert (x,y,z) -> (x,y,arc s): the z-window and the aperture
                 // are measured relative to the design orbit, matching isInside.
-                const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(
-                                toLocal.pointTo(Rview(i)), curvature, bodyLength);
+                const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(
+                        toLocal.pointTo(Rview(i)), curvature, bodyLength);
 
                 const bool inZ = arc(2) >= zBegin && arc(2) < zEnd;
                 const bool hit =

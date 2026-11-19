@@ -45,7 +45,7 @@ namespace opalx::spacecharge {
         bool emissionActive    = false;
         double emittedFraction = 1.0;  ///< Least-complete active source fraction in [0, 1].
         int mpiSize            = 1;    ///< Active communicator size.
-        ParticleFrame solveFrame;  ///< The primary container's solve frame.
+        ParticleFrame solveFrame;      ///< The primary container's solve frame.
     };
 
     /**

@@ -83,14 +83,16 @@ namespace {
         static Points host(const Attribute& a, size_t n) {
             auto h = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), a.getView());
             Points out(n);
-            for (size_t i = 0; i < n; ++i) out[i] = h(i);
+            for (size_t i = 0; i < n; ++i)
+                out[i] = h(i);
             return out;
         }
 
         static ParticleFrame elementFrame(Vec origin, Vec axis, double tilt) {
             const CoordinateSystemTrafo onAxis(origin, getQuaternion(axis, Vec(0, 0, 1)));
             const CoordinateSystemTrafo tilted(
-                    Vec(0.0), getQuaternion(Vec(std::sin(tilt), 0.0, std::cos(tilt)), Vec(0, 0, 1)));
+                    Vec(0.0),
+                    getQuaternion(Vec(std::sin(tilt), 0.0, std::cos(tilt)), Vec(0, 0, 1)));
             return ParticleFrame(Kind::Element, tilted * onAxis);
         }
 
@@ -108,16 +110,20 @@ namespace {
         EXPECT_EQ(pc->frame().kind(), Kind::Element);
         const auto after = host(pc->R, r_.size());
         for (size_t i = 0; i < r_.size(); ++i)
-            for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(after[i][d], before[i][d]);
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_EQ(after[i][d], before[i][d]);
 
         pc->enterReferenceFrame();
         EXPECT_TRUE(pc->frame().isReference());
     }
 
     /// Same origin and quaternion, bit for bit.
-    static void expectSameTransform(const CoordinateSystemTrafo& a, const CoordinateSystemTrafo& b) {
-        for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(a.getOrigin()[d], b.getOrigin()[d]);
-        for (unsigned d = 0; d < 4; ++d) EXPECT_EQ(a.getRotation()(d), b.getRotation()(d));
+    static void expectSameTransform(
+            const CoordinateSystemTrafo& a, const CoordinateSystemTrafo& b) {
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_EQ(a.getOrigin()[d], b.getOrigin()[d]);
+        for (unsigned d = 0; d < 4; ++d)
+            EXPECT_EQ(a.getRotation()(d), b.getRotation()(d));
     }
 
     TEST_F(ParticleFrameTest, ChangeFromOrToReferenceUsesStoredTransform) {
@@ -170,7 +176,8 @@ namespace {
         pc->enterFrame(elementFrame(Vec(0.2, -0.1, 1.5), Vec(0.1, 0.05, 1.0), 0.3), true);
         const auto E = host(pc->E, r_.size());
         for (size_t i = 0; i < r_.size(); ++i)
-            for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(E[i][d], 2.0 * r_[i][d]);
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_EQ(E[i][d], 2.0 * r_[i][d]);
     }
 
     TEST_F(ParticleFrameTest, AdoptMovesOnlyAppendedParticles) {
@@ -178,7 +185,7 @@ namespace {
         append(*pc, r_);
         const auto old = host(pc->R, r_.size());
 
-        const auto source = elementFrame(Vec(0.0, 0.0, -0.5), Vec(0.0, 0.1, 1.0), 0.0);
+        const auto source    = elementFrame(Vec(0.0, 0.0, -0.5), Vec(0.0, 0.1, 1.0), 0.0);
         const Points created = {Vec(1e-3, 1e-3, 0.0), Vec(-1e-3, 2e-3, 1e-4)};
         append(*pc, created);
         pc->adoptParticles(source, r_.size());
@@ -186,10 +193,12 @@ namespace {
         EXPECT_TRUE(pc->frame().isReference());
         const auto R = host(pc->R, r_.size() + created.size());
         for (size_t i = 0; i < r_.size(); ++i)
-            for (unsigned d = 0; d < 3; ++d) EXPECT_EQ(R[i][d], old[i][d]);
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_EQ(R[i][d], old[i][d]);
         for (size_t i = 0; i < created.size(); ++i) {
             const Vec expected = source.toReference().transformTo(created[i]);
-            for (unsigned d = 0; d < 3; ++d) EXPECT_NEAR(R[r_.size() + i][d], expected[d], 1e-15);
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_NEAR(R[r_.size() + i][d], expected[d], 1e-15);
         }
     }
 

@@ -123,7 +123,7 @@ void CyclotronProbeRecorder::observe(
     const auto charge    = pc->getQView();
     const auto mass      = pc->getMView();
     const bool sharedQM = pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::SingleValue;
-    const auto toLab = pc->getToLabTrafo().rigid();
+    const auto toLab    = pc->getToLabTrafo().rigid();
     if (hits_m.extent(0) < pc->getLocalNum())
         hits_m = Kokkos::View<cyclotron_probe::detail::Hit*>(
                 "PROBE compact hits", pc->getLocalNum());
@@ -141,7 +141,7 @@ void CyclotronProbeRecorder::observe(
                     cyclotron_probe::Endpoint endpoint;
                     endpoint.position = toLab.pointTo(positions(i));
                     endpoint.momentum = toLab.vectorTo(momenta(i));
-                    endpoint.time                        = time;
+                    endpoint.time     = time;
                     cyclotron_probe::Sample sample;
                     const auto status =
                             cyclotron_probe::update(segment, states(i), ids(i), endpoint, sample);
