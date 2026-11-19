@@ -129,7 +129,11 @@ namespace opalx::spacecharge {
         throw OpalException("CartesianPIC3DAlgorithm::passProperties", "Unknown solve pass.");
     }
 
-    SolveFrame CartesianPIC3DAlgorithm::solveFrame() const { return SolveFrame::PathLength; }
+    SolveFrame CartesianPIC3DAlgorithm::solveFrame() const {
+        // TYPE=NONE computes no field: its mesh update, migration and ORB work in any frame.
+        if (poissonSolver_m->capabilities().isNoOp) return SolveFrame::Reference;
+        return SolveFrame::PathLength;
+    }
 
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
