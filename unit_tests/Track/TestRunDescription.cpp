@@ -19,6 +19,7 @@
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/StringStream.h"
+#include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
 extern Inform* gmsg;
@@ -120,6 +121,22 @@ TEST_F(RunDescriptionTest, DerivedElementKeepsKeywordAndOwnValues) {
     EXPECT_NE(q2.find("keyword = QUADRUPOLE"), std::string::npos) << q2;
     EXPECT_NE(q2.find("attr K1 (real, set) = 2.5"), std::string::npos) << q2;
     EXPECT_NE(q2.find("attr L (real, set) = 0.10000000000000001"), std::string::npos) << q2;
+}
+
+TEST_F(RunDescriptionTest, RunAndEndTrackNeedAnOpenTrack) {
+    run(common);
+    EXPECT_THROW(run(R"(RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;)"), OpalException);
+    EXPECT_THROW(run("ENDTRACK;"), OpalException);
+    run("TRACK, LINE = L1, BEAM = B1;");
+    EXPECT_THROW(run("TRACK, LINE = L1, BEAM = B1;"), OpalException);
+    run("ENDTRACK;");
+}
+
+TEST_F(RunDescriptionTest, CommandsBetweenTrackAndRun) {
+    run(common + "TRACK, LINE = L1, BEAM = B1, MAXSTEPS = 5, DT = 1e-12, ZSTOP = 1; KV = 7;"
+        + R"(Q4: QUADRUPOLE, L = 0.1, K1 = 1; RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;)"
+        + "ENDTRACK;");
+    EXPECT_NE(section(dump(1), "element 4 Q3").find("attr K1 (real, set) = 7"), std::string::npos);
 }
 
 TEST_F(RunDescriptionTest, DeferredValueIsReadAtEachRun) {

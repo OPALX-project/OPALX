@@ -28,7 +28,6 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Track/BuildElements.h"
 #include "Track/ObjectValues.h"
-#include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
@@ -272,7 +271,7 @@ namespace opalx::run {
         return description;
     }
 
-    RunDescription freeze(const Object& runCommand, int runIndex) {
+    RunDescription freeze(const Object& runCommand, const TrackDescription& track, int runIndex) {
         RunDescription run;
         OpalData* opal = OpalData::getInstance();
 
@@ -286,22 +285,11 @@ namespace opalx::run {
 
         run.options = currentOptions();
 
-        const Track* track = Track::block;
-        if (track == nullptr) {
-            throw OpalException("opalx::run::freeze", "RUN is only valid inside TRACK.");
-        }
-        TrackDescription& trackDescription = run.track;
-        trackDescription.beamNames         = track->beamNames_m;
-        trackDescription.dT                = track->dT;
-        trackDescription.maxSteps          = track->localTimeSteps;
-        trackDescription.zStop             = track->zstop;
-        trackDescription.zStopGiven        = track->zStopGiven;
-        trackDescription.zStart            = track->zstart;
-        trackDescription.t0                = track->t0_m;
-        trackDescription.run               = describeObject(runCommand);
+        run.track     = track;
+        run.track.run = describeObject(runCommand);
 
         // Beams, then the emission sources and distributions of each beam, in beam order.
-        for (const std::string& name : track->beamNames_m) {
+        for (const std::string& name : track.beamNames) {
             const Beam* beam = findAs<Beam>(name);
             if (beam == nullptr) continue;
             run.beams.push_back(describeBeam(*beam));
@@ -331,7 +319,7 @@ namespace opalx::run {
             }
         }
 
-        if (const BeamSequence* use = track->use) run.line = describeLine(*use);
+        if (const auto* use = findAs<BeamSequence>(track.line)) run.line = describeLine(*use);
         return run;
     }
 

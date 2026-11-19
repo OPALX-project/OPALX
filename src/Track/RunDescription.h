@@ -111,9 +111,10 @@ namespace opalx::run {
     };
 
     /**
-     * @brief The TRACK settings (from Track::block) and the RUN command attributes.
+     * @brief The TRACK settings and the RUN command attributes.
      */
     struct TrackDescription {
+        std::string line;  ///< LINE of the TRACK command. Not written; see LineDescription.
         std::vector<std::string> beamNames;
         std::vector<double> dT;
         std::vector<unsigned long long> maxSteps;

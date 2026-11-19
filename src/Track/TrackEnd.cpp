@@ -17,14 +17,13 @@
 // ------------------------------------------------------------------------
 
 #include "Track/TrackEnd.h"
-#include "Track/Track.h"
-#include "Track/TrackParser.h"
+#include "Track/TrackCmd.h"
 
 // Class TrackEnd
 // ------------------------------------------------------------------------
 
-TrackEnd::TrackEnd() : Action(0, "ENDTRACK", "The \"ENDTRACK\" sub-command stops tracking.") {}
+TrackEnd::TrackEnd() : Action(0, "ENDTRACK", "The \"ENDTRACK\" command closes the open TRACK.") {}
 
 TrackEnd::~TrackEnd() {}
 
-void TrackEnd::execute() { Track::block->parser.stop(); }
+void TrackEnd::execute() { TrackCmd::closeTrack(); }

@@ -16,16 +16,18 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Track/TrackCmd.h"
-#include <cmath>
+
+#include <algorithm>
+#include <optional>
 
 #include "AbstractObjects/BeamSequence.h"
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
-#include "Track/Track.h"
-#include "Track/TrackParser.h"
+#include "Track/RunDescription.h"
 #include "Utilities/OpalException.h"
+#include "Utility/Inform.h"
+
+extern Inform* gmsg;
 
 namespace {
     // The attributes of class TrackCmd
@@ -50,6 +52,9 @@ namespace {
         TIMEINTEGRATOR,  // the name of time integrator
         SIZE
     };
+
+    /// The settings of the TRACK that has no ENDTRACK yet.
+    std::optional<opalx::run::TrackDescription> openTrack_m;
 }  // namespace
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
@@ -145,40 +150,42 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
     return maxsteps_i;
 }
 
+const opalx::run::TrackDescription* TrackCmd::openTrack() {
+    return openTrack_m ? &*openTrack_m : nullptr;
+}
+
+void TrackCmd::closeTrack() {
+    if (!openTrack_m) {
+        throw OpalException("TrackCmd::closeTrack", "ENDTRACK without TRACK.");
+    }
+    openTrack_m.reset();
+}
+
 void TrackCmd::execute() {
-    // Find BeamSequence
-    BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
+    if (openTrack_m) {
+        throw OpalException("TrackCmd::execute", "TRACK inside an open TRACK; add ENDTRACK first.");
+    }
+
+    opalx::run::TrackDescription track;
+    track.line = Attributes::getString(itsAttr[LINE]);
+    BeamSequence::find(track.line);  // fail fast
 
     // TRACK,SOURCES is optional (and ignored); emission sources come from the selected BEAM.
 
-    // Resolve beams (BEAMS has precedence over BEAM).
-    std::vector<std::string> beamNames = Attributes::getStringArray(itsAttr[BEAMS]);
-    if (beamNames.empty()) {
-        beamNames.push_back(Attributes::getString(itsAttr[BEAM]));
+    // BEAMS has precedence over BEAM.
+    track.beamNames = Attributes::getStringArray(itsAttr[BEAMS]);
+    if (track.beamNames.empty()) {
+        track.beamNames.push_back(Attributes::getString(itsAttr[BEAM]));
     }
-    if (beamNames.empty()) {
-        throw OpalException("TrackCmd::execute", "Neither \"BEAMS\" nor \"BEAM\" was specified.");
-    }
-
-    std::vector<Beam*> beams;
-    beams.reserve(beamNames.size());
-    for (const auto& name : beamNames) {
+    for (const auto& name : track.beamNames) {
         if (name.empty()) {
             throw OpalException("TrackCmd::execute", "Empty beam name in \"BEAMS\".");
         }
-        beams.push_back(Beam::find(name));  // fail fast
+        Beam::find(name);  // fail fast
     }
 
-    // Current tracker supports only a single beam; use the first one for now.
-    Beam* beam = beams.front();
-
-    // std::cout << "TrackCmd::execute" << std::endl;
-    // std::cout << *theLineToTrack << std::endl;
-
     std::vector<double> dt                   = getDT();
-    double t0                                = getT0();
     std::vector<unsigned long long> maxsteps = getMaxSteps();
-    double zstart                            = getZStart();
     std::vector<double> zstop                = getZStop();
 
     // Accepted so that old input files read unchanged; nothing uses them.
@@ -202,15 +209,11 @@ void TrackCmd::execute() {
         zstop.push_back(zstop.back());
     }
 
-    /// \todo track block needs to be removed
-    /// \todo here the tracker is constructed
-
-    Track::block = new Track(theLineToTrack, dt, maxsteps, zstart, zstop, t0, beamNames);
-    Track::block->zStopGiven = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
-
-    Track::block->parser.run();
-
-    // Clean up.
-    delete Track::block;
-    Track::block = nullptr;
+    track.dT         = dt;
+    track.maxSteps   = maxsteps;
+    track.zStop      = zstop;
+    track.zStopGiven = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
+    track.zStart     = getZStart();
+    track.t0         = getT0();
+    openTrack_m      = std::move(track);
 }

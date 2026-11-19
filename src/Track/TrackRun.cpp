@@ -23,6 +23,7 @@
 #include "Track/BuildTracking.h"
 #include "Track/FreezeRun.h"
 #include "Track/RunDescriptionWriter.h"
+#include "Track/TrackCmd.h"
 #include "Track/ValidateRun.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
@@ -76,7 +77,12 @@ TrackRun::~TrackRun() {}
 void TrackRun::execute() {
     // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy
     // as text and stop: nothing is tracked and no other output is written.
-    opalx::run::RunDescription description = opalx::run::freeze(*this, ++opal_m->numberOfRuns);
+    const opalx::run::TrackDescription* track = TrackCmd::openTrack();
+    if (track == nullptr) {
+        throw OpalException("TrackRun::execute", "RUN is only valid inside TRACK.");
+    }
+    opalx::run::RunDescription description =
+            opalx::run::freeze(*this, *track, ++opal_m->numberOfRuns);
     std::vector<std::shared_ptr<ElementBase>> elements =
             opalx::run::buildElements(description.line, description.context.p0);
     const std::vector<std::string> errors = opalx::run::validate(description);

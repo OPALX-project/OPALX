@@ -15,7 +15,6 @@
 
 #include <unistd.h>
 
-#include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
@@ -26,7 +25,6 @@
 #include "Track/BuildElements.h"
 #include "Track/BuildTracking.h"
 #include "Track/FreezeRun.h"
-#include "Track/Track.h"
 #include "Track/TrackRun.h"
 #include "Track/ValidateRun.h"
 #include "Utility/Inform.h"
@@ -84,16 +82,17 @@ namespace {
          * RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
          */
         static opalx::run::RunDescription describeRun() {
-            Track::block =
-                    new Track(BeamSequence::find("L1"), {1e-12}, {5}, 0.0, {1.0}, 0.0, {"B1"});
-            Track::block->zStopGiven = true;
+            opalx::run::TrackDescription track;
+            track.line       = "L1";
+            track.beamNames  = {"B1"};
+            track.dT         = {1e-12};
+            track.maxSteps   = {5};
+            track.zStop      = {1.0};
+            track.zStopGiven = true;
             TrackRun runCommand;
             Attributes::setPredefinedString(*runCommand.findAttribute("METHOD"), "PARALLEL");
             Attributes::setString(*runCommand.findAttribute("FIELDSOLVER"), "FS1");
-            opalx::run::RunDescription description = opalx::run::freeze(runCommand, 1);
-            delete Track::block;
-            Track::block = nullptr;
-            return description;
+            return opalx::run::freeze(runCommand, track, 1);
         }
 
         fs::path directory_m;

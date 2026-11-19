@@ -19,17 +19,31 @@
 #define OPAL_TrackCmd_HH
 
 #include "AbstractObjects/Action.h"
-#include "Steppers/Steppers.h"
 
-#include <map>
+#include <vector>
 
+namespace opalx::run {
+    struct TrackDescription;
+}
+
+/**
+ * @brief The TRACK command. It stores its settings until ENDTRACK; each RUN in between reads
+ *        them with openTrack().
+ */
 class TrackCmd : public Action {
 public:
     TrackCmd();
 
     virtual ~TrackCmd();
 
+    /// Store the TRACK settings. Throws if a TRACK is already open.
     virtual void execute();
+
+    /// The settings of the TRACK that has no ENDTRACK yet; nullptr if there is none.
+    static const opalx::run::TrackDescription* openTrack();
+
+    /// Forget the open TRACK (ENDTRACK). Throws if there is none.
+    static void closeTrack();
 
     /// Return the timestep in seconds
     std::vector<double> getDT() const;
@@ -45,8 +59,6 @@ public:
 
     /// location at which the simulation stops
     std::vector<double> getZStop() const;
-
-    /// return the name of time integrator
 
 private:
     // Not implemented.

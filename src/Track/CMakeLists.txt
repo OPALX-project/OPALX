@@ -5,10 +5,8 @@ set (_SRCS
     FreezeRun.cpp
     ObjectValues.cpp
     RunDescriptionWriter.cpp
-    Track.cpp
     TrackCmd.cpp
     TrackEnd.cpp
-    TrackParser.cpp
     TrackRun.cpp
     ValidateRun.cpp
     )
@@ -23,8 +21,6 @@ set (HDRS
     RunDescriptionWriter.h
     TrackCmd.h
     TrackEnd.h
-    Track.h
-    TrackParser.h
     TrackRun.h
     ValidateRun.h
     )

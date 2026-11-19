@@ -46,6 +46,8 @@
 
 // Commands introducing a special mode.
 #include "Track/TrackCmd.h"
+#include "Track/TrackEnd.h"
+#include "Track/TrackRun.h"
 
 // Table-related commands.
 #include "Structure/Beam.h"
@@ -109,6 +111,8 @@ namespace {
         opal->addKeyword<System>();
         opal->addKeyword<Title>();
         opal->addKeyword<TrackCmd>();
+        opal->addKeyword<TrackEnd>();
+        opal->addKeyword<TrackRun>();
         opal->addKeyword<Value>();
     }
 
