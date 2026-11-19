@@ -124,8 +124,7 @@ void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, con
     const auto halfWidth   = halfWidth_m;
     const auto halfHeight  = halfHeight_m;
     const auto length      = getGeometry().getElementLength();
-    // computeField() is the field test here: [0, L) and the inclusive WIDTH/HEIGHT that the
-    // device ring path (DeviceExternalField) also uses.
+    // computeField() is the field test here: [0, L) and the inclusive WIDTH/HEIGHT.
     Kokkos::parallel_for(
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
                 computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight, length);

@@ -18,7 +18,6 @@
  * along with OPAL. If not, see https://www.gnu.org/licenses/.
  */
 #include "Algorithms/ParallelTracker.h"
-#include "AbsBeamline/VariableRFCavity.h"
 
 #include <algorithm>
 #include <array>
