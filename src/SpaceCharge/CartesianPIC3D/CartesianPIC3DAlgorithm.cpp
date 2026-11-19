@@ -132,7 +132,13 @@ namespace opalx::spacecharge {
     SolveFrame CartesianPIC3DAlgorithm::solveFrame() const {
         // TYPE=NONE computes no field: its mesh update, migration and ORB work in any frame.
         if (poissonSolver_m->capabilities().isNoOp) return SolveFrame::Reference;
-        return SolveFrame::PathLength;
+        // A cathode plane (planeZ) and fixed bounds are given in path-length coordinates.
+        if (config_m.dirichletPlane.enabled() || config_m.periodicBox > 0.0
+            || bunchState_m->fixedCartesianDomain().has_value())
+            return SolveFrame::PathLength;
+        // Open and periodic Green's functions are translation invariant; centred coordinates stay
+        // at bunch size instead of growing with the path length.
+        return SolveFrame::Centroid;
     }
 
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
