@@ -25,6 +25,7 @@
 #include "OpalParser/Parser.h"
 #include "OpalParser/Token.h"
 #include "OpalParser/TokenStream.h"
+#include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 
 #include "Utility/IpplInfo.h"
@@ -56,7 +57,11 @@ WhileStatement::WhileStatement(const Parser& parser, TokenStream& is)
             token = is.readToken();
         }
 
+        if (Options::parseOnly && level != 0)
+            throw ParseError("WhileStatement", "WHILE condition is missing ')'.");
         while_block = parser.readStatement(&is);
+        if (Options::parseOnly && !while_block)
+            throw ParseError("WhileStatement", "WHILE requires a statement.");
     } else {
         throw ParseError("WhileStatement::WhileStatement()", "Invalid \"WHILE\" statement.");
     }
