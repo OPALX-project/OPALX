@@ -533,14 +533,6 @@ public:
     /// @brief Get longitudinal position along design trajectory.
     double get_sPos() const { return sPos_m; }
 
-    /// @brief Set global-to-local rotation quaternion.
-    void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
-        globalToLocalQuaternion_m = globalToLocalQuaternion;
-    }
-
-    /// @brief Get global-to-local rotation quaternion.
-    Quaternion_t getGlobalToLocalQuaternion() const { return globalToLocalQuaternion_m; }
-
     /// @brief Get local-to-lab coordinate transformation (const).
     const CoordinateSystemTrafo& getToLabTrafo() const { return toLabTrafo_m; }
 
@@ -608,16 +600,14 @@ public:
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
     template <typename Pusher>
     void applyFractionalStep(const Pusher& pusher, double tau, double pathLengthTarget) {
+        requireReferenceFrame("ParticleContainer::applyFractionalStep");
         refPartR_m /= (Physics::c * 2 * tau);
         pusher.push(refPartR_m, refPartP_m, tau);
         refPartR_m *= (Physics::c * 2 * tau);
 
         sPos_m = pathLengthTarget;
-        toLabTrafo_m.transformFrom(refPartR_m);
-        Vector_t<double, 3> R = refPartR_m;
-        toLabTrafo_m.rotateFrom(refPartP_m);
-        Vector_t<double, 3> P = refPartP_m;
-        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        CoordinateSystemTrafo update(
+                refPartR_m, getQuaternion(refPartP_m, Vector_t<double, 3>(0, 0, 1)));
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
@@ -1035,9 +1025,6 @@ private:
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;
     Vector_t<double, Dim> refPartP_m;
-
-    // Global to local quaternion
-    Quaternion_t globalToLocalQuaternion_m;
 
     // Reference particle to lab transformation
     CoordinateSystemTrafo toLabTrafo_m;

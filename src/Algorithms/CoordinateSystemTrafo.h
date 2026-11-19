@@ -110,17 +110,10 @@ public:
     template <typename ViewType>
     void transformBunchTo(ViewType Rview, size_t nLocal) const;
 
-    /// Apply transformFrom() to a Kokkos view of particle positions.
-    template <typename ViewType>
-    void transformBunchFrom(ViewType Rview, size_t nLocal) const;
-
     /// Apply rotateTo() to a Kokkos view of vectors such as momenta.
     template <typename ViewType>
     void rotateBunchTo(ViewType Pview, size_t nLocal) const;
 
-    /// Apply rotateFrom() to a Kokkos view of vectors such as momenta.
-    template <typename ViewType>
-    void rotateBunchFrom(ViewType Pview, size_t nLocal) const;
     /* ========================================================================== */
     /* =============================== Operators ================================ */
     CoordinateSystemTrafo& operator=(const CoordinateSystemTrafo& right) = default;
@@ -218,27 +211,11 @@ inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview, size_t nLoca
 }
 
 template <typename ViewType>
-inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview, size_t nLocal) const {
-    const RigidTransform t = rigid();
-    Kokkos::parallel_for(
-            "transformBunchFrom", nLocal,
-            KOKKOS_LAMBDA(const size_t i) { Rview(i) = t.pointFrom(Rview(i)); });
-}
-
-template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview, size_t nLocal) const {
     const RigidTransform t = rigid();
     Kokkos::parallel_for(
             "rotateBunchTo", nLocal,
             KOKKOS_LAMBDA(const size_t i) { Pview(i) = t.vectorTo(Pview(i)); });
-}
-
-template <typename ViewType>
-inline void CoordinateSystemTrafo::rotateBunchFrom(ViewType Pview, size_t nLocal) const {
-    const RigidTransform t = rigid();
-    Kokkos::parallel_for(
-            "rotateBunchFrom", nLocal,
-            KOKKOS_LAMBDA(const size_t i) { Pview(i) = t.vectorFrom(Pview(i)); });
 }
 
 #endif
