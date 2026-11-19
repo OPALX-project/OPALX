@@ -187,6 +187,7 @@ void PassiveRingProbe::observe(
     if (minimumTime != maximumTime)
         throw std::runtime_error("PassiveRingProbe requires synchronized accepted times");
 
+    particles->requireReferenceFrame("PassiveRingProbe::observe");
     Kokkos::deep_copy(coordinates_m, 0.0);
     Kokkos::deep_copy(ownership_m, 0);
     const auto selectedIds  = ids_m;

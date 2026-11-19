@@ -907,6 +907,11 @@ void ParallelTracker::execute() {
                   << "." << endl;
             }
 
+            // Every frame change of this step is closed: moments, output and the next step read
+            // reference-frame data.
+            for (const auto& pc : particleContainersStep)
+                if (pc) pc->requireReferenceFrame("ParallelTracker::execute");
+
             // Enforce the transverse aperture of every nearby element (collective call).
             size_t nStepMarked = applyElementApertures(oths);
             if (nStepMarked > 0) {
@@ -1312,6 +1317,7 @@ void ParallelTracker::prepareCyclotronBunchLattice() {
 
 void ParallelTracker::advanceCyclotronParticle() {
     auto pc           = itsBunch_m->getParticleContainer();
+    pc->requireReferenceFrame("ParallelTracker::advanceCyclotronParticle");
     auto r            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
     auto p            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
     const auto& toLab = pc->getToLabTrafo();
@@ -1345,6 +1351,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         // Keep the immutable setup lazy for that transition as well as preparation.
         if (!cyclotronBunchLattice_m) prepareCyclotronBunchLattice();
         auto pc                  = itsBunch_m->getParticleContainer();
+        pc->requireReferenceFrame("ParallelTracker::timeIntegration2");
         const auto& toLab        = pc->getToLabTrafo();
         const double requestedDt = itsBunch_m->getdT();
         double actualDt          = requestedDt;
@@ -1457,6 +1464,7 @@ opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFr
         const {
     constexpr double momentumTolerance = 1e-12;
     const auto primary                 = itsBunch_m->getParticleContainer();
+    primary->requireReferenceFrame("ParallelTracker::makeSpaceChargeFrameTransforms");
     Vector_t<double, 3> meanMomentum =
             opalx::moments::compute(*primary, Moment::MeanMomentum).meanP();
     double momentumLengthSquared = dot(meanMomentum, meanMomentum);
@@ -1927,9 +1935,9 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
  * No particle is kicked here. All flags are reduced before choosing a shared dt.
  */
 bool ParallelTracker::boundaryCrossed(double dt) {
-    const auto pc     = itsBunch_m->getParticleContainer();
-    const auto& frame = pc->getToLabTrafo();
-    const auto toLab = frame.rigid();
+    const auto pc = itsBunch_m->getParticleContainer();
+    pc->requireReferenceFrame("ParallelTracker::boundaryCrossed");
+    const auto toLab = pc->getToLabTrafo().rigid();
     const auto lattice = deviceRingFields_m;
     const auto r = pc->R.getView(), p = pc->P.getView();
     const auto e = pc->E.getView(), b = pc->B.getView();

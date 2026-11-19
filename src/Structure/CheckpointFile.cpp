@@ -350,6 +350,7 @@ void CheckpointFile::write(
             h5_float64_t macroM        = qmMode != 0 ? 0.0 : pc->getMassPerParticle();
             Vector_t<double, 3> refR   = pc->getRefPartR();
             Vector_t<double, 3> refP   = pc->getRefPartP();
+            pc->requireReferenceFrame("CheckpointFile::write");
             Vector_t<double, 3> origin = pc->getToLabTrafo().getOrigin();
             Quaternion rotation        = pc->getToLabTrafo().getRotation();
             h5_float64_t quaternion[4] = {rotation(0), rotation(1), rotation(2), rotation(3)};

@@ -44,6 +44,19 @@ public:
         : ParticleFrame(kind, fromReference, fromReference.inverted(), element) {}
 
     Kind kind() const { return kind_m; }
+    const char* name() const {
+        switch (kind_m) {
+            case Kind::Reference:
+                return "reference";
+            case Kind::Element:
+                return "element";
+            case Kind::Beamline:
+                return "beamline";
+            case Kind::SpaceChargeSolve:
+                return "space-charge solve";
+        }
+        return "unknown";
+    }
     bool isReference() const { return kind_m == Kind::Reference; }
     const ElementBase* element() const { return element_m; }
     const CoordinateSystemTrafo& fromReference() const { return fromReference_m; }

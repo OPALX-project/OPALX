@@ -341,6 +341,14 @@ public:
 
     void enterReferenceFrame() { enterFrame(ParticleFrame()); }
 
+    /// @throws OpalException from @p where if the particle data is not in the reference frame.
+    void requireReferenceFrame(const std::string& where) const {
+        if (!frame().isReference())
+            throw OpalException(
+                    where, std::string("Particle data is in the ") + frame().name()
+                                   + " frame, but the reference frame is required.");
+    }
+
     /**
      * @brief Bring the local particles from index @p first on, written in @p createdIn, into
      * the current frame. The particles before @p first do not move.
@@ -539,8 +547,11 @@ public:
     /// @brief Get local-to-lab coordinate transformation.
     CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
 
-    /// @brief Set local-to-lab coordinate transformation.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
+    /// @brief Redefine the reference frame; the particle data is declared to be in it.
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
+        requireReferenceFrame("ParticleContainer::setToLabTrafo");
+        toLabTrafo_m = toLabTrafo;
+    }
 
     /**
      * @brief Advance reference/lab transform state and map bunch accordingly.
@@ -548,6 +559,7 @@ public:
      *   containers that use this container's reference can apply the same change.
      */
     CoordinateSystemTrafo updateRefToLabCSTrafo(double bunchDT) {
+        requireReferenceFrame("ParticleContainer::updateRefToLabCSTrafo");
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -588,6 +600,7 @@ public:
      * @param update Frame change @p root applied to its own particles in this step.
      */
     void followFrameOf(const ParticleContainer& root, const CoordinateSystemTrafo& update) {
+        requireReferenceFrame("ParticleContainer::followFrameOf");
         transformBunch(update);
         copyReferenceOf(root);
     }

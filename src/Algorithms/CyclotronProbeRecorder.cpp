@@ -116,6 +116,7 @@ void CyclotronProbeRecorder::initialize(
 void CyclotronProbeRecorder::observe(
         const std::shared_ptr<ParticleContainer_t>& pc, double time, short bunch, int turn) {
     if (turn < 0) throw std::invalid_argument("Negative PROBE reference turn");
+    pc->requireReferenceFrame("CyclotronProbeRecorder::observe");
     const auto positions = pc->R.getView();
     const auto momenta   = pc->P.getView();
     const auto ids       = pc->ID.getView();

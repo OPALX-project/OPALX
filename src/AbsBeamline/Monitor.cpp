@@ -158,6 +158,7 @@ void Monitor::driftToCorrectPositionAndSave(
     if (!pc) {
         return;
     }
+    pc->requireReferenceFrame("Monitor::driftToCorrectPositionAndSave");
 
     const double dt  = RefPartBunch_m->getdT();
     const double cdt = Physics::c * dt;
