@@ -54,7 +54,7 @@ namespace {
     };
 
     /// The settings of the TRACK that has no ENDTRACK yet.
-    std::optional<opalx::run::TrackDescription> openTrack_m;
+    std::optional<opalx::run::TrackDescription> openTrackSettings;
 }  // namespace
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
@@ -151,18 +151,18 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
 }
 
 const opalx::run::TrackDescription* TrackCmd::openTrack() {
-    return openTrack_m ? &*openTrack_m : nullptr;
+    return openTrackSettings ? &*openTrackSettings : nullptr;
 }
 
 void TrackCmd::closeTrack() {
-    if (!openTrack_m) {
+    if (!openTrackSettings) {
         throw OpalException("TrackCmd::closeTrack", "ENDTRACK without TRACK.");
     }
-    openTrack_m.reset();
+    openTrackSettings.reset();
 }
 
 void TrackCmd::execute() {
-    if (openTrack_m) {
+    if (openTrackSettings) {
         throw OpalException("TrackCmd::execute", "TRACK inside an open TRACK; add ENDTRACK first.");
     }
 
@@ -209,11 +209,11 @@ void TrackCmd::execute() {
         zstop.push_back(zstop.back());
     }
 
-    track.dT         = dt;
-    track.maxSteps   = maxsteps;
-    track.zStop      = zstop;
-    track.zStopGiven = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
-    track.zStart     = getZStart();
-    track.t0         = getT0();
-    openTrack_m      = std::move(track);
+    track.dT          = dt;
+    track.maxSteps    = maxsteps;
+    track.zStop       = zstop;
+    track.zStopGiven  = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
+    track.zStart      = getZStart();
+    track.t0          = getT0();
+    openTrackSettings = std::move(track);
 }
