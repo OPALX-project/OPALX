@@ -53,6 +53,9 @@ public:
 
     virtual ElementType getType() const override;
 
+    /// apply(pc) is the no-op base; the tracker skips it and its transform.
+    ElementFrame fieldFrame() const override { return ElementFrame::None; }
+
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual int getRequiredNumberOfTimeSteps() const override;

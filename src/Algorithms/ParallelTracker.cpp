@@ -87,6 +87,8 @@ namespace {
                  << ", angle=" << std::fixed << std::setprecision(3) << angleDegrees << " [deg]";
         return progress.str();
     }
+
+    bool isMonitor(const ElementBase& element) { return element.getType() == ElementType::MONITOR; }
 }  // namespace
 
 // --- Constructors ---
@@ -1597,22 +1599,20 @@ void ParallelTracker::computeExternalFields(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
+    const auto apply = [](const auto& element, const auto& pc) { element->apply(pc); };
     forEachElementInBunchFrame(
             oths,
-            [this](const std::shared_ptr<ElementBase>& element,
-                   const std::shared_ptr<ParticleContainer_t>& pc) {
+            [this](const ElementBase& element) {
                 // Trial steps must not append monitor records.
-                if (!spatialRing_m || element->getType() != ElementType::MONITOR)
-                    element->apply(pc);
+                return element.fieldFrame() == ElementFrame::Local
+                       && (!spatialRing_m || element.getType() != ElementType::MONITOR);
             },
-            spatialRing_m);
+            apply, spatialRing_m);
 
     if (spatialRing_m && !boundaryControlled_m) {
         // Monitors predict a crossing during dt; unlike field support, their
         // selection must include nearby planes outside the current midpoint.
-        forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
-            if (element->getType() == ElementType::MONITOR) element->apply(pc);
-        });
+        forEachElementInBunchFrame(oths, isMonitor, apply);
     }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
@@ -1623,104 +1623,96 @@ void ParallelTracker::computeExternalFields(
  */
 void ParallelTracker::forEachElementInBunchFrame(
         const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-        const std::function<void(
-                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
-                func) {
-    forEachElementInBunchFrame(oths, func, false);
-}
-
-void ParallelTracker::forEachElementInBunchFrame(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        const std::function<bool(const ElementBase&)>& selects,
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func,
         bool spatialCandidates) {
+    for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
+        const auto pc = itsBunch_m->getParticleContainer(ci);
+        for (const auto& element : candidateElements(oths, ci, spatialCandidates)) {
+            if (!selects(*element)) continue;
+            pc->enterFrame(elementFrame(element, *pc));
+            func(element, pc);
+        }
+        if (pc) pc->enterReferenceFrame();
+    }
+}
+
+/**
+ * @copybrief ParallelTracker::candidateElements
+ */
+std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths, size_t ci,
+        bool spatialCandidates) {
+    const auto pc = itsBunch_m->getParticleContainer(ci);
+    // Each container queries its own species' threaded orbit / IndexMap.
+    if (!itsBunch_m->isPcActive(ci) || !pc || ci >= oths.size() || !oths[ci]) {
+        return {};
+    }
     const auto cyclotronSectors =
             ringPeriod_m > 0 ? itsOpalBeamline_m.getElementByType(ElementType::CYCLOTRONSECTOR)
                              : ElementList{};
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (!itsBunch_m->isPcActive(ci)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc) {
-            continue;
-        }
-        // Each container queries its own species' threaded orbit / IndexMap.
-        if (ci >= oths.size() || !oths[ci]) {
-            continue;
-        }
 
-        // Bunch bounds for this container; an empty container queries the path length itself.
-        // The spatial candidate search reads them only to select cyclotron sectors.
-        Vector_t<double, 3> rmin(0.0), rmax(0.0);
-        if (pc->getTotalNum() > 0 && (!spatialCandidates || !cyclotronSectors.empty())) {
-            const auto bounds = opalx::moments::compute(*pc, Moment::Bounds);
-            rmin              = bounds.minR();
-            rmax              = bounds.maxR();
-        }
-
-        // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
-        // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
-        // approximation: local-Z adds linearly to the path length s (exact only for a straight
-        // reference path).
-        IndexMap::value_t elements;
-        if (spatialCandidates) {
-            // Conservative spatial candidate set for curved trajectories. The
-            // existing per-element device kernels apply their exact support test.
-            const auto all     = itsOpalBeamline_m.getElements();
-            const auto lattice = deviceRingFields_m;
-            Kokkos::View<int*> active("Boris::activeElements", all.size());
-            const auto r      = pc->R.getView();
-            const auto& frame = pc->getToLabTrafo();
-            const auto toLab = frame.rigid();
-            Kokkos::parallel_for(
-                    "Boris::spatialCandidates", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
-                        const auto lab = toLab.pointTo(r(i));
-                        for (size_t j = 0; j < lattice.elements.extent(0); ++j)
-                            if (lattice.elements(j).contains(lab))
-                                Kokkos::atomic_exchange(&active(j), 1);
-                    });
-            auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), active);
-            // Element application and frame changes operate on local particles
-            // only. Keep these flags local: this pointer-ordered element set
-            // has no common index across MPI ranks. The timestep decision is
-            // separately collective in boundaryCrossed().
-            size_t j = 0;
-            for (const auto& element : all) {
-                if (host(j++)) elements.insert(element);
-            }
-        } else
-            try {
-                const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-                elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
-            } catch (IndexMap::OutOfBounds& e) {
-                globalEOL_m = true;
-                continue;
-            }
-
-        // The threader's measured first-turn period is not TRACK's orbit or
-        // every physical particle's orbit. Select mapped sectors spatially at
-        // the current midpoint, even when their path-index membership differs.
-        if (!cyclotronSectors.empty())
-            elements = device_external::selectCyclotronCandidates(
-                    cyclotronSectors, pc->getToLabTrafo(), rmin, rmax, std::move(elements));
-
-        // Frame round trips do not commute exactly in floating point. Use the
-        // prepared occurrence order for spatial cyclotron callbacks as well as
-        // bare analytic rings; include apertures, which also transform live data.
-        const auto ordered =
-                (!cyclotronSectors.empty() || (spatialRing_m && bareTracking_m))
-                        ? device_external::orderedCandidates(itsOpalBeamline_m, elements)
-                        : std::vector<std::shared_ptr<ElementBase>>(
-                                  elements.begin(), elements.end());
-        for (const auto& element : ordered) {
-            pc->enterFrame(elementFrame(element, *pc));
-            func(element, pc);
-            pc->enterReferenceFrame();
-        }
+    // Bunch bounds for this container; an empty container queries the path length itself.
+    // The spatial candidate search reads them only to select cyclotron sectors.
+    Vector_t<double, 3> rmin(0.0), rmax(0.0);
+    if (pc->getTotalNum() > 0 && (!spatialCandidates || !cyclotronSectors.empty())) {
+        const auto bounds = opalx::moments::compute(*pc, Moment::Bounds);
+        rmin              = bounds.minR();
+        rmax              = bounds.maxR();
     }
+
+    // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
+    // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
+    // approximation: local-Z adds linearly to the path length s (exact only for a straight
+    // reference path).
+    IndexMap::value_t elements;
+    if (spatialCandidates) {
+        // Conservative spatial candidate set for curved trajectories. The
+        // existing per-element device kernels apply their exact support test.
+        const auto all     = itsOpalBeamline_m.getElements();
+        const auto lattice = deviceRingFields_m;
+        Kokkos::View<int*> active("Boris::activeElements", all.size());
+        const auto r       = pc->R.getView();
+        const auto toLab   = pc->getToLabTrafo().rigid();
+        Kokkos::parallel_for(
+                "Boris::spatialCandidates", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
+                    const auto lab = toLab.pointTo(r(i));
+                    for (size_t j = 0; j < lattice.elements.extent(0); ++j)
+                        if (lattice.elements(j).contains(lab))
+                            Kokkos::atomic_exchange(&active(j), 1);
+                });
+        auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), active);
+        // Element application and frame changes operate on local particles
+        // only. Keep these flags local: this pointer-ordered element set
+        // has no common index across MPI ranks. The timestep decision is
+        // separately collective in boundaryCrossed().
+        size_t j = 0;
+        for (const auto& element : all) {
+            if (host(j++)) elements.insert(element);
+        }
+    } else
+        try {
+            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+            elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
+        } catch (IndexMap::OutOfBounds& e) {
+            globalEOL_m = true;
+            return {};
+        }
+
+    // The threader's measured first-turn period is not TRACK's orbit or
+    // every physical particle's orbit. Select mapped sectors spatially at
+    // the current midpoint, even when their path-index membership differs.
+    if (!cyclotronSectors.empty())
+        elements = device_external::selectCyclotronCandidates(
+                cyclotronSectors, pc->getToLabTrafo(), rmin, rmax, std::move(elements));
+
+    // Frame changes do not commute exactly in floating point. Use the prepared occurrence order
+    // for spatial cyclotron callbacks as well as bare analytic rings.
+    if (!cyclotronSectors.empty() || (spatialRing_m && bareTracking_m))
+        return device_external::orderedCandidates(itsOpalBeamline_m, elements);
+    return {elements.begin(), elements.end()};
 }
 
 ParticleFrame ParallelTracker::beamlineFrame(const ParticleContainer_t& pc) const {
@@ -1747,9 +1739,10 @@ size_t ParallelTracker::applyElementApertures(
     if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
     forEachElementInBunchFrame(
-            oths, [&localMarked](
-                          const std::shared_ptr<ElementBase>& element,
-                          const std::shared_ptr<ParticleContainer_t>& pc) {
+            oths, [](const ElementBase&) { return true; },
+            [&localMarked](
+                    const std::shared_ptr<ElementBase>& element,
+                    const std::shared_ptr<ParticleContainer_t>& pc) {
                 // Marks are flushed by the single end-of-step deletion in execute().
                 localMarked += element->markOutsideAperture(pc);
             });
@@ -2038,9 +2031,10 @@ void ParallelTracker::prepareBoundaryStep(
         const bool crossed = boundaryCrossed(boundaryStepDt_m);
         if (!schedule.canSplit() || !crossed) {
             // Commit passive diagnostics exactly once at the accepted midpoint.
-            forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
-                if (element->getType() == ElementType::MONITOR) element->apply(pc);
-            });
+            forEachElementInBunchFrame(
+                    oths, isMonitor, [](const auto& element, const auto& pc) {
+                        element->apply(pc);
+                    });
             return;
         }
         reverseTrialDrift(boundaryStepDt_m);

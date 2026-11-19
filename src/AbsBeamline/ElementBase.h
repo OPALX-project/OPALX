@@ -95,6 +95,12 @@ struct BeamlineMembership {
 
 enum class ApertureType : unsigned short { RECTANGULAR, ELLIPTICAL };
 
+/// Frame in which an element callback needs the particle data.
+enum class ElementFrame : unsigned char {
+    None,  ///< The callback leaves the particles untouched; the tracker neither calls nor moves.
+    Local  ///< Element-local coordinates, misalignment included.
+};
+
 /**
  * @brief Stateless, device-callable aperture functions.
  */
@@ -387,8 +393,18 @@ public:
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
+     *
+     * The particles are in the frame fieldFrame() requests.
      */
     virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc);
+
+    /**
+     * @brief Frame that apply(pc) needs; the tracker moves the particles there before the call.
+     *
+     * Return ElementFrame::None only while apply(pc) is the no-op of this base class: the tracker
+     * then skips both the call and the transform. The default keeps a new element correct.
+     */
+    virtual ElementFrame fieldFrame() const { return ElementFrame::Local; }
 
     /**
      * @brief Apply to particle with position R and momentum P

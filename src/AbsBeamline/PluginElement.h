@@ -50,7 +50,8 @@ public:
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
     ///@}
     ///@{ Virtual implementation of Component
-    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    /// apply(pc) is the no-op base; the tracker skips it and its transform.
+    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,

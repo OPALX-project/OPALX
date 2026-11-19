@@ -58,6 +58,9 @@ public:
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
 
+    /// apply(pc) is the no-op base; the tracker skips it and its transform.
+    ElementFrame fieldFrame() const override { return ElementFrame::None; }
+
     /** @brief Return the minimum number of time steps required by this passive element. */
     int getRequiredNumberOfTimeSteps() const override;
 

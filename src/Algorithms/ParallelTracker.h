@@ -388,15 +388,25 @@ public:
     ///             containers share one) used for element queries.
     void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
-    /// @brief Call func for each element intersecting each active container, with the
-    ///        container transformed into the element-local frame.
-    /// @param oths Per-container orbit threaders used for element queries.
-    /// @param func Called per (element, container) pair in the element-local frame.
+    /**
+     * @brief Call @p func for each selected element intersecting each active container, with
+     * the container in that element's local frame.
+     *
+     * The container goes from one selected element's frame directly to the next and returns to
+     * its reference frame after its last element, so no frame outlives the call. Unselected
+     * elements cost no transform.
+     *
+     * @param oths Per-container orbit threaders used for element queries.
+     * @param selects Whether @p func runs for an element.
+     * @param spatialCandidates Select candidates by lab position instead of path length.
+     */
     void forEachElementInBunchFrame(
             const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<bool(const ElementBase&)>& selects,
             const std::function<
                     void(const std::shared_ptr<ElementBase>&,
-                         const std::shared_ptr<ParticleContainer_t>&)>& func);
+                         const std::shared_ptr<ParticleContainer_t>&)>& func,
+            bool spatialCandidates = false);
 
     /**
      * @brief Internal boundary-controlled device tracking helpers.
@@ -416,12 +426,10 @@ public:
     bool boundaryCrossed(double dt);
     void reverseTrialDrift(double dt);
 
-    /// Internal candidate-selection policy; the public two-argument API is unchanged.
-    void forEachElementInBunchFrame(
-            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-            const std::function<
-                    void(const std::shared_ptr<ElementBase>&,
-                         const std::shared_ptr<ParticleContainer_t>&)>& func,
+    /// Elements intersecting container @p ci in application order; empty for an inactive
+    /// container or past the end of the threaded orbit (which sets globalEOL_m).
+    std::vector<std::shared_ptr<ElementBase>> candidateElements(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths, size_t ci,
             bool spatialCandidates);
 
     /// Beamline (emission source) frame for the particles of @p pc.
