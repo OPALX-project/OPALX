@@ -259,7 +259,8 @@ void ElementBase::apply(
     // bool overload performed here only produced the (unused) return value.
 }
 
-size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t ElementBase::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -291,10 +292,10 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
                 // z-window [zBegin, zEnd), matching isInside; z is measured in
                 // the element-local frame.
-                const bool inZ = Rview(i)[2] >= zBegin && Rview(i)[2] < zEnd;
-                const bool hit = inZ
-                                 && !ApertureHelper::isInsideAperture(
-                                         Rview(i)[0], Rview(i)[1], type, xLimit, yLimit);
+                const auto r   = toLocal.pointTo(Rview(i));
+                const bool inZ = r[2] >= zBegin && r[2] < zEnd;
+                const bool hit =
+                        inZ && !ApertureHelper::isInsideAperture(r[0], r[1], type, xLimit, yLimit);
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;

@@ -362,7 +362,7 @@ TEST_F(FieldmapElementTest, ScrapingFollowsTheOffsetFieldWindow) {
 
     // Only the middle one is inside the field window, so only it is scraped. Gating on [0, L)
     // instead would have caught the first and missed the second.
-    EXPECT_EQ(element.markOutsideAperture(pc), 1u);
+    EXPECT_EQ(element.markOutsideAperture(pc, {}), 1u);
 
     auto invalid     = pc->InvalidMask.getView();
     auto hostInvalid = Kokkos::create_mirror_view(invalid);

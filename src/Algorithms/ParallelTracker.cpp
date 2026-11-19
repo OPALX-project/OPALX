@@ -1738,14 +1738,15 @@ size_t ParallelTracker::applyElementApertures(
     // The restricted sector/gap path checks its own field support during stepping.
     if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
-    forEachElementInBunchFrame(
-            oths, [](const ElementBase&) { return true; },
-            [&localMarked](
-                    const std::shared_ptr<ElementBase>& element,
-                    const std::shared_ptr<ParticleContainer_t>& pc) {
-                // Marks are flushed by the single end-of-step deletion in execute().
-                localMarked += element->markOutsideAperture(pc);
-            });
+    for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
+        const auto pc = itsBunch_m->getParticleContainer(ci);
+        for (const auto& element : candidateElements(oths, ci, false)) {
+            // The check reads local positions in its kernel; the particles stay where they are.
+            // Marks are flushed by the single end-of-step deletion in execute().
+            const auto toLocal = pc->frame().to(elementFrame(element, *pc)).rigid();
+            localMarked += element->markOutsideAperture(pc, toLocal);
+        }
+    }
 
     size_t globalMarked = 0;
     ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());

@@ -179,7 +179,8 @@ bool MultipoleT::isInside(const Vector_t<double, 3>& r) const {
     return arc(2) >= zBegin && arc(2) < zEnd && ApertureHelper::isInsideAperture(arc, aperture_m);
 }
 
-size_t MultipoleT::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t MultipoleT::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -205,7 +206,8 @@ size_t MultipoleT::markOutsideAperture(const std::shared_ptr<ParticleContainer_t
                 // The aperture belongs to the body, so the window is the geometric body
                 // [0, L) in arc coordinates, not the wider field extent used by isInside().
                 const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
+                        GeometryHelper::toBendArcCoords(
+                                toLocal.pointTo(Rview(i)), curvature, bodyLength);
 
                 const bool inZ = arc(2) >= 0.0 && arc(2) < bodyLength;
                 const bool hit =

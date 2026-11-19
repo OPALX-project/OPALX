@@ -451,17 +451,19 @@ public:
      * @brief Mark local particles inside the element's longitudinal window but
      * outside its transverse aperture in pc->InvalidMask.
      *
-     * Called by ParallelTracker::applyElementApertures with the bunch in the
-     * element-local frame. ORs into InvalidMask and never clears existing
-     * marks; the tracker's end-of-step deletion flushes all marks. The
-     * z-window is [startZ, startZ + L) from getGeometry().getStartZ() and
+     * Called by ParallelTracker::applyElementApertures. The kernel reads the element-local
+     * position through @p toLocal; the stored particles do not change frame. ORs into
+     * InvalidMask and never clears existing marks; the tracker's end-of-step deletion flushes
+     * all marks. The z-window is [startZ, startZ + L) from getGeometry().getStartZ() and
      * getGeometry().getElementLength(), since the aperture is a geometric property of the
      * element.
      * No-op when getFlagDeleteOnTransverseExit() is false.
      *
+     * @param toLocal Transform from the particles' current frame to the element-local frame.
      * @return local number of newly marked particles
      */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal);
 
     // Design energy for elements such as RF-cavities
     virtual double getDesignEnergy() const;

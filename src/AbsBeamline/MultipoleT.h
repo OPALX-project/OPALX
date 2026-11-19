@@ -222,7 +222,9 @@ public:
      */
     bool isInside(const Vector_t<double, 3>& r) const override;
     /** Mark every particle that leaves the aperture inside the body, in arc coordinates */
-    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc,
+            const RigidTransform& toLocal) override;
     /** Apply the field to the reference particle.
      *
      *  @return true if the particle is outside the aperture inside the field extent.

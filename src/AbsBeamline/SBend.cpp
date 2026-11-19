@@ -115,7 +115,8 @@ bool SBend::applyToReferenceParticle(
     return false;
 }
 
-size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t SBend::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -145,7 +146,8 @@ size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc
                 // Convert (x,y,z) -> (x,y,arc s): the z-window and the aperture
                 // are measured relative to the design orbit, matching isInside.
                 const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
+                        GeometryHelper::toBendArcCoords(
+                                toLocal.pointTo(Rview(i)), curvature, bodyLength);
 
                 const bool inZ = arc(2) >= zBegin && arc(2) < zEnd;
                 const bool hit =
