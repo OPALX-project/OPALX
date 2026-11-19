@@ -26,7 +26,8 @@ public:
     /**
      * @brief Persistent fixed bounds for CartesianPIC3D solves.
      *
-     * Bounds use metres in the CartesianPIC3D solve frame. This state is bunch-wide rather than
+     * Bounds use metres in the CartesianPIC3D path-length solve frame (SolveFrame::PathLength).
+     * This state is bunch-wide rather than
      * tied to a particle container, and remains active until explicitly cleared.
      */
     struct FixedCartesianDomainState {

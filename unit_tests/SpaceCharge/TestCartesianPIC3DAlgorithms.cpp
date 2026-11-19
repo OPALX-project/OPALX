@@ -296,6 +296,33 @@ namespace opalx::spacecharge {
             }
         };
 
+        TEST_F(CartesianPIC3DAlgorithmsTest, SolveFrameFollowsConfiguration) {
+            EXPECT_EQ(Run(config()).algorithm->solveFrame(), SolveFrame::Centroid);
+
+            auto none    = config();
+            none.backend = PoissonSolverType::None;
+            EXPECT_EQ(Run(none).algorithm->solveFrame(), SolveFrame::Reference);
+
+            auto plane           = config();
+            plane.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge};
+            EXPECT_EQ(Run(plane).algorithm->solveFrame(), SolveFrame::PathLength);
+
+            // PERIODICBOX bounds stay in path-length coordinates, also without a field solve.
+            for (const auto backend : {PoissonSolverType::PeriodicFFT, PoissonSolverType::None}) {
+                auto box    = config();
+                box.backend = backend;
+                box.boundaryConditions.fill(FieldBoundaryCondition::Periodic);
+                box.periodicBox = 0.1;
+                EXPECT_EQ(Run(box).algorithm->solveFrame(), SolveFrame::PathLength);
+            }
+
+            Run fixed(config());
+            fixed.state->setFixedCartesianDomain({-0.1, -0.1, -0.1}, {0.1, 0.1, 0.1});
+            EXPECT_EQ(fixed.algorithm->solveFrame(), SolveFrame::PathLength);
+            fixed.state->clearFixedCartesianDomain();
+            EXPECT_EQ(fixed.algorithm->solveFrame(), SolveFrame::Centroid);
+        }
+
         TEST_F(CartesianPIC3DAlgorithmsTest, ShiftedGreenWorksWithEitherKernelWithoutBinning) {
             for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
                 auto wholeConfig           = config();

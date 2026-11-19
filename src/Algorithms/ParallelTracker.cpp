@@ -704,8 +704,8 @@ void ParallelTracker::execute() {
                 if (!boundarySchedule || boundarySchedule->done()) {
                     const auto refR = particleContainers.front()->getRefPartR();
                     const auto refP = particleContainers.front()->getRefPartP();
-                    // The supported ring solve frame is centred on the
-                    // tracking origin; it has no accumulated-path translation.
+                    // Support trials compare lab positions, whose scale is the
+                    // distance from the tracking origin.
                     const double coordinateScale = euclidean_norm(refR);
                     const double floor           = boris_step::positionTimeFloor(
                             coordinateScale,
@@ -1469,13 +1469,9 @@ ParticleFrame ParallelTracker::makeSpaceChargeFrame(opalx::spacecharge::SolveFra
     const auto moments  = opalx::moments::compute(
             *primary, centroid ? Moment::MeanPosition | Moment::MeanMomentum
                                 : opalx::moments::Request(Moment::MeanMomentum));
-    // A bare boundary-controlled ring keeps its particles near the tracking origin instead of
-    // translating a microscopic bunch by the ever-growing sPos; that round trip quantizes R and
-    // biases repeated boundary trials.
-    const double pathOrigin = boundaryControlled_m ? 0.0 : primary->get_sPos();
     return opalx::spacecharge::makeSolveFrame(
             request, centroid ? moments.meanR() : Vector_t<double, 3>(0.0), moments.meanP(),
-            primary->getRefPartP(), pathOrigin);
+            primary->getRefPartP(), primary->get_sPos());
 }
 
 ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
