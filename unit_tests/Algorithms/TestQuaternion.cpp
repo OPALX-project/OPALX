@@ -378,6 +378,21 @@ TEST_F(QuaternionTest, GetQuaternionResolvesNearAntiparallelAngles) {
     }
 }
 
+TEST_F(QuaternionTest, GetQuaternionExactlyAntiparallelIsDeterministic) {
+    // Every MPI rank builds the solve frame on its own; an exact half turn must not depend on a
+    // random axis.
+    for (const auto& u : {ippl::Vector<double, 3>(0, 0, 1), ippl::Vector<double, 3>(1, 2, 3)}) {
+        const ippl::Vector<double, 3> ref = -1.0 * u;
+        const Quaternion first = getQuaternion(u, ref), second = getQuaternion(u, ref);
+        EXPECT_TRUE(first.isUnit());
+        for (unsigned d = 0; d < 4; ++d)
+            EXPECT_EQ(first(d), second(d));
+        const auto rotated = first.rotate(u);
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(rotated(d), ref(d), 1e-14);
+    }
+}
+
 TEST_F(QuaternionTest, GetQuaternionPreservesParallelTolerance) {
     const ippl::Vector<double, 3> u(0.0, 0.0, 1.0);
     const ippl::Vector<double, 3> ref(5e-13, 0.0, 1.0);
