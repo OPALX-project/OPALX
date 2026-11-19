@@ -122,8 +122,7 @@ void CyclotronProbeRecorder::observe(
     const auto charge    = pc->getQView();
     const auto mass      = pc->getMView();
     const bool sharedQM = pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::SingleValue;
-    const auto origin   = pc->getToLabTrafo().getOrigin();
-    const auto rotation = pc->getToLabTrafo().getRotationMatrix();
+    const auto toLab = pc->getToLabTrafo().rigid();
     if (hits_m.extent(0) < pc->getLocalNum())
         hits_m = Kokkos::View<cyclotron_probe::detail::Hit*>(
                 "PROBE compact hits", pc->getLocalNum());
@@ -139,9 +138,8 @@ void CyclotronProbeRecorder::observe(
                 "PROBE accepted endpoints", pc->getLocalNum(),
                 KOKKOS_LAMBDA(std::size_t i, int& errors) {
                     cyclotron_probe::Endpoint endpoint;
-                    const cyclotron_probe::Vector offset = positions(i) - origin;
-                    endpoint.position                    = prod_vector(rotation, offset);
-                    endpoint.momentum                    = prod_vector(rotation, momenta(i));
+                    endpoint.position = toLab.pointTo(positions(i));
+                    endpoint.momentum = toLab.vectorTo(momenta(i));
                     endpoint.time                        = time;
                     cyclotron_probe::Sample sample;
                     const auto status =

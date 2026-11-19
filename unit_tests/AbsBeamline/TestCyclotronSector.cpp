@@ -317,7 +317,7 @@ namespace {
         auto sectors    = Kokkos::create_mirror_view(lattice.sectors);
         auto gaps       = Kokkos::create_mirror_view(lattice.gaps);
         const CoordinateSystemTrafo identity;
-        const device_external::Rigid frame{identity.getOrigin(), identity.getRotationMatrix()};
+        const auto frame = identity.rigid();
         const Vector_t<double, 3> start(.02, .001, .25), momentum(.01, .002, .4);
         const CoordinateSystemTrafo plane(Vector_t<double, 3>(0, 0, .2502), Quaternion());
         sectors(0) = {frame, sector.deviceField()};

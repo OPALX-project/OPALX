@@ -71,23 +71,7 @@ namespace device_external {
             const ElementList& sectors, const CoordinateSystemTrafo& toLab, const Vector& minimum,
             const Vector& maximum, std::set<std::shared_ptr<ElementBase>> mapped);
 
-    /// Device value representation of CoordinateSystemTrafo (parent -> local).
-    struct Rigid {
-        Vector origin = Vector(0);
-        matrix3x3_t rotation;
-        KOKKOS_INLINE_FUNCTION Vector pointTo(const Vector& r) const {
-            return prod_vector(rotation, Vector(r - origin));
-        }
-        KOKKOS_INLINE_FUNCTION Vector pointFrom(const Vector& r) const {
-            return Vector(prod_vector_transpose(rotation, r) + origin);
-        }
-        KOKKOS_INLINE_FUNCTION Vector vectorTo(const Vector& p) const {
-            return prod_vector(rotation, p);
-        }
-        KOKKOS_INLINE_FUNCTION Vector vectorFrom(const Vector& p) const {
-            return prod_vector_transpose(rotation, p);
-        }
-    };
+    using Rigid = RigidTransform;
 
     /** Explicit mapped-cyclotron capability, separate from analytic Builder.
      * Descriptors borrow immutable device map storage and perform no host calls.

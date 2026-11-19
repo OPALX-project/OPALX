@@ -195,8 +195,7 @@ void PassiveRingProbe::observe(
     const auto ids          = particles->ID.getView();
     const auto positions    = particles->R.getView();
     const auto momenta      = particles->P.getView();
-    const auto origin       = particles->getToLabTrafo().getOrigin();
-    const auto rotation     = particles->getToLabTrafo().getRotationMatrix();
+    const auto toLab        = particles->getToLabTrafo().rigid();
     const std::size_t count = config_m.ids.size();
     Kokkos::parallel_for(
             "passive selected endpoint gather", particles->getLocalNum(),
@@ -213,9 +212,8 @@ void PassiveRingProbe::observe(
                 // Only the first local owner writes; duplicates are errors after the
                 // reduction, without a concurrent-write data race in the meantime.
                 if (Kokkos::atomic_fetch_add(&ownership(first), 1) != 0) return;
-                const passive_probe::Vector offset = positions(i) - origin;
-                const auto position                = prod_vector(rotation, offset);
-                const auto momentum                = prod_vector(rotation, momenta(i));
+                const auto position = toLab.pointTo(positions(i));
+                const auto momentum = toLab.vectorTo(momenta(i));
                 for (unsigned d = 0; d < 3; ++d) {
                     coordinates(6 * first + d)     = position(d);
                     coordinates(6 * first + 3 + d) = momentum(d);

@@ -1281,7 +1281,7 @@ void ParallelTracker::prepareCyclotronBunchLattice() {
     for (const auto& element : itsOpalBeamline_m.getElements()) {
         const auto frame =
                 element->getMisalignment() * itsOpalBeamline_m.getCSTrafoLab2Local(element);
-        const device_external::Rigid rigid{frame.getOrigin(), frame.getRotationMatrix()};
+        const auto rigid = frame.rigid();
         if (auto* sector = dynamic_cast<CyclotronSector*>(element.get()))
             sectors.push_back({rigid, sector->deviceField()});
         else if (auto* gap = dynamic_cast<RFCavity*>(element.get()); gap && gap->isCyclotronGap())
@@ -1349,7 +1349,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         const auto lattice       = *cyclotronBunchLattice_m;
         const auto r = pc->R.getView(), p = pc->P.getView(), e = pc->E.getView(),
                    b = pc->B.getView();
-        const device_external::Rigid frame{toLab.getOrigin(), toLab.getRotationMatrix()};
+        const auto frame = toLab.rigid();
         const double time = itsBunch_m->getT(), mass = pc->getReference()->getM();
         const bool charged          = !bareTracking_m;
         const bool terminalEndpoint = energyTargetReached_m;
@@ -1674,7 +1674,7 @@ void ParallelTracker::forEachElementInBunchFrame(
             Kokkos::View<int*> active("Boris::activeElements", all.size());
             const auto r      = pc->R.getView();
             const auto& frame = pc->getToLabTrafo();
-            const device_external::Rigid toLab{frame.getOrigin(), frame.getRotationMatrix()};
+            const auto toLab = frame.rigid();
             Kokkos::parallel_for(
                     "Boris::spatialCandidates", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
                         const auto lab = toLab.pointTo(r(i));
@@ -1721,6 +1721,12 @@ void ParallelTracker::forEachElementInBunchFrame(
             pc->enterReferenceFrame();
         }
     }
+}
+
+ParticleFrame ParallelTracker::beamlineFrame(const ParticleContainer_t& pc) const {
+    return ParticleFrame(
+            ParticleFrame::Kind::Beamline,
+            itsOpalBeamline_m.getCSTrafoLab2Local() * pc.getToLabTrafo());
 }
 
 ParticleFrame ParallelTracker::elementFrame(
@@ -1772,9 +1778,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
-        pc->enterFrame(ParticleFrame(
-                ParticleFrame::Kind::Beamline,
-                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo()));
+        pc->enterFrame(beamlineFrame(*pc));
         if (ci < emittingSamplers_m.size()) {
             for (const auto& sampler : emittingSamplers_m[ci]) {
                 if (sampler) {
@@ -1893,10 +1897,8 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
             continue;
         }
 
-        const CoordinateSystemTrafo refToSource =
-                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
-        const matrix3x3_t rotation       = refToSource.getRotationMatrix();
-        const Vector_t<double, 3> origin = refToSource.getOrigin();
+        // Read source-frame coordinates in the kernel; the particles stay where they are.
+        const auto toSource = pc->frame().to(beamlineFrame(*pc)).rigid();
 
         auto Rview   = pc->R.getView();
         auto Pview   = pc->P.getView();
@@ -1907,12 +1909,8 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
         Kokkos::parallel_reduce(
                 "ParallelTracker::markBackwardParticlesAtSourcePlane", nLocal,
                 KOKKOS_LAMBDA(const size_type i, size_type& count) {
-                    Vector_t<double, 3> delta(0.0);
-                    for (unsigned d = 0; d < 3; ++d) {
-                        delta[d] = Rview(i)[d] - origin[d];
-                    }
-                    const Vector_t<double, 3> localR = prod_vector(rotation, delta);
-                    const Vector_t<double, 3> localP = prod_vector(rotation, Pview(i));
+                    const Vector_t<double, 3> localR = toSource.pointTo(Rview(i));
+                    const Vector_t<double, 3> localP = toSource.vectorTo(Pview(i));
                     const bool backwards   = localR[2] <= sourceLossPlaneZ && localP[2] < 0.0;
                     const bool newlyMarked = backwards && !invalid(i);
                     invalid(i)             = invalid(i) || backwards;
@@ -1935,7 +1933,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
 bool ParallelTracker::boundaryCrossed(double dt) {
     const auto pc     = itsBunch_m->getParticleContainer();
     const auto& frame = pc->getToLabTrafo();
-    const device_external::Rigid toLab{frame.getOrigin(), frame.getRotationMatrix()};
+    const auto toLab = frame.rigid();
     const auto lattice = deviceRingFields_m;
     const auto r = pc->R.getView(), p = pc->P.getView();
     const auto e = pc->E.getView(), b = pc->B.getView();

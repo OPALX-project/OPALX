@@ -424,6 +424,9 @@ public:
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
 
+    /// Beamline (emission source) frame for the particles of @p pc.
+    ParticleFrame beamlineFrame(const ParticleContainer_t& pc) const;
+
     /// Local frame of @p element, misalignment included, for the particles of @p pc.
     ParticleFrame elementFrame(
             const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const;

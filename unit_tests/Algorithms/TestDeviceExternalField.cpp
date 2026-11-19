@@ -295,7 +295,7 @@ TEST_F(DeviceExternalFieldTest, FrameTransformAndReverseDriftStayOnDevice) {
     device_external::Lattice lattice;
     const CoordinateSystemTrafo frame(
             Vector(1, 2, 3), Quaternion(std::cos(0.3), 0., std::sin(0.3), 0.));
-    const device_external::Rigid deviceFrame{frame.getOrigin(), frame.getRotationMatrix()};
+    const auto deviceFrame = frame.rigid();
     Kokkos::View<Vector*> r("r", 1), p("p", 1), e("e", 1), b("b", 1);
     const Vector start(0.01, 0.02, 0.03), momentum(0.1, 0.2, 1.);
     Kokkos::deep_copy(r, start);

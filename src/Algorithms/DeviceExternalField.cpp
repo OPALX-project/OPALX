@@ -148,9 +148,7 @@ device_external::Lattice device_external::Builder::build(OpalBeamline& beamline)
         auto& out = host(index++);
         if (const auto* reason = unsupportedReason(*element))
             throw OpalException("DeviceExternalField", std::string(reason) + element->getName());
-        const auto frame   = beamline.getCSTrafoLab2Local(element);
-        out.frame.origin   = frame.getOrigin();
-        out.frame.rotation = frame.getRotationMatrix();
+        out.frame = beamline.getCSTrafoLab2Local(element).rigid();
         element->getFieldExtent(out.begin, out.end);
         const auto aperture = element->getAperture();
         out.aperture        = aperture.first;
