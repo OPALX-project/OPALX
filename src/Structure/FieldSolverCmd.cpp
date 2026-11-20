@@ -20,6 +20,8 @@
 //
 #include "Structure/FieldSolverCmd.h"
 
+#include <cmath>
+
 #include <map>
 
 #include "AbstractObjects/Element.h"
@@ -87,10 +89,33 @@ FieldSolverCmd::FieldSolverCmd()
             "2/cutoff); used unless RCUT is given.",
             2.0);
 
+    itsAttr[FIELDSOLVER::REPEATS] = Attributes::makeReal(
+            "REPEATS",
+            "Copies of the bunch field on each side along the beam axis, as for a train of "
+            "identical bunches spaced by REPEAT_SPACING; TYPE=OPEN or P3M with open boundaries.",
+            0.0);
+
+    itsAttr[FIELDSOLVER::REPEATSPACING] = Attributes::makeReal(
+            "REPEAT_SPACING",
+            "Lab-frame spacing of the REPEATS copies in m (beta*c/f for bunches "
+            "in neighbouring RF buckets).",
+            0.0);
+
+    itsAttr[FIELDSOLVER::PERIODICBOX] = Attributes::makeReal(
+            "PERIODICBOX",
+            "Edge length in m of a fixed all-periodic cube centered on the solve-frame origin; "
+            "zero derives the box from the particle extents at every solve.",
+            0.0);
+
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
     // Attributes for FFT2D5 mode
+    itsAttr[FIELDSOLVER::FFT2D5MODEL] = Attributes::makePredefinedString(
+            "FFT2D5MODEL",
+            "FFT2D5 model identity. ORIGINAL retains independent transverse 2D slices "
+            "and the PIPEMODE longitudinal closure; numerical behavior is unchanged.",
+            {"ORIGINAL"}, "ORIGINAL");
     itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
             "PIPEMODE",
             "Longitudinal-field geometry model; transverse Poisson slices remain open [FFT2D5].",
@@ -152,10 +177,27 @@ double FieldSolverCmd::getP3MCutoffCells() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
 }
 
+double FieldSolverCmd::getPeriodicBox() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PERIODICBOX]);
+}
+
 bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
 
 bool FieldSolverCmd::hasP3MCutoffCells() const {
     return !itsAttr[FIELDSOLVER::P3MRCUTCELLS].defaultUsed();
+}
+
+int FieldSolverCmd::getRepeatCount() const {
+    const double repeats = Attributes::getReal(itsAttr[FIELDSOLVER::REPEATS]);
+    if (repeats < 0.0 || repeats != std::floor(repeats)) {
+        throw OpalException(
+                "FieldSolverCmd::getRepeatCount", "REPEATS must be a non-negative integer.");
+    }
+    return static_cast<int>(repeats);
+}
+
+double FieldSolverCmd::getRepeatSpacing() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::REPEATSPACING]);
 }
 
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
@@ -187,6 +229,15 @@ double FieldSolverCmd::getBoxIncr() const {
 
 void FieldSolverCmd::update() {}
 
+std::string FieldSolverCmd::getFFT2D5Model() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::FFT2D5MODEL]);
+}
+bool FieldSolverCmd::hasFFT2D5Model() const {
+    return !itsAttr[FIELDSOLVER::FFT2D5MODEL].defaultUsed();
+}
+void FieldSolverCmd::setFFT2D5Model(const std::string& model) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::FFT2D5MODEL], model);
+}
 std::string FieldSolverCmd::getPipeMode() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
 }
@@ -269,6 +320,10 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
 
+    if (getType() == "FFT2D5") {
+        os << "* FFT2D5MODEL  " << getFFT2D5Model() << endl;
+    }
+
     if (getType() == "P3M") {
         if (hasP3MCutoff()) {
             const double cutoff = getP3MCutoff();
@@ -278,6 +333,11 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
             os << "* RCUT_CELLS   " << getP3MCutoffCells() << " [largest mesh spacing]" << '\n'
                << "* ALPHA        2/RCUT, updated with the mesh" << endl;
         }
+    }
+
+    if (getRepeatCount() > 0) {
+        os << "* REPEATS      " << getRepeatCount() << " on each side, spacing "
+           << getRepeatSpacing() << " [m]" << endl;
     }
 
     if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {

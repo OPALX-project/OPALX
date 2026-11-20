@@ -1,6 +1,7 @@
 #include "Algorithms/Quaternion.hpp"
 #include <cmath>
 #include <iostream>
+#include <random>
 #include "Algorithms/Matrix.h"
 #include "OPALTypes.h"
 #include "Physics/Physics.h"
@@ -45,10 +46,12 @@ Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref)
         if (std::abs(dot(u, ref) - 1.0) < tol) {
             return Quaternion(1.0, ippl::Vector<double, 3>(0.0));
         }
-        // vectors are parallel or antiparallel
+        // Only the antiparallel case needs an arbitrary perpendicular axis.
+        static thread_local std::mt19937 generator(std::random_device{}());
+        std::uniform_real_distribution<double> uniform(0.0, 1.0);
         do {  // find any vector in plane with ref as normal
-            double u = rand() / RAND_MAX;
-            double v = 2 * Physics::pi * rand() / RAND_MAX;
+            double u = uniform(generator);
+            double v = 2 * Physics::pi * uniform(generator);
             axis(0)  = std::sqrt(1 - u * u) * std::cos(v);
             axis(1)  = std::sqrt(1 - u * u) * std::sin(v);
             axis(2)  = u;

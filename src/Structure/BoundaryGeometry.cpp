@@ -26,7 +26,7 @@
 #include <fstream>
 #include <string>
 
-#include <cfloat>
+#include <limits>
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -137,7 +137,8 @@ namespace cmp_diff {
       https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     */
     inline bool almost_eq(
-            double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
+            double A, double B, double maxDiff = 1e-15,
+            double maxRelDiff = std::numeric_limits<double>::epsilon()) {
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
         const double diff = std::abs(A - B);

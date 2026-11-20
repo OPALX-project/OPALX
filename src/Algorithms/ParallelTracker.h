@@ -59,6 +59,7 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
@@ -66,6 +67,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "Algorithms/CyclotronProbeRecorder.h"
 #include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -78,6 +80,9 @@
 #include <vector>
 
 class PluginElement;
+namespace opalx::spacecharge::fft2d5_detail {
+    enum class FrameOperation;
+}
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -142,7 +147,13 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 
+    /// Register global diagnostics separately from field/placement elements.
+    void visitProbe(const Probe& probe) override {
+        probeConfigs_m.push_back(CyclotronProbeRecorder::configuration(probe));
+    }
+
 private:
+    std::vector<CyclotronProbeRecorder::Config> probeConfigs_m;
     friend class TrackRun;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
@@ -154,8 +165,17 @@ private:
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
-    /** Host-only event integration for the initial one-proton RF milestone.
-     * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
+    std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
+    /// Fixed-size first-failure payload, allocated once when device RF transport is prepared.
+    Kokkos::View<rf_event::ParticleFailure> cyclotronFailure_m;
+    /// Validate fixed bunch requirements once; leave physical stepping order unchanged.
+    void prepareCyclotronTransport();
+    /// Upload immutable magnetic/gap descriptors only for the device path.
+    void prepareCyclotronBunchLattice();
+    bool usesHostCyclotronTransport() const;
+    void advanceCyclotronParticle();
+    /** Host-only event integration for the reference and a bare single proton.
+     * R/P are in the laboratory frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field
      * queries use spatial support, not the threader's nominal closed orbit.
      * Assumes distinct gap planes and a single unpolarized median-plane proton.
@@ -166,10 +186,16 @@ private:
      * On target completion the outgoing state is immediately after that complete
      * kick; the remainder magnetic drift is deliberately omitted. With report=true
      * the reference marks energyTargetReached_m and emits the terminal diagnostic.
+     * Physical particles (report=false) finish the entire supplied duration even
+     * if their own energy exceeds the reference target at an earlier gap.
+     * terminalEndpoint applies the shared roundoff-inclusive final endpoint policy
+     * to physical particles after that reference stop, never to reference trials.
+     * frameSteps counts accepted frame updates including this step; it budgets
+     * accumulated coordinate arithmetic in the terminal-only rf_event allowance.
      */
     double advanceCyclotronGaps(
             Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
-            bool report);
+            bool report, bool terminalEndpoint = false, unsigned long long frameSteps = 1);
     double kineticEnergyStop_m = 0;      ///< Optional reference kinetic-energy target [eV].
     bool energyTargetReached_m = false;  ///< Latched only by the reference's complete kick.
     /// Energy-mode reference is precomputed so the final bunch clock uses its substep.
@@ -181,6 +207,8 @@ private:
     bool spatialRing_m =
             false;  ///< Select analytic ring fields by physical position, independent of retries.
     bool boundaryControlled_m = false;
+    /// Set once per step from the MPI-agreed FFT2D5 coasting guard; never a rank-local decision.
+    bool skipNoOpTransforms_m = false;
     /// Internal subset experiment; one selects every particle (ordinary default).
     unsigned long long boundaryControlStride_m = 1;
     double boundaryStepDt_m                    = 0;  ///< Accepted/trial collective substep cap [s].
@@ -364,7 +392,9 @@ public:
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */
-    void computeSpaceChargeFields(OrbitThreader& sourceOth);
+    void computeSpaceChargeFields(OrbitThreader& sourceOth, bool deferTrackerMoments = false);
+    /// Collective eligibility for the coasting FFT2D5 6-to-3 full-moment schedule.
+    [[nodiscard]] bool deferFFT2D5Moments() const;
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
@@ -406,6 +436,13 @@ public:
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
+    /// FFT2D5-only callback filter; existing callers use FrameOperation::All.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func,
+            bool spatialCandidates, opalx::spacecharge::fft2d5_detail::FrameOperation operation);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.

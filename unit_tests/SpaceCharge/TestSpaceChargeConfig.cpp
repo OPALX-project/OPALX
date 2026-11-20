@@ -70,6 +70,17 @@ namespace opalx::spacecharge {
             return config;
         }
 
+        TEST(SpaceChargeConfigTest, ExplicitOriginalModelPreservesDefaultAndRejectsOtherTypes) {
+            TestableFieldSolverCmd parsed;
+            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
+            EXPECT_FALSE(parsed.hasFFT2D5Model());
+            parsed.setFFT2D5Model("ORIGINAL");
+            EXPECT_TRUE(parsed.hasFFT2D5Model());
+            EXPECT_EQ(parsed.getFFT2D5Model(), "ORIGINAL");
+            parsed.setType("FFT");
+            EXPECT_THROW((void)buildSpaceChargeConfig(parsed, {}), OpalException);
+        }
+
         TEST(SpaceChargeConfigTest, DerivesP3MParticleLayoutAndBoundaryMode) {
             SpaceChargeConfig open = p3mConfig(FieldBoundaryCondition::Open);
             validateSpaceChargeConfig(open);
@@ -125,6 +136,36 @@ namespace opalx::spacecharge {
             config                = p3mConfig(FieldBoundaryCondition::Open);
             config.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge};
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+        }
+
+        TEST(SpaceChargeConfigTest, ValidatesRepeatedBunchCopies) {
+            CartesianPIC3DConfig open;
+            open.backend       = PoissonSolverType::Open;
+            open.repeatCount   = 3;
+            open.repeatSpacing = 0.0542;
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(open)));
+            const PoissonSolverConfig poisson = makePoissonSolverConfig(open);
+            EXPECT_EQ(poisson.repeatCount, 3);
+            EXPECT_DOUBLE_EQ(poisson.repeatSpacing, 0.0542);
+
+            auto p3m          = p3mConfig(FieldBoundaryCondition::Open);
+            p3m.repeatCount   = 2;
+            p3m.repeatSpacing = 0.0542;
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(p3m)));
+
+            auto invalid          = open;
+            invalid.repeatSpacing = 0.0;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(invalid)), OpalException);
+            invalid             = open;
+            invalid.repeatCount = -1;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(invalid)), OpalException);
+            invalid                     = open;
+            invalid.dirichletPlane.kind = DirichletPlaneType::ShiftedGreen;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(invalid)), OpalException);
+            auto periodic          = p3mConfig(FieldBoundaryCondition::Periodic);
+            periodic.repeatCount   = 1;
+            periodic.repeatSpacing = 0.0542;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(periodic)), OpalException);
         }
 
         TEST(SpaceChargeConfigTest, P3MAcceptsAnyBinCount) {

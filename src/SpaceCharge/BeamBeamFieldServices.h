@@ -72,6 +72,9 @@ namespace opalx::spacecharge {
          * @param target Passive particles; E [V/m] and B [T] are overwritten, not added.
          * Requires a preceding successful BeamBeam solve in the same fixed domain.
          * Every rank participates, including ranks with no local target particles.
+         * The complete local CIC stencil is checked collectively before halo exchange.
+         * An uncovered or nonfinite position throws on all ranks; callers must enlarge
+         * and re-solve the domain, not clamp positions or reuse fields on a changed mesh.
          */
         virtual void gatherFields(ParticleContainer& target) = 0;
         /**

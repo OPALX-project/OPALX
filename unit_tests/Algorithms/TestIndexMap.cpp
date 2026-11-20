@@ -1,3 +1,4 @@
+#include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -130,7 +131,6 @@ protected:
         char** argv = nullptr;
         ippl::initialize(argc, argv);
         gmsg = new Inform(nullptr, -1);
-        std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
 
     static void TearDownTestSuite() {
@@ -140,15 +140,23 @@ protected:
     }
 
     void SetUp() override {
-        OpalData::getInstance()->storeInputFn("indexmap_sdds.opal");
+        savedInput_m = OpalData::getInstance()->getInputFn();
+        directory_m.create("opalx-indexmap", ippl::Comm->getCommunicator());
+        OpalData::getInstance()->storeInputFn((directory_m.path() / "indexmap_sdds.opal").string());
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
     }
 
-    void TearDown() override { std::filesystem::remove(sddsPath()); }
+    void TearDown() override {
+        OpalData::getInstance()->storeInputFn(savedInput_m);
+        ippl::Comm->barrier();
+        directory_m.reset();
+    }
+
+    opalx::test::TemporaryDirectory directory_m;
+    std::string savedInput_m;
 
     static std::filesystem::path sddsPath() {
-        return std::filesystem::path(OpalData::getInstance()->getAuxiliaryOutputDirectory())
-               / "indexmap_sdds_ElementPositions.sdds";
+        return OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds";
     }
 };
 

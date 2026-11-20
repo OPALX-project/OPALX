@@ -116,6 +116,12 @@ namespace opalx::spacecharge {
                         "Dirichlet planes require TYPE=OPEN, or TYPE=P3M with OPEN domain "
                         "boundaries and SHIFTED_GREENS_FUNCTION.");
             }
+            if (config.dirichletPlane.enabled() && config.repeatCount > 0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "REPEATS cannot be combined with a Dirichlet plane: the image solve "
+                        "does not include the bunch copies.");
+            }
             if (config.dirichletPlane.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
@@ -125,14 +131,10 @@ namespace opalx::spacecharge {
 
         void validateFFT2D5(const FFT2D5Config& config) {
             validateGrid(config.grid);
-            if (std::any_of(
-                        config.grid.decomposition.begin(), config.grid.decomposition.end(),
-                        [](bool parallel) {
-                            return parallel;
-                        })) {
+            if (config.grid.decomposition[0] || config.grid.decomposition[1]) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "FFT2D5 uses serial slices; set PARFFTX/PARFFTY/PARFFTZ to FALSE.");
+                        "FFT2D5 supports only longitudinal decomposition (PARFFTZ).");
             }
             if (!std::isfinite(config.pipeSizeX) || !std::isfinite(config.pipeSizeY)
                 || !std::isfinite(config.beamRadius) || !(config.pipeSizeX > 0.0)
@@ -156,8 +158,10 @@ namespace opalx::spacecharge {
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
-        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions,
-                config.p3mCutoffCells};
+        return {config.backend,        config.greenFunction,
+                config.p3mCutoff,      config.boundaryConditions,
+                config.p3mCutoffCells, config.repeatCount,
+                config.repeatSpacing};
     }
 
     void validatePoissonSolverConfig(const PoissonSolverConfig& config) {
@@ -217,6 +221,17 @@ namespace opalx::spacecharge {
                     "P3M requires exactly one finite positive cutoff, RCUT in metres or "
                     "RCUT_CELLS in mesh spacings; other backends require neither.");
         }
+        if (config.repeatCount < 0
+            || (config.repeatCount > 0
+                && (!(config.repeatSpacing > 0.0) || !std::isfinite(config.repeatSpacing)
+                    || !allOpen
+                    || (config.type != PoissonSolverType::Open
+                        && config.type != PoissonSolverType::P3M)))) {
+            throw OpalException(
+                    "validateSpaceChargeConfig",
+                    "REPEATS needs a finite positive REPEAT_SPACING and TYPE=OPEN or TYPE=P3M "
+                    "with OPEN domain boundaries.");
+        }
     }
 
     void validateSpaceChargeConfig(const SpaceChargeConfig& config) {
@@ -224,6 +239,19 @@ namespace opalx::spacecharge {
                 [](const auto& selected) {
                     using Config = std::decay_t<decltype(selected)>;
                     if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
+                        const bool allPeriodic = std::all_of(
+                                selected.boundaryConditions.begin(),
+                                selected.boundaryConditions.end(), [](auto boundary) {
+                                    return boundary == FieldBoundaryCondition::Periodic;
+                                });
+                        if (!std::isfinite(selected.periodicBox) || selected.periodicBox < 0.0
+                            || (selected.periodicBox > 0.0
+                                && (!allPeriodic || selected.binning.has_value()))) {
+                            throw OpalException(
+                                    "validateSpaceChargeConfig",
+                                    "PERIODICBOX must be non-negative and needs PERIODIC "
+                                    "boundaries on all faces and no BINS.");
+                        }
                         validateCartesian(selected);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         validateFFT2D5(selected);

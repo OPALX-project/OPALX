@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "BeamlineCore/RFCavityRep.h"
 #include "Fields/FM3DDynamic.h"
 #include "PartBunch/PartBunch.h"
@@ -8,7 +10,6 @@
 #include "Utilities/GeneralOpalException.h"
 
 #include <array>
-#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -47,17 +48,11 @@ protected:
         ippl::finalize();
     }
 
-    void SetUp() override {
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        directory        = std::filesystem::temp_directory_path()
-                    / ("opalx_fm3dynamic_" + std::to_string(stamp) + "_"
-                       + std::to_string(ippl::Comm->rank()));
-        std::filesystem::create_directories(directory);
-    }
+    void SetUp() override { directory = temporaryDirectory_.create("opalx-fm3d-dynamic"); }
 
     void TearDown() override {
         Fieldmap::clearDictionary();
-        std::filesystem::remove_all(directory);
+        temporaryDirectory_.reset();
     }
 
     std::string write(const std::string& name, const std::string& contents) {
@@ -112,6 +107,7 @@ protected:
     }
 
     std::filesystem::path directory;
+    opalx::test::TemporaryDirectory temporaryDirectory_;
 };
 
 TEST_F(FM3DDynamicTest, FactoryMetadataAndUnloadedAccess) {

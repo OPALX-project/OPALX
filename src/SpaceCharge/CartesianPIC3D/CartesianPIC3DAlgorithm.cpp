@@ -101,6 +101,44 @@ namespace opalx::spacecharge {
                     "CartesianPIC3DAlgorithm::gatherFields",
                     "BeamBeam witness gathering requires an active fixed-domain solve.");
         }
+        // Check the actual local CIC stencil, not just physical box membership.
+        // All ranks must reject together before gather enters halo collectives.
+        const auto positions = target.R.getView();
+        const auto origin    = fieldStorage_m->mesh().getOrigin();
+        const auto spacing   = fieldStorage_m->mesh().getMeshSpacing();
+        const auto first     = fieldStorage_m->layout().getLocalNDIndex().first();
+        const auto& field    = fieldStorage_m->accumulatedElectricField();
+        const int ghosts     = field.getNghost();
+        const auto view      = field.getView();
+        const std::array<std::size_t, 3> extents{view.extent(0), view.extent(1), view.extent(2)};
+        int invalid = 0;
+        Kokkos::parallel_reduce(
+                "BeamBeam validate CIC coverage", target.getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i, int& bad) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        const double l = (positions(i)[d] - origin[d]) / spacing[d] + 0.5;
+                        // Avoid undefined floating-to-integer conversion for nonfinite or
+                        // enormous coordinates. Signed arithmetic precedes any index cast.
+                        if (!Kokkos::isfinite(l) || l < -1.0e9 || l > 1.0e9) {
+                            ++bad;
+                            break;
+                        }
+                        const long index = static_cast<int>(l) - first[d] + ghosts;
+                        if (index < 1 || index >= static_cast<long>(extents[d])) {
+                            ++bad;
+                            break;
+                        }
+                    }
+                },
+                invalid);
+        int globalInvalid = 0;
+        MPI_Allreduce(&invalid, &globalInvalid, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
+        if (globalInvalid != 0) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::gatherFields",
+                    "BeamBeam witness CIC stencil lies outside the local solved field storage; "
+                    "expand and re-solve the domain before gathering.");
+        }
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, target.E, target.B, target.R, *fieldStorage_m);
     }
@@ -276,7 +314,25 @@ namespace opalx::spacecharge {
         }
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
-        const auto& fixedState = bunchState_m->fixedCartesianDomain();
+        auto fixedState = bunchState_m->fixedCartesianDomain();
+        if (config_m.periodicBox > 0.0) {
+            if (fixedState.has_value()) {
+                throw OpalException(
+                        "CartesianPIC3DAlgorithm::solve",
+                        "PERIODICBOX cannot be combined with fixed Cartesian bounds set on the "
+                        "bunch.");
+            }
+            // updateMeshGeometry() places the nodes half a cell inside the domain, so the period
+            // N h is the requested box only with bounds half a cell inside its faces.
+            std::array<double, 3> lower, upper;
+            for (unsigned d = 0; d < 3; ++d) {
+                const double h =
+                        config_m.periodicBox / static_cast<double>(config_m.grid.meshSize[d]);
+                lower[d] = -0.5 * config_m.periodicBox + 0.5 * h;
+                upper[d] = 0.5 * config_m.periodicBox - 0.5 * h;
+            }
+            fixedState = BunchStateHandler::FixedCartesianDomainState{lower, upper};
+        }
         const bool fixedDomain = fixedState.has_value();
         if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->copyActive && !fixedDomain) {
             throw OpalException(
@@ -284,7 +340,7 @@ namespace opalx::spacecharge {
                     "A copied BeamBeam primary requires a fixed domain symmetric about the IP.");
         }
         if (fixedDomain) {
-            if (config_m.backend != PoissonSolverType::Open) {
+            if (config_m.backend != PoissonSolverType::Open && config_m.periodicBox <= 0.0) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
@@ -296,12 +352,13 @@ namespace opalx::spacecharge {
             }
             // BeamBeam freezes its interaction mesh for source/copy composition and witness
             // gathers. The domain updater already suppresses ORB for every fixed-domain call;
-            // keep the configured frequency intact for ordinary solves outside this policy.
-            if (config_m.repartitionFrequency != 0 && !beamBeamPolicy_m.has_value()) {
+            // retain master's periodic-box exception for ordinary fixed-domain solves.
+            if (config_m.repartitionFrequency != 0 && config_m.periodicBox <= 0.0
+                && !beamBeamPolicy_m.has_value()) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
-                        "ORB redistribution must be disabled while a fixed Cartesian domain is "
-                        "active.");
+                        "ORB redistribution must be disabled while fixed Cartesian bounds set on "
+                        "the bunch are active.");
             }
         }
         clearSelfFields(*primary_m);
@@ -311,7 +368,8 @@ namespace opalx::spacecharge {
             enterSolveFrame(context.stepState().frames, *primary_m);
             result.redistributions += domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
-                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
+                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m,
+                    config_m.periodicBox > 0.0 && !beamBeamPolicy_m.has_value());
 
             solveInBeamFrame(context, plan, result);
 
@@ -512,6 +570,11 @@ namespace opalx::spacecharge {
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
+        if (config_m.repeatCount > 0) {
+            // Neighbouring bunches are a lab distance apart along z; the rest-frame solve
+            // stretches that distance with hz.
+            poissonRequest.repeatSpacing = gamma * config_m.repeatSpacing;
+        }
         if (primary_m->hasP3MLayout()) {
             // The mesh split follows the cutoff the domain updater gave the overlap layout.
             const double cutoff      = primary_m->getP3MLayout().getCutoff();

@@ -48,6 +48,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.h"
 #include "Ippl.h"
@@ -160,19 +162,17 @@ protected:
         ippl::finalize();
     }
 
-    void SetUp() override {
-        tmpDir_ = std::filesystem::temp_directory_path() / "opalx_fm2d_test";
-        std::filesystem::create_directories(tmpDir_);
-    }
+    void SetUp() override { tmpDir_ = temporaryDirectory_.create("opalx-fm2d-dynamic"); }
 
     void TearDown() override {
         Fieldmap::clearDictionary();
-        std::filesystem::remove_all(tmpDir_);
+        temporaryDirectory_.reset();
     }
 
     std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
+    opalx::test::TemporaryDirectory temporaryDirectory_;
 };
 
 // ===========================================================================

@@ -105,7 +105,9 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
     columns_m.addColumn(
             "plasmaParameter", "double", "1",
             "Plasma parameter that gives no. of particles in a Debye sphere");
-    columns_m.addColumn("temperature", "double", "K", "Temperature of the beam");
+    columns_m.addColumn("temperature_x", "double", "K", "Rest-frame temperature in x");
+    columns_m.addColumn("temperature_y", "double", "K", "Rest-frame temperature in y");
+    columns_m.addColumn("temperature_s", "double", "K", "Rest-frame temperature in s");
     columns_m.addColumn("rmsDensity", "double", "1", "RMS number density of the beam");
 
     columns_m.addColumn(
@@ -259,6 +261,7 @@ void StatWriter::write(
 
     Vector_t<double, 3> rmsR(0.0);
     Vector_t<double, 3> rmsP(0.0);
+    Vector_t<double, 3> temperature(0.0);
     Vector_t<double, 3> normEmit(0.0);
     Vector_t<double, 3> meanR(0.0);
     Vector_t<double, 3> maxR(0.0);
@@ -271,7 +274,6 @@ void StatWriter::write(
     double ddy             = 0.0;
     double debyeLength     = 0.0;
     double plasmaParameter = 0.0;
-    double temperature     = 0.0;
 
     if (numParticles > 0) {
         energy          = pc->getMeanKineticEnergy();
@@ -288,7 +290,7 @@ void StatWriter::write(
         ddy             = pc->getDDy();
         debyeLength     = pc->getDebyeLength();
         plasmaParameter = pc->getPlasmaParameter();
-        temperature     = pc->getTemperature();
+        temperature     = pc->getRestFrameTemperature();
     }
 
     columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
@@ -349,9 +351,11 @@ void StatWriter::write(
     columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue("DebyeLength", debyeLength);           // 43 Debye length
-    columns_m.addColumnValue("plasmaParameter", plasmaParameter);   // 43 plasma parameter
-    columns_m.addColumnValue("temperature", temperature);           // 44 Temperature
+    columns_m.addColumnValue("DebyeLength", debyeLength);          // 43 Debye length
+    columns_m.addColumnValue("plasmaParameter", plasmaParameter);  // 43 plasma parameter
+    columns_m.addColumnValue("temperature_x", temperature(0));
+    columns_m.addColumnValue("temperature_y", temperature(1));
+    columns_m.addColumnValue("temperature_s", temperature(2));
     columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
     columns_m.addColumnValue("nBins", reportedBinCount);
 

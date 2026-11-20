@@ -10,6 +10,7 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/ElementInteraction.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/SpaceChargeSolveContext.h"
 #include "Utility/IpplTimings.h"
 
 #include <memory>
@@ -80,6 +81,12 @@ private:
     void transformWitnessPositionsToSourceFrame(
             const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch,
             bool toSourceFrame) const;
+    /** @brief Cover newborn witnesses before gathering primary-only fields.
+     * If the transverse envelope grows after emission, repeat the solve with the
+     * saved pre-emission time/frame state. Witness charge never enters deposition.
+     * The fixed longitudinal window is unchanged; the solver's collective stencil
+     * guard rejects uncovered particles rather than wrapping or clamping them.
+     */
     void gatherFieldsToWitnessContainers(ElementInteractionContext& context, Inform& message);
 
     void logDiagnostics(PartBunch_t& bunch, bool force = false);
@@ -100,6 +107,9 @@ private:
     std::optional<Vector_t<double, 3>> transverseMeshLower_m;
     std::optional<Vector_t<double, 3>> transverseMeshUpper_m;
     std::optional<CoordinateSystemTrafo> referenceToBeamCSTrafo_m;
+    /// Owned snapshot of the pre-emission solve; never retain a borrowed call-context pointer.
+    std::optional<opalx::spacecharge::SpaceChargeStepState> lastSolveStep_m;
+    std::vector<std::uint8_t> lastSolveActivity_m;
     std::optional<bool> lastDiagnosticActive_m;
     std::optional<bool> lastDiagnosticSourceActive_m;
     std::optional<bool> lastDiagnosticCopyActive_m;

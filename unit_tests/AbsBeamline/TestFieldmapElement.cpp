@@ -27,6 +27,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 extern Inform* gmsg;
 
 #include <filesystem>
@@ -97,7 +99,6 @@ protected:
         ippl::initialize(argc, argv);
         gmsg                = new Inform(nullptr, -1);
         Options::enableHDF5 = false;
-        std::filesystem::create_directories("data");
     }
 
     static void TearDownTestSuite() {
@@ -107,30 +108,35 @@ protected:
     }
 
     void SetUp() override {
+        oldInputFn_ = OpalData::getInstance()->getInputFn();
+        directory_.create("opalx-fieldmap-element");
         const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
         testStem_        = std::string("fieldmapelement_") + info->name();
-        OpalData::getInstance()->storeInputFn(testStem_ + ".opal");
+        OpalData::getInstance()->storeInputFn((directory_.path() / (testStem_ + ".opal")).string());
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
     }
 
     void TearDown() override {
         for (const auto& file : mapFiles_) {
             Fieldmap::freeMap(file);
-            std::filesystem::remove(file);
         }
         mapFiles_.clear();
+        OpalData::getInstance()->storeInputFn(oldInputFn_);
+        directory_.reset();
     }
 
-    /// Register a map file so TearDown releases and removes it.
+    /// Release cached maps before removing this test's directory in TearDown.
     std::string track(const std::string& path) {
         mapFiles_.push_back(path);
         return path;
     }
 
     std::string mapPath(const std::string& suffix) const {
-        return (std::filesystem::path("data") / (testStem_ + suffix)).string();
+        return (directory_.path() / (testStem_ + suffix)).string();
     }
 
+    opalx::test::TemporaryDirectory directory_;
+    std::string oldInputFn_;
     std::string testStem_;
     std::vector<std::string> mapFiles_;
 };

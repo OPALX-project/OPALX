@@ -2,22 +2,28 @@ name: CPU OpenMP
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
     branches: ["master"]
 
+# Runs only on non-draft PRs with the smoke-compile-checks label. Every event on the PR
+# replaces its previous run, so only the newest commit is built. Adding or removing any
+# other label gets its own group and cannot cancel a running check.
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false && (github.event.action != 'labeled' || github.event.label.name == 'compile-ci') && 'ci' || github.run_id }}
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ ((github.event.action != 'labeled' && github.event.action != 'unlabeled') || github.event.label.name == 'smoke-compile-checks') && 'ci' || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   # ===== BUILD + UNIT TESTS =====
+  # Not named "Build & Unit Tests": the master ruleset requires that check by job name,
+  # and it must refer to CPU Serial only.
   build:
-    name: Build & Unit Tests
+    name: OpenMP Build & Unit Tests
     runs-on: ubuntu-latest
     if: >
-      contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
       github.event.pull_request.draft == false &&
-      (github.event.action != 'labeled' || github.event.label.name == 'compile-ci')
+      contains(github.event.pull_request.labels.*.name, 'smoke-compile-checks') &&
+      github.event.action != 'unlabeled' &&
+      (github.event.action != 'labeled' || github.event.label.name == 'smoke-compile-checks')
 
     steps:
       - name: Checkout code

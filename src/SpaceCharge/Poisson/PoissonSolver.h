@@ -29,6 +29,11 @@ namespace opalx::spacecharge {
         std::optional<ippl::Vector<double, 3>> greenFunctionShift;
         /** @brief P3M cutoff in metres for this solve; absent keeps the current split. */
         std::optional<double> p3mCutoff;
+        /**
+         * @brief Spacing in metres of the repeated kernel copies along the mesh z axis for this
+         * solve (the lab spacing times the bin gamma in a rest-frame solve); absent keeps it.
+         */
+        std::optional<double> repeatSpacing;
 
         [[nodiscard]] bool hasShiftedGreenFunction() const {
             return greenFunctionShift.has_value();

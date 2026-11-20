@@ -561,6 +561,9 @@ void BeamBeamInteraction::computeWindowSelfFields(
     IpplTimings::startTimer(meshSetupTimer_m);
     updateWindowMesh(*context.referenceToBeamCSTrafo, bunch, fields);
     IpplTimings::stopTimer(meshSetupTimer_m);
+    lastSolveStep_m     = context.spaceChargeContext->stepState();
+    const auto activity = context.spaceChargeContext->trackingActive();
+    lastSolveActivity_m.assign(activity.begin(), activity.end());
     IpplTimings::startTimer(selfFieldTimer_m);
     context.spaceChargeSolver->solve(*context.spaceChargeContext);
     IpplTimings::stopTimer(selfFieldTimer_m);
@@ -614,6 +617,35 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(
     const size_t nContainers = bunch.getNumParticleContainers();
     const auto source        = bunch.getParticleContainer();
     const double sourceS     = source->get_sPos();
+    // The ordinary solve precedes emission. New births (including their fractional
+    // half drift) were not in that envelope. Check all witnesses before any gather;
+    // changing geometry alone would reinterpret the cached fields incorrectly.
+    bool enlarge = false;
+    transformWitnessPositionsToSourceFrame(*referenceToBeamCSTrafo_m, bunch, true);
+    for (const auto index : witnessContainers) {
+        if (index == 0 || index >= nContainers) continue;
+        auto witness = bunch.getParticleContainer(index);
+        if (!witness || witness->getTotalNum() == 0) continue;
+        witness->computeMinMaxR();
+        for (unsigned d = 0; d < 2; ++d) {
+            enlarge |= witness->getMinR()[d] < fields.domain().lower()[d]
+                       || witness->getMaxR()[d] > fields.domain().upper()[d];
+        }
+    }
+    transformWitnessPositionsToSourceFrame(*referenceToBeamCSTrafo_m, bunch, false);
+    if (enlarge) {
+        PAssert(lastSolveStep_m.has_value());
+        updateWindowMesh(*referenceToBeamCSTrafo_m, bunch, fields);
+        const opalx::spacecharge::SpaceChargeSolveContext solveContext(
+                lastSolveActivity_m, *lastSolveStep_m);
+        context.spaceChargeSolver->solve(solveContext);
+        if (!BEAMBEAM::sourceCollectiveKickEnabled(state_m.geometry->config)) {
+            source->E = 0.0;
+            source->B = 0.0;
+        }
+        message << level4 << "Re-solved BeamBeam fields after emission expanded witness coverage."
+                << endl;
+    }
     for (const size_t containerIndex : witnessContainers) {
         if (containerIndex == 0) {
             IpplTimings::stopTimer(witnessGatherTimer_m);

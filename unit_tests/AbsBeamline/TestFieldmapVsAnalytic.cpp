@@ -30,6 +30,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../TemporaryDirectory.h"
+
 extern Inform* gmsg;
 
 #include <algorithm>
@@ -94,7 +96,6 @@ protected:
         char** argv = nullptr;
         ippl::initialize(argc, argv);
         gmsg = new Inform(nullptr, -1);
-        std::filesystem::create_directories("data");
     }
 
     static void TearDownTestSuite() {
@@ -104,13 +105,15 @@ protected:
     }
 
     void SetUp() override {
+        directory_.create("opalx-fieldmap-vs-analytic");
         const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
-        mapFile_         = std::string("data/fmvsanalytic_") + info->name() + ".g4blmap";
+        mapFile_ = (directory_.path() / (std::string("fmvsanalytic_") + info->name() + ".g4blmap"))
+                           .string();
     }
 
     void TearDown() override {
         Fieldmap::freeMap(mapFile_);
-        std::filesystem::remove(mapFile_);
+        directory_.reset();
     }
 
     /// A multipole with one normal component, wide open transversely.
@@ -163,6 +166,7 @@ protected:
         }
     }
 
+    opalx::test::TemporaryDirectory directory_;
     std::string mapFile_;
 };
 

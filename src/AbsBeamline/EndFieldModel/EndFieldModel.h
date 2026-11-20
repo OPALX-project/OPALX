@@ -51,6 +51,15 @@ namespace endfieldmodel {
          */
         [[nodiscard]] virtual double function(double x, int n) const = 0;
 
+        /** Fill derivatives 0..n at a single host point. The caller supplies n+1
+         * doubles. Models may override this to reuse one derivative workspace;
+         * the fallback preserves the scalar evaluator of other field models.
+         */
+        virtual void function(double x, int n, double* values) const {
+            for (int i = 0; i <= n; ++i)
+                values[i] = function(x, i);
+        }
+
         /** GPU-aware version of function
          *
          *  @param x: returns d^n f(x)/dx^n

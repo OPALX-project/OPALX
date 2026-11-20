@@ -25,6 +25,15 @@
 
 class PeakFinder;
 
+/** @brief Global passive segment configuration for cyclotron and FFA tracking.
+ *
+ * ParallelTracker registers these configurations as passive global diagnostics
+ * through CyclotronProbeRecorder rather than the legacy PluginElement check path.
+ * Input endpoint Y names denote laboratory Z in the OPALX horizontal X-Z plane.
+ * The segment is finite horizontally and unbounded vertically (laboratory Y).
+ * Explicit stations are not replicated by ring symmetry or magnet placement.
+ * @see docs/probes.md for native output and coordinate-frame conversion.
+ */
 class Probe : public PluginElement {
 public:
     /// Constructor with given name.

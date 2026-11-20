@@ -74,6 +74,18 @@ namespace endfieldmodel {
 
         double function(double x, int n) const override;
 
+        void function(double x, int n, double* values) const override {
+            if constexpr (Kokkos::SpaceAccessibility<
+                                  Kokkos::HostSpace,
+                                  Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
+                Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+                        output(values, n + 1);
+                functionDevice(config_m, x, n, output);
+            } else {
+                EndFieldModel::function(x, n, values);
+            }
+        }
+
         /** Device-callable evaluation using coefficients prepared on the host.
          *
          *  I use a template instantiation because I can't figure out what type
@@ -102,7 +114,7 @@ namespace endfieldmodel {
          *  Returns vector of vector of ints where p indexes the differential and
          * q indexes the tanh power - so
          */
-        static std::vector<std::vector<int> > getTanhDiffIndices(size_t n);
+        static std::vector<std::vector<int>> getTanhDiffIndices(size_t n);
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
         double getCentreLength() const override { return config_m.x0_m * 2.0; }
@@ -168,7 +180,7 @@ namespace endfieldmodel {
          *
          *  For some reason we index as n, +a, -a, but the third index is redundant
          */
-        static std::vector<std::vector<std::vector<int> > > tdi_m;
+        static std::vector<std::vector<std::vector<int>>> tdi_m;
     };
 
     inline void Tanh::function(

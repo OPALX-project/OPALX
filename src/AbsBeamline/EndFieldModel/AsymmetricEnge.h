@@ -72,6 +72,18 @@ namespace endfieldmodel {
         /** Return the value of enge at some point x */
         inline double function(double x, int n) const override;
 
+        void function(double x, int n, double* values) const override {
+            if constexpr (Kokkos::SpaceAccessibility<
+                                  Kokkos::HostSpace,
+                                  Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
+                Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+                        output(values, n + 1);
+                functionDevice(config_m, x, n, output);
+            } else {
+                EndFieldModel::function(x, n, values);
+            }
+        }
+
         inline virtual void function(
                 const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values) const override;
@@ -81,9 +93,9 @@ namespace endfieldmodel {
                 const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values);
 
+        template <class C>
         static KOKKOS_INLINE_FUNCTION void functionDevice(
-                const AsymmetricEngeConfig& config, double x, int n,
-                Kokkos::View<double*> thisvalues);
+                const AsymmetricEngeConfig& config, double x, int n, C thisvalues);
 
         /** Centre length is the average of x0End and x0Start */
         inline double getCentreLength() const override;
@@ -151,13 +163,15 @@ namespace endfieldmodel {
         const size_t count = xView.extent(0);
         Kokkos::parallel_for(
                 "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-                    Kokkos::View<double*> thisValues = Kokkos::subview(values, i, Kokkos::ALL);
+                    // A derivative row is strided with GPU LayoutLeft storage.
+                    auto thisValues = Kokkos::subview(values, i, Kokkos::ALL);
                     functionDevice(config, xView(i), n, thisValues);
                 });
     }
 
+    template <class C>
     KOKKOS_INLINE_FUNCTION void AsymmetricEnge::functionDevice(
-            const AsymmetricEngeConfig& config, double x, int n, Kokkos::View<double*> values) {
+            const AsymmetricEngeConfig& config, double x, int n, C values) {
         EngeWorkspace wsLow;
         Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, wsLow);
         EngeWorkspace wsHigh;

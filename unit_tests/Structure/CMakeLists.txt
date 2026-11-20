@@ -21,5 +21,8 @@ if(BUILD_TESTING AND TARGET TestBeamBeamDiagnosticsWriter AND MPIEXEC_EXECUTABLE
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 endif()
 add_opalx_test(TestLossDataSink USE_GTEST_MAIN)
+add_opalx_test(TestLossDataSinkMPI
+              SOURCES TestLossDataSink.cpp NUM_PROCS 2 TIMEOUT 60 USE_GTEST_MAIN
+              ARGS --gtest_filter=LossDataSinkTest.EmptySinkDestructionIsRankLocal:LossDataSinkTest.EmptySinkUnwindingIsRankLocal:LossDataSinkTest.AsciiCreationDecisionIsCollectiveAcrossFileViews:LossDataSinkTest.OutputInspectionFailureIsCollective)
 add_opalx_test(TestCheckpointFile USE_GTEST_MAIN)
 add_opalx_test(TestMeshGenerator USE_GTEST_MAIN)

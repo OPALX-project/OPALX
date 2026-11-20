@@ -36,6 +36,9 @@ namespace Options {
     extern bool info;
     extern int infoLevel;
 
+    /// Requested FFT2D5 batch size; zero uses serial slices on one rank and batch one with MPI.
+    extern int fft2d5BatchSize;
+
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
@@ -175,7 +178,9 @@ namespace Options {
 
     extern bool writeBendTrajectories;
 
-    /// opal version of input file
+    /// OPALX release the input was written for, packed as major * 10000 + minor * 100.
+    /// Defaults to this release, so an input without OPTION, VERSION always runs; only an
+    /// older stated version can be stopped by the input change check in TrackRun::execute().
     extern int version;
 
     extern bool memoryDump;

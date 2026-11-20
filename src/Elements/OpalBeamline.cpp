@@ -75,11 +75,8 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<
     orbit_threader_diagnostics::count(
             &orbit_threader_diagnostics::Work::elementTests, elements_m.size());
     std::set<std::shared_ptr<ElementBase>> elementSet;
-    ElementList::iterator it        = elements_m.begin();
-    const ElementList::iterator end = elements_m.end();
-    for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it);
-        Vector_t<double, 3> r                = getCSTrafoLab2Local(element).transformTo(x);
+    for (const auto& element : elements_m) {
+        const Vector_t<double, 3> r = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -218,6 +215,11 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
 void OpalBeamline::save3DLattice() {
+    MeshGenerator mesh;
+    save3DLattice(mesh);
+}
+
+void OpalBeamline::save3DLattice(MeshGenerator& mesh) {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     // Write elements in s-sorted order (the order prepareSections established). This is stable
@@ -238,7 +240,6 @@ void OpalBeamline::save3DLattice() {
         pos.open(fileName);
     }
 
-    MeshGenerator mesh;
     for (auto scan = it; scan != end; ++scan) {
         const std::shared_ptr<ElementBase> scanElement = (*scan);
         if (scanElement->getType() == ElementType::DRIFT) {

@@ -29,6 +29,9 @@
  * when `z` is present). Columns are mapped by name. Positions are offsets from
  * the emission-source `R0`, momenta are normalized @f$p/(mc)@f$ offsets from
  * `P0`, and `birth_time` is a time offset in seconds from the source `T0`.
+ * Named headers are case-insensitive and may be prefixed with `#`, including
+ * after an optional particle-count line. Historical legacy comment headers
+ * containing unit annotations retain their positional interpretation.
  */
 class EmittedFromFile : public SamplingBase {
 public:

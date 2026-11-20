@@ -59,6 +59,10 @@ public:
     }
     bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
     double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
+    /// Selected by the FFT2D5 factory only. Keep both centered/raw two-pass moments;
+    /// reduce each symmetric matrix's 21 independent entries and mirror on the host.
+    void setCompactSymmetricReduction(bool enabled) { compactSymmetricReduction_m = enabled; }
+    bool usesCompactSymmetricReduction() const { return compactSymmetricReduction_m; }
     void compute(
             const std::vector<OpalParticle>::const_iterator&,
             const std::vector<OpalParticle>::const_iterator&);
@@ -81,6 +85,17 @@ public:
     Vector_t<double, 3> getStandardDeviationPosition() const;
     Vector_t<double, 3> getMeanMomentum() const;
     Vector_t<double, 3> getStandardDeviationMomentum() const;
+    /**
+     * @brief Temperature per direction in the centre-of-momentum frame, in K.
+     *
+     * Each particle momentum u = beta*gamma is Lorentz-boosted with beta_c = <u>/<gamma> into
+     * the frame where the mean momentum vanishes, and k_B T_i = m c^2 <u'_i^2 / gamma'>. This
+     * is the diagonal of the kinetic pressure tensor per particle, which equals k_B T for a
+     * Maxwell-Juettner distribution and m c^2 rms_p_i^2 in the non-relativistic limit. The
+     * mass is the one used for the kinetic energy (see setEnergyReferenceMass()).
+     * @note Particles are sampled at equal lab time, not at equal rest-frame time.
+     */
+    Vector_t<double, 3> getRestFrameTemperature() const;
     Vector_t<double, 3> getMeanPolarization() const;
     Vector_t<double, 3> getStandardDeviationPolarization() const;
     Vector_t<double, 3> getNormalizedEmittance() const;
@@ -154,6 +169,7 @@ private:
     Vector_t<double, 3> meanP_m;
     Vector_t<double, 3> stdR_m;
     Vector_t<double, 3> stdP_m;
+    Vector_t<double, 3> restFrameTemperature_m;
     Vector_t<double, 3> meanPol_m;
     Vector_t<double, 3> stdPol_m;
     Vector_t<double, 3> stdRP_m;
@@ -182,8 +198,9 @@ private:
     double meanGammaZ_m;
 
     // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of Mview(k).
-    bool rescaleToReference_m = false;
-    double referenceMassGeV_m = 0.0;
+    bool rescaleToReference_m        = false;
+    double referenceMassGeV_m        = 0.0;
+    bool compactSymmetricReduction_m = false;
 
     Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;
@@ -210,6 +227,10 @@ inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const { return
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getRestFrameTemperature() const {
+    return restFrameTemperature_m;
 }
 
 inline Vector_t<double, 3> DistributionMoments::getMeanPolarization() const { return meanPol_m; }

@@ -17,6 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Options.h"
+#include "BuildInfo.h"
 #include "Utilities/ExpressionRandom.h"
 
 #include <string>
@@ -25,8 +26,9 @@ namespace Options {
     // The global program options.
     bool echo = false;
 
-    bool info     = true;
-    int infoLevel = 1;
+    bool info           = true;
+    int infoLevel       = 1;
+    int fft2d5BatchSize = 0;
 
     bool mtrace = false;
 
@@ -109,7 +111,7 @@ namespace Options {
 
     bool writeBendTrajectories = false;
 
-    int version = 10000;
+    int version = (buildinfo::version_major * 100 + buildinfo::version_minor) * 100;
 
     bool memoryDump = false;
 

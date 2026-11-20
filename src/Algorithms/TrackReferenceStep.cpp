@@ -60,6 +60,12 @@ track_reference::State track_reference::advanceResolvedInBeamline(
 
 double track_reference::collectiveTerminalStep(
         MPI_Comm communicator, const std::function<double()>& search) {
+    return collectiveTerminalStep(communicator, search, {});
+}
+
+double track_reference::collectiveTerminalStep(
+        MPI_Comm communicator, const std::function<double()>& search,
+        const std::function<void()>& onFailure) {
     int rank = 0;
     MPI_Comm_rank(communicator, &rank);
     double duration = 0;
@@ -68,14 +74,14 @@ double track_reference::collectiveTerminalStep(
         try {
             duration = search();
             if (!(duration > 0) || !std::isfinite(duration))
-                throw std::runtime_error("Invalid terminal-turn duration");
+                throw std::runtime_error("Invalid terminal-event duration");
         } catch (const OpalException& exception) {
             error = exception.where() + ": " + exception.what();
         } catch (const std::exception& exception) {
             error = exception.what();
-            if (error.empty()) error = "Terminal-turn reference trial failed";
+            if (error.empty()) error = "Terminal-event reference trial failed";
         } catch (...) {
-            error = "Unknown failure during terminal-turn reference trial";
+            error = "Unknown failure during terminal-event reference trial";
         }
     }
     int length = static_cast<int>(error.size());
@@ -83,7 +89,8 @@ double track_reference::collectiveTerminalStep(
     if (length > 0) {
         error.resize(length);
         MPI_Bcast(error.data(), length, MPI_CHAR, 0, communicator);
-        throw OpalException("ParallelTracker::terminalTurn", error);
+        if (onFailure) onFailure();
+        throw OpalException("ParallelTracker::terminalEvent", error);
     }
     MPI_Bcast(&duration, 1, MPI_DOUBLE, 0, communicator);
     return duration;

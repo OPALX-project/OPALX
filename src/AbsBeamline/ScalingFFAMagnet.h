@@ -33,6 +33,7 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/ScalingFFASupport.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
@@ -51,23 +52,20 @@
  *  lookup.
  */
 
-struct ScalingFFAMagnetConfig {
+struct ScalingFFAMagnetConfig : ScalingFFASupport {
     static constexpr size_t MaxOrder         = 20;
     static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
 
     size_t maxOrder_m         = 0;
-    double tanDelta_m         = 0.;
     double k_m                = 0.;
     double Bz_m               = 0.;
-    double r0_m               = 1.;
-    double rMin_m             = 0.;  // minimum radius
-    double rMax_m             = 0.;  // maximum radius
-    double phiStart_m         = 0.;  // offsets this element
-    double azimuthalExtent_m  = 0.;  // maximum distance used for field calculation
-    double verticalExtent_m   = 0.;  // maximum allowed distance from the midplane
     const double fp_tolerance = 1e-18;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
+
+namespace scaling_ffa_detail {
+    struct FieldEvaluator;
+}
 
 class ScalingFFAMagnet : public ElementBase {
 public:
@@ -83,35 +81,59 @@ public:
     /** Inheritable copy constructor */
     ScalingFFAMagnet* clone() const override;
 
-    /** Calculate the field for particles in the container
+    /** Add this element's field to each particle's magnetic-field accumulator.
      *
-     *  \param pc the set of particles for which the field is calculated
+     * Positions are local Cartesian coordinates [m] and magnetic fields are [T].
+     * Existing contributions are preserved, including outside this element's
+     * support, where its own contribution is zero. The electric field is unchanged.
+     * This superposition contract matches the scalar/reference apply path.
+     * \param pc the particle container holding positions and field accumulators
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    /** Calculate the field at some arbitrary position
+    /** Add this element's local Cartesian magnetic field to B.
      *
-     *  \param R position in the local coordinate system of the bend
-     *  \param P not used
-     *  \param t not used
-     *  \param E not used
-     *  \param B calculated magnetic field
+     * Outside support this adds zero, preserving other elements' contributions.
+     * \param R local Cartesian position [m]
+     * \param P not used
+     * \param t not used
+     * \param E electric-field accumulator [V/m], unchanged
+     * \param B magnetic-field accumulator [T], incremented by this element
      */
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /** Add the reference field and report native aperture loss, including zero-field elements.
+     * Angular ownership is independent of radial/vertical aperture containment,
+     * so an excluded field candidate cannot silently turn an aperture loss into
+     * free drift. Outside aperture this leaves existing field contributions unchanged.
+     */
     bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
-        apply(R, P, t, E, B);
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
+            Vector_t<double, 3>&, Vector_t<double, 3>& B) override {
+        Vector_t<double, 5> cylindrical;
+        config_m.getCylindricalCoordinates(R, cylindrical);
+        if (config_m.outsideAperture(cylindrical)) return true;
+        if (config_m.contains(cylindrical)) {
+            Vector_t<double, 3> contribution;
+            getFieldValueFromChart(cylindrical, contribution);
+            B += contribution;
+        }
         return false;
     }
-    /** Calculate the field for particles in the container
+    bool isReferenceParticleLost(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, double) override {
+        return config_m.outsideAperture(R);
+    }
+    /** Replace B with this element's field for the supplied local positions.
      *
-     *  \param pc the set of particles for which the field is calculated
-     *
-     *  This is a static function so that it can call the GPU
+     * Unlike apply(), this raw getter overwrites every output, including zero
+     * outside support. It shares the same device calculation as accumulation.
+     * \param config field parameters in SI units (angles in radians)
+     * \param endField azimuthal fringe-field model
+     * \param R local Cartesian positions [m] in device-accessible memory
+     * \param B local Cartesian magnetic fields [T], overwritten
      */
     static void getFieldValue(
             const ScalingFFAMagnetConfig& config,
@@ -146,12 +168,9 @@ public:
             const ScalingFFAMagnetConfig& config, const C& derivatives,
             const Vector_t<double, 5>& Rcyl, Vector_t<double, 3>& B);
 
-    /** Calculate the field at some arbitrary position in cylindrical coordinates
-     *
-     *  \param R position in the local coordinate system of the bend, in
-     *           CHECK cartesian polar coordinates defined like (r, y, phi)
-     *  \param B CARTESIAN??? calculated magnetic field defined like (Br, By, Bphi)
-     *  \returns true if particle is outside the field map, else false
+    /** Replace B with this element's local Cartesian magnetic field.
+     * \param R local Cartesian position [m]
+     * \param B local Cartesian magnetic field [T], overwritten, zero outside support
      */
     void getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
@@ -340,6 +359,8 @@ public:
     bool isInside(const Vector_t<double, 3>& r) const override;
 
 private:
+    friend struct scaling_ffa_detail::FieldEvaluator;
+
     /** Calculate the df coefficients, ready for field generation
      *
      *  Must be called following any update to the the field parameters, in
@@ -367,34 +388,66 @@ private:
     mutable ScalingFFAMagnetConfig config_m;
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
     mutable std::string endFieldName_m;
+    void getFieldValueFromChart(
+            const Vector_t<double, 5>& cylindrical, Vector_t<double, 3>& B) const;
+
     mutable bool efmInitialised_m = false;
 };
+
+namespace scaling_ffa_detail {
+    /** Internal shared launcher for raw lookup and element superposition.
+     * The uniform flag changes only the final Cartesian field store [T]. No
+     * additional view, kernel launch, transformation or support test is needed.
+     * The launcher is namespace scoped because NVCC extended device lambdas
+     * cannot be enclosed by a private class member function.
+     */
+    struct FieldEvaluator {
+        static void evaluate(
+                const ScalingFFAMagnetConfig& config,
+                const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+                const Kokkos::View<Vector_t<double, 3>*> R,
+                const Kokkos::View<Vector_t<double, 3>*> B, bool accumulate);
+    };
+}  // namespace scaling_ffa_detail
 
 inline void ScalingFFAMagnet::getFieldValue(
         const ScalingFFAMagnetConfig& config,
         const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
         const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B) {
+    scaling_ffa_detail::FieldEvaluator::evaluate(config, endField, R, B, false);
+}
+
+inline void scaling_ffa_detail::FieldEvaluator::evaluate(
+        const ScalingFFAMagnetConfig& config,
+        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+        const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B,
+        bool accumulate) {
     const size_t count = R.size();
     Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
-            "ScalingFFAMagnet::getCylindricalCoordinates()", count,
-            KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
+            "ScalingFFAMagnet::getCylindricalCoordinates()", count, KOKKOS_LAMBDA(const size_t i) {
+                ScalingFFAMagnet::getCylindricalCoordinates(config, R(i), Rcyl(i));
+            });
     Kokkos::View<double*> phiSpiral("phiSpiral", count);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
                 phiSpiral(i) = Rcyl(i)[4];  // must be a way to get a subview
             });
-    endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
+    // The highest index read below is maxOrder, including odd transverse terms.
+    endField->function(phiSpiral, config.maxOrder_m, derivatives);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
-                getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
-                // Add rather than assign: overlapping elements superpose their fields in B.
-                Vector_t<double, 3> Bi;
-                rotateBfield(config, Rcyl(i), Bcyl(i), Bi);
-                B(i) += Bi;
+                ScalingFFAMagnet::getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
+                Vector_t<double, 3> contribution;
+                ScalingFFAMagnet::rotateBfield(config, Rcyl(i), Bcyl(i), contribution);
+                if (accumulate) {
+                    B(i) += contribution;
+                } else {
+                    B(i) = contribution;
+                }
             });
 }
 
@@ -402,18 +455,7 @@ KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getCylindricalCoordinates(
         const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
         Vector_t<double, 5>& Rcyli) {
-    Vector_t<double, 3> Rstart = Ri;
-    double r          = Kokkos::sqrt((Ri[0] + config.r0_m) * (Ri[0] + config.r0_m) + Ri[2] * Ri[2]);
-    double normRadius = Kokkos::abs(r / config.r0_m);
-    double g          = config.tanDelta_m * Kokkos::log(normRadius);
-    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) * Kokkos::copysign(1.0, config.r0_m));
-    double phiSpiral = phi - g - config.phiStart_m;
-    Rcyli[0]         = r;
-    // angle between y-axis and position vector in anticlockwise direction
-    Rcyli[1] = Ri[1];
-    Rcyli[2] = phi;
-    Rcyli[3] = normRadius;
-    Rcyli[4] = phiSpiral;
+    config.getCylindricalCoordinates(Ri, Rcyli);
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -446,6 +488,12 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
     if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
         return;
     }
+    if (z == 0) {
+        B[1] = (config.dfCoefficients_m[0] * derivatives(0)) * h;
+        return;
+    }
+    const double verticalRatio = z / r;
+    double verticalPower       = 1;
     for (size_t n = 0; n <= config.maxOrder_m; n += 2) {
         double f2n = 0;
         Vector_t<double, 3> deltaB({0., 0., 0.});
@@ -453,7 +501,7 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
             f2n += config.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
                    * derivatives(i);
         }
-        deltaB[1] = f2n * h * Kokkos::pow(z / r, static_cast<int>(n));
+        deltaB[1] = f2n * h * verticalPower;
         if (config.maxOrder_m >= n + 1) {
             double f2nplus1 = 0;
             for (size_t i = 0; i <= n + 1; ++i) {
@@ -462,10 +510,11 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
                             * derivatives(i);
             }
             deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
-                        * Kokkos::pow(z / r, static_cast<int>(n + 1));  // Br
-            deltaB[2] = f2nplus1 * h * Kokkos::pow(z / r, static_cast<int>(n + 1));
+                        * (verticalPower * verticalRatio);  // Br
+            deltaB[2] = f2nplus1 * h * (verticalPower * verticalRatio);
         }
         B += deltaB;
+        verticalPower *= verticalRatio * verticalRatio;
     }
 }
 

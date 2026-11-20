@@ -185,6 +185,17 @@ namespace opalx::spacecharge {
             }
             EXPECT_EQ(solver.redistributionCount(), 0u);
             EXPECT_EQ(services.configuration().repartitionFrequency, 1u);
+            // A bad particle on only one rank must make every rank reject before
+            // gather's halo exchange, including ranks with no offending particle.
+            auto savedPositions = snapshot(primary.R.getView());
+            auto badPositions   = snapshot(primary.R.getView());
+            if (ippl::Comm->rank() == 0 && primary.getLocalNum() > 0) {
+                badPositions(0)[0] = 100.0;
+            }
+            Kokkos::deep_copy(primary.R.getView(), badPositions);
+            EXPECT_THROW(services.gatherFields(primary), OpalException);
+            Kokkos::deep_copy(primary.R.getView(), savedPositions);
+            EXPECT_NO_THROW(services.gatherFields(primary));
             services.configure(std::nullopt);
             EXPECT_THROW(solver.solve(context), OpalException);
         }

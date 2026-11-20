@@ -18,6 +18,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+
 #include "Fields/Fieldmap.h"
 #include "Fields/G4BL2DMagnetoStatic.h"
 #include "Ippl.h"
@@ -97,19 +99,17 @@ protected:
         ippl::finalize();
     }
 
-    void SetUp() override {
-        tmpDir_ = std::filesystem::temp_directory_path() / "opalx_g4bl2d_test";
-        std::filesystem::create_directories(tmpDir_);
-    }
+    void SetUp() override { tmpDir_ = temporaryDirectory_.create("opalx-g4bl2d-magnetostatic"); }
 
     void TearDown() override {
         Fieldmap::clearDictionary();
-        std::filesystem::remove_all(tmpDir_);
+        temporaryDirectory_.reset();
     }
 
     std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
+    opalx::test::TemporaryDirectory temporaryDirectory_;
 };
 
 // ===========================================================================

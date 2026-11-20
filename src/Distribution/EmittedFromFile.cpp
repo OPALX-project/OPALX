@@ -166,8 +166,19 @@ void EmittedFromFile::readFile(const std::string& filename) {
         }
 
         if (stripped[0] == '#') {
-            // Old OPAL emitted dumps use a comment header.  The data order is
-            // positional, so the header is accepted but not needed for mapping.
+            // Recognize named spacetime headers even when commented, while retaining
+            // positional interpretation of historical old-OPAL comment headers.
+            if (const auto parsedHeader = parseHeader(trim(stripped.substr(1)));
+                parsedHeader.has_value()) {
+                if (!rawRecords_m.empty()) {
+                    throw OpalException(
+                            "EmittedFromFile::readFile",
+                            "A header appears after particle data in '" + filename + "'.");
+                }
+                header                = parsedHeader;
+                explicitBirthFormat_m = header->explicitBirth;
+                expectHeaderAfterN    = false;
+            }
             continue;
         }
 

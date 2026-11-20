@@ -15,7 +15,7 @@
 
 namespace opalx::spacecharge {
 
-    /** @brief Immutable reference path used for Cartesian to Frenet mapping. */
+    /** @brief Immutable laboratory-coordinate path used for Cartesian to Frenet mapping. */
     class ReferencePath final {
     public:
         using Vector = Vector_t<double, 3>;

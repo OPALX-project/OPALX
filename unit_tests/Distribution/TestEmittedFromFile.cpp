@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "../TemporaryDirectory.h"
 
 #include <algorithm>
 #include <array>
@@ -27,7 +28,7 @@ protected:
 
     void SetUp() override {
         pc           = makeContainer(false);
-        tempFilename = "emittedfromfile_test_input.dat";
+        tempFilename = (directory_m.create("opalx-emitted-fromfile") / "input.dat").string();
     }
 
     /// Container on the test mesh; @p spin turns on the per-particle polarization Pol.
@@ -44,8 +45,14 @@ protected:
             domain[i] = ippl::Index(nr[i]);
         }
 
-        Mesh_t<3> mesh(domain, hr, origin);
-        FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m);
+        // Particle layouts borrow these objects; migration tests require them
+        // to outlive the container rather than referring to expired stack locals.
+        meshes.emplace_back(std::make_unique<Mesh_t<3>>(domain, hr, origin));
+        layouts.emplace_back(
+                std::make_unique<FieldLayout_t<3>>(
+                        MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m));
+        auto& mesh = *meshes.back();
+        auto& fl   = *layouts.back();
 
         auto container    = std::make_shared<ParticleContainer<double, 3>>(mesh, fl, spin);
         bunchStateHandler = std::make_shared<BunchStateHandler>();
@@ -53,11 +60,7 @@ protected:
         return container;
     }
 
-    void TearDown() override {
-        if (!tempFilename.empty()) {
-            std::remove(tempFilename.c_str());
-        }
-    }
+    void TearDown() override { directory_m.reset(); }
 
     void allocate(size_t globalCapacity) {
         const int nranks           = std::max(1, ippl::Comm->size());
@@ -110,10 +113,13 @@ protected:
         out << "5.0e-3 6.0e-3 -4.0e-3 0.0 0.0 6.0e-1 2.5e-13\n";
     }
 
+    std::vector<std::unique_ptr<Mesh_t<3>>> meshes;
+    std::vector<std::unique_ptr<FieldLayout_t<3>>> layouts;
     std::shared_ptr<ParticleContainer<double, 3>> pc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
+    opalx::test::TemporaryDirectory directory_m;
     std::string tempFilename;
 };
 
@@ -253,6 +259,32 @@ TEST_F(EmittedFromFileTest, PreservesExplicitBirthSpacetimeAndFractionalFirstSte
 
 // Each identity must be born exactly once, including births exactly at a step
 // boundary (zero fractional dt). Validate on every rank, not only rank one.
+TEST_F(EmittedFromFileTest, ReorderedCommentHeaderSelectsExplicitTimesAndCoordinates) {
+    {
+        std::ofstream out(tempFilename);
+        out << "1\n# PZ t Z PY X PX Y\n";
+        out << "0.6 2e-13 0.003 0.2 0.001 0.1 0.002\n";
+    }
+    allocate(2);
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, 1u);
+    const auto r = sampler.getInitialReferencePosition();
+    const auto p = sampler.getInitialReferenceMomentum();
+    EXPECT_DOUBLE_EQ(r[0], 0.001);
+    EXPECT_DOUBLE_EQ(r[1], 0.002);
+    EXPECT_DOUBLE_EQ(r[2], 0.003);
+    EXPECT_DOUBLE_EQ(p[0], 0.1);
+    EXPECT_DOUBLE_EQ(p[1], 0.2);
+    EXPECT_DOUBLE_EQ(p[2], 0.6);
+    sampler.emitParticles(0.0, 1e-13);
+    EXPECT_EQ(globalParticleCount(), 0u);
+    sampler.emitParticles(1e-13, 1e-13);
+    EXPECT_EQ(globalParticleCount(), 1u);
+}
+
 TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
     constexpr double step = 1e-12;
     const std::array<double, 12> births{0.0,  0.25, 1.0, 1.25, 1.5, 2.0,
@@ -271,6 +303,8 @@ TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
     sampler.generateParticles(requested, nr);
     ASSERT_EQ(requested, 12u);
     std::array<int, 12> localIdentities{}, globalIdentities{};
+    std::array<long long, 12> acceptedIds;
+    acceptedIds.fill(-1);
     for (unsigned interval = 0; interval < 4; ++interval) {
         const auto before = pc->getLocalNum();
         sampler.emitParticles(interval * step, step);
@@ -290,6 +324,28 @@ TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
             EXPECT_NEAR(
                     r(i)[2], 0.002 + 0.5 * Physics::c * fractional * 0.4 / std::sqrt(1.16), 1e-15);
         }
+        // IDs need not match between MPI sizes, but each file row must retain
+        // its birth ID across later emission batches and spatial migration.
+        pc->update();
+        const auto movedR =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        const auto ids = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+        std::array<long long, 12> localIds, globalIds;
+        localIds.fill(-1);
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            const int row = static_cast<int>(std::lround(movedR(i)[0] / 1e-3)) - 1;
+            ASSERT_GE(row, 0);
+            ASSERT_LT(row, 12);
+            localIds[row] = ids(i);
+        }
+        MPI_Allreduce(
+                localIds.data(), globalIds.data(), 12, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+        for (size_t row = 0; row < 12; ++row) {
+            if (acceptedIds[row] >= 0) {
+                EXPECT_EQ(globalIds[row], acceptedIds[row]);
+            }
+            if (globalIds[row] >= 0) acceptedIds[row] = globalIds[row];
+        }
     }
     EXPECT_TRUE(sampler.isEmissionDone(4 * step));
     sampler.emitParticles(4 * step, step);
@@ -298,6 +354,8 @@ TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
             localIdentities.data(), globalIdentities.data(), 12, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     for (const auto count : globalIdentities)
         EXPECT_EQ(count, 1);
+}
+
 TEST_F(EmittedFromFileTest, EmittedParticlesGetBeamPolarization) {
     pc = makeContainer(/*spin=*/true);
     writeCountHeaderDump();

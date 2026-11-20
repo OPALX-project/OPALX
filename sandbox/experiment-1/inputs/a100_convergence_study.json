@@ -1,0 +1,32 @@
+{
+  "study_name": "BeamBeam rigid-source manufactured-field convergence",
+  "separation_sigma_z": 3.0,
+  "probe_nx": 51,
+  "probe_nz": 101,
+  "base_seed": 20260629,
+  "fixed_mesh_nxy": 64,
+  "fixed_particles": 400000,
+  "particle_scan": [
+    100000,
+    200000,
+    400000,
+    800000,
+    1600000,
+    3200000,
+    6400000
+  ],
+  "fixed_particle_mesh_scan": [32, 64, 96, 128],
+  "constant_occupancy_scan": [
+    {"mesh_nxy": 32, "primary_macroparticles": 400000},
+    {"mesh_nxy": 64, "primary_macroparticles": 3200000},
+    {"mesh_nxy": 96, "primary_macroparticles": 10800000},
+    {"mesh_nxy": 128, "primary_macroparticles": 25600000}
+  ],
+  "seed_scan": [20260629, 20260630, 20260631],
+  "mpi_rank_scan": [1, 2, 4],
+  "fixed_rank_source": {
+    "position_cutoff_sigma": 3.0,
+    "sigma_xyp": 1.0e-12,
+    "sigma_pz": 1.0e-12
+  }
+}

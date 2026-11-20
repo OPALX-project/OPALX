@@ -17,18 +17,21 @@
 //
 #include "Elements/OpalProbe.h"
 #include "AbstractObjects/Attribute.h"
+#include "Algorithms/CyclotronProbeRecorder.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/ProbeRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
 OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defines a Probe.") {
-    itsAttr[XSTART] = Attributes::makeReal("XSTART", " Start of x coordinate [mm]");
-    itsAttr[XEND]   = Attributes::makeReal("XEND", " End of x coordinate [mm]");
-    itsAttr[YSTART] = Attributes::makeReal("YSTART", "Start of y coordinate [mm]");
-    itsAttr[YEND]   = Attributes::makeReal("YEND", "End of y coordinate [mm]");
-    itsAttr[WIDTH]  = Attributes::makeReal("WIDTH", "Width of the probe, not used.");
-    itsAttr[STEP]   = Attributes::makeReal("STEP", "Step size of the probe [mm]", 1.0);
+    itsAttr[XSTART] = Attributes::makeReal("XSTART", "Start of laboratory X coordinate [mm]");
+    itsAttr[XEND]   = Attributes::makeReal("XEND", "End of laboratory X coordinate [mm]");
+    itsAttr[YSTART] =
+            Attributes::makeReal("YSTART", "Start of laboratory Z coordinate (legacy Y name) [mm]");
+    itsAttr[YEND] =
+            Attributes::makeReal("YEND", "End of laboratory Z coordinate (legacy Y name) [mm]");
+    itsAttr[WIDTH] = Attributes::makeReal("WIDTH", "Width of the probe, not used.");
+    itsAttr[STEP]  = Attributes::makeReal("STEP", "Cyclotron radial histogram bin width [mm]", 1.0);
 
     registerOwnership();
 
@@ -44,7 +47,10 @@ OpalProbe::~OpalProbe() {}
 OpalProbe* OpalProbe::clone(const std::string& name) { return new OpalProbe(name, this); }
 
 void OpalProbe::update() {
-    OpalElement::update();
+    // A global detector segment contributes no path length to its sequence.
+    Attributes::setReal(itsAttr[LENGTH], 0.0);
+    // Endpoint coordinates are already global. Ordinary element placement
+    // validation would incorrectly require ELEMEDGE or a separate 6D pose.
 
     ProbeRep* prob = dynamic_cast<ProbeRep*>(getElement());
 
@@ -54,12 +60,11 @@ void OpalProbe::update() {
     double yend   = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
     double step   = Units::mm2m * Attributes::getReal(itsAttr[STEP]);
 
-    double length = Attributes::getReal(itsAttr[LENGTH]);
-
-    prob->getGeometry().setElementLength(length);  // is this needed here?
+    prob->getGeometry().setElementLength(0.0);
     prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
     prob->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
+    if (!isBuiltin()) CyclotronProbeRecorder::configuration(*prob);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(prob);

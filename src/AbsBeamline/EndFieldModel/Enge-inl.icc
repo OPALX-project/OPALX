@@ -76,7 +76,7 @@ namespace endfieldmodel {
     KOKKOS_INLINE_FUNCTION double Enge::getEnge(const EngeConfig& config, double x, int n, EngeWorkspace& ws) {
         setupWorkspace(config, x, n, ws);
         for (int k = 0; k <= n; ++k) {
-            Kokkos::View<int**> qt = config.gIndices[k];
+            const auto& qt = config.gIndices[k];
             double e = 0;
             for (size_t i = 0; i < qt.extent(0); ++i) {
                 double ei(qt(i, 0));
@@ -95,6 +95,13 @@ namespace endfieldmodel {
     // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
     // h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
     KOKKOS_INLINE_FUNCTION double Enge::hN(const EngeConfig& config, double x, int n) {
+        // Common linear Enge polynomial: retain the same arithmetic without
+        // general powers for exponents zero and one. Higher derivatives vanish.
+        if (config.a_m.size() == 2) {
+            if (n == 0) return config.a_m(0) + (config.a_m(1) / config.lambda_m) * x;
+            if (n == 1) return config.a_m(1) / config.lambda_m;
+            return 0;
+        }
         double hn = 0;
         // optimise by precalculating factor
         for (unsigned int i = n; i < config.a_m.size(); i++)

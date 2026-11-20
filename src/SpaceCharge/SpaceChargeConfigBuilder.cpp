@@ -298,9 +298,17 @@ namespace opalx::spacecharge {
         grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
         grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
 
+        if (fieldSolver.hasFFT2D5Model() && solverType != FieldSolverCmdType::FFT2D5) {
+            throw OpalException("buildSpaceChargeConfig", "FFT2D5MODEL requires TYPE=FFT2D5.");
+        }
         if (solverType == FieldSolverCmdType::FFT2D5) {
-            if (ippl::Comm->size() != 1) {
-                throw OpalException("buildSpaceChargeConfig", "FFT2D5 supports only one MPI rank.");
+            if (fieldSolver.getFFT2D5Model() != "ORIGINAL") {
+                throw OpalException(
+                        "buildSpaceChargeConfig", "Only FFT2D5MODEL=ORIGINAL is supported.");
+            }
+            if (ippl::Comm->size() > 1 && !grid.decomposition[2]) {
+                throw OpalException(
+                        "buildSpaceChargeConfig", "Multiple FFT2D5 ranks require PARFFTZ=TRUE.");
             }
             const auto binsName = fieldSolver.getBinsName();
             if (!binsName.empty() && binsName != "NONE") {
@@ -361,6 +369,9 @@ namespace opalx::spacecharge {
                 fieldSolver.hasP3MCutoffCells()
                 || (values.backend == PoissonSolverType::P3M && !fieldSolver.hasP3MCutoff());
         values.p3mCutoffCells = meshTiedCutoff ? fieldSolver.getP3MCutoffCells() : 0.0;
+        values.repeatCount    = fieldSolver.getRepeatCount();
+        values.repeatSpacing  = fieldSolver.getRepeatSpacing();
+        values.periodicBox    = fieldSolver.getPeriodicBox();
         values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;

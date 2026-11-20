@@ -80,22 +80,26 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
     EXPECT_NEAR(enge.function(3.0, 0), 0.5, 1e-6);  // x0E from the centre
     EXPECT_NEAR(enge.function(5.0, 0), 0.0, 1e-2);
 
-    Kokkos::View<double*> xDevice("x", 1);
+    Kokkos::View<double*> xDevice("x", xVector.size());
     auto xHost = Kokkos::create_mirror_view(xDevice);
-    Kokkos::View<double**> yDevice("y", 1, 5);
+    Kokkos::View<double**> yDevice("y", xVector.size(), 5);
     auto yHost = Kokkos::create_mirror_view(yDevice);
-    for (auto x : xVector) {
-        xHost(0) = x;
-        Kokkos::deep_copy(xDevice, xHost);
-        enge.function(xDevice, 4, yDevice);
-        Kokkos::deep_copy(yHost, yDevice);
+    // Multiple particles expose non-contiguous derivative rows on LayoutLeft
+    // backends; a one-particle batch masks an invalid contiguous-view conversion.
+    for (size_t i = 0; i < xVector.size(); ++i)
+        xHost(i) = xVector[i];
+    Kokkos::deep_copy(xDevice, xHost);
+    enge.function(xDevice, 4, yDevice);
+    Kokkos::deep_copy(yHost, yDevice);
+    for (size_t i = 0; i < xVector.size(); ++i) {
+        const double x = xVector[i];
         for (size_t n = 1; n < 5; ++n) {
             double yP     = enge.function(x + dx, n - 1);
             double yM     = enge.function(x - dx, n - 1);
             double dyTest = enge.function(x, n);
             double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-6) << " at x " << x << " n " << n;
-            EXPECT_NEAR(yHost(0, n), dyRef, 1e-6) << " at x " << x << " n " << n;
+            EXPECT_NEAR(yHost(i, n), dyRef, 1e-6) << " at x " << x << " n " << n;
         }
     }
 }

@@ -59,6 +59,7 @@ set(_HDRS
     RFCavity.h
     TravelingWave.h
     SpecificElementVisitor.h
+    ScalingFFASupport.h
     ScalingFFAMagnet.h
     Solenoid.h
     VerticalFFAMagnet.h

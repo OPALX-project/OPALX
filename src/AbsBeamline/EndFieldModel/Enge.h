@@ -93,6 +93,18 @@ namespace endfieldmodel {
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
         double function(double x, int n) const override;
 
+        void function(double x, int n, double* values) const override {
+            if constexpr (Kokkos::SpaceAccessibility<
+                                  Kokkos::HostSpace,
+                                  Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
+                Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+                        output(values, n + 1);
+                functionDevice(config_m, x, n, output);
+            } else {
+                EndFieldModel::function(x, n, values);
+            }
+        }
+
         /** GPU-aware version of function
          *
          *  @param xView: list of x values
@@ -194,14 +206,14 @@ namespace endfieldmodel {
         static void setEngeDiffIndices(size_t n, EngeConfig& config);
 
         /** Return the indices for calculating the nth derivative of Enge ito g(x) */
-        inline static std::vector<std::vector<int> > getQIndex(int n);
+        inline static std::vector<std::vector<int>> getQIndex(int n);
 
         /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
-        inline static std::vector<std::vector<int> > getHIndex(int n);
+        inline static std::vector<std::vector<int>> getHIndex(int n);
 
         /** Helper function for making 2D view from stl vectors */
         static void copyVectorToView(
-                const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest);
+                const std::vector<std::vector<int>>& src, Kokkos::View<int**>& dest);
 
         /** Helper function for making from stl vector */
         static Kokkos::View<double*> makeView(
@@ -228,9 +240,9 @@ namespace endfieldmodel {
         static void setEngeDiffIndicesKokkos(size_t n, EngeConfig& config);
 
         /** Indexes the derivatives of enge in terms of g */
-        static std::vector<std::vector<std::vector<int> > > q_m;
+        static std::vector<std::vector<std::vector<int>>> q_m;
         /** Indexes the derivatives of g in terms of h */
-        static std::vector<std::vector<std::vector<int> > > h_m;
+        static std::vector<std::vector<std::vector<int>>> h_m;
     };
 
 }  // namespace endfieldmodel
