@@ -5,6 +5,7 @@
 \usepackage{amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{listings}
 \usepackage{microtype}
 \usepackage{siunitx}
@@ -361,7 +362,7 @@ two MPI ranks.
 
 The status described here corresponds to branch
 \texttt{271-implement-interation-\allowbreak point-element} at commit
-\code{df7cd6cba}.  The
+\code{e24dc9218}.  The
 seven-step element redesign is complete.  \code{BeamBeam} now follows the same
 ownership model as ordinary OPALX elements: the placed element contains input
 and placement configuration, while mutable per-run state belongs to
@@ -385,7 +386,8 @@ uses only the persistent fields $\E_m$ and $\B_m$:
 \end{split}
 \end{equation*}
 Reflection and accumulation execute in the active Kokkos memory space.  The
-full fields are not staged through host memory.  This path reduced ten-step
+full fields are not staged through host memory.  An earlier fixed-domain
+benchmark reduced ten-step
 solver calls from 20 to 11, where the remaining extra solve is warm-up, and
 reduced measured BeamBeam self-field time by \SI{45.2}{\percent}.
 
@@ -420,31 +422,22 @@ the fractional interval
 \end{equation}
 Before gathering, each witness position is transformed from its independent
 container reference frame to the source-field frame.  The gather then performs
-an MPI owner-rank reduction and transforms the sampled fields back.
+spatial redistribution to the field layout and transforms the sampled fields back.
+Particle IDs remain unchanged after birth; their initial allocation depends on
+MPI rank count and is not a file-row identifier.
 
-\subsection{Current fixed mesh and its limitation}
+\subsection{Current field window and its limitation}
 
-During BeamBeam activity the field mesh is fixed to
-\begin{equation}
- x\in[-a_x,a_x],\qquad y\in[-a_y,a_y],\qquad
- z\in[z_{\mathrm{IP}}-L/2,z_{\mathrm{IP}}+L/2].
-\end{equation}
-For the production geometry this is a rectangular box of
-$\SI{30}{\centi\metre}\times\SI{30}{\centi\metre}\times
-\SI{32}{\centi\metre}$ enclosing the cylindrical aperture.  The implementation
-currently checks only the transverse extent of container 0.  It does not prove
-containment of the mirrored source or witness containers, and it does not check
-longitudinal containment.
-
-More importantly, geometric coverage is not numerical resolution.  The
-current large-cylinder debug deck uses $16^3$ cells, corresponding to cell
-sizes of approximately \SI{20}{\milli\metre}, \SI{20}{\milli\metre}, and
-\SI{21.33}{\milli\metre}.  Even a $4096\times256\times128$ mesh over the same
-box would have spacings of approximately \SI{73.3}{\micro\metre},
-\SI{1.176}{\milli\metre}, and \SI{2.52}{\milli\metre}; it would not resolve the
-\SI{1.944}{\micro\metre} transverse primary or the \SI{0.6}{\milli\metre}
-longitudinal primary.  The physical aperture and numerical field domain must
-therefore be separated.
+The numerical domain is independent of the element length and aperture.
+Its longitudinal window is fixed at $z_{\mathrm{IP}}\pm\SI{10}{\milli\metre}$;
+the transverse domain follows the combined primary and witness envelope,
+with padding, a cell-aspect floor, and no shrinkage.  If newly emitted witnesses
+extend beyond the solved transverse domain, OPALX enlarges the domain and
+re-solves the primary fields at the original field-evaluation time before
+gathering.  Witness charge never enters deposition.  A collective check rejects
+invalid local interpolation stencils before halo exchange.  Coverage does not
+ensure resolution: transverse mesh refinement remains necessary as witnesses
+move away from the narrow primary bunch.
 
 \section{Current OPALX Results}
 
@@ -452,6 +445,18 @@ The current validation hierarchy is summarized in
 Table~\ref{tab:validation}.  The complete local build and focused tests pass;
 Kokkos version 5.2.0 is configured.  MPI-sensitive paths have been exercised
 on one, two, and four ranks.
+
+The November 2026 Lumi campaign at \code{e24dc9218} passes the four experiment
+smokes and focused one- and two-GPU tests.  A one-MI250 Track-12 run with
+400,000 deterministic primary particles, a $256\times256\times128$ mesh,
+and 1,501 steps completes in \SI{469.86}{\second}.  All twelve witnesses retain
+finite phase space and persistent IDs; 13,012 reference samples are matched.
+Relative $L_2$ differences in $(x,s)$ are $(0.854,0.117)\%$ against the
+three-sigma-truncated manufactured model and $(9.483,2.967)\%$ against CAIN.
+The manufactured $y$ reference is zero; its absolute rms difference is
+\SI{1.74}{\micro\metre}.  These are workflow and model-comparison results,
+not a new mesh-convergence claim.  The broader local GCC suite passes 147/148
+tests; an unchanged bend-field exact-zero assertion remains compiler-sensitive.
 
 \begin{table}[htbp]
   \centering
@@ -526,10 +531,25 @@ model or convention and must not be tuned away in OPALX.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{../experiment-2/results/legacy/opalx/timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8/results/track12_cain_vs_opalx.png}
-  \caption{Latest four-A100 Track-12 comparison.  CAIN is shown at left, OPALX
-  with exact timed births in the centre, and the three-sigma-truncated rigid
-  two-Gaussian manufactured solution at right.}
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../experiment-2/results/legacy/opalx/timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8/results/track12_cain_vs_opalx.png}
+    \caption{Historical four-A100 run: $4096\times256\times128$ mesh.}
+    \label{fig:track12-a100}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../lumi-validation-20261120/track12/results/track12_cain_vs_opalx.png}
+    \caption{Lumi, one MI250: $256\times256\times128$ mesh, commit \code{e24dc9218}.}
+    \label{fig:track12-lumi}
+  \end{subfigure}
+  \caption{Track-12 trajectories from the A100 and Lumi campaigns.  Each row
+  shows CAIN at left, OPALX with exact timed births in the centre, and the
+  three-sigma-truncated rigid two-Gaussian manufactured solution at right.
+  Both runs use 400,000 primary particles and 1,501 steps.  The different meshes
+  and source revisions preclude a direct hardware-performance comparison.}
   \label{fig:track12}
 \end{figure}
 
@@ -657,12 +677,10 @@ plus a mesh and interpolation margin.  This suggests a numerical field length
 of approximately \SIrange{16}{18}{\milli\metre}, not the full
 \SI{32}{\centi\metre} physical element.
 
-The next code-level diagnostic should compute global minimum and maximum
-positions for all active containers in the source-field frame on every
-BeamBeam solve.  It should report the distance to each field boundary in metres
-and cells and fail clearly when a source or gathered witness lies outside the
-supported interpolation region.  The current primary-only transverse check is
-insufficient.
+The combined primary/witness envelope and collective interpolation-stencil
+guard now address the former primary-only coverage check.  Further diagnostics
+may report distances to field boundaries in metres and cells; they do not
+replace a resolution study.
 
 The transverse scale separation remains harder.  A witness may move several
 millimetres during a \SI{40}{\pico\second} interaction window, whereas the
@@ -683,13 +701,13 @@ required:
   \item Align the timed CAIN file origin with the primary centroid-overlap
         clock and migrate the large-cylinder input from common-\code{T0}
         \code{FROMFILE} injection to the exact timed files.
-  \item Add source, mirror, and witness mesh-coverage diagnostics and a
-        regression for out-of-domain gathering.
-  \item Decouple physical element length and aperture from the numerical field
-        domain.
+  \item Retain the implemented combined-envelope and collective coverage checks
+        and their out-of-domain regression.
+  \item Validate the separation of element geometry from the longitudinal
+        field window and growing transverse mesh.
   \item Converge the interaction cutoff $d$, timestep, transverse and
         longitudinal mesh, primary macroparticle count, and source truncation.
-  \item Repeat the selected production case on one and multiple A100s and
+  \item Repeat the selected production case on one and multiple Lumi GPUs and
         verify decomposition independence of fields, trajectories, and losses.
   \item Correct the known H5 electric-field unit metadata, which currently
         labels values stored in \si{\volt\per\metre} as \si{\mega\volt\per\metre},
@@ -757,9 +775,9 @@ These launchers use at most four CPU threads and create a fresh
 and a run manifest.  The local profiles are workflow checks, not reproductions
 of the historical fine-grid numbers quoted in this note.  In particular,
 experiment 4 defaults to a primary-only lifecycle smoke test; \code{--full}
-selects the full-witness production deck.  The common \code{--merlin6} option
-is not implemented; the older remote helpers below are retained for reference,
-not a validated replacement for that interface.
+selects the full-witness production deck.  The verified Lumi campaign is
+documented in Appendix~\ref{app:lumi}; remote submission uses its run-local
+Slurm scripts, not these local launchers.
 
 Retained historical figures and comparison products are under each experiment's
 \path{results/legacy/} tree.  The recent disk cleanup removed selected old
@@ -795,9 +813,10 @@ or generating program.  Figure~\ref{fig:geometry} is native TikZ in this
     \ref{fig:mesh-convergence}
       & \code{scan\_first\_kick\_fields.py}
       & \path{pair4_field_and_kick_convergence.png} \\
-    \ref{fig:track12}
+    \ref{fig:track12-a100}, \ref{fig:track12-lumi}
       & \code{compare\_timed\_track12.py}
-      & \path{results/track12_cain_vs_opalx.png} \\
+      & \path{results/track12_cain_vs_opalx.png} in the historical A100 and
+        Lumi Track-12 run directories, respectively \\
     \ref{fig:intended-timeline} & \code{bb-note.tex}
       & inline TikZ, generated during \LaTeX{} compilation \\
     \bottomrule
@@ -885,122 +904,51 @@ The integrator uses both anisotropic sources, component-wise three-sigma source
 truncation, exact CAIN birth times, and a maximum internal substep of
 \SI{1}{\femto\second}.
 
-\subsection{Building OPALX for Merlin6}
+\subsection{Lumi campaign: source, runs, and local analysis}
+\label{app:lumi}
 
-The GPU calculations use the persistent Merlin6 checkout and its configured
-Release build.  Login-node availability can be intermittent, so all expensive
-work is submitted through Slurm and all scripts and logs are stored inside the
-run directory.  On Merlin6:
-
+The verified campaign uses Release HIP/GFX90A, LUMI~25.03, AMD~6.3.4,
+Cray MPICH~8.1.32, and source commit \code{e24dc9218}.  On \code{ssh lumi},
+the source and run directories are
 \begin{lstlisting}[style=commands]
-ssh merlin6
-SRC=/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f
-cd "$SRC"
-git status --short
-git rev-parse HEAD
-cmake --build build-a100 -j4
-grep CMAKE_BUILD_TYPE build-a100/CMakeCache.txt
-OPALX="$SRC/build-a100/src/opalx"
-test -x "$OPALX"
+SRC=/flash/project_465002453/opalx-beambeam-recovery-20261120
+RUN=/flash/project_465002453/bb-validation-e24dc9218-20261120
+OPALX="$SRC/build-hip/src/opalx"
 \end{lstlisting}
+The four scientific smokes are under \code{\$RUN/experiment-1} through
+\code{\$RUN/experiment-4}; the complete Track-12 case is under
+\code{\$RUN/track12}.  Slurm jobs 23901108, 23901410, and 23901513 cover the
+build/single-GPU tests, two-GPU tests plus smokes, and Track-12, respectively.
+Build and smoke scripts/logs are in \code{\$RUN}; the Track-12 deck,
+\code{submit.sh}, scheduler logs, \code{opalx.log}, and \code{timing.dat}
+are in \code{\$RUN/track12}.  These retained directories must not be overwritten
+for a new campaign.
 
-The checkout path above identifies the historical campaign, not a newly
-verified remote checkout.  For the relocated commands below, select a checkout
-containing the numbered experiment layout and verify its build path first.
-The intended configuration is Release with CUDA and Ampere-80 support.  If the
-existing build directory is unavailable, it must be configured with the
-Merlin site dependency prefixes before the build command above; those paths
-are installation-specific and should not be guessed.  Record the CMake cache
-and \code{sha256sum \$OPALX} in a fresh production campaign.
+The launchers use \code{srun}, \code{--info 4}, account
+\code{project\_465002453}, and partitions \code{dev-g} or \code{small-g}.
+They respect Slurm's per-task ROCr visibility mask, set
+\code{MPICH\_GPU\_SUPPORT\_ENABLED=1}, and disable GPU IPC with
+\code{MPICH\_GPU\_IPC\_ENABLED=0} after a Cray IPC-import failure.
+The earlier Merlin singleton-launch restriction does not apply to this
+verified Cray MPI workflow.
 
-\clearpage
-\subsection{Manufactured-field A100 study on Merlin6}
-
-The self-submitting convergence driver prepares its input matrix, launches the
-single-GPU cases, then connected two- and four-rank MPI cases, and finally
-checks completion.  It copies scheduler output into \code{RUN\_ROOT/slurm}.
-
-\begin{lstlisting}[style=commands]
-cd "$SRC"
-RUN_ROOT=/psi/home/adelmann/opalx-dev/\
-bb-manufactured-$(git rev-parse --short HEAD)-$(date -u +%Y%m%dT%H%M%SZ)
-sandbox/experiment-1/scripts/merlin/submit_a100_convergence.sh \
-  --run-root "$RUN_ROOT" --repo-root "$SRC" --opalx "$OPALX" \
-  --omp-threads 1
-squeue -M gmerlin6
-\end{lstlisting}
-
-Connected multi-GPU runs use \code{mpiexec} with one rank per A100 and
-\path{--kokkos-map-device-id-by=mpi_rank}.  Plain multi-task \code{srun} must
-not launch OPALX on this cluster because it creates independent Open MPI
-singletons.  Independent one-rank cases may run as exclusive \code{srun} steps
-inside a GPU allocation, as implemented by the driver.
-
-After completion, return to the local checkout and fetch only compact products
-before plotting:
-
+Local campaign scripts, provenance, and results are retained under
+\path{sandbox/lumi-validation-20261120/}; fetched smoke results are under
+\path{sandbox/experiment-N/results/lumi-e24dc9218-smoke/}, with $N=1,\ldots,4$.
+Regenerate the local analyses without rerunning OPALX:
 \begin{lstlisting}[style=commands]
 $HOME/.venv-h6/bin/python \
-  sandbox/experiment-1/scripts/fetch_and_plot_a100_convergence.py \
-  --remote-host merlin6 --remote-run-root "$RUN_ROOT"
-\end{lstlisting}
-
-Because a local shell does not inherit the remote \code{RUN\_ROOT}, replace it
-with the absolute study path printed by the submission script.
-
-\clearpage
-\subsection{Exact-timed Track-12 run on four A100s}
-
-Prepare the deterministic 400,000-particle, $4096\times256\times128$ case on
-Merlin and stage only the required files into a new run-local production
-directory:
-
-\begin{lstlisting}[style=commands]
-cd "$SRC"
-PY=python3
-TIMED=sandbox/experiment-2/scripts
-RUN_ROOT=/psi/home/adelmann/opalx-dev/\
-track12-4096x256x128-4rank-$(git rev-parse --short HEAD)-\
-$(date -u +%Y%m%dT%H%M%SZ)
-$PY "$TIMED/prepare_timed_track12.py" \
-  --output-dir "$RUN_ROOT/production" \
-  --primary-macroparticles 400000 \
-  --nx 4096 --ny 256 --nz 128
-
-"$TIMED/merlin/submit_track12_a100.sh" submit \
-  --run-root "$RUN_ROOT" --opalx "$OPALX" \
-  --mpi-ranks 4 --omp-threads 1 --production-time 10:00:00
-squeue -M gmerlin6
-\end{lstlisting}
-
-The example uses one CPU thread per rank to respect the four-CPU limit;
-historical timing results must not be attributed to this changed thread count.
-The launcher first submits a three-step smoke test and submits the 1,501-step
-calculation with an \code{afterok} dependency.  The actual OPALX command uses
-\code{mpiexec -n 4}, \code{--info 1}, and
-\code{--kokkos-map-device-id-by=mpi\_rank}.  The nonzero information level is
-required for a populated \code{timing.dat}.  A \code{completed} marker is
-written only after OPALX exits successfully and \code{timing.dat} is nonempty.
-The exact submitted launcher and the \code{smoke\_\%j.out} and
-\code{production\_\%j.out} logs remain under \code{RUN\_ROOT/slurm}.
-
-Fetch the finished witnesses to the local machine and regenerate
-Figure~\ref{fig:track12} and all comparison tables with
-
-\begin{lstlisting}[style=commands]
-DEST=sandbox/experiment-2/results/\
-a100_4rank_400k_4096x256x128_current
+  sandbox/lumi-validation-20261120/analyze_smokes.py
 $HOME/.venv-h6/bin/python \
-  sandbox/experiment-2/scripts/fetch_and_compare_a100.py \
-  --host merlin6 --remote-dir "$RUN_ROOT/production" \
-  --destination "$DEST"
+  sandbox/lumi-validation-20261120/analyze_track12.py
 \end{lstlisting}
+The Track-12 comparison plots, pointwise CSV, and
+\code{track12\_comparison.json} are below
+\path{sandbox/lumi-validation-20261120/track12/results/}.
+The companion \path{sandbox/lumi-validation-20261120/STATUS.md} records
+input/executable hashes, launch details, and validation limits.  Historical
+A100 convergence data remain separate; their figures below are not Lumi runs.
 
-Again, substitute the absolute remote run path for \code{\$RUN\_ROOT} in the
-local shell.  The comparison requires both witness H5 files, the exact input
-deck, emitted witness files, and the matching preparation manifest.  It writes
-the trajectory PNG, pointwise CSV, first-kick CSV, particle summary, and JSON
-metrics below \code{DEST/results}.
 
 \subsection{Reproducing Figure~\ref{fig:mesh-convergence}}
 
@@ -1016,10 +964,9 @@ $HOME/.venv-h6/bin/python \
   --fixed-primary "$OUT/input/primary_fixed.fromfile"
 \end{lstlisting}
 
-For new A100 data, first prepare the desired named cases with the same driver,
-stage them under a fresh Merlin run root, and submit the tracked
-\code{submit\_first\_kick\_field\_probe\_a100.sh} launcher.  Fetch with
-\code{fetch\_and\_plot\_first\_kick\_a100.py}.  Do not combine curves produced
+For new Lumi data, prepare the desired named cases with the same driver and
+submit them in a fresh run directory using the verified Lumi launch settings.
+Do not combine curves produced
 from different fixed-primary hashes, field-domain sizes, longitudinal meshes,
 or source truncations without labeling those differences explicitly.
 
