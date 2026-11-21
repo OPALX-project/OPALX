@@ -1,4 +1,5 @@
 set (_SRCS
+    OpalBeamBeam.cpp
     OpalAsymmetricEnge.cpp
     OpalCavity.cpp
     OpalBox.cpp
@@ -34,6 +35,7 @@ set (_SRCS
 )
 
 set (HDRS
+    OpalBeamBeam.h
     OpalAsymmetricEnge.h
     OpalBeamline.h
     PlacementResolver.h

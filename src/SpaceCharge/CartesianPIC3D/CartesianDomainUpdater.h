@@ -55,7 +55,8 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool updateForSolve(
                 DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,
                 const DirichletPlaneConfig& dirichletPlane, const FixedDomain* fixedDomain,
-                FieldStorage& fieldStorage, PoissonSolver& poissonSolver);
+                FieldStorage& fieldStorage, PoissonSolver& poissonSolver,
+                bool allowFixedRedistribution = false);
 
     private:
         [[nodiscard]] CartesianBounds computeBounds(bool primaryOnly);

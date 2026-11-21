@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <memory>
 
 #include "Distribution/EmittedFromFile.h"
@@ -44,8 +45,14 @@ protected:
             domain[i] = ippl::Index(nr[i]);
         }
 
-        Mesh_t<3> mesh(domain, hr, origin);
-        FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m);
+        // Particle layouts borrow these objects; migration tests require them
+        // to outlive the container rather than referring to expired stack locals.
+        meshes.emplace_back(std::make_unique<Mesh_t<3>>(domain, hr, origin));
+        layouts.emplace_back(
+                std::make_unique<FieldLayout_t<3>>(
+                        MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m));
+        auto& mesh = *meshes.back();
+        auto& fl   = *layouts.back();
 
         auto container    = std::make_shared<ParticleContainer<double, 3>>(mesh, fl, spin);
         bunchStateHandler = std::make_shared<BunchStateHandler>();
@@ -97,6 +104,17 @@ protected:
         out << "5.0e-3 0.0 6.0e-3 0.0 -1.0e-12 6.0e-1\n";
     }
 
+    void writeExplicitBirthDump() {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << "2\n";
+        out << "x y z px py pz birth_time\n";
+        out << "1.0e-3 2.0e-3 3.0e-3 0.0 0.0 4.0e-1 -2.5e-13\n";
+        out << "5.0e-3 6.0e-3 -4.0e-3 0.0 0.0 6.0e-1 2.5e-13\n";
+    }
+
+    std::vector<std::unique_ptr<Mesh_t<3>>> meshes;
+    std::vector<std::unique_ptr<FieldLayout_t<3>>> layouts;
     std::shared_ptr<ParticleContainer<double, 3>> pc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
@@ -194,6 +212,148 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
 
     sampler.emitParticles(tStart + 2.0e-12, 1.0e-12);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(3));
+}
+
+TEST_F(EmittedFromFileTest, PreservesExplicitBirthSpacetimeAndFractionalFirstStep) {
+    writeExplicitBirthDump();
+    allocate(4);
+
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(
+            Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 1.0e-12, "NONE");
+
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, static_cast<size_t>(2));
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 5.0e-13);
+    EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 0.0);
+
+    const Vector_t<double, 3> refR = sampler.getInitialReferencePosition();
+    EXPECT_NEAR(refR[0], 0.103, 1.0e-15);
+    EXPECT_NEAR(refR[1], 0.204, 1.0e-15);
+    EXPECT_NEAR(refR[2], 0.2995, 1.0e-15);
+
+    sampler.emitParticles(0.5e-12, 0.6e-12);
+    EXPECT_EQ(globalParticleCount(), static_cast<size_t>(1));
+
+    if (ippl::Comm->size() == 1) {
+        auto Rview_d  = pc->R.getView();
+        auto dtView_d = pc->dt.getView();
+        auto Rview    = Kokkos::create_mirror_view(Rview_d);
+        auto dtView   = Kokkos::create_mirror_view(dtView_d);
+        Kokkos::deep_copy(Rview, Rview_d);
+        Kokkos::deep_copy(dtView, dtView_d);
+
+        const double fractionalDt = 0.35e-12;
+        const double gamma        = std::sqrt(1.0 + 0.4 * 0.4);
+        EXPECT_NEAR(dtView(0), fractionalDt, 1.0e-18);
+        EXPECT_NEAR(Rview(0)[0], 0.101, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[1], 0.202, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[2], 0.303 + 0.5 * Physics::c * fractionalDt * 0.4 / gamma, 1.0e-15);
+    }
+
+    sampler.emitParticles(1.1e-12, 0.2e-12);
+    EXPECT_EQ(globalParticleCount(), static_cast<size_t>(2));
+    EXPECT_TRUE(sampler.isEmissionDone(1.3e-12));
+}
+
+// Each identity must be born exactly once, including births exactly at a step
+// boundary (zero fractional dt). Validate on every rank, not only rank one.
+TEST_F(EmittedFromFileTest, ReorderedCommentHeaderSelectsExplicitTimesAndCoordinates) {
+    {
+        std::ofstream out(tempFilename);
+        out << "1\n# PZ t Z PY X PX Y\n";
+        out << "0.6 2e-13 0.003 0.2 0.001 0.1 0.002\n";
+    }
+    allocate(2);
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, 1u);
+    const auto r = sampler.getInitialReferencePosition();
+    const auto p = sampler.getInitialReferenceMomentum();
+    EXPECT_DOUBLE_EQ(r[0], 0.001);
+    EXPECT_DOUBLE_EQ(r[1], 0.002);
+    EXPECT_DOUBLE_EQ(r[2], 0.003);
+    EXPECT_DOUBLE_EQ(p[0], 0.1);
+    EXPECT_DOUBLE_EQ(p[1], 0.2);
+    EXPECT_DOUBLE_EQ(p[2], 0.6);
+    sampler.emitParticles(0.0, 1e-13);
+    EXPECT_EQ(globalParticleCount(), 0u);
+    sampler.emitParticles(1e-13, 1e-13);
+    EXPECT_EQ(globalParticleCount(), 1u);
+}
+
+TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
+    constexpr double step = 1e-12;
+    const std::array<double, 12> births{0.0,  0.25, 1.0, 1.25, 1.5, 2.0,
+                                        2.25, 2.5,  3.0, 3.25, 3.5, 4.0};
+    {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << "12\nx y z px py pz birth_time\n" << std::setprecision(17);
+        for (std::size_t i = 0; i < births.size(); ++i)
+            out << (i + 1) * 1e-3 << " 0 0.002 0 0 0.4 " << births[i] * step << '\n';
+    }
+    allocate(12);
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    size_t requested = 12;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, 12u);
+    std::array<int, 12> localIdentities{}, globalIdentities{};
+    std::array<long long, 12> acceptedIds;
+    acceptedIds.fill(-1);
+    for (unsigned interval = 0; interval < 4; ++interval) {
+        const auto before = pc->getLocalNum();
+        sampler.emitParticles(interval * step, step);
+        EXPECT_EQ(globalParticleCount(), 3u * (interval + 1));
+        const auto r  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        const auto p  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+        const auto dt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+        for (std::size_t i = before; i < pc->getLocalNum(); ++i) {
+            const int identity = static_cast<int>(std::lround(r(i)[0] / 1e-3)) - 1;
+            EXPECT_GE(identity, 0);
+            EXPECT_LT(identity, 12);
+            if (identity < 0 || identity >= 12) continue;
+            ++localIdentities[identity];
+            const double fractional = (interval + 1) * step - births[identity] * step;
+            EXPECT_NEAR(dt(i), fractional, 1e-27);
+            EXPECT_DOUBLE_EQ(p(i)[2], 0.4);
+            EXPECT_NEAR(
+                    r(i)[2], 0.002 + 0.5 * Physics::c * fractional * 0.4 / std::sqrt(1.16), 1e-15);
+        }
+        // IDs need not match between MPI sizes, but each file row must retain
+        // its birth ID across later emission batches and spatial migration.
+        pc->update();
+        const auto movedR =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        const auto ids = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+        std::array<long long, 12> localIds, globalIds;
+        localIds.fill(-1);
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            const int row = static_cast<int>(std::lround(movedR(i)[0] / 1e-3)) - 1;
+            ASSERT_GE(row, 0);
+            ASSERT_LT(row, 12);
+            localIds[row] = ids(i);
+        }
+        MPI_Allreduce(
+                localIds.data(), globalIds.data(), 12, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+        for (size_t row = 0; row < 12; ++row) {
+            if (acceptedIds[row] >= 0) {
+                EXPECT_EQ(globalIds[row], acceptedIds[row]);
+            }
+            if (globalIds[row] >= 0) acceptedIds[row] = globalIds[row];
+        }
+    }
+    EXPECT_TRUE(sampler.isEmissionDone(4 * step));
+    sampler.emitParticles(4 * step, step);
+    EXPECT_EQ(globalParticleCount(), 12u);
+    MPI_Allreduce(
+            localIdentities.data(), globalIdentities.data(), 12, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    for (const auto count : globalIdentities)
+        EXPECT_EQ(count, 1);
 }
 
 TEST_F(EmittedFromFileTest, EmittedParticlesGetBeamPolarization) {

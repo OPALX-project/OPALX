@@ -92,7 +92,8 @@ private:
         TRAVELINGWAVE,
         DRIFT,
         SCALINGFFA,
-        PROBE
+        PROBE,
+        BEAMBEAM
     };
 
     static MeshData getCylinder(
