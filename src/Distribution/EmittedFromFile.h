@@ -30,8 +30,12 @@
  * the emission-source `R0`, momenta are normalized @f$p/(mc)@f$ offsets from
  * `P0`, and `birth_time` is a time offset in seconds from the source `T0`.
  * Named headers are case-insensitive and may be prefixed with `#`, including
- * after an optional particle-count line. Historical legacy comment headers
- * containing unit annotations retain their positional interpretation.
+ * after an optional particle-count line. Balanced square-bracket unit labels
+ * (for example `x [m]`, `px [betax gamma]`) are ignored when recognizing
+ * headers, not counted as columns or used to convert values. Legacy headers
+ * with such labels and an optional `Bin Number` suffix keep their positional
+ * interpretation, with or without a count line or leading `#`. Duplicate
+ * column names remain invalid.
  */
 class EmittedFromFile : public SamplingBase {
 public:

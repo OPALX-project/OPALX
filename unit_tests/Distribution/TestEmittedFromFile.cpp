@@ -163,6 +163,143 @@ TEST_F(EmittedFromFileTest, ReconstructsOldOpalEmissionWindowFromBins) {
     EXPECT_DOUBLE_EQ(sampler.getEmissionTimeStep(), 3.0e-14);
 }
 
+// The external AWA regressions use a count followed by an uncommented header
+// with repeated unit labels and the two-word name "Bin Number". Test all
+// count/comment combinations, preserving the legacy bin-derived time window.
+TEST_F(EmittedFromFileTest, AnnotatedLegacyHeadersPreserveBinsAndPhaseSpace) {
+    for (bool count : {false, true}) {
+        for (bool comment : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "count=" << count << " comment=" << comment);
+            {
+                std::ofstream out(tempFilename);
+                if (count) out << "3\n";
+                if (comment) out << "# ";
+                out << "X [m] PX [betax gamma] Y [m] PY [betay gamma] "
+                       "T [s] PZ [betaz gamma] Bin Number\n";
+                out << "0.001 0 0.002 0 -0.5e-12 0.1 1\n";
+                out << "0.003 0 0.004 0 -1.0e-12 0.2 2\n";
+                out << "0.005 0 0.006 0 -3.0e-12 0.3 3\n";
+            }
+            pc = makeContainer(false);
+            allocate(4);
+            EmittedFromFile sampler(pc, tempFilename);
+            sampler.setEmissionOffsets(
+                    Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.0, "NONE");
+            size_t requested = 0;
+            sampler.generateParticles(requested, nr);
+            EXPECT_EQ(requested, 3u);
+            EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 3e-12);
+            EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 1.5e-12);
+            EXPECT_NEAR(sampler.getInitialReferenceMomentum()[2], 0.2, 1e-16);
+            EXPECT_DOUBLE_EQ(sampler.getInitialReferencePosition()[2], 0.3);
+            sampler.emitParticles(-1.5e-12, 3.25e-12);
+            EXPECT_EQ(globalParticleCount(), 3u);
+            EXPECT_TRUE(sampler.isEmissionDone(1.75e-12));
+            const auto r =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+            const auto p =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+            const auto dt =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+            const std::array<double, 3> fractional{2.75e-12, 2.25e-12, 0.25e-12};
+            std::array<int, 3> localSeen{}, globalSeen{};
+            for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+                const int row = static_cast<int>(std::lround((r(i)[0] - 0.101) / 0.002));
+                ASSERT_GE(row, 0);
+                ASSERT_LT(row, 3);
+                ++localSeen[row];
+                const double pz = 0.1 * (row + 1);
+                EXPECT_NEAR(r(i)[0], 0.101 + 0.002 * row, 1e-15);
+                EXPECT_NEAR(r(i)[1], 0.202 + 0.002 * row, 1e-15);
+                EXPECT_DOUBLE_EQ(p(i)[0], 0.0);
+                EXPECT_DOUBLE_EQ(p(i)[1], 0.0);
+                EXPECT_NEAR(p(i)[2], pz, 1e-16);
+                EXPECT_NEAR(dt(i), fractional[row], 1e-27);
+                EXPECT_NEAR(
+                        r(i)[2],
+                        0.3 + 0.5 * Physics::c * fractional[row] * pz / std::sqrt(1.0 + pz * pz),
+                        1e-15);
+            }
+            MPI_Allreduce(localSeen.data(), globalSeen.data(), 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            for (int seen : globalSeen)
+                EXPECT_EQ(seen, 1);
+        }
+    }
+}
+
+TEST_F(EmittedFromFileTest, AnnotatedExplicitHeadersPreserveNamedColumnsAndBirthTimes) {
+    for (bool count : {false, true}) {
+        for (bool comment : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "count=" << count << " comment=" << comment);
+            {
+                std::ofstream out(tempFilename);
+                if (count) out << "1\n";
+                if (comment) out << "# ";
+                out << "PZ [beta gamma] T [s] Z [m] PY [beta gamma] "
+                       "X [m] PX [beta gamma] Y [m]\n";
+                out << "0.6 2.5e-13 0.003 0.2 0.001 0.1 0.002\n";
+            }
+            pc = makeContainer(false);
+            allocate(2);
+            EmittedFromFile sampler(pc, tempFilename);
+            sampler.setEmissionOffsets(
+                    Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.5e-12, "NONE");
+            size_t requested = 0;
+            sampler.generateParticles(requested, nr);
+            EXPECT_EQ(requested, 1u);
+            EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 0.0);
+            EXPECT_DOUBLE_EQ(sampler.getInitialReferencePosition()[2], 0.303);
+            sampler.emitParticles(0.0, 0.5e-12);
+            EXPECT_EQ(globalParticleCount(), 0u);
+            sampler.emitParticles(0.5e-12, 0.5e-12);
+            EXPECT_EQ(globalParticleCount(), 1u);
+            const auto r =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+            const auto p =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+            const auto dt =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+            const Vector_t<double, 3> initial(0.101, 0.202, 0.303), momentum(0.1, 0.2, 0.6);
+            for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+                EXPECT_NEAR(dt(i), 0.25e-12, 1e-27);
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_DOUBLE_EQ(p(i)[d], momentum[d]);
+                    EXPECT_NEAR(
+                            r(i)[d],
+                            initial[d]
+                                    + 0.5 * Physics::c * 0.25e-12 * momentum[d] / std::sqrt(1.41),
+                            1e-15);
+                }
+            }
+        }
+    }
+}
+
+TEST_F(EmittedFromFileTest, RejectsDuplicateColumnsAndMalformedAnnotatedHeaders) {
+    const std::array<const char*, 5> headers{
+            "x [m] y [m] z [m] px py pz birth_time x", "x y z px py pz birth_time X",
+            "x [m y z px py pz birth_time", "x m] y z px py pz birth_time", "x y z px py pz"};
+    for (const char* header : headers) {
+        SCOPED_TRACE(header);
+        {
+            std::ofstream out(tempFilename);
+            out << "1\n" << header << "\n0 0 0 0 0 0 0\n";
+        }
+        EXPECT_THROW(EmittedFromFile sampler(pc, tempFilename), OpalException);
+    }
+}
+
+TEST_F(EmittedFromFileTest, RejectsDuplicateCommentHeaderInsteadOfFallingBackToLegacy) {
+    {
+        std::ofstream out(tempFilename);
+        out << "# x [m] y [m] z [m] px py pz birth_time X\n";
+        // A positive integer last value would look like a valid legacy bin
+        // if the malformed explicit comment were ignored instead of rejected.
+        out << "0 0 0 0 0 0 1\n";
+    }
+    EXPECT_THROW(EmittedFromFile sampler(pc, tempFilename), OpalException);
+}
+
 TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) {
     writeCountHeaderDump();
     allocate(4);

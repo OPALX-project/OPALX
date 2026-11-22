@@ -47,14 +47,37 @@ namespace {
     };
 
     std::optional<HeaderLayout> parseHeader(const std::string& line) {
-        std::istringstream stream(line);
+        // Old-OPAL headers annotate columns with units such as "x [m]" and
+        // "px [betax gamma]". These labels are not data columns (and repeat).
+        // Strip balanced annotations before mapping names so explicit timed
+        // headers also retain the correct indices when units contain spaces.
+        // Annotations do not change the file's existing SI/normalized units.
+        std::string names;
+        bool inUnits = false;
+        for (char c : line) {
+            if (c == '[') {
+                if (inUnits) return std::nullopt;
+                inUnits = true;
+                names += ' ';
+            } else if (c == ']') {
+                if (!inUnits) return std::nullopt;
+                inUnits = false;
+                names += ' ';
+            } else if (!inUnits) {
+                names += c;
+            }
+        }
+        if (inUnits) return std::nullopt;
+
+        std::istringstream stream(names);
         HeaderLayout layout;
         std::string token;
-        size_t index = 0;
+        size_t index   = 0;
+        bool duplicate = false;
         while (stream >> token) {
             token = lowercase(token);
             if (!layout.column.emplace(token, index).second) {
-                return std::nullopt;
+                duplicate = true;
             }
             ++index;
         }
@@ -63,6 +86,12 @@ namespace {
             return layout.column.find(name) != layout.column.end();
         };
         const bool common = has("x") && has("y") && has("px") && has("py") && has("pz");
+        // A malformed named comment header must not be silently skipped and
+        // followed by fallback to the legacy positional interpretation.
+        if (duplicate && common && (has("t") || has("birth_time"))) {
+            throw OpalException(
+                    "EmittedFromFile::readFile", "Duplicate column name in emitted-file header.");
+        }
         if (common && has("z") && (has("birth_time") || has("t"))) {
             layout.explicitBirth = true;
             return layout;
