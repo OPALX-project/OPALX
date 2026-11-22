@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -198,6 +199,213 @@ namespace opalx::spacecharge {
             EXPECT_NO_THROW(services.gatherFields(primary));
             services.configure(std::nullopt);
             EXPECT_THROW(solver.solve(context), OpalException);
+        }
+
+        TEST_F(BeamBeamFieldServicesTest, LongitudinalCutoffRetainsParticlesAndAllowsReentry) {
+            using Container = ::ParticleContainer<double, 3>;
+            using Vector    = Vector_t<double, 3>;
+            CartesianDomainConfig3D domainConfig;
+            domainConfig.meshSize      = {8, 8, 8};
+            domainConfig.decomposition = {false, false, true};
+            CartesianDomain<double, 3> domain(domainConfig);
+            auto storage = std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain);
+            auto* cached = storage.get();
+            auto state   = std::make_shared<BunchStateHandler>();
+            Container primary(domain.mesh(), domain.layout()),
+                    witness(domain.mesh(), domain.layout());
+            // Match PartBunch's OPEN policy, not ParticleContainer's legacy
+            // PERIODIC constructor default: crossing a mesh face must not wrap R.
+            primary.setupBCs(ippl::BC::NO);
+            witness.setupBCs(ippl::BC::NO);
+            primary.setBunchStateHandler(state);
+            witness.setBunchStateHandler(state);
+            primary.setQ(1.0e-15);
+            primary.setM(Physics::m_e);
+            constexpr double centre = 0.125;  // Deliberately not centred at source-frame z=0.
+            const double lower = centre - 0.01, upper = centre + 0.01;
+            primary.createParticles(8);
+            auto r  = primary.R.getHostMirror();
+            auto p  = primary.P.getHostMirror();
+            auto dt = primary.dt.getHostMirror();
+            for (size_t i = 0; i < primary.getLocalNum(); ++i) {
+                r(i) =
+                        Vector((i & 1 ? 1 : -1) * 0.002, (i & 2 ? 1 : -1) * 0.002,
+                               centre + (i & 4 ? 1 : -1) * 0.002);
+                p(i)  = Vector(0.0, 0.0, 2.0);
+                dt(i) = 1.0e-12;
+            }
+            Kokkos::deep_copy(primary.R.getView(), r);
+            Kokkos::deep_copy(primary.P.getView(), p);
+            Kokkos::deep_copy(primary.dt.getView(), dt);
+            primary.markMomentsDirty();
+            CartesianPIC3DConfig config;
+            config.backend            = PoissonSolverType::Open;
+            config.grid.meshSize      = domainConfig.meshSize;
+            config.grid.decomposition = domainConfig.decomposition;
+            DataSink sink;
+            SpaceChargeSolver solver(
+                    std::make_unique<CartesianPIC3DAlgorithm>(
+                            config, std::vector<Container*>{&primary, &witness}, std::move(storage),
+                            &sink, state),
+                    2);
+            state->setFixedCartesianDomain({-0.02, -0.02, lower}, {0.02, 0.02, upper});
+            auto& services = solver.beamBeamFields();
+            services.configure(BeamBeamSolvePolicy{true, false});
+            SpaceChargeStepState step;
+            step.timeStep = 1.0e-12;
+            step.mpiSize  = ippl::Comm->size();
+            const std::array<std::uint8_t, 2> activity{1, 1};
+            solver.solve(SpaceChargeSolveContext(activity, step));
+            // Constant cached fields isolate interpolation/selection from Poisson error.
+            // Fill owned cells AND physical ghosts, including exact endpoint stencils.
+            Kokkos::deep_copy(cached->accumulatedElectricField().getView(), Vector(1.0, 2.0, 3.0));
+            Kokkos::deep_copy(cached->accumulatedMagneticField().getView(), Vector(4.0, 5.0, 6.0));
+            const std::array<double, 9> z{
+                    centre,
+                    lower,
+                    upper,
+                    std::nextafter(lower, -INFINITY),
+                    std::nextafter(upper, INFINITY),
+                    lower + 0.001,
+                    upper - 0.001,
+                    lower - 1.0,
+                    upper + 1.0};
+            witness.createParticles(ippl::Comm->rank() == 0 ? z.size() : 0);
+            auto wr                = witness.R.getHostMirror();
+            auto wp                = witness.P.getHostMirror();
+            const auto originalIds = snapshot(witness.ID.getView());
+            std::array<long long, 9> birthIds{};
+            for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                // An outside-z witness need not have a valid transverse stencil either.
+                wr(i)       = Vector(i == 8 ? 100.0 : 0.001, 0.001, z[i]);
+                wp(i)       = Vector(static_cast<double>(i + 1), -2.0, 3.0);
+                birthIds[i] = originalIds(i);
+            }
+            MPI_Bcast(
+                    birthIds.data(), birthIds.size(), MPI_LONG_LONG, 0,
+                    ippl::Comm->getCommunicator());
+            Kokkos::deep_copy(witness.R.getView(), wr);
+            Kokkos::deep_copy(witness.P.getView(), wp);
+            witness.updateLayout(services.domain().layout(), services.domain().mesh());
+            for (int phase = 0; phase < 3; ++phase) {
+                if (phase > 0) {
+                    auto positions = snapshot(witness.R.getView());
+                    for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                        positions(i) = Vector(0.001, 0.001, phase == 1 ? upper + 1.0 : centre);
+                    }
+                    Kokkos::deep_copy(witness.R.getView(), positions);
+                }
+                witness.update();  // Includes retained out-of-domain particles and empty-local
+                                   // ranks.
+                const auto before = snapshot(witness.R.getView());
+                Kokkos::deep_copy(witness.E.getView(), Vector(99.0));
+                Kokkos::deep_copy(witness.B.getView(), Vector(99.0));
+                services.gatherFields(witness);
+                EXPECT_EQ(witness.getTotalNum(), z.size());
+                const auto positions = snapshot(witness.R.getView());
+                const auto momenta   = snapshot(witness.P.getView());
+                const auto ids       = snapshot(witness.ID.getView());
+                const auto e = snapshot(witness.E.getView()), b = snapshot(witness.B.getView());
+                int localSeen[9]{}, globalSeen[9]{};
+                for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                    const auto row = static_cast<size_t>(momenta(i)[0] - 1);
+                    EXPECT_LT(row, z.size());
+                    if (row >= z.size()) continue;
+                    ++localSeen[row];
+                    EXPECT_EQ(ids(i), birthIds[row]);
+                    EXPECT_EQ(momenta(i)[1], -2.0);
+                    EXPECT_EQ(momenta(i)[2], 3.0);
+                    const bool inside = positions(i)[2] >= lower && positions(i)[2] <= upper;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_EQ(positions(i)[d], before(i)[d]);
+                        if (phase == 0) {
+                            EXPECT_EQ(
+                                    positions(i)[d], d == 0 ? (row == 8 ? 100.0 : 0.001)
+                                                            : (d == 1 ? 0.001 : z[row]));
+                        }
+                        if (inside) {
+                            // Eight-term CIC sum; this bound covers only double roundoff.
+                            EXPECT_NEAR(e(i)[d], 1.0 + d, 1.0e-14);
+                            EXPECT_NEAR(b(i)[d], 4.0 + d, 1.0e-14);
+                        } else {
+                            EXPECT_EQ(e(i)[d], 0.0);
+                            EXPECT_EQ(b(i)[d], 0.0);
+                        }
+                    }
+                }
+                MPI_Allreduce(
+                        localSeen, globalSeen, 9, MPI_INT, MPI_SUM, ippl::Comm->getCommunicator());
+                for (int count : globalSeen)
+                    EXPECT_EQ(count, 1);
+                if (phase == 0) {
+                    // A nonuniform cached field must give the same CIC result
+                    // in the mixed masked path as IPPL gives to inside-only probes.
+                    auto eg          = cached->accumulatedElectricField().getHostMirror();
+                    auto bg          = cached->accumulatedMagneticField().getHostMirror();
+                    const auto first = cached->layout().getLocalNDIndex().first();
+                    const int ghost  = cached->accumulatedElectricField().getNghost();
+                    for (size_t x = 0; x < eg.extent(0); ++x) {
+                        for (size_t y = 0; y < eg.extent(1); ++y) {
+                            for (size_t zIndex = 0; zIndex < eg.extent(2); ++zIndex) {
+                                const double value =
+                                        1 + (static_cast<int>(x) + first[0] - ghost)
+                                        + 2 * (static_cast<int>(y) + first[1] - ghost)
+                                        + 3 * (static_cast<int>(zIndex) + first[2] - ghost);
+                                eg(x, y, zIndex) = Vector(value, -2 * value, 3 * value);
+                                bg(x, y, zIndex) = Vector(4 * value, 5 * value, -6 * value);
+                            }
+                        }
+                    }
+                    Kokkos::deep_copy(cached->accumulatedElectricField().getView(), eg);
+                    Kokkos::deep_copy(cached->accumulatedMagneticField().getView(), bg);
+                    size_t insideCount = 0;
+                    for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                        insideCount += positions(i)[2] >= lower && positions(i)[2] <= upper;
+                    }
+                    Container probes(domain.mesh(), domain.layout());
+                    probes.setBunchStateHandler(state);
+                    probes.setupBCs(ippl::BC::NO);
+                    probes.createParticles(insideCount);
+                    auto pr         = probes.R.getHostMirror();
+                    size_t selected = 0;
+                    for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                        if (positions(i)[2] >= lower && positions(i)[2] <= upper)
+                            pr(selected++) = positions(i);
+                    }
+                    // These are already owned local coordinates: no migration is needed.
+                    Kokkos::deep_copy(probes.R.getView(), pr);
+                    services.gatherFields(probes);   // Ordinary IPPL path, all probes inside.
+                    services.gatherFields(witness);  // Mixed masked path with outside particles.
+                    const auto referenceE = snapshot(probes.E.getView()),
+                               referenceB = snapshot(probes.B.getView());
+                    const auto mixedE     = snapshot(witness.E.getView()),
+                               mixedB     = snapshot(witness.B.getView());
+                    selected              = 0;
+                    for (size_t i = 0; i < witness.getLocalNum(); ++i) {
+                        if (positions(i)[2] < lower || positions(i)[2] > upper) continue;
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_DOUBLE_EQ(mixedE(i)[d], referenceE(selected)[d]);
+                            EXPECT_DOUBLE_EQ(mixedB(i)[d], referenceB(selected)[d]);
+                        }
+                        ++selected;
+                    }
+                    Kokkos::deep_copy(
+                            cached->accumulatedElectricField().getView(), Vector(1.0, 2.0, 3.0));
+                    Kokkos::deep_copy(
+                            cached->accumulatedMagneticField().getView(), Vector(4.0, 5.0, 6.0));
+                }
+            }
+            // Nonfinite coordinates are not silently hidden by the outside-z branch.
+            auto bad = snapshot(witness.R.getView());
+            // Guarantee the offending rank has a particle after the re-entry migration.
+            const int localOwner = witness.getLocalNum() ? ippl::Comm->rank() : -1;
+            int owner            = -1;
+            MPI_Allreduce(&localOwner, &owner, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
+            if (ippl::Comm->rank() == owner) {
+                bad(0) = Vector(std::numeric_limits<double>::quiet_NaN(), 0.0, upper + 1.0);
+            }
+            Kokkos::deep_copy(witness.R.getView(), bad);
+            EXPECT_THROW(services.gatherFields(witness), OpalException);
         }
 
         // Deterministic tensor-product Gaussian quadrature: no RNG, files or HDF5.

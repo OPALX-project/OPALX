@@ -435,9 +435,24 @@ with padding, a cell-aspect floor, and no shrinkage.  If newly emitted witnesses
 extend beyond the solved transverse domain, OPALX enlarges the domain and
 re-solves the primary fields at the original field-evaluation time before
 gathering.  Witness charge never enters deposition.  A collective check rejects
-invalid local interpolation stencils before halo exchange.  Coverage does not
+invalid in-window interpolation stencils and nonfinite coordinates before halo
+exchange.  Coverage does not
 ensure resolution: transverse mesh refinement remains necessary as witnesses
 move away from the narrow primary bunch.
+
+The subsequent local revision applies a hard longitudinal force cutoff to
+witness gathering.  The combined
+physical-plus-mirrored primary contribution is sampled inside the closed
+interval $z_{\mathrm{IP}}\pm\SI{10}{\milli\metre}$ and set to zero strictly
+outside it.  Outside witnesses remain in their containers with unchanged IDs;
+they are neither deleted, reflected, nor wrapped at this numerical boundary.
+They resume field sampling if they re-enter.  This policy changes neither
+primary charge deposition nor the primary-exit rule for stopping the BeamBeam
+solve.  External fields and physical-aperture tracking remain independent.
+The cutoff neglects the remaining primary-field impulse outside the window
+and introduces a discontinuous force at its edges.  Window-size and timestep
+convergence are therefore required; successful tracking alone does not
+establish the physical accuracy of this approximation.
 
 \section{Current OPALX Results}
 
@@ -457,6 +472,18 @@ The manufactured $y$ reference is zero; its absolute rms difference is
 \SI{1.74}{\micro\metre}.  These are workflow and model-comparison results,
 not a new mesh-convergence claim.  The broader local GCC suite passes 147/148
 tests; an unchanged bend-field exact-zero assertion remains compiler-sensitive.
+
+Local CPU tests of the hard-cutoff revision complete the legacy
+simultaneous-injection Experiment~4 on one and two MPI ranks: 10,000 evolving
+primary particles, a $16^3$ mesh, and 26,576 steps through \SI{1.6}{\nano\second}.
+Both runs retain 643 electron and 731 positron witnesses from 1,297 of each
+species.  No ID replacements or trajectory jumps occur across losses;
+ballistic position residuals remain below \SI{1.4e-15}{\metre} with unchanged
+survivor momenta.  The 1,501-step coarse Track-12 control is bitwise unchanged
+from its matched pre-cutoff run.  These checks establish implementation
+consistency, not window convergence or equivalence between the different
+primary models and injection clocks.  Repeated positron oscillations remain
+absent in Experiment~4.
 
 \begin{table}[htbp]
   \centering

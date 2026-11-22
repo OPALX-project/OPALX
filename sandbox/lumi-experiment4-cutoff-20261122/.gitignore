@@ -1,0 +1,6 @@
+*
+!/.gitignore
+!/STATUS.md
+!/submit.sh
+!/analyze.py
+!/compare_models.py

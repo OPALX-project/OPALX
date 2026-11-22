@@ -13,6 +13,9 @@
 
 #include "../TemporaryDirectory.h"
 
+#include <array>
+#include <iterator>
+#include <map>
 #include <memory>
 #include <random>
 #include <stdexcept>
@@ -425,6 +428,185 @@ namespace {
         }
 
         Options::enableHDF5 = savedH5;
+    }
+
+    // Regression for #612: deleting witnesses must move ID and phase space together,
+    // including in each container's H5 output. No tracking kick is applied here, so
+    // every surviving coordinate and normalized momentum must remain exactly unchanged.
+    TEST_F(MultiContainerPartBunchTest, WitnessDeletionPreservesIdentityAndPhaseSpaceInH5) {
+        constexpr int nLocal         = 8;
+        constexpr size_t nContainers = 3;
+        const int rank               = ippl::Comm->rank();
+        const int ranks              = ippl::Comm->size();
+        const auto comm              = ippl::Comm->getCommunicator();
+        bunch                        = std::make_shared<PartBunch_t>(
+                std::vector<double>{-1.0e-9, -1.0e-15, 1.0e-15},
+                std::vector<double>(nContainers, 0.511e-3),
+                std::vector<Beam*>(nContainers, testBeam), std::vector<size_t>(nContainers, nLocal),
+                1.0, "LF2", storageConfig);
+        bunch->setdT(1.0e-12);
+
+        using PhaseSpace = std::array<double, 6>;
+        using Snapshot   = std::map<long long, PhaseSpace>;
+        std::array<std::array<Snapshot, nContainers>, 3> expected;
+        // Remove interior and tail entries. On nonzero ranks the first round
+        // empties the electron container, exercising collective I/O with no local data.
+        const auto removed = [](size_t c, int owner, int i, int round) {
+            if (c == 0 || round == 0) return false;
+            const bool first = c == 1 ? (owner != 0 || i == 1 || i == 6 || i == 7)
+                                      : (i == 0 || i == 3 || i == 7);
+            return first || (round == 2 && i == 4);
+        };
+        const auto phase = [](size_t c, int owner, int i) {
+            PhaseSpace result{};
+            for (size_t d = 0; d < result.size(); ++d) {
+                // Binary fractions give distinct, exactly representable sentinels:
+                // positions in metres and normalized momenta in units of mc.
+                result[d] = (1 + 100 * c + 10 * owner + i) / 1024.0 + d / 16.0;
+            }
+            return result;
+        };
+        for (size_t c = 0; c < nContainers; ++c) {
+            auto pc = bunch->getParticleContainer(c);
+            pc->createParticles(nLocal);
+            auto r = pc->R.getHostMirror();
+            auto p = pc->P.getHostMirror();
+            for (int i = 0; i < nLocal; ++i) {
+                const auto values = phase(c, rank, i);
+                for (int d = 0; d < 3; ++d) {
+                    r(i)[d] = values[d];
+                    p(i)[d] = values[d + 3];
+                }
+            }
+            Kokkos::deep_copy(pc->R.getView(), r);
+            Kokkos::deep_copy(pc->P.getView(), p);
+            pc->markMomentsDirty();
+            const auto ids =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+            std::vector<long long> localIds(nLocal), allIds(nLocal * ranks);
+            for (int i = 0; i < nLocal; ++i)
+                localIds[i] = ids(i);
+            MPI_Allgather(
+                    localIds.data(), nLocal, MPI_LONG_LONG, allIds.data(), nLocal, MPI_LONG_LONG,
+                    comm);
+            for (int round = 0; round < 3; ++round) {
+                for (int owner = 0; owner < ranks; ++owner) {
+                    for (int i = 0; i < nLocal; ++i) {
+                        if (!removed(c, owner, i, round)) {
+                            EXPECT_TRUE(
+                                    expected[round][c]
+                                            .emplace(allIds[owner * nLocal + i], phase(c, owner, i))
+                                            .second);
+                        }
+                    }
+                }
+            }
+        }
+
+        const bool savedH5  = Options::enableHDF5;
+        Options::enableHDF5 = true;
+        struct RestoreH5Option {
+            bool value;
+            ~RestoreH5Option() { Options::enableHDF5 = value; }
+        } restoreH5{savedH5};
+        std::vector<std::unique_ptr<H5PartWrapperForPT>> owners;
+        std::vector<H5PartWrapper*> wrappers;
+        std::array<std::string, nContainers> files;
+        for (size_t c = 0; c < nContainers; ++c) {
+            files[c] = (outputDirectory_m.path() / ("deletion_c" + std::to_string(c) + ".h5"))
+                               .string();
+            owners.push_back(std::make_unique<H5PartWrapperForPT>(files[c], H5_O_WRONLY));
+            wrappers.push_back(owners.back().get());
+        }
+        {
+            DataSink ds(wrappers, false, nContainers);
+            std::vector<std::array<Vector_t<double, 3>, 2>> fd(nContainers, zeroFdPair());
+            for (int round = 0; round < 3; ++round) {
+                for (size_t c = 0; c < nContainers; ++c) {
+                    SCOPED_TRACE(::testing::Message() << "round=" << round << " container=" << c);
+                    auto pc = bunch->getParticleContainer(c);
+                    if (round > 0 && c > 0) {
+                        const auto r = Kokkos::create_mirror_view_and_copy(
+                                Kokkos::HostSpace(), pc->R.getView());
+                        auto mask = pc->InvalidMask.getHostMirror();
+                        for (size_t j = 0; j < pc->getLocalNum(); ++j) {
+                            // Decode original local slot independently of ID and current index.
+                            const int i =
+                                    static_cast<int>(r(j)[0] * 1024) - 1 - 100 * c - 10 * rank;
+                            mask(j) = removed(c, rank, i, round);
+                        }
+                        Kokkos::deep_copy(pc->InvalidMask.getView(), mask);
+                        const auto deleted = pc->deleteInvalidParticles();
+                        EXPECT_EQ(
+                                deleted, expected[round - 1][c].size() - expected[round][c].size());
+                    }
+                    const auto ids = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), pc->ID.getView());
+                    const auto r = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), pc->R.getView());
+                    const auto p = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), pc->P.getView());
+                    std::vector<int> localSeen(expected[round][c].size(), 0),
+                            globalSeen(localSeen.size());
+                    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+                        const auto found = expected[round][c].find(ids(i));
+                        EXPECT_NE(found, expected[round][c].end());
+                        if (found == expected[round][c].end()) continue;
+                        ++localSeen[std::distance(expected[round][c].begin(), found)];
+                        for (int d = 0; d < 3; ++d) {
+                            EXPECT_EQ(r(i)[d], found->second[d]);
+                            EXPECT_EQ(p(i)[d], found->second[d + 3]);
+                        }
+                    }
+                    MPI_Allreduce(
+                            localSeen.data(), globalSeen.data(), globalSeen.size(), MPI_INT,
+                            MPI_SUM, comm);
+                    for (int count : globalSeen)
+                        EXPECT_EQ(count, 1);
+                    EXPECT_EQ(pc->getTotalNum(), expected[round][c].size());
+                }
+                bunch->setT((round + 1) * bunch->getdT());
+                ds.dumpH5(*bunch, fd);
+            }
+        }
+        owners.clear();
+
+        for (size_t c = 0; c < nContainers; ++c) {
+            auto props      = H5CreateFileProp();
+            MPI_Comm ioComm = comm;
+            ASSERT_EQ(H5SetPropFileMPIOCollective(props, &ioComm), H5_SUCCESS);
+            auto file = H5OpenFile(files[c].c_str(), H5_O_RDONLY, props);
+            H5CloseProp(props);
+            ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+            EXPECT_EQ(H5GetNumSteps(file), 3);
+            for (int round = 0; round < 3; ++round) {
+                SCOPED_TRACE(::testing::Message() << "H5 round=" << round << " container=" << c);
+                ASSERT_EQ(H5SetStep(file, round), H5_SUCCESS);
+                // H5hut keeps the preceding step's read view; clear it before
+                // querying the new global population (which decreases here).
+                ASSERT_EQ(H5PartSetView(file, -1, -1), H5_SUCCESS);
+                const auto n = H5PartGetNumParticles(file);
+                ASSERT_EQ(n, expected[round][c].size());
+                ASSERT_EQ(H5PartSetView(file, 0, n - 1), H5_SUCCESS);
+                std::vector<h5_int64_t> ids(n);
+                ASSERT_EQ(H5PartReadDataInt64(file, "id", ids.data()), H5_SUCCESS);
+                std::array<std::vector<h5_float64_t>, 6> values;
+                const std::array<const char*, 6> names{"x", "y", "z", "px", "py", "pz"};
+                for (size_t d = 0; d < names.size(); ++d) {
+                    values[d].resize(n);
+                    ASSERT_EQ(H5PartReadDataFloat64(file, names[d], values[d].data()), H5_SUCCESS);
+                }
+                Snapshot actual;
+                for (h5_ssize_t i = 0; i < n; ++i) {
+                    PhaseSpace value{};
+                    for (size_t d = 0; d < value.size(); ++d)
+                        value[d] = values[d][i];
+                    EXPECT_TRUE(actual.emplace(ids[i], value).second) << "duplicate H5 ID";
+                }
+                EXPECT_EQ(actual, expected[round][c]);
+            }
+            EXPECT_EQ(H5CloseFile(file), H5_SUCCESS);
+        }
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_RewindToCheckpointAppendsDiagnosticH5InPlace) {

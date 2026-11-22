@@ -6,6 +6,7 @@
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Interpolation/CIC.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Structure/DataSink.h"
 #include "Structure/H5BeamBeamDiagnosticsWriter.h"
@@ -101,8 +102,13 @@ namespace opalx::spacecharge {
                     "CartesianPIC3DAlgorithm::gatherFields",
                     "BeamBeam witness gathering requires an active fixed-domain solve.");
         }
-        // Check the actual local CIC stencil, not just physical box membership.
-        // All ranks must reject together before gather enters halo collectives.
+        // Fixed bounds are in metres in the source/solve frame, not in each
+        // witness container's independent frame. The closed z interval is the
+        // BeamBeam force window; finite particles outside it are retained but
+        // receive zero BeamBeam E/B. Check stencils only for particles inside.
+        const auto& bounds   = *bunchState_m->fixedCartesianDomain();
+        const double lowerZ  = bounds.lower[2];
+        const double upperZ  = bounds.upper[2];
         const auto positions = target.R.getView();
         const auto origin    = fieldStorage_m->mesh().getOrigin();
         const auto spacing   = fieldStorage_m->mesh().getMeshSpacing();
@@ -111,36 +117,97 @@ namespace opalx::spacecharge {
         const int ghosts     = field.getNghost();
         const auto view      = field.getView();
         const std::array<std::size_t, 3> extents{view.extent(0), view.extent(1), view.extent(2)};
-        int invalid = 0;
+        // 0: all in window; 1: an outside particle needs the masked gather;
+        // 2: an invalid coordinate or an uncovered IN-window stencil. Every rank
+        // makes the same decision before entering field-halo collectives.
+        int localStatus = 0;
         Kokkos::parallel_reduce(
                 "BeamBeam validate CIC coverage", target.getLocalNum(),
-                KOKKOS_LAMBDA(const size_t i, int& bad) {
+                KOKKOS_LAMBDA(const size_t i, int& status) {
+                    int particleStatus = 0;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        if (!Kokkos::isfinite(positions(i)[d])) particleStatus = 2;
+                    }
+                    if (particleStatus == 0
+                        && (positions(i)[2] < lowerZ || positions(i)[2] > upperZ)) {
+                        particleStatus = 1;
+                    }
+                    if (particleStatus != 0) {
+                        status = Kokkos::max(status, particleStatus);
+                        return;
+                    }
                     for (unsigned d = 0; d < 3; ++d) {
                         const double l = (positions(i)[d] - origin[d]) / spacing[d] + 0.5;
                         // Avoid undefined floating-to-integer conversion for nonfinite or
                         // enormous coordinates. Signed arithmetic precedes any index cast.
                         if (!Kokkos::isfinite(l) || l < -1.0e9 || l > 1.0e9) {
-                            ++bad;
+                            particleStatus = 2;
                             break;
                         }
                         const long index = static_cast<int>(l) - first[d] + ghosts;
                         if (index < 1 || index >= static_cast<long>(extents[d])) {
-                            ++bad;
+                            particleStatus = 2;
                             break;
                         }
                     }
+                    status = Kokkos::max(status, particleStatus);
                 },
-                invalid);
-        int globalInvalid = 0;
-        MPI_Allreduce(&invalid, &globalInvalid, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
-        if (globalInvalid != 0) {
+                Kokkos::Max<int>(localStatus));
+        localStatus = std::max(localStatus, 0);  // Empty-local ranks have no invalid particles.
+        int globalStatus = 0;
+        MPI_Allreduce(
+                &localStatus, &globalStatus, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
+        if (globalStatus == 2) {
             throw OpalException(
                     "CartesianPIC3DAlgorithm::gatherFields",
                     "BeamBeam witness CIC stencil lies outside the local solved field storage; "
                     "expand and re-solve the domain before gathering.");
         }
-        relativisticFieldComposer_m.gatherAccumulated(
-                particleMeshTransfer_m, target.E, target.B, target.R, *fieldStorage_m);
+        if (globalStatus == 0) {
+            // Preserve the ordinary IPPL gather and its arithmetic when nobody
+            // leaves the force window (including existing Track-12 comparisons).
+            relativisticFieldComposer_m.gatherAccumulated(
+                    particleMeshTransfer_m, target.E, target.B, target.R, *fieldStorage_m);
+            return;
+        }
+
+        // IPPL's unselected gather would access every position, including those
+        // outside z. Reuse its CIC weights/stencil and halo fills, but branch
+        // BEFORE any grid access. No position clamping, host staging, or particle
+        // allocation/deletion: all registered attributes and IDs remain intact.
+        auto& electricField = fieldStorage_m->accumulatedElectricField();
+        auto& magneticField = fieldStorage_m->accumulatedMagneticField();
+        auto haloTimer      = IpplTimings::getTimer("fillHalo");
+        IpplTimings::startTimer(haloTimer);
+        electricField.fillHalo();
+        magneticField.fillHalo();
+        IpplTimings::stopTimer(haloTimer);
+        const auto electricGrid   = electricField.getView();
+        const auto magneticGrid   = magneticField.getView();
+        const auto electric       = target.E.getView();
+        const auto magnetic       = target.B.getView();
+        const auto inverseSpacing = 1.0 / spacing;
+        auto gatherTimer          = IpplTimings::getTimer("gather");
+        IpplTimings::startTimer(gatherTimer);
+        Kokkos::parallel_for(
+                "BeamBeam gather inside longitudinal force window", target.getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i) {
+                    if (positions(i)[2] < lowerZ || positions(i)[2] > upperZ) {
+                        electric(i) = FieldStorage::Vector(0.0);
+                        magnetic(i) = FieldStorage::Vector(0.0);
+                        return;
+                    }
+                    const FieldStorage::Vector l = (positions(i) - origin) * inverseSpacing + 0.5;
+                    const ippl::Vector<int, 3> index   = l;
+                    const FieldStorage::Vector whi     = l - index;
+                    const FieldStorage::Vector wlo     = 1.0 - whi;
+                    const ippl::Vector<size_t, 3> args = index - first + ghosts;
+                    electric(i)                        = ippl::detail::gatherFromField(
+                            std::make_index_sequence<8>{}, electricGrid, wlo, whi, args);
+                    magnetic(i) = ippl::detail::gatherFromField(
+                            std::make_index_sequence<8>{}, magneticGrid, wlo, whi, args);
+                });
+        IpplTimings::stopTimer(gatherTimer);
     }
 
     void CartesianPIC3DAlgorithm::dumpChargeDensity(

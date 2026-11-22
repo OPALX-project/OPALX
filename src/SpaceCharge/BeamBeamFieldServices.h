@@ -72,9 +72,16 @@ namespace opalx::spacecharge {
          * @param target Passive particles; E [V/m] and B [T] are overwritten, not added.
          * Requires a preceding successful BeamBeam solve in the same fixed domain.
          * Every rank participates, including ranks with no local target particles.
-         * The complete local CIC stencil is checked collectively before halo exchange.
-         * An uncovered or nonfinite position throws on all ranks; callers must enlarge
-         * and re-solve the domain, not clamp positions or reuse fields on a changed mesh.
+         * The fixed domain's closed longitudinal interval defines a hard spatial
+         * force cutoff (normally IP +/- 10 mm): finite witnesses strictly outside
+         * receive exactly zero BeamBeam E/B, without interpolation, removal, wrapping,
+         * or changes to R/P/ID. Re-entering witnesses gather normally again.
+         * This truncates the physical primary-plus-copy field; it is not an aperture
+         * or a converged approximation and requires window-size/impulse convergence.
+         * The complete local CIC stencil of IN-window particles is checked collectively
+         * before halo exchange. An uncovered in-window stencil or ANY nonfinite
+         * coordinate throws on all ranks; callers must enlarge and re-solve the
+         * transverse domain, not clamp positions or reinterpret cached fields.
          */
         virtual void gatherFields(ParticleContainer& target) = 0;
         /**
