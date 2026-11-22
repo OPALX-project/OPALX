@@ -1,0 +1,19 @@
+{
+  "primary": {
+    "random_macroparticles": 400000,
+    "tensor_shape": [32, 32, 64],
+    "cutoff_sigma": 6.0
+  },
+  "mesh_nz": 128,
+  "cases": [
+    {
+      "name": "production_rect_1024x128_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 1024,
+      "ny": 128
+    }
+  ]
+}

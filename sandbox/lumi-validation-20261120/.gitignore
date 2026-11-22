@@ -1,0 +1,12 @@
+*
+!/.gitignore
+!/STATUS.md
+!/build.sh
+!/smoke.sh
+!/select-gpu.sh
+!/device-info.cpp
+!/analyze_smokes.py
+!/analyze_track12.py
+!/track12/
+/track12/*
+!/track12/submit.sh

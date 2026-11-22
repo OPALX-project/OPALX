@@ -1,0 +1,11 @@
+*
+!/.gitignore
+!/STATUS.md
+!/build.sh
+!/unit-mpi2.sh
+!/old-repeat.sh
+!/select-gpu.sh
+!/analyze.py
+!/track12/
+/track12/*
+!/track12/submit.sh

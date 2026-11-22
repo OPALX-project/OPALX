@@ -20,3 +20,4 @@ add_opalx_test(TestGSLIntegration USE_GTEST_MAIN)
 
 # Attribute parsing coverage (OPAL parser interface)
 add_opalx_test(TestPredefinedString USE_GTEST_MAIN)
+add_opalx_test(TestDiagnosticOutput USE_GTEST_MAIN TIMEOUT 30)

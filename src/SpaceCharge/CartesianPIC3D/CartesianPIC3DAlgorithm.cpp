@@ -5,13 +5,19 @@
 
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 
+#include "AbstractObjects/OpalData.h"
+#include "Interpolation/CIC.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Structure/DataSink.h"
+#include "Structure/H5BeamBeamDiagnosticsWriter.h"
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -77,6 +83,239 @@ namespace opalx::spacecharge {
         poissonSolver_m->warmup();
     }
 
+    void CartesianPIC3DAlgorithm::configure(std::optional<BeamBeamSolvePolicy> policy) {
+        if (policy.has_value()
+            && (config_m.backend != PoissonSolverType::Open || config_m.dirichletPlane.enabled())) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::configure",
+                    "BeamBeam requires OPEN without a Dirichlet-plane model.");
+        }
+        beamBeamPolicy_m = policy;
+        if (!policy.has_value() || !policy->captureChargeDensity) {
+            chargeSnapshot_m.reset();
+        }
+    }
+
+    void CartesianPIC3DAlgorithm::gatherFields(ParticleContainer& target) {
+        if (!beamBeamPolicy_m.has_value() || !bunchState_m->fixedCartesianDomain().has_value()) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::gatherFields",
+                    "BeamBeam witness gathering requires an active fixed-domain solve.");
+        }
+        // Fixed bounds are in metres in the source/solve frame, not in each
+        // witness container's independent frame. The closed z interval is the
+        // BeamBeam force window; finite particles outside it are retained but
+        // receive zero BeamBeam E/B. Check stencils only for particles inside.
+        const auto& bounds   = *bunchState_m->fixedCartesianDomain();
+        const double lowerZ  = bounds.lower[2];
+        const double upperZ  = bounds.upper[2];
+        const auto positions = target.R.getView();
+        const auto origin    = fieldStorage_m->mesh().getOrigin();
+        const auto spacing   = fieldStorage_m->mesh().getMeshSpacing();
+        const auto first     = fieldStorage_m->layout().getLocalNDIndex().first();
+        const auto& field    = fieldStorage_m->accumulatedElectricField();
+        const int ghosts     = field.getNghost();
+        const auto view      = field.getView();
+        const std::array<std::size_t, 3> extents{view.extent(0), view.extent(1), view.extent(2)};
+        // 0: all in window; 1: an outside particle needs the masked gather;
+        // 2: an invalid coordinate or an uncovered IN-window stencil. Every rank
+        // makes the same decision before entering field-halo collectives.
+        int localStatus = 0;
+        Kokkos::parallel_reduce(
+                "BeamBeam validate CIC coverage", target.getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i, int& status) {
+                    int particleStatus = 0;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        if (!Kokkos::isfinite(positions(i)[d])) particleStatus = 2;
+                    }
+                    if (particleStatus == 0
+                        && (positions(i)[2] < lowerZ || positions(i)[2] > upperZ)) {
+                        particleStatus = 1;
+                    }
+                    if (particleStatus != 0) {
+                        status = Kokkos::max(status, particleStatus);
+                        return;
+                    }
+                    for (unsigned d = 0; d < 3; ++d) {
+                        const double l = (positions(i)[d] - origin[d]) / spacing[d] + 0.5;
+                        // Avoid undefined floating-to-integer conversion for nonfinite or
+                        // enormous coordinates. Signed arithmetic precedes any index cast.
+                        if (!Kokkos::isfinite(l) || l < -1.0e9 || l > 1.0e9) {
+                            particleStatus = 2;
+                            break;
+                        }
+                        const long index = static_cast<int>(l) - first[d] + ghosts;
+                        if (index < 1 || index >= static_cast<long>(extents[d])) {
+                            particleStatus = 2;
+                            break;
+                        }
+                    }
+                    status = Kokkos::max(status, particleStatus);
+                },
+                Kokkos::Max<int>(localStatus));
+        localStatus = std::max(localStatus, 0);  // Empty-local ranks have no invalid particles.
+        int globalStatus = 0;
+        MPI_Allreduce(
+                &localStatus, &globalStatus, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
+        if (globalStatus == 2) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::gatherFields",
+                    "BeamBeam witness CIC stencil lies outside the local solved field storage; "
+                    "expand and re-solve the domain before gathering.");
+        }
+        if (globalStatus == 0) {
+            // Preserve the ordinary IPPL gather and its arithmetic when nobody
+            // leaves the force window (including existing Track-12 comparisons).
+            relativisticFieldComposer_m.gatherAccumulated(
+                    particleMeshTransfer_m, target.E, target.B, target.R, *fieldStorage_m);
+            return;
+        }
+
+        // IPPL's unselected gather would access every position, including those
+        // outside z. Reuse its CIC weights/stencil and halo fills, but branch
+        // BEFORE any grid access. No position clamping, host staging, or particle
+        // allocation/deletion: all registered attributes and IDs remain intact.
+        auto& electricField = fieldStorage_m->accumulatedElectricField();
+        auto& magneticField = fieldStorage_m->accumulatedMagneticField();
+        auto haloTimer      = IpplTimings::getTimer("fillHalo");
+        IpplTimings::startTimer(haloTimer);
+        electricField.fillHalo();
+        magneticField.fillHalo();
+        IpplTimings::stopTimer(haloTimer);
+        const auto electricGrid   = electricField.getView();
+        const auto magneticGrid   = magneticField.getView();
+        const auto electric       = target.E.getView();
+        const auto magnetic       = target.B.getView();
+        const auto inverseSpacing = 1.0 / spacing;
+        auto gatherTimer          = IpplTimings::getTimer("gather");
+        IpplTimings::startTimer(gatherTimer);
+        Kokkos::parallel_for(
+                "BeamBeam gather inside longitudinal force window", target.getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i) {
+                    if (positions(i)[2] < lowerZ || positions(i)[2] > upperZ) {
+                        electric(i) = FieldStorage::Vector(0.0);
+                        magnetic(i) = FieldStorage::Vector(0.0);
+                        return;
+                    }
+                    const FieldStorage::Vector l = (positions(i) - origin) * inverseSpacing + 0.5;
+                    const ippl::Vector<int, 3> index   = l;
+                    const FieldStorage::Vector whi     = l - index;
+                    const FieldStorage::Vector wlo     = 1.0 - whi;
+                    const ippl::Vector<size_t, 3> args = index - first + ghosts;
+                    electric(i)                        = ippl::detail::gatherFromField(
+                            std::make_index_sequence<8>{}, electricGrid, wlo, whi, args);
+                    magnetic(i) = ippl::detail::gatherFromField(
+                            std::make_index_sequence<8>{}, magneticGrid, wlo, whi, args);
+                });
+        IpplTimings::stopTimer(gatherTimer);
+    }
+
+    void CartesianPIC3DAlgorithm::dumpChargeDensity(
+            const std::string& prefix, const std::vector<std::string>& headers) {
+        if (ippl::Comm->size() != 1) {
+            return;
+        }
+        if (!chargeSnapshot_m.has_value()) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::dumpChargeDensity",
+                    "Charge-density diagnostics require captureChargeDensity on the preceding "
+                    "solve.");
+        }
+        auto& rho          = *chargeSnapshot_m;
+        const auto owned   = rho.getLayout().getLocalNDIndex();
+        const int halo     = rho.getNghost();
+        const auto origin  = fieldStorage_m->mesh().getOrigin();
+        const auto spacing = fieldStorage_m->mesh().getMeshSpacing();
+        if (Options::enableHDF5 && !Options::asciidump) {
+            H5BeamBeamDiagnosticsWriter::StepMetadata metadata;
+            metadata.globalStep          = static_cast<long long>(diagnosticStep_m);
+            metadata.time                = diagnosticTime_m;
+            metadata.pathLengthS         = primary_m->get_sPos();
+            metadata.particleTotalNum    = static_cast<long long>(primary_m->getTotalNum());
+            metadata.particleTotalCharge = primary_m->getTotalCharge();
+            metadata.fieldStage          = "normalized_primary_rho_before_solve";
+            for (unsigned d = 0; d < 3; ++d) {
+                metadata.shape[d]   = static_cast<h5_int64_t>(fieldStorage_m->layoutExtents()[d]);
+                metadata.origin[d]  = origin[d];
+                metadata.spacing[d] = spacing[d];
+                metadata.particleMeanR[d] = primary_m->getMeanR()[d];
+            }
+            metadata.particleMeanR[2] += metadata.pathLengthS;
+            metadata.particleMeanS = metadata.particleMeanR[2];
+            for (const auto& header : headers) {
+                const auto equals = header.find('=');
+                if (equals == std::string::npos) continue;
+                const std::string key = header.substr(0, equals);
+                std::string value     = header.substr(equals + 1);
+                if (key == "coordinate_frame")
+                    metadata.coordinateFrame = value;
+                else if (key == "snapshot_kind")
+                    metadata.snapshotKind = value;
+                else if (key == "interaction_window_active") {
+                    metadata.interactionWindowActive = value == "1" || value == "TRUE";
+                } else {
+                    for (auto& character : value) {
+                        if (character == '(' || character == ')' || character == ',')
+                            character = ' ';
+                    }
+                    std::istringstream input(value);
+                    if (key == "global_step")
+                        input >> metadata.globalStep;
+                    else if (key == "time")
+                        input >> metadata.time;
+                    else if (key == "path_length_s")
+                        input >> metadata.pathLengthS;
+                    else if (key == "interaction_point_s")
+                        input >> metadata.interactionPointS;
+                    else if (key == "interaction_point_local_z")
+                        input >> metadata.interactionPointLocalZ;
+                    else if (key == "particle_total_num")
+                        input >> metadata.particleTotalNum;
+                    else if (key == "particle_total_charge")
+                        input >> metadata.particleTotalCharge;
+                    else if (key == "ip_element_s_range") {
+                        input >> metadata.beamBeamSRange[0] >> metadata.beamBeamSRange[1];
+                    }
+                }
+            }
+            const auto filename = H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                    OpalData::getInstance()->getInputBasename(), "RHO", "scalar", prefix);
+            H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                    filename, prefix.empty() ? "RHO" : prefix, metadata, rho);
+            return;
+        }
+        const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rho.getView());
+        std::ostringstream name;
+        name << "data/" << OpalData::getInstance()->getInputBasename() << "-RHO_scalar";
+        if (!prefix.empty()) name << '-' << prefix;
+        name << '-' << std::setfill('0') << std::setw(6) << diagnosticSolveCount_m << ".dat";
+        std::filesystem::create_directories(std::filesystem::path(name.str()).parent_path());
+        std::ofstream output(name.str());
+        if (!output) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::dumpChargeDensity",
+                    "Cannot open charge-density diagnostic output.");
+        }
+        output << std::setprecision(17) << "# RHO scalar data on grid\n"
+               << "# origin= " << origin << " h= " << spacing << " nghosts=" << halo << '\n';
+        for (const auto& header : headers) {
+            output << "# " << header << '\n';
+        }
+        output << "# field_stage=normalized_primary_rho_before_solve\n";
+        output << "# i j k x[m] y[m] z[m] normalized_rho\n";
+        for (int i = 0; i < owned[0].length(); ++i) {
+            for (int j = 0; j < owned[1].length(); ++j) {
+                for (int k = 0; k < owned[2].length(); ++k) {
+                    output << i << ' ' << j << ' ' << k << ' '
+                           << origin[0] + (owned[0].first() + i) * spacing[0] << ' '
+                           << origin[1] + (owned[1].first() + j) * spacing[1] << ' '
+                           << origin[2] + (owned[2].first() + k) * spacing[2] << ' '
+                           << host(i + halo, j + halo, k + halo) << '\n';
+                }
+            }
+        }
+    }
+
     CartesianPIC3DAlgorithm::SolvePlan CartesianPIC3DAlgorithm::makeSolvePlan(
             std::size_t step) const {
         SolvePlan plan;
@@ -131,6 +370,15 @@ namespace opalx::spacecharge {
 
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
+        diagnosticStep_m = context.stepState().step;
+        ++diagnosticSolveCount_m;
+        diagnosticTime_m = context.stepState().time;
+        chargeSnapshot_m.reset();
+        depositedCharge_m.reset();
+        if (beamBeamPolicy_m.has_value()) {
+            depositedCharge_m = 0.0;
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
         auto fixedState = bunchState_m->fixedCartesianDomain();
@@ -153,6 +401,11 @@ namespace opalx::spacecharge {
             fixedState = BunchStateHandler::FixedCartesianDomainState{lower, upper};
         }
         const bool fixedDomain = fixedState.has_value();
+        if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->copyActive && !fixedDomain) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::solve",
+                    "A copied BeamBeam primary requires a fixed domain symmetric about the IP.");
+        }
         if (fixedDomain) {
             if (config_m.backend != PoissonSolverType::Open && config_m.periodicBox <= 0.0) {
                 throw OpalException(
@@ -164,7 +417,11 @@ namespace opalx::spacecharge {
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain does not support Dirichlet planes.");
             }
-            if (config_m.repartitionFrequency != 0 && config_m.periodicBox <= 0.0) {
+            // BeamBeam freezes its interaction mesh for source/copy composition and witness
+            // gathers. The domain updater already suppresses ORB for every fixed-domain call;
+            // retain master's periodic-box exception for ordinary fixed-domain solves.
+            if (config_m.repartitionFrequency != 0 && config_m.periodicBox <= 0.0
+                && !beamBeamPolicy_m.has_value()) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
                         "ORB redistribution must be disabled while fixed Cartesian bounds set on "
@@ -178,7 +435,8 @@ namespace opalx::spacecharge {
             enterSolveFrame(context.stepState().frames, *primary_m);
             result.redistributions += domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
-                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
+                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m,
+                    config_m.periodicBox > 0.0 && !beamBeamPolicy_m.has_value());
 
             solveInBeamFrame(context, plan, result);
 
@@ -200,6 +458,10 @@ namespace opalx::spacecharge {
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         Inform m("CartesianPIC3DAlgorithm::solveInBeamFrame");
+        if (beamBeamPolicy_m.has_value()) {
+            // Layout refresh may have reallocated accumulators since entry to solve().
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
         const auto& poissonCapabilities = poissonSolver_m->capabilities();
         if (poissonCapabilities.isNoOp) {
             m << level5 << "Skipping scatter/gather and space-charge computation for NONE solver."
@@ -209,6 +471,10 @@ namespace opalx::spacecharge {
 
         // The global count handles early-emission ranks that own no particles.
         if (primary_m->getTotalNum() <= 1) {
+            return;
+        }
+        if (beamBeamPolicy_m.has_value() && !beamBeamPolicy_m->primaryActive
+            && !beamBeamPolicy_m->copyActive) {
             return;
         }
         // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
@@ -255,7 +521,7 @@ namespace opalx::spacecharge {
             SpaceChargeSolveResult& result) {
         result.reportedBins = 1;
 
-        const bool accumulatePasses = plan.passCount > 1;
+        const bool accumulatePasses = plan.passCount > 1 || beamBeamPolicy_m.has_value();
         if (accumulatePasses) {
             relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
         }
@@ -346,10 +612,17 @@ namespace opalx::spacecharge {
             normalization.normalizeByCellVolume = capabilities.normalizeChargeByCellVolume;
             normalization.subtractNeutralizingBackground =
                     capabilities.subtractNeutralizingBackground;
+            double measuredCharge = 0.0;
             particleMeshTransfer_m.depositCharge(
                     *primary_m, *fieldStorage_m, policy.depositKind,
                     ParticleMeshTransfer::Selection::direct(0, primary_m->getLocalNum()),
-                    normalization, policy.imagePolicy);
+                    normalization, policy.imagePolicy,
+                    beamBeamPolicy_m.has_value() ? &measuredCharge : nullptr);
+            if (beamBeamPolicy_m.has_value()) {
+                *depositedCharge_m += measuredCharge
+                                      * (static_cast<int>(beamBeamPolicy_m->primaryActive)
+                                         + static_cast<int>(beamBeamPolicy_m->copyActive));
+            }
         } else {
             depositChargeForBin(context, *unit, policy);
         }
@@ -427,6 +700,10 @@ namespace opalx::spacecharge {
         }
         m << endl;
 
+        if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->captureChargeDensity) {
+            // OPEN writes its potential into rho. Preserve only explicitly requested snapshots.
+            chargeSnapshot_m.emplace(fieldStorage_m->chargeDensity().deepCopy());
+        }
         poissonSolver_m->solve(poissonRequest, {.suppressFieldDump = policy.suppressFieldDump});
         ++result.backendSolves;
 
@@ -434,7 +711,7 @@ namespace opalx::spacecharge {
             dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ);
         }
 
-        if (unit == nullptr && plan.passCount == 1) {
+        if (unit == nullptr && plan.passCount == 1 && !beamBeamPolicy_m.has_value()) {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
         } else {
@@ -448,7 +725,15 @@ namespace opalx::spacecharge {
 
             // Shifted Green reuses the real-charge RHS. Its image sign enters through field
             // reflection and component signs here; negating rho would invert the image twice.
-            relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            if (!beamBeamPolicy_m.has_value() || beamBeamPolicy_m->primaryActive) {
+                relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            }
+            if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->copyActive) {
+                // Same charge and transverse velocity; reflect only z and longitudinal velocity.
+                compositionPolicy.meanMomentum[2] = -compositionPolicy.meanMomentum[2];
+                compositionPolicy.sourceRule      = FieldSourceRule::MirroredPrimaryZ;
+                relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            }
         }
 
         if (unit != nullptr) {
@@ -502,9 +787,16 @@ namespace opalx::spacecharge {
         normalization.normalizeByCellVolume          = capabilities.normalizeChargeByCellVolume;
         normalization.subtractNeutralizingBackground = capabilities.subtractNeutralizingBackground;
 
+        double measuredCharge = 0.0;
         particleMeshTransfer_m.depositCharge(
                 *primary_m, *fieldStorage_m, pass.depositKind, unit.depositSelection(),
-                normalization, pass.imagePolicy);
+                normalization, pass.imagePolicy,
+                beamBeamPolicy_m.has_value() ? &measuredCharge : nullptr);
+        if (beamBeamPolicy_m.has_value()) {
+            *depositedCharge_m += measuredCharge
+                                  * (static_cast<int>(beamBeamPolicy_m->primaryActive)
+                                     + static_cast<int>(beamBeamPolicy_m->copyActive));
+        }
     }
 
     void CartesianPIC3DAlgorithm::dumpBinSnapshot(
