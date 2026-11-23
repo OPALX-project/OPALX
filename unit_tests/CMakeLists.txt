@@ -38,3 +38,11 @@ add_subdirectory(Moments)
 add_subdirectory(Processes)
 add_subdirectory(Steppers)
 add_subdirectory(Track)
+
+# Run-side sources read no OPTION globals and no OpalData and include no input-layer header.
+if(BUILD_TESTING)
+  add_test(NAME TestRunSideBoundary
+           COMMAND ${CMAKE_COMMAND} -DOPALX_SOURCE_DIR=${PROJECT_SOURCE_DIR}/src -P
+                   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckRunSideBoundary.cmake)
+  set_tests_properties(TestRunSideBoundary PROPERTIES LABELS unit TIMEOUT 120)
+endif()
