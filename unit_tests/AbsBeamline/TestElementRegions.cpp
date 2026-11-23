@@ -16,7 +16,6 @@
 #include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
 #include <optional>
@@ -67,8 +66,6 @@ namespace {
             ippl::initialize(argc, argv);
         }
         static void TearDownTestSuite() { ippl::finalize(); }
-
-        void SetUp() override { Options::elementMappingReach = 0.5; }
 
         static MultipoleRep makeQuadrupole(const double apertureHalfWidth) {
             MultipoleRep quad("Q");

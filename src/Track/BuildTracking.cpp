@@ -754,6 +754,10 @@ namespace opalx::run {
         // BC handler
         *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
 
+        for (const auto& element : elements) {
+            if (!element->getReach()) element->setReach(options.elementMappingReach);
+        }
+
         // A fresh run samples its distributions. A restart restores the exact saved particle state
         // instead, so sampling it again would duplicate particles and consume random numbers.
         double globalPhaseShift = 0.0;

@@ -224,8 +224,9 @@ public:
      * @brief Where the element applies its field and where it deletes particles.
      *
      * Field window: getFieldExtent(). Body window: [startZ, startZ + L), from 0 in the arc
-     * coordinates of a sector bend. Reach: the element's REACH, else OPTION ELEMENTMAPPINGREACH,
-     * across both axes. Aperture, in this order:
+     * coordinates of a sector bend. Reach: getReach(), else 0.5 m, across both axes.
+     * buildTracking() sets OPTION ELEMENTMAPPINGREACH on every tracked element without REACH.
+     * Aperture, in this order:
      * - the APERTURE (values of 1e5 m or more count as none); particles outside it are lost;
      * - getFieldMapRange(); nothing is lost;
      * - getFieldRange(); particles outside it are lost;
@@ -270,10 +271,10 @@ public:
      */
     virtual std::vector<SupportBox> getLocalSupportBoxes(double reach) const;
 
-    /// @brief Set the per-element REACH [m] that overrides the global default.
+    /// @brief Set the reach [m]: the element's REACH, or OPTION ELEMENTMAPPINGREACH.
     void setReach(double reach);
 
-    /// @brief The per-element REACH [m]; empty when the global default applies.
+    /// @brief The reach [m]; empty if setReach() was not called.
     std::optional<double> getReach() const;
 
     /* ===================== Coordinate system & placement ===================== */
