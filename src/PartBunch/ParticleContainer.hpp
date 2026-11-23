@@ -436,9 +436,10 @@ public:
         // We only keep the slot: per-container flags own their own sync, so
         // no back-reference to the handler is needed. The handler itself
         // manages bunch-wide state, which ParticleContainer never touches.
-        // The new slot starts in the reference frame.
-        requireReferenceFrame("ParticleContainer::setBunchStateHandler");
-        containerState_m = handler->registerContainer();
+        // The new slot takes over the state held so far.
+        const auto held   = *containerState_m;
+        containerState_m  = handler->registerContainer();
+        *containerState_m = held;
     }
 
     bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
