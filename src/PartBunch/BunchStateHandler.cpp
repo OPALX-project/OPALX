@@ -2,7 +2,6 @@
 
 #include "Ippl.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
 #include <functional>
@@ -21,13 +20,14 @@ namespace {
 // -- BunchStateHandler::ContainerState -------------------------------------
 
 void BunchStateHandler::ContainerState::setUnitlessPositions(bool v) {
-    unitlessPositions = Options::aggressiveStateSync ? syncOr(v) : v;
+    unitlessPositions = aggressiveSync ? syncOr(v) : v;
 }
 
 // -- BunchStateHandler -----------------------------------------------------
 
 std::shared_ptr<BunchStateHandler::ContainerState> BunchStateHandler::registerContainer() {
-    auto state = std::make_shared<ContainerState>();
+    auto state            = std::make_shared<ContainerState>();
+    state->aggressiveSync = aggressiveSync_m;
     registered_m.emplace_back(state);
     return state;
 }

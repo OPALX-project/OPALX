@@ -2,7 +2,6 @@
 
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
-#include "Utilities/Options.h"
 
 #include "Utilities/OpalException.h"
 
@@ -18,10 +17,6 @@ protected:
     }
 
     static void TearDownTestSuite() { ippl::finalize(); }
-
-    // Each test starts with the sync flag off; tests that need it turn it on.
-    void SetUp() override { Options::aggressiveStateSync = false; }
-    void TearDown() override { Options::aggressiveStateSync = false; }
 };
 
 TEST_F(BunchStateHandlerTest, RegisterContainerReturnsFreshSlot) {
@@ -140,8 +135,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_UnitlessPositionsConverge) {
         GTEST_SKIP() << "Requires at least 2 MPI ranks to exercise divergent setter calls.";
     }
 
-    Options::aggressiveStateSync = true;
-    BunchStateHandler h;
+    BunchStateHandler h(true);
     auto s = h.registerContainer();
     EXPECT_FALSE(s->unitlessPositions);
 
@@ -156,8 +150,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {
         GTEST_SKIP() << "Requires at least 2 MPI ranks to distinguish synced from unsynced.";
     }
 
-    Options::aggressiveStateSync = false;
-    BunchStateHandler h;
+    BunchStateHandler h(false);
     auto s = h.registerContainer();
 
     // Only rank 0 switches; with sync off, other ranks keep physical positions.

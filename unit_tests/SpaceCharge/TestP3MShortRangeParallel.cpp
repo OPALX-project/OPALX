@@ -82,7 +82,7 @@ namespace opalx::spacecharge {
             CartesianDomain<double, 3> domain(setup);
             Container particles(
                     domain.mesh(), domain.layout(), false, Container::LayoutType::SpatialOverlap,
-                    setup.overlapCutoff, ippl::BC::NO);
+                    setup.overlapCutoff, ippl::BC::NO, Options::useQMAttributes);
             particles.setBunchStateHandler(std::make_shared<BunchStateHandler>());
 
             const std::array<Vector, 2> placed{Vector(0.1, 0.05, -0.05), Vector(0.15, 0.0, 0.1)};

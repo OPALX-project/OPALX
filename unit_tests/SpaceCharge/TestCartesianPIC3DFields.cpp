@@ -269,7 +269,8 @@ namespace opalx::spacecharge {
             for (const Vector& separation : {Vector(0.05, 0.02, 0.1), Vector(0.0, 0.0, 0.4)}) {
                 Container particles(
                         domain.mesh(), domain.layout(), false,
-                        Container::LayoutType::SpatialOverlap, setup.overlapCutoff, ippl::BC::NO);
+                        Container::LayoutType::SpatialOverlap, setup.overlapCutoff, ippl::BC::NO,
+                        Options::useQMAttributes);
                 particles.setBunchStateHandler(std::make_shared<BunchStateHandler>());
                 particles.createParticles(2);
                 auto positions = particles.R.getHostMirror();

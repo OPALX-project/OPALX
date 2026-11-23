@@ -23,7 +23,8 @@ PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi,
         const std::vector<opalx::run::BeamDescription>& beams,
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-        opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig)
+        opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
+        bool aggressiveStateSync)
     : dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
@@ -34,7 +35,7 @@ PartBunch<T, Dim>::PartBunch(
       rmsDensity_m(0.0) {
     qi_m         = qi;
     mi_m         = mi;
-    bunchState_m = std::make_shared<BunchStateHandler>();
+    bunchState_m = std::make_shared<BunchStateHandler>(aggressiveStateSync);
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
@@ -96,7 +97,7 @@ PartBunch<T, Dim>::PartBunch(
 
     pcontainer_m = std::make_shared<ParticleContainer_t>(
             cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[0].hasPolarization,
-            layoutType, overlapCutoff, particleBoundary);
+            layoutType, overlapCutoff, particleBoundary, qmAttributes);
     pcontainers_m.push_back(pcontainer_m);
     pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
@@ -104,7 +105,7 @@ PartBunch<T, Dim>::PartBunch(
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasPolarization,
-                layoutType, overlapCutoff, particleBoundary);
+                layoutType, overlapCutoff, particleBoundary, qmAttributes);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
     }

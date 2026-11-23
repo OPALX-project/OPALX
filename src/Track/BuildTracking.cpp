@@ -700,7 +700,9 @@ namespace opalx::run {
                 totalParticlesPerBeam,           // Per-beam particle counts for allocation
                 options.loadBalancingThreshold,  // Load balancing threshold
                 "LF2",                           // Integrator
-                cartesianDomainConfig);          // Cartesian domain and particle-layout setup
+                cartesianDomainConfig,           // Cartesian domain and particle-layout setup
+                options.useQMAttributes,         // Per-particle Q and M (QM_MODE)
+                options.aggressiveStateSync);    // AGGRESSIVE_STATE_SYNC
 
         // Validate container setup produced by constructor
         PartBunch_t& bunch             = *objects.bunch;

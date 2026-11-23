@@ -17,7 +17,7 @@
  * independently of container lifetimes.
  *
  * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$.
- * `Options::aggressiveStateSync` optionally converges it across MPI ranks. `frame` is the frame the
+ * OPTION AGGRESSIVE_STATE_SYNC optionally converges it across MPI ranks. `frame` is the frame the
  * container's particle data is in; only ParticleContainer::enterFrame() changes it. Every rank is
  * back in the reference frame at the same points of a step, so it needs no synchronization.
  */
@@ -41,11 +41,14 @@ public:
     struct ContainerState {
         bool unitlessPositions = false;
         ParticleFrame frame;
+        bool aggressiveSync = false;  ///< The handler's flag, see BunchStateHandler().
 
         void setUnitlessPositions(bool v);
     };
 
-    BunchStateHandler() = default;
+    /// @param aggressiveSync Converge setUnitlessPositions() across MPI ranks (OPTION
+    ///        AGGRESSIVE_STATE_SYNC).
+    explicit BunchStateHandler(bool aggressiveSync = false) : aggressiveSync_m(aggressiveSync) {}
 
     /** @brief Allocate a slot whose strong ownership is transferred to the container. */
     std::shared_ptr<ContainerState> registerContainer();
@@ -75,6 +78,7 @@ public:
     }
 
 private:
+    bool aggressiveSync_m = false;
     std::vector<std::weak_ptr<ContainerState>> registered_m;
     std::optional<FixedCartesianDomainState> fixedCartesianDomain_m;
 };

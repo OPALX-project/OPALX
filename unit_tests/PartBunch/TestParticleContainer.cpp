@@ -65,7 +65,8 @@ namespace {
 
             constexpr double overlapCutoff = 1.0;
             std::shared_ptr<PC_t> pc       = std::make_shared<PC_t>(
-                    mesh, fl, spinEnabled, layoutType, overlapCutoff, particleBC);
+                    mesh, fl, spinEnabled, layoutType, overlapCutoff, particleBC,
+                    Options::useQMAttributes);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
             return pc;
         }

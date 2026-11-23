@@ -35,6 +35,7 @@
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 #include <algorithm>

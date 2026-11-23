@@ -184,7 +184,8 @@ namespace {
             Mesh_t<3> mesh(domain, hr, origin);
             FieldLayout_t<3> layout(MPI_COMM_WORLD, domain, {true, true, true}, true);
             auto pc = std::make_shared<PC_t>(
-                    mesh, layout, spin, PC_t::LayoutType::Spatial, 0.0, ippl::BC::NO);
+                    mesh, layout, spin, PC_t::LayoutType::Spatial, 0.0, ippl::BC::NO,
+                    Options::useQMAttributes);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
 
             const auto local = localIndices(set.size());

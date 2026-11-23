@@ -108,12 +108,15 @@ public:
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
      * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
+     * @param qmAttributes           Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
+     * @param aggressiveStateSync    OPTION AGGRESSIVE_STATE_SYNC, see BunchStateHandler.
      */
     PartBunch(
             std::vector<double> qi, std::vector<double> mi,
             const std::vector<opalx::run::BeamDescription>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-            opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig);
+            opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig,
+            bool qmAttributes = false, bool aggressiveStateSync = false);
 
     /**
      * @brief Sum of @c getTotalNum() over all particle containers.

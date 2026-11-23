@@ -23,7 +23,6 @@
 #include "PartBunch/BunchStateHandler.h"
 
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 
@@ -193,10 +192,11 @@ public:
     bool hasSpin() const { return spinEnabled_m; }
 
 public:
+    /// @param qmAttributes Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
     ParticleContainer(
             Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false,
             LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0,
-            ippl::BC particleBC = ippl::BC::PERIODIC)
+            ippl::BC particleBC = ippl::BC::PERIODIC, bool qmAttributes = false)
         : spatialLayout_m(
                   layoutType == LayoutType::Spatial ? std::make_unique<SpatialLayout_t>(FL, mesh)
                                                     : nullptr),
@@ -204,9 +204,7 @@ public:
                   layoutType == LayoutType::SpatialOverlap
                           ? std::make_unique<P3MLayout_t>(FL, mesh, overlapCutoff)
                           : nullptr),
-          qmStorageMode_m(
-                  Options::useQMAttributes ? QMStorageMode::Attributes
-                                           : QMStorageMode::SingleValue),
+          qmStorageMode_m(qmAttributes ? QMStorageMode::Attributes : QMStorageMode::SingleValue),
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1),
           spinEnabled_m(spinEnabled) {

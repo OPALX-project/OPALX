@@ -69,6 +69,7 @@
 #include "Physics/Units.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
+#include "Utilities/Options.h"
 
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
