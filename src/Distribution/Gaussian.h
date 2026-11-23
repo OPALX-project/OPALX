@@ -8,7 +8,6 @@
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
-#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
@@ -75,6 +74,7 @@ public:
     /**
      * @brief Constructor for the Gaussian sampler without a distribution object.
      * @param pc Shared pointer to the particle container.
+     * @param seed OPTION SEED; see DistributionSettings::getSeed().
      * @param sigmaR Standard deviation for position distribution.
      * @param sigmaP Standard deviation for momentum distribution.
      * @param avrgpz Average momentum in the z-direction.
@@ -84,7 +84,7 @@ public:
      * @param cutoffP Cutoff multiplier for momentum distribution (units of sigmaP).
      */
     Gaussian(
-            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
+            std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
             bool fix_meanR = true, const Vector_t<double, 3>& cutoffP = Vector_t<double, 3>(3.0));
     /**
@@ -132,7 +132,7 @@ private:
     /**
      * @brief Initializes the random number generator pool.
      */
-    void initRandomPool();
+    void initRandomPool(int seed);
 
     /**
      * @brief Pool of random number generators for parallel sampling.

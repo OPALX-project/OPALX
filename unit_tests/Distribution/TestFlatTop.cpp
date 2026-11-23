@@ -7,6 +7,7 @@
 #include "Distribution/FlatTop.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "Utilities/Options.h"
 #include "Utility/IpplTimings.h"
 
 class FlatTopTest : public ::testing::Test {
@@ -102,7 +103,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
 
     // Minimal FlatTop constructor usage
     FlatTop sampler(
-            pc,
+            pc, Options::seed,
             /*emitting=*/false,
             /*sigmaTFall=*/1.0,
             /*sigmaTRise=*/1.0, cutoff,
@@ -249,7 +250,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
 
     FlatTop sampler(
-            pc,
+            pc, Options::seed,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0,
             /*sigmaTRise=*/1.0, cutoff,

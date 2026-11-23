@@ -315,7 +315,7 @@ namespace {
         ippl::Vector<int, 3> nr = 32;
 
         MultiVariateGaussian sampler(
-                pc, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
+                pc, Options::seed, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
         std::size_t numberOfParticles = options.beamParticles;
         sampler.generateParticles(numberOfParticles, nr);
 
@@ -430,7 +430,7 @@ namespace {
         ippl::Vector<int, 3> nr = 32;
 
         MultiVariateGaussian sampler(
-                pc, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
+                pc, Options::seed, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
         std::size_t numberOfParticles = options.beamParticles;
         sampler.generateParticles(numberOfParticles, nr);
 
@@ -535,7 +535,7 @@ namespace {
         ippl::Vector<int, 3> nr = 32;
 
         MultiVariateGaussian sampler(
-                pc, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
+                pc, Options::seed, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
         std::size_t numberOfParticles = options.beamParticles;
         sampler.generateParticles(numberOfParticles, nr);
 

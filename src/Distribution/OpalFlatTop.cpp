@@ -13,37 +13,37 @@
 OpalFlatTop::OpalFlatTop(
         std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist),
-      rand_pool_m(determineRandInit()),
-      host_rng_m(determineHostSeed()) {
+      rand_pool_m(determineRandInit(opalDist.getSeed())),
+      host_rng_m(determineHostSeed(opalDist.getSeed())) {
     setParameters(opalDist);
 }
 OpalFlatTop::OpalFlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+        std::shared_ptr<ParticleContainer_t> pc, int seed, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
         Vector_t<double, 3> sigmaR, double ftOscAmplitude, double ftOscPeriods)
-    : SamplingBase(pc), rand_pool_m(determineRandInit()), host_rng_m(determineHostSeed()) {
+    : SamplingBase(pc), rand_pool_m(determineRandInit(seed)), host_rng_m(determineHostSeed(seed)) {
     setInternalVariables(
             emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR, ftOscAmplitude,
             ftOscPeriods);
 }
 
-size_t OpalFlatTop::determineRandInit() {
+size_t OpalFlatTop::determineRandInit(const int seed) {
     extern Inform* gmsg;
     size_t randInit;
-    if (Options::seed == -1) {
+    if (seed == -1) {
         randInit = 1234567;
         *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
     } else {
-        randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+        randInit = static_cast<size_t>(seed + 100 * ippl::Comm->rank());
     }
     return randInit;
 }
 
-size_t OpalFlatTop::determineHostSeed() {
-    if (Options::seed == -1) {
+size_t OpalFlatTop::determineHostSeed(const int seed) {
+    if (seed == -1) {
         return 1234567;
     }
-    return static_cast<size_t>(Options::seed);
+    return static_cast<size_t>(seed);
 }
 
 void OpalFlatTop::setParameters(const DistributionSettings& opalDist) {

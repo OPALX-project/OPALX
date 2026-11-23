@@ -18,7 +18,6 @@
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
-#include "Utilities/Options.h"
 
 using OpalFlatTopGeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 
@@ -57,6 +56,7 @@ public:
      * Distribution object.
      *
      * @param pc Shared pointer to ParticleContainer.
+     * @param seed OPTION SEED; see DistributionSettings::getSeed().
      * @param emitting Flag indicating whether the distribution is emitting.
      * @param sigmaTFall Standard deviation of the falling flank in the time profile.
      * @param sigmaTRise Standard deviation of the rising flank in the time profile.
@@ -67,7 +67,7 @@ public:
      * @param ftOscPeriods Optional number of oscillation periods across the flat top.
      */
     OpalFlatTop(
-            std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+            std::shared_ptr<ParticleContainer_t> pc, int seed, bool emitting, double sigmaTFall,
             double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
             Vector_t<double, 3> sigmaR, double ftOscAmplitude = 0.0, double ftOscPeriods = 0.0);
 
@@ -212,14 +212,14 @@ private:
      *
      * @return Seed value for the per-rank Kokkos random pool.
      */
-    static size_t determineRandInit();
+    static size_t determineRandInit(int seed);
 
     /**
      * @brief Determines the host random seed initialization.
      *
      * @return Seed value for host-side birth-time sampling.
      */
-    static size_t determineHostSeed();
+    static size_t determineHostSeed(int seed);
 
     /**
      * @brief Reads distribution parameters from the OPALX Distribution object.

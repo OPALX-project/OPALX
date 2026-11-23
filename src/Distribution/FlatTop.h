@@ -14,7 +14,6 @@
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
-#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
@@ -43,6 +42,7 @@ public:
     /**
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
+     * @param seed OPTION SEED; see DistributionSettings::getSeed().
      * @param emitting Flag indicating whether the distribution is emitting.
      * @param sigmaTFall Standard deviation of fall in flat-top profile.
      * @param sigmaTRise Standard deviation of rise in flat-top profile.
@@ -50,7 +50,7 @@ public:
      * @param tPulseLengthFWHM Time span of the flat-top profile.
      * @param sigmaR Standard deviation for position distribution R.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, int seed, bool emitting, double sigmaTFall,
             double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
             Vector_t<double, 3> sigmaR);
 
@@ -97,7 +97,7 @@ private:
      * @brief Determines the random seed initialization.
      * @return The seed value.
      */
-    static size_t determineRandInit();
+    static size_t determineRandInit(int seed);
 
     /**
      * @brief Sets distribution parameters.

@@ -13,7 +13,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
@@ -114,7 +113,7 @@ EmittedFromFile::EmittedFromFile(
                 "FNAME attribute must be set for EMITTEDFROMFILE distribution type.");
     }
 
-    resolveFilenameFromInput();
+    resolveFilenameFromInput(opalDist.getInputDirectory());
     readFile(filename_m);
 }
 
@@ -128,15 +127,14 @@ EmittedFromFile::EmittedFromFile(
     readFile(filename_m);
 }
 
-void EmittedFromFile::resolveFilenameFromInput() {
+void EmittedFromFile::resolveFilenameFromInput(const std::string& inputDirectory) {
     namespace fs = std::filesystem;
     if (fs::exists(filename_m)) {
         return;
     }
 
-    const std::string inputFile = OpalData::getInstance()->getInputFn();
-    if (!inputFile.empty()) {
-        const fs::path filePath = fs::path(inputFile).parent_path() / filename_m;
+    if (!inputDirectory.empty()) {
+        const fs::path filePath = fs::path(inputDirectory) / filename_m;
         if (fs::exists(filePath)) {
             filename_m = filePath.string();
         }

@@ -14,7 +14,7 @@
 Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("Sampling");
-    initRandomPool();
+    initRandomPool(opalDist.getSeed());
     setSigmaP(opalDist.getSigmaP());
     setSigmaR(opalDist.getSigmaR());
     setAvrgpz(opalDist.getAvrgpz());
@@ -23,7 +23,7 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, const DistributionSe
 }
 
 Gaussian::Gaussian(
-        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
+        std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& sigmaR,
         const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
         bool fixMeanR, const Vector_t<double, 3>& cutoffP)
     : SamplingBase(pc) {
@@ -35,18 +35,18 @@ Gaussian::Gaussian(
     setFixMeanR(fixMeanR);
 
     samperTimer_m = IpplTimings::getTimer("Sampling");
-    initRandomPool();
+    initRandomPool(seed);
 }
 
-void Gaussian::initRandomPool() {
+void Gaussian::initRandomPool(const int seed) {
     extern Inform* gmsg;
     size_t randInit;
 
-    if (Options::seed == -1) {
+    if (seed == -1) {
         randInit = 1234567;
         *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
     } else {
-        randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+        randInit = static_cast<size_t>(seed + 100 * ippl::Comm->rank());
     }
 
     GeneratorPool rand_pool64(randInit);

@@ -175,9 +175,10 @@ private:
     };
 
     /**
-     * @brief Resolves relative file paths against the active input file directory.
+     * @brief Resolves a relative file path that does not exist from the working directory
+     *        against @p inputDirectory, the directory of the input file.
      */
-    void resolveFilenameFromInput();
+    void resolveFilenameFromInput(const std::string& inputDirectory);
 
     /**
      * @brief Reads and parses an old-OPAL emitted particle file.

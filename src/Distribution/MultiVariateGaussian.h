@@ -8,7 +8,6 @@
 #include "Ippl.h"
 #include "OPALTypes.h"
 #include "SamplingBase.hpp"
-#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
@@ -41,6 +40,7 @@ public:
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.
+     * @param seed OPTION SEED; see DistributionSettings::getSeed().
      * @param meanR Mean position vector.
      * @param meanP Mean momentum vector.
      * @param sigmaR Standard deviation for position distribution.
@@ -51,7 +51,7 @@ public:
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
     MultiVariateGaussian(
-            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+            std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& meanR,
             const Vector_t<double, 3>& meanP, const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP, const Vector_t<double, 3>& cutoffR,
             const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true);
@@ -59,6 +59,7 @@ public:
     /**
      * @brief Constructs the MultiVariateGaussian class.
      * @param pc Shared pointer to the particle container.
+     * @param seed OPTION SEED; see DistributionSettings::getSeed().
      * @param meanR Mean position vector.
      * @param meanP Mean momentum vector.
      * @param cov Covariance matrix.
@@ -68,7 +69,7 @@ public:
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
     MultiVariateGaussian(
-            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+            std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& meanR,
             const Vector_t<double, 3>& meanP, const Matrix_t& cov,
             const Vector_t<double, 3>& cutoffR, const Vector_t<double, 3>& cutoffP,
             bool fixMeanR = true, bool fixMeanP = true);
@@ -163,7 +164,7 @@ private:
     /**
      * @brief Initializes the random number generator pool.
      */
-    void initRandomPool();
+    void initRandomPool(int seed);
 
     /**
      * @brief Pool of random number generators for parallel sampling.

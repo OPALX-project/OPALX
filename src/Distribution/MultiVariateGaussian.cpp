@@ -33,11 +33,11 @@ MultiVariateGaussian::MultiVariateGaussian(
     meanP_m[2] = opalDist_m->getAvrgpz();
 
     samplerTimer_m = IpplTimings::getTimer("Sampling");
-    initRandomPool();
+    initRandomPool(opalDist.getSeed());
 }
 
 MultiVariateGaussian::MultiVariateGaussian(
-        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+        std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& meanR,
         const Vector_t<double, 3>& meanP, const Vector_t<double, 3>& sigmaR,
         const Vector_t<double, 3>& sigmaP, const Vector_t<double, 3>& cutoffR,
         const Vector_t<double, 3>& cutoffP, bool fixMeanR, bool fixMeanP)
@@ -64,11 +64,11 @@ MultiVariateGaussian::MultiVariateGaussian(
     setFixMeanP(fixMeanP);
 
     samplerTimer_m = IpplTimings::getTimer("Sampling");
-    initRandomPool();
+    initRandomPool(seed);
 }
 
 MultiVariateGaussian::MultiVariateGaussian(
-        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+        std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& meanR,
         const Vector_t<double, 3>& meanP, const Matrix_t& cov, const Vector_t<double, 3>& cutoffR,
         const Vector_t<double, 3>& cutoffP, bool fixMeanR, bool fixMeanP)
     : SamplingBase(pc) {
@@ -91,21 +91,21 @@ MultiVariateGaussian::MultiVariateGaussian(
     setFixMeanP(fixMeanP);
 
     samplerTimer_m = IpplTimings::getTimer("Sampling");
-    initRandomPool();
+    initRandomPool(seed);
 }
 
 /**
  * @brief Initializes the random number generator pool.
  */
-void MultiVariateGaussian::initRandomPool() {
+void MultiVariateGaussian::initRandomPool(const int seed) {
     extern Inform* gmsg;
     size_t randInit;
 
-    if (Options::seed == -1) {
+    if (seed == -1) {
         randInit = 1234567;
         *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
     } else {
-        randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+        randInit = static_cast<size_t>(seed + 100 * ippl::Comm->rank());
     }
 
     GeneratorPool rand_pool64(randInit);

@@ -9,7 +9,6 @@
 #include <memory>
 #include <sstream>
 #include <string_view>
-#include "AbstractObjects/OpalData.h"
 #include "Distribution/DistributionSettings.h"
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
@@ -30,10 +29,9 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, const DistributionSe
     namespace fs = std::filesystem;
     if (!fs::exists(filename_m)) {
         // Try relative to input file directory
-        std::string inputDir = OpalData::getInstance()->getInputFn();
+        const std::string& inputDir = opalDist.getInputDirectory();
         if (!inputDir.empty()) {
-            fs::path inputPath(inputDir);
-            fs::path filePath = inputPath.parent_path() / filename_m;
+            fs::path filePath = fs::path(inputDir) / filename_m;
             if (fs::exists(filePath)) {
                 filename_m = filePath.string();
             }

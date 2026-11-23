@@ -1,27 +1,26 @@
 #include "Distribution/Uniform.h"
 
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
 
 Uniform::Uniform(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
     : SamplingBase(pc, opalDist), semiAxes_m(opalDist.getSigmaR()), avrgpz_m(opalDist.getAvrgpz()) {
-    initRandomPool();
+    initRandomPool(opalDist.getSeed());
 }
 
 Uniform::Uniform(
-        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& semiAxes, double avrgpz)
+        std::shared_ptr<ParticleContainer_t> pc, int seed, const Vector_t<double, 3>& semiAxes,
+        double avrgpz)
     : SamplingBase(pc), semiAxes_m(semiAxes), avrgpz_m(avrgpz) {
-    initRandomPool();
+    initRandomPool(seed);
 }
 
-void Uniform::initRandomPool() {
+void Uniform::initRandomPool(const int seed) {
     // Give every MPI rank an independent deterministic stream when a user seed is configured.
-    const size_t seed = Options::seed == -1
-                                ? 1234567
-                                : static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
-    randPool_m        = Kokkos::Random_XorShift64_Pool<>(seed);
+    const size_t rankSeed =
+            seed == -1 ? 1234567 : static_cast<size_t>(seed + 100 * ippl::Comm->rank());
+    randPool_m = Kokkos::Random_XorShift64_Pool<>(rankSeed);
 }
 
 void Uniform::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {

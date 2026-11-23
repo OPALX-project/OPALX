@@ -2,6 +2,7 @@
 
 #include "Distribution/Uniform.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "Utilities/Options.h"
 
 namespace {
 
@@ -11,7 +12,7 @@ namespace {
         constexpr double pz = 0.002;
 
         pc->allocateParticles(total + 1);
-        Uniform sampler(pc, axes, pz);
+        Uniform sampler(pc, Options::seed, axes, pz);
         size_t n = total;
         sampler.generateParticles(n, Vector_t<double, 3>(16));
 

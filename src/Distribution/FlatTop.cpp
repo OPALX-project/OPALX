@@ -9,25 +9,25 @@ using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
 FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, const DistributionSettings& opalDist)
-    : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit()) {
+    : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit(opalDist.getSeed())) {
     setParameters(opalDist);
 }
 FlatTop::FlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+        std::shared_ptr<ParticleContainer_t> pc, int seed, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
         Vector_t<double, 3> sigmaR)
-    : SamplingBase(pc), rand_pool_m(determineRandInit()) {
+    : SamplingBase(pc), rand_pool_m(determineRandInit(seed)) {
     setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
-size_t FlatTop::determineRandInit() {
+size_t FlatTop::determineRandInit(const int seed) {
     extern Inform* gmsg;
     size_t randInit;
-    if (Options::seed == -1) {
+    if (seed == -1) {
         randInit = 1234567;
         *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
     } else {
-        randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+        randInit = static_cast<size_t>(seed + 100 * ippl::Comm->rank());
     }
     return randInit;
 }

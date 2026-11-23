@@ -20,6 +20,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "Utilities/OpalException.h"
@@ -27,7 +28,9 @@
 
 extern Inform* gmsg;
 
-DistributionSettings::DistributionSettings(const ObjectValues& values, double avrgpz) {
+DistributionSettings::DistributionSettings(
+        const ObjectValues& values, double avrgpz, int seed, std::string inputDirectory)
+    : seed_m(seed), inputDirectory_m(std::move(inputDirectory)) {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
             {"NODIST", DistributionType::NODIST},
             {"UNIFORM", DistributionType::UNIFORM},

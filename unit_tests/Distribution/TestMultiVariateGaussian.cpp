@@ -7,6 +7,7 @@
 #include "Distribution/MultiVariateGaussian.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "Utilities/Options.h"
 #include "Utility/IpplTimings.h"
 
 class MultiVariateGaussianTest : public ::testing::Test {
@@ -121,7 +122,8 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
     const Vector_t<double, 3> cutoffP_ref = 4.0;
 
     MultiVariateGaussian sampler(
-            pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
+            pc, Options::seed, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref,
+            cutoffP_ref);
 
     size_t total_nparticles = 100000;
 
@@ -206,8 +208,8 @@ TEST_F(MultiVariateGaussianTest, cutoffR) {
     bool fixMeanR = false;
     bool fixMeanP = false;
     MultiVariateGaussian sampler(
-            pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR,
-            fixMeanP);
+            pc, Options::seed, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref,
+            cutoffP_ref, fixMeanR, fixMeanP);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -234,8 +236,8 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP) {
     bool fixMeanP                         = true;
 
     MultiVariateGaussian sampler(
-            pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR,
-            fixMeanP);
+            pc, Options::seed, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref,
+            cutoffP_ref, fixMeanR, fixMeanP);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -388,7 +390,7 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
     Vector_t<double, 3> cutoffP = 5.0;
 
     // Construct sampler
-    MultiVariateGaussian sampler(pc, meanR, meanP, covExpected, cutoffR, cutoffP);
+    MultiVariateGaussian sampler(pc, Options::seed, meanR, meanP, covExpected, cutoffR, cutoffP);
 
     size_t total_nparticles = 1000000;
     preallocateParticleCapacity(pc, total_nparticles);

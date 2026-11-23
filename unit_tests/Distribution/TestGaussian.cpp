@@ -12,6 +12,7 @@
 #include "Distribution/Gaussian.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "Utilities/Options.h"
 #include "Utility/IpplTimings.h"
 
 class GaussianTest : public ::testing::Test {
@@ -206,7 +207,7 @@ TEST_F(GaussianTest, meanR_stddevR) {
     double avrgpz                        = 0.0;
     const Vector_t<double, 3> cutoffR    = 4.0;
 
-    Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
+    Gaussian sampler(pc, Options::seed, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
     size_t total_nparticles = 100000;
 
@@ -244,7 +245,7 @@ TEST_F(GaussianTest, cutoffR) {
     const Vector_t<double, 3> cutoffP(2.0, 2.5, 3.0);
 
     bool fixMeanR = false;
-    Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, fixMeanR, cutoffP);
+    Gaussian sampler(pc, Options::seed, sigmaR, sigmaP, avrgpz, cutoffR, fixMeanR, cutoffP);
 
     size_t total_nparticles = 100000;
 
@@ -294,7 +295,7 @@ TEST_F(GaussianTest, meanP_and_steddevP) {
     const Vector_t<double, 3> cutoffR    = 4.0;
     const Vector_t<double, 3> cutoffP    = 3.0;
 
-    Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR, true, cutoffP);
+    Gaussian sampler(pc, Options::seed, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR, true, cutoffP);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -347,7 +348,7 @@ TEST_F(GaussianTest, largeCutoffDisablesTruncation) {
     const double noCut               = std::numeric_limits<double>::max();
     const Vector_t<double, 3> cutoffR(noCut, noCut, 3.0);
     const Vector_t<double, 3> cutoffP(noCut, noCut, noCut);
-    Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, false, cutoffP);
+    Gaussian sampler(pc, Options::seed, sigmaR, sigmaP, avrgpz, cutoffR, false, cutoffP);
 
     size_t total_nparticles         = 100000;
     const size_t requestedParticles = total_nparticles;
@@ -428,7 +429,7 @@ TEST_F(GaussianTest, noFixMean_keepsRawSample) {
     const Vector_t<double, 3> sigmaR = 1e-3;
     const Vector_t<double, 3> sigmaP = 0.01;
     const double avrgpz              = 1.0;
-    Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, Vector_t<double, 3>(3.0), false);
+    Gaussian sampler(pc, Options::seed, sigmaR, sigmaP, avrgpz, Vector_t<double, 3>(3.0), false);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -459,7 +460,9 @@ TEST_F(GaussianTest, ZeroWidthAxesPreserveCountOffsetsAndFiniteMomenta) {
             Vector_t<double, 3> sigma(1e-3);
             for (unsigned d = 0; d < 3; ++d)
                 if (mask & (1u << d)) sigma[d] = 0.0;
-            Gaussian sampler(pc, sigma, Vector_t<double, 3>(0.0), 0.25, Vector_t<double, 3>(4.0));
+            Gaussian sampler(
+                    pc, Options::seed, sigma, Vector_t<double, 3>(0.0), 0.25,
+                    Vector_t<double, 3>(4.0));
             const Vector_t<double, 3> offset(0.01, -0.02, 0.03);
             const Vector_t<double, 3> momentumOffset(0.02, -0.01, 0.03);
             sampler.setEmissionOffsets(offset, momentumOffset, 0.0);
@@ -505,7 +508,9 @@ TEST_F(GaussianTest, ZeroWidthAppendPreservesExistingParticlesAndCutoff) {
     pc->R = 17.0;
     pc->P = 23.0;
     const Vector_t<double, 3> sigma(0.0, 2e-3, 0.0);
-    Gaussian sampler(pc, sigma, Vector_t<double, 3>(0.0), 0.0, Vector_t<double, 3>(2.0), false);
+    Gaussian sampler(
+            pc, Options::seed, sigma, Vector_t<double, 3>(0.0), 0.0, Vector_t<double, 3>(2.0),
+            false);
     size_t requested = 10001;
     sampler.generateParticles(requested, nr);
     auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
@@ -535,7 +540,7 @@ TEST_F(GaussianTest, OmittedSpatialWidthsCollapseWithoutSuppressingMomentumSprea
     Attributes::setReal(*distribution.findAttribute("SIGMAPY"), sigmaP[1]);
     Attributes::setReal(*distribution.findAttribute("SIGMAPZ"), sigmaP[2]);
     distribution.execute();
-    const DistributionSettings settings(opalx::test::valuesOf(distribution), 0.0);
+    const DistributionSettings settings(opalx::test::valuesOf(distribution), 0.0, Options::seed);
     for (unsigned d = 0; d < 3; ++d)
         EXPECT_EQ(settings.getSigmaR()[d], 0.0);
 

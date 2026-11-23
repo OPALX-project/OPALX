@@ -49,10 +49,14 @@ public:
      * @brief Work out the sampler values of a DISTRIBUTION.
      * @param values The attribute values of the DISTRIBUTION.
      * @param avrgpz Mean longitudinal momentum of the beam (beta*gamma).
+     * @param seed OPTION SEED of the RUN; see getSeed().
+     * @param inputDirectory Directory of the input file; see getInputDirectory().
      * @throws OpalException if TYPE is missing, UNIFORM has a SIGMAX, SIGMAY or SIGMAZ that is
      *         not positive, GAUSS has a zero CUTOFFLONG, or CORR does not have 15 values.
      */
-    DistributionSettings(const ObjectValues& values, double avrgpz);
+    DistributionSettings(
+            const ObjectValues& values, double avrgpz, int seed = -1,
+            std::string inputDirectory = "");
 
     /// NPARTDIST of the DISTRIBUTION; 0 if it does not set its own number of particles.
     static std::size_t numParticles(const ObjectValues& values);
@@ -77,6 +81,12 @@ public:
     /// EMISSIONSTEPS rounded up; 100 if not positive.
     std::size_t getEmissionSteps() const { return emissionSteps_m; }
     std::string getFilename() const { return filename_m; }
+    /// OPTION SEED of the RUN; the samplers derive their generator seeds from it, and -1 gives
+    /// every rank the same fixed seed.
+    int getSeed() const { return seed_m; }
+    /// The file samplers read a relative FNAME that does not exist from the working directory
+    /// relative to this directory.
+    const std::string& getInputDirectory() const { return inputDirectory_m; }
 
     Matrix_t correlationMatrix_m;
     /// True if particles are emitted over time; false if injected at initialization.
@@ -102,6 +112,8 @@ private:
     double FTOSCPeriods_m       = 0;
     std::size_t emissionSteps_m = 100;
     std::string filename_m;
+    int seed_m = -1;
+    std::string inputDirectory_m;
 };
 
 #endif  // OPALX_DISTRIBUTION_SETTINGS_H

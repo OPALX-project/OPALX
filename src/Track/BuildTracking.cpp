@@ -445,11 +445,12 @@ namespace opalx::run {
         /// Applied to particle container [index]
         /// Returns the reference momentum [beta*gamma] set on BEAM for a file distribution
         /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
+        /// The samplers get OPTION SEED @p seed and the input file directory @p inputDirectory.
         std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
                 PartBunch_t& bunch, const std::vector<ObjectValues>& sources,
                 const std::vector<ObjectDescription>& distributions, const BeamDescription& beam,
                 std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index,
-                double& globalPhaseShift) {
+                double& globalPhaseShift, int seed, const std::string& inputDirectory) {
             static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
             IpplTimings::startTimer(samplingTime);
@@ -466,7 +467,7 @@ namespace opalx::run {
                 const DistributionSettings opalDist(
                         ObjectValues(
                                 named(distributions, EmissionSource::getDistributionName(src))),
-                        avrgpz);
+                        avrgpz, seed, inputDirectory);
 
                 // File-based distributions carry absolute momenta. PC/ENERGY/GAMMA on the BEAM is
                 // optional for them and only sets the reference momentum (see the return value).
@@ -731,10 +732,12 @@ namespace opalx::run {
                   << "' at global step " << restartMetadata.globalTrackStep
                   << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
         } else {
+            const std::string inputDirectory =
+                    std::filesystem::path(context.inputFileName).parent_path().string();
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 beamReferenceMomenta[i] = setupDistributionsAndSamplers(
                         bunch, emissionSourcesLists[i], description.distributions, beams[i],
-                        emittingSamplersList[i], i, globalPhaseShift);
+                        emittingSamplersList[i], i, globalPhaseShift, options.seed, inputDirectory);
             }
         }
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(
