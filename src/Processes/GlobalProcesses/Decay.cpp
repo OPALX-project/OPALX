@@ -69,7 +69,7 @@ size_t Decay::apply(
                 parentPolView);
 
         /* The daughter container follows the parent's reference particle and shares its
-         * frame (ParallelTracker copies the root's frame into every follower), so the parent
+         * frame (BunchReference copies the root's frame into every follower), so the parent
          * copies need no frame change. */
 
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */

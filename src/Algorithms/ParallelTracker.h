@@ -22,22 +22,17 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
+#include "Algorithms/BeamStop.h"
 #include "Algorithms/BunchReference.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/TrackingSetup.h"
-
+#include "Distribution/EmittingSamplers.h"
+#include "Elements/OpalBeamline.h"
 #include "Moments/BeamMoments.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
-#include "SpaceCharge/SpaceChargeSolveContext.h"
 
-#include "Algorithms/BeamStop.h"
-
-#include "AbsBeamline/ElementBase.h"
-#include "Elements/OpalBeamline.h"
-
-#include <functional>
-#include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 class DataSink;
@@ -47,7 +42,13 @@ namespace opalx::spacecharge {
 }  // namespace opalx::spacecharge
 
 /**
- * @brief Implements the main time-based simulation loop for parallel tracking.
+ * @brief The time-step loop of one RUN: the order of operations before the first step and within
+ *        a step, and the hand-over of results between the components that own the work.
+ *
+ * The tracker owns the step-size schedule, the restart position and the checkpoints. The bunch
+ * (PartBunch) owns the particles and their push, the beamline (OpalBeamline) the elements, frames
+ * and apertures, BunchReference the reference particles, EmittingSamplers the emission,
+ * SpaceChargeSolver the self fields, BeamStops the stop rules; DataSink writes the output.
  *
  * @note RUN in the input file constructs a ParallelTracker and runs ParallelTracker::execute().
  */
@@ -73,6 +74,13 @@ private:
      * @return False if a restart is already at the end of the schedule.
      */
     bool startTracking();
+
+    /// @brief Put the reference particles at the start: a fresh run sets their poses and moves
+    ///        them to sStart_m, a restart keeps the checkpoint's; then the schedule position.
+    void placeReferences();
+
+    /// @brief The track-start banner at bunch time @p time [s], the beam stops and the schedule.
+    void printTrackStart(double time);
 
     /// The step loop and the final output; startTracking() must have returned true.
     void trackSteps();
@@ -120,16 +128,12 @@ private:
     /// @brief The last output, elements off, the solver counters and the final banner.
     void finishTracking();
 
-    // --- Time step ---
-
     /// @brief The time step for the DT of the current segment, dtCurrentTrack_m: the smallest
     ///        emission time step while a source still emits.
     [[nodiscard]] double selectDT() const;
 
     /// @brief Set the time step of the bunch and of all its containers to selectDT().
     void changeDT();
-
-    // --- Particle push and fields ---
 
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1();
@@ -141,7 +145,7 @@ private:
     /// @throws OpalException if the run has no space-charge solver.
     void computeSpaceChargeFields();
 
-    /// @brief Apply external fields from elements intersecting each active container.
+    /// @brief Source-plane loss, then the external fields of the elements near each container.
     void computeExternalFields();
 
     // --- Output ---
@@ -193,24 +197,22 @@ private:
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
+    /// Source plane of the source-plane loss (OpalBeamline::markBackwardParticlesAtSourcePlane()).
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
-    OpalBeamline itsOpalBeamline_m;  ///< Tracked field elements and coordinate transforms.
-    BeamStops beamStops_m;           ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
-    double sStart_m;                 ///< Path-length start position for the track (m).
-    double globalPhaseShift_m;       ///< A fresh run starts this long before t = 0 (s).
-
-    /** Step-size segments: s-stop, dt, and steps per segment. */
-    StepSizeConfig stepSizes_m;
-
-    double dtCurrentTrack_m;              ///< Global @f$\Delta t@f$ for the current track segment.
+    OpalBeamline itsOpalBeamline_m;       ///< Tracked field elements and coordinate transforms.
+    BeamStops beamStops_m;                ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     EmittingSamplers emittingSamplers_m;  ///< Per container, the samplers that emit.
-    bool restarting_m;                    ///< Preserve state loaded from a checkpoint at startup.
+
+    StepSizeConfig stepSizes_m;  ///< Step-size segments: s-stop, dt and steps per segment.
+    double dtCurrentTrack_m;     ///< DT of the current segment (s).
+    double sStart_m;             ///< Path-length start position for the track (m).
+    double globalPhaseShift_m;   ///< A fresh run starts this long before t = 0 (s).
+    bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
     std::string checkpointPath_m;  ///< File the CHECKPOINTFREQ checkpoints are written to.
 
-    // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;

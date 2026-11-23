@@ -19,21 +19,15 @@
  */
 #include "Algorithms/ParallelTracker.h"
 
-#include <algorithm>
 #include <array>
 #include <cmath>
-#include <functional>
 #include <iomanip>
-#include <limits>
 #include <string>
 #include <vector>
 
 #include "BasicActions/DumpEMFields.h"
 
-#include "Physics/Physics.h"
 #include "Physics/Units.h"
-
-#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 #include "SpaceCharge/SpaceChargeSolver.h"
 
@@ -67,10 +61,10 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       dirichletPlane_m(std::move(setup.dirichletPlane)),
       itsOpalBeamline_m(std::move(setup.beamline)),
       beamStops_m(std::move(setup.beamStops)),
+      emittingSamplers_m(std::move(setup.emittingSamplers)),
+      dtCurrentTrack_m(0.0),
       sStart_m(setup.sStart),
       globalPhaseShift_m(setup.globalPhaseShift),
-      dtCurrentTrack_m(0.0),
-      emittingSamplers_m(std::move(setup.emittingSamplers)),
       restarting_m(setup.restarting),
       restartGlobalStep_m(setup.restartGlobalStep),
       restartDt_m(setup.restartDt),
@@ -119,24 +113,7 @@ bool ParallelTracker::startTracking() {
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
 
-    // A fresh run derives each reference pose from its initial distribution. A restart must keep
-    // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
-    if (!restarting_m) {
-        references_m.setInitialPoses(emittingSamplers_m);
-
-        // Integrate reference orbits forward until all container path lengths reach sStart_m.
-        const auto selectTimeStep = [this](double dt) {
-            dtCurrentTrack_m = dt;
-            itsBunch_m->setdT(selectDT());
-        };
-        if (references_m.findStartPositions(sStart_m, stepSizes_m, selectTimeStep)) changeDT();
-        stepSizes_m.advanceToPos(sStart_m);
-    } else {
-        stepSizes_m.advanceToIndex(restartPosition_m.segment);
-    }
-    // Decay daughter containers use their root's reference particle, frame and path length.
-    // Copy them after the start search, and after a restart in case the checkpoint differs.
-    references_m.copyFollowers();
+    placeReferences();
 
     if (stepSizes_m.reachedEnd()) {
         *gmsg << level1 << "* Checkpoint is already at the end of the configured tracking "
@@ -157,6 +134,38 @@ bool ParallelTracker::startTracking() {
     }
     m << level4 << "Reset bunch time to " << time << "." << endl;
 
+    printTrackStart(time);
+
+    // Handle any dump field requests
+    DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
+
+    // Only crossings in the step loop write MONITOR output.
+    itsOpalBeamline_m.setMonitorsRecordReference(true);
+    return true;
+}
+
+void ParallelTracker::placeReferences() {
+    // A fresh run derives each reference pose from its initial distribution. A restart must keep
+    // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
+    if (!restarting_m) {
+        references_m.setInitialPoses(emittingSamplers_m);
+
+        // Integrate reference orbits forward until all container path lengths reach sStart_m.
+        const auto selectTimeStep = [this](double dt) {
+            dtCurrentTrack_m = dt;
+            itsBunch_m->setdT(selectDT());
+        };
+        if (references_m.findStartPositions(sStart_m, stepSizes_m, selectTimeStep)) changeDT();
+        stepSizes_m.advanceToPos(sStart_m);
+    } else {
+        stepSizes_m.advanceToIndex(restartPosition_m.segment);
+    }
+    // Decay daughter containers use their root's reference particle, frame and path length.
+    // Copy them after the start search, and after a restart in case the checkpoint differs.
+    references_m.copyFollowers();
+}
+
+void ParallelTracker::printTrackStart(double time) {
     const unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
     *gmsg << level1 << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time)
@@ -170,13 +179,6 @@ bool ParallelTracker::startTracking() {
     beamStops_m.announce(itsBunch_m->getNumParticleContainers());
 
     stepSizes_m.printDirect(*gmsg);
-
-    // Handle any dump field requests
-    DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
-
-    // Only crossings in the step loop write MONITOR output.
-    itsOpalBeamline_m.setMonitorsRecordReference(true);
-    return true;
 }
 
 void ParallelTracker::trackSteps() {
@@ -458,7 +460,7 @@ void ParallelTracker::computeExternalFields() {
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
 
-// --- Helpers (beamline, dt, bounds, I/O) ---
+// --- Time step ---
 
 double ParallelTracker::selectDT() const {
     return emittingSamplers_m.emissionTimeStep(itsBunch_m->getT()).value_or(dtCurrentTrack_m);

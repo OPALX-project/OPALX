@@ -190,7 +190,7 @@ public:
             if (pc) pc->requireReferenceFrame(where);
     }
 
-    // --- Particle push, fields and loss over the active containers ---
+    // --- Particle push, fields and loss over the containers ---
 
     /// @brief First half of the leapfrog step: half drift of every active container.
     void pushParticles();

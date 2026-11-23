@@ -19,7 +19,7 @@
  *    - marked particles are removed by deleteInvalidParticles()
  *
  * Particles are created directly in element-local coordinates (z measured
- * from the entrance face), matching the frame ParallelTracker's element loop
+ * from the entrance face), matching the frame OpalBeamline's element loop
  * provides via ParticleContainer::enterFrame().
  */
 
