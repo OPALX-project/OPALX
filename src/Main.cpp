@@ -64,6 +64,7 @@ extern "C" {
 #include <iomanip>
 #include <iostream>
 #include <set>
+#include <sstream>
 
 extern Inform* gmsg;
 
@@ -178,6 +179,14 @@ namespace OPALXMAIN {
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
         *ippl::Info << endl;
+    }
+
+    /// Write each line of an error message once, indented by four spaces.
+    void printIndented(Inform& out, const std::string& message) {
+        std::istringstream lines(message);
+        for (std::string line; std::getline(lines, line);) {
+            out << "    " << line << endl;
+        }
     }
 }  // namespace OPALXMAIN
 
@@ -504,28 +513,14 @@ int main(int argc, char* argv[]) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
             // stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
+            OPALXMAIN::printIndented(errorMsg, ex.what());
 
             MPI_Abort(MPI_COMM_WORLD, -100);
         } catch (IpplException& ex) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
             errorMsg << "\n*** Error detected by function \"" << ex.where() << "\"\n";
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
+            OPALXMAIN::printIndented(errorMsg, ex.what());
 
             MPI_Abort(MPI_COMM_WORLD, -100);
         } catch (std::bad_alloc& ex) {
@@ -537,14 +532,7 @@ int main(int argc, char* argv[]) {
         } catch (assertion& ex) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** Runtime-error ******************\n";
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
+            OPALXMAIN::printIndented(errorMsg, ex.what());
 
             errorMsg << "\n************************************\n" << endl;
             throw std::runtime_error("in Parser");
@@ -553,14 +541,7 @@ int main(int argc, char* argv[]) {
             errorMsg << "\n"
                      << "*** Error:\n"
                      << "    Internal OPAL error: \n";
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
+            OPALXMAIN::printIndented(errorMsg, ex.what());
 
             MPI_Abort(MPI_COMM_WORLD, -100);
         } catch (...) {
