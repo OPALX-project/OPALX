@@ -6,7 +6,7 @@
  * - A request for the frame the data is already in does not touch it.
  * - A change from or to the reference frame applies the stored transform itself.
  * - A direct change between two element frames equals the path through the reference frame.
- * - `fieldsCleared` leaves E and B unrotated.
+ * - `clearFields` zeroes E and B instead of rotating them.
  * - `adoptParticles` moves only the appended particles.
  * - The reference update refuses data outside the reference frame.
  */
@@ -170,14 +170,24 @@ namespace {
         EXPECT_TRUE(direct->frame() == second);
     }
 
-    TEST_F(ParticleFrameTest, ClearedFieldsAreNotRotated) {
+    TEST_F(ParticleFrameTest, ClearFieldsZeroesInsteadOfRotating) {
         auto pc = makeContainer();
         append(*pc, r_);
+        const auto expectZeroFields = [&] {
+            const auto E = host(pc->E, r_.size()), B = host(pc->B, r_.size());
+            for (size_t i = 0; i < r_.size(); ++i)
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_EQ(E[i][d], 0.0);
+                    EXPECT_EQ(B[i][d], 0.0);
+                }
+        };
         pc->enterFrame(elementFrame(Vec(0.2, -0.1, 1.5), Vec(0.1, 0.05, 1.0), 0.3), true);
-        const auto E = host(pc->E, r_.size());
-        for (size_t i = 0; i < r_.size(); ++i)
-            for (unsigned d = 0; d < 3; ++d)
-                EXPECT_EQ(E[i][d], 2.0 * r_[i][d]);
+        expectZeroFields();
+
+        pc->E = Vec(1.0, 2.0, 3.0);
+        pc->B = Vec(-1.0, 0.5, 2.0);
+        pc->enterFrame(pc->frame(), true);
+        expectZeroFields();
     }
 
     TEST_F(ParticleFrameTest, AdoptMovesOnlyAppendedParticles) {

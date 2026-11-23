@@ -6,6 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
 #define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
 
+#include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
@@ -15,7 +16,6 @@
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
-#include "SpaceCharge/SpaceChargeFrames.h"
 
 #include <array>
 #include <cstdint>

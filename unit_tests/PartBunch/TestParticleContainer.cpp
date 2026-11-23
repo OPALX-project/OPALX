@@ -27,7 +27,6 @@
 #include "Ippl.h"
 #include "Moments/BeamMoments.h"
 #include "PartBunch/ParticleContainer.hpp"
-#include "SpaceCharge/SpaceChargeFrames.h"
 #include "Utilities/Options.h"
 
 namespace {
@@ -565,9 +564,9 @@ namespace {
         const ParticleFrame frames(
                 ParticleFrame::Kind::SpaceChargeSolve, solveToTracker.inverted(), solveToTracker);
 
-        opalx::spacecharge::enterSolveFrame(frames, *pc);
+        pc->enterFrame(frames, true);
         EXPECT_GT(std::abs(firstOf(pc->Pol)[1] - Pol0[1]), 0.01);  // Pol is in the solve axes
-        opalx::spacecharge::leaveSolveFrame(*pc);
+        pc->enterReferenceFrame();
 
         const Vector_t<double, 3> Pol = firstOf(pc->Pol);
         for (unsigned d = 0; d < 3; ++d) {

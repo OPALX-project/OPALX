@@ -97,17 +97,15 @@ namespace opalx::spacecharge {
             if (context.trackingActive()[index] != 0) {
                 auto& particles           = *particles_m[index];
                 const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
-                clearSelfFields(particles);
-                enterSolveFrame(
-                        ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve),
-                        particles);
+                particles.enterFrame(
+                        ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve), true);
             }
         }
     }
 
     void FFT2D5Algorithm::restoreParticleSolveFrames() {
         for (auto* particles : particles_m)
-            leaveSolveFrame(*particles);
+            particles->enterReferenceFrame();
     }
 
     void FFT2D5Algorithm::migrateToSlabs(const SpaceChargeSolveContext& context) {

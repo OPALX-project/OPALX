@@ -27,7 +27,6 @@
 #include "SpaceCharge/FFT2D5/ReferencePath.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
-#include "SpaceCharge/SpaceChargeFrames.h"
 
 class BunchStateHandler;
 

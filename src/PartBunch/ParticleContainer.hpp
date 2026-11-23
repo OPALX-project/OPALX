@@ -331,11 +331,15 @@ public:
      * Pol; it is rank-local. Build @p target from the current reference frame (see
      * ParticleFrame).
      *
-     * @param fieldsCleared E and B were just zeroed, so they are not rotated.
+     * @param clearFields E and B are zeroed instead of rotated, also when no transform is needed.
      */
-    void enterFrame(const ParticleFrame& target, bool fieldsCleared = false) {
+    void enterFrame(const ParticleFrame& target, bool clearFields = false) {
+        if (clearFields) {
+            this->E = Vector_t<T, Dim>(0.0);
+            this->B = Vector_t<T, Dim>(0.0);
+        }
         if (frame() == target) return;
-        transformBunch(frame().to(target), fieldsCleared);
+        transformBunch(frame().to(target), clearFields);
         containerState_m->frame = target;
     }
 

@@ -2191,7 +2191,8 @@ namespace {
                 Kokkos::deep_copy(apiE, pc_m->E.getView());
                 Kokkos::deep_copy(apiB, pc_m->B.getView());
 
-                clearSelfFields(*pc_m);
+                pc_m->E = Vector_t<double, 3>(0.0);
+                pc_m->B = Vector_t<double, 3>(0.0);
                 solver_m->scatterToGrid(context());
                 solver_m->solvePoissons();
                 solver_m->calculateLineDensity();
