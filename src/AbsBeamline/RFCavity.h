@@ -60,7 +60,6 @@ public:
     virtual double getAmplitudem() const;
 
     virtual void setAmplitudeError(double vPeakError);
-    virtual double getAmplitudeError() const;
 
     virtual void setFrequencym(double freq);
     virtual double getFrequencym() const;
@@ -70,14 +69,11 @@ public:
     double getPhasem(double t) const;
 
     virtual void setPhaseError(double phaseError);
-    virtual double getPhaseError() const;
 
     void setCavityType(const std::string& type);
     CavityType getCavityType() const;
-    std::string getCavityTypeString() const;
 
     virtual void setFast(bool fast);
-    virtual bool getFast() const;
 
     virtual void setAutophaseVeto(bool veto = true);
     virtual bool getAutophaseVeto() const;
@@ -128,15 +124,12 @@ public:
 
     void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setAmplitudeModelName(std::string name);
-    std::string getAmplitudeModelName();
 
     void setPhaseModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setPhaseModelName(std::string name);
-    std::string getPhaseModelName();
 
     void setFrequencyModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setFrequencyModelName(std::string name);
-    std::string getFrequencyModelName();
 
     /**
      * @brief Return the nominal body length of the cavity.
@@ -269,8 +262,6 @@ inline double RFCavity::getAmplitudem() const { return scale_m; }
 
 inline void RFCavity::setAmplitudeError(double vPeakError) { scaleError_m = vPeakError; }
 
-inline double RFCavity::getAmplitudeError() const { return scaleError_m; }
-
 inline void RFCavity::setFrequency(double freq) { frequency_m = freq; }
 
 inline void RFCavity::setFrequencym(double freq) { frequency_m = freq; }
@@ -285,13 +276,9 @@ inline double RFCavity::getPhasem(double t) const { return phase_m + t * frequen
 
 inline void RFCavity::setPhaseError(double phaseError) { phaseError_m = phaseError; }
 
-inline double RFCavity::getPhaseError() const { return phaseError_m; }
-
 inline CavityType RFCavity::getCavityType() const { return type_m; }
 
 inline void RFCavity::setFast(bool fast) { fast_m = fast; }
-
-inline bool RFCavity::getFast() const { return fast_m; }
 
 inline void RFCavity::setAutophaseVeto(bool veto) { autophaseVeto_m = veto; }
 
@@ -303,22 +290,16 @@ inline void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> 
 
 inline void RFCavity::setAmplitudeModelName(std::string name) { amplitudeName_m = name; }
 
-inline std::string RFCavity::getAmplitudeModelName() { return amplitudeName_m; }
-
 inline void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phaseTD) {
     phaseTD_m = phaseTD;
 }
 
 inline void RFCavity::setPhaseModelName(std::string name) { phaseName_m = name; }
 
-inline std::string RFCavity::getPhaseModelName() { return phaseName_m; }
-
 inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequencyTD) {
     frequencyTD_m = frequencyTD;
 }
 
 inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
-
-inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
 
 #endif  // OPALX_RFCavity_HH

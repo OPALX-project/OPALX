@@ -266,8 +266,6 @@ void RFCavity::setCavityType(const std::string& name) {
     }
 }
 
-std::string RFCavity::getCavityTypeString() const { return bmCavityTypeString_s.left.at(type_m); }
-
 std::string RFCavity::getFieldMapFN() const {
     if (filename_m.empty()) {
         throw GeneralOpalException(

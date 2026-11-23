@@ -175,9 +175,6 @@ void Solenoid::setFieldMapFN(std::string fn) { filename_m = fn; }
 /// @brief Set the fast flag
 void Solenoid::setFast(bool fast) { fast_m = fast; }
 
-/// @brief Get the fast flag
-bool Solenoid::getFast() const { return fast_m; }
-
 /// @brief Set the flag that reads the field map back to front
 void Solenoid::setIsZReversed(bool zReverse) { isZReversed_m = zReverse; }
 

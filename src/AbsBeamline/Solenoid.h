@@ -109,8 +109,6 @@ public:
 
     void setFast(bool fast);
 
-    bool getFast() const;
-
     /**
      * @brief Read the field map back to front.
      *
