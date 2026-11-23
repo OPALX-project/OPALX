@@ -22,8 +22,6 @@
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
 
-#include "AbstractObjects/OpalData.h"
-
 #include "Beamlines/TBeamline.h"
 
 #include "BasicActions/Option.h"
@@ -88,8 +86,6 @@
 #include <memory>
 #include <sstream>
 #include <vector>
-
-#include <unistd.h>
 
 extern Inform* gmsg;
 
@@ -170,14 +166,15 @@ namespace opalx::run {
         }
 
         DataSink* initDataSink(
-                size_t numParticleContainers, const RunContext& context, RunObjects& objects) {
+                size_t numParticleContainers, const RunContext& context, bool enableHDF5,
+                RunObjects& objects) {
             objects.phaseSpaceSinks.clear();
             objects.phaseSpaceSinks.reserve(numParticleContainers);
 
             const bool isRestart        = context.restart;
             const std::string inputBase = context.inputBasename;
 
-            for (size_t i = 0; Options::enableHDF5 && i < numParticleContainers; ++i) {
+            for (size_t i = 0; enableHDF5 && i < numParticleContainers; ++i) {
                 const std::string stem =
                         DataSink::diagnosticStemForContainer(inputBase, numParticleContainers, i);
                 const std::string dest = stem + std::string(".h5");
@@ -197,12 +194,9 @@ namespace opalx::run {
             // A restart continues the diagnostics under their original basename: existing
             // phase-space H5 files are opened for append, absent ones are started. A later RUN
             // of the same input appends to the statistics files of the earlier ones.
-            if (isRestart || context.runIndex > 1) {
-                objects.dataSink = std::make_unique<DataSink>(
-                        sinks, false, numParticleContainers, inputBase, true);
-            } else {
-                objects.dataSink = std::make_unique<DataSink>(sinks, false, numParticleContainers);
-            }
+            objects.dataSink = std::make_unique<DataSink>(
+                    sinks, false, numParticleContainers, inputBase,
+                    isRestart || context.runIndex > 1);
             return objects.dataSink.get();
         }
 
@@ -579,7 +573,6 @@ namespace opalx::run {
     TrackingSetup buildTracking(
             const RunDescription& description, std::vector<std::shared_ptr<ElementBase>> elements,
             RunObjects& objects) {
-        OpalData* opal = OpalData::getInstance();
         const ObjectValues run(description.track.run);
         const int currentVersion =
                 ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
@@ -628,6 +621,7 @@ namespace opalx::run {
 
         const TrackDescription& track             = description.track;
         const RunContext& context                 = description.context;
+        const OptionValues& options               = description.options;
         const std::vector<std::string>& beamNames = track.beamNames;
 
         // Create vector of BEAMs (validate() checked that they exist).
@@ -700,9 +694,6 @@ namespace opalx::run {
 
         // validate() refused emitting or delayed sources and DECAY for a restart.
         const bool isRestart = context.restart;
-        if (isRestart) {
-            opal->setOpenMode(OpalData::OpenMode::APPEND);
-        }
 
         std::vector<ObjectValues> allSources;
         for (const auto& sources : emissionSourcesLists) {
@@ -726,7 +717,7 @@ namespace opalx::run {
           This will (hopefully) be handled inside the pusher routines!
         */
 
-        DataSink* dataSink = initDataSink(beams.size(), context, objects);
+        DataSink* dataSink = initDataSink(beams.size(), context, options.enableHDF5, objects);
 
         // Set total particles per container (beam)
         std::vector<size_t> totalParticlesPerBeam(beams.size());
@@ -737,13 +728,13 @@ namespace opalx::run {
 
         // Create PartBunch with multiple particle containers.
         objects.bunch = std::make_unique<PartBunch_t>(
-                macrocharges,                     // Macro charge [C]
-                macromasses,                      // Macro Mass [GeV]
-                beams,                            // Beam descriptions per container
-                totalParticlesPerBeam,            // Per-beam particle counts for allocation
-                Options::loadBalancingThreshold,  // Load balancing threshold
-                "LF2",                            // Integrator
-                cartesianDomainConfig);           // Cartesian domain and particle-layout setup
+                macrocharges,                    // Macro charge [C]
+                macromasses,                     // Macro Mass [GeV]
+                beams,                           // Beam descriptions per container
+                totalParticlesPerBeam,           // Per-beam particle counts for allocation
+                options.loadBalancingThreshold,  // Load balancing threshold
+                "LF2",                           // Integrator
+                cartesianDomainConfig);          // Cartesian domain and particle-layout setup
 
         // Validate container setup produced by constructor
         PartBunch_t& bunch             = *objects.bunch;
@@ -760,22 +751,6 @@ namespace opalx::run {
 
         // BC handler
         *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
-
-        // double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
-        // if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
-        //     deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
-        // }
-
-        if (ippl::Comm->rank() == 0) {
-            long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
-            *gmsg << level5 << "sysconf(_SC_NPROCESSORS_ONLN)= " << number_of_processors << endl;
-
-            // *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
-
-            int world_size;
-            MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-            *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
-        }
 
         // A fresh run samples its distributions. A restart restores the exact saved particle state
         // instead, so sampling it again would duplicate particles and consume random numbers.
@@ -831,12 +806,6 @@ namespace opalx::run {
             sStart = 0.0;
         }
 
-        /* \todo this is also not unsed in the master.
-           This needs to come back as soon as we have RF
-
-           findPhasesForMaxEnergy();
-
-        */
         const auto& maxSteps = track.maxSteps;
         const auto& sStop    = track.zStop;
         // Everything the tracker reads, in one struct.
