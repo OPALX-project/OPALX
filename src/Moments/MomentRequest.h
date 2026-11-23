@@ -26,7 +26,13 @@ namespace opalx::moments {
         Polarization = 1U << 4U,  ///< Mean and rms polarization; only for containers with spin.
     };
 
-    /** @brief Set of moment groups; a single Moment converts to it implicitly. */
+    /**
+     * @brief The moment groups a caller asks compute() for, stored as one bit per Moment.
+     *
+     * Groups are combined with `|`, for example `Moment::MeanPosition | Moment::Spread`. A single
+     * group needs no wrapping: `compute(particles, Moment::Bounds)` works because the constructor
+     * from Moment is not explicit.
+     */
     class Request {
     public:
         constexpr Request() = default;
