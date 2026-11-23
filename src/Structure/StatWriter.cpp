@@ -316,9 +316,9 @@ void StatWriter::write(
     columns_m.addColumnValue("By_ref", FDext[0](1));  // 35 B-ref y
     columns_m.addColumnValue("Bz_ref", FDext[0](2));  // 36 B-ref z
 
-    columns_m.addColumnValue("Ex_ref", FDext[1](0));  // 37 E-ref x
-    columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
-    columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
+    columns_m.addColumnValue("Ex_ref", FDext[1](0) * Units::Vpm2MVpm);  // 37 E-ref x
+    columns_m.addColumnValue("Ey_ref", FDext[1](1) * Units::Vpm2MVpm);  // 38 E-ref y
+    columns_m.addColumnValue("Ez_ref", FDext[1](2) * Units::Vpm2MVpm);  // 39 E-ref z
 
     columns_m.addColumnValue("dE", dE);                          // 40 dE energy spread
     columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size

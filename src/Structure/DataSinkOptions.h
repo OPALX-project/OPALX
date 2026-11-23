@@ -23,11 +23,14 @@
  *        and the phase-space files are made.
  */
 struct DataSinkOptions {
-    bool enableHDF5 = false;  ///< Write the phase space to H5 files.
-    int psDumpFreq  = 0;      ///< Stored as the "dump frequency" attribute of the H5 files.
-    bool rankDump   = false;  ///< H5 dataset "rank": the MPI rank of each particle.
-    bool ebDump     = false;  ///< H5 datasets of the E and B fields at the particles.
-    bool rhoDump    = false;  ///< H5 unit attribute of the charge density.
+    bool enableHDF5        = false;  ///< Write the phase space to H5 files.
+    int psDumpFreq         = 0;      ///< Phase-space dump every this many steps; 0: none.
+    int statDumpFreq       = 0;      ///< Statistics row every this many steps; 0: none.
+    int stepInfoFreq       = 0;      ///< Step line in the log every this many steps; 0: none.
+    int printRankDistrFreq = 0;      ///< Particle load per rank every this many steps; 0: none.
+    bool rankDump          = false;  ///< H5 dataset "rank": the MPI rank of each particle.
+    bool ebDump            = false;  ///< H5 datasets of the E and B fields at the particles.
+    bool rhoDump           = false;  ///< H5 unit attribute of the charge density.
     /// The stat column partsOutside counts particles beyond this many rms beam sizes; 0 skips it.
     double beamHaloBoundary = 0;
 };

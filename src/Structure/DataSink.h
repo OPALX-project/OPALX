@@ -32,6 +32,7 @@
 #include "Structure/StatWriter.h"
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -45,6 +46,17 @@ private:
     typedef std::unique_ptr<H5Writer> h5Writer_t;
 
 public:
+    /// The outputs due at one tracking step.
+    struct StepOutputs {
+        bool phaseSpace = false;  ///< H5 phase space (PSDUMPFREQ).
+        bool statistics = false;  ///< Statistics row (STATDUMPFREQ).
+        bool stepLine   = false;  ///< Per-container step line in the log (STEPINFOFREQ).
+        bool rankLoad   = false;  ///< Particle load per rank in the log (PRINTRANKDISTRFREQ).
+    };
+
+    /// Per container the external fields {B (T), E (V/m)} at its reference particle.
+    using ReferenceFields = std::vector<std::array<Vector_t<double, 3>, 2>>;
+
     /**
      * @param h5wrappers One H5 wrapper per particle container if @p options enable HDF5, none
      *        otherwise.
@@ -67,20 +79,45 @@ public:
      */
     void rewindToCheckpoint(PartBunch_t& beam);
 
-    /// Moment groups the phase-space (@p psDump) and statistics (@p statDump) outputs read for a
-    /// container with or without spin.
-    [[nodiscard]] static opalx::moments::Request requiredMoments(
-            bool psDump, bool statDump, bool hasSpin);
+    /**
+     * @brief The outputs due at global step @p step: a dump or the rank load at the last step
+     *        of every cycle of its frequency, the step line at every multiple of STEPINFOFREQ.
+     */
+    [[nodiscard]] StepOutputs outputsDue(long long step) const;
 
-    /// Moment groups the phase-space (@p psDump) and statistics (@p statDump) outputs of this
-    /// sink read for a container with or without spin; no phase-space groups without HDF5.
-    [[nodiscard]] opalx::moments::Request momentRequest(
-            bool psDump, bool statDump, bool hasSpin) const;
+    /// Moment groups the outputs @p due read for a container with or without spin; no
+    /// phase-space groups without HDF5.
+    [[nodiscard]] opalx::moments::Request requiredMoments(
+            const StepOutputs& due, bool hasSpin) const;
+
+    /**
+     * @brief The output of one tracking step: the step lines, the statistics and phase-space
+     *        dumps and the rank load that are @p due. Collective.
+     * @param computed Moments already computed at this particle state, reused where they hold
+     *        what requiredMoments() lists; others are computed.
+     * @param referenceFields Called only if a dump is due.
+     * @param reportedBinCount Field solver bins for the statistics.
+     * @throws OpalException if the path length of a non-empty container is not finite.
+     */
+    void writeStep(
+            PartBunch_t& bunch, const StepOutputs& due,
+            std::span<const opalx::moments::BeamMoments> computed,
+            const std::function<ReferenceFields()>& referenceFields, int reportedBinCount);
+
+    /**
+     * @brief After the last step, the dumps that the step loop did not write at it: the
+     *        phase space and statistics whose frequency is set but not due at that step.
+     *        Collective.
+     */
+    void writeLastStep(
+            PartBunch_t& bunch, const std::function<ReferenceFields()>& referenceFields,
+            int reportedBinCount);
 
     /**
      * @brief Write H5 phase-space data with per-container external fields.
      * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     * @param fdextPerContainer External field values indexed by particle container.
+     * @param fdextPerContainer External fields {B (T), E (V/m)} at the reference particle of each
+     *        container.
      * @param moments One snapshot per container holding H5PartWrapperForPT::requiredMoments;
      *        empty containers are skipped.
      */
@@ -92,6 +129,7 @@ public:
     /**
      * @brief Write SDDS statistics with per-container external fields.
      * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     * @param fdextPerContainer As for dumpH5().
      * @param moments One snapshot per container holding StatWriter::requiredMoments; not read
      *        for empty containers.
      */
@@ -138,6 +176,21 @@ public:
 private:
     DataSink(const DataSink& ds)         = delete;
     DataSink& operator=(const DataSink&) = delete;
+
+    /**
+     * @brief Per non-empty container the moments holding what requiredMoments() lists for
+     *        @p due, reusing entries of @p computed that hold it; empty values otherwise.
+     *        Collective.
+     */
+    std::vector<opalx::moments::BeamMoments> momentsOfContainers(
+            const PartBunch_t& bunch, const StepOutputs& due,
+            std::span<const opalx::moments::BeamMoments> computed) const;
+
+    /// The statistics and phase-space dumps that are @p due, with the moments of every container.
+    void writeDumps(
+            PartBunch_t& bunch, const StepOutputs& due,
+            std::span<const opalx::moments::BeamMoments> moments,
+            const std::function<ReferenceFields()>& referenceFields, int reportedBinCount);
 
     DataSinkOptions options_m;
 

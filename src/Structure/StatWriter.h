@@ -35,7 +35,8 @@ public:
      * parameters etc.
      *
      * \param beam The beam.
-     * \param FDext The external fields at the reference particle: FDext[0] = B, FDext[1] = E.
+     * \param FDext The external fields at the reference particle: FDext[0] = B (T),
+     * FDext[1] = E (V/m), written in MV/m.
      */
     void write(
             PartBunch_t& beam, const opalx::moments::BeamMoments& moments,

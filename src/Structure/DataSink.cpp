@@ -27,9 +27,20 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
+#include "Utilities/Timer.h"
+#include "Utilities/Util.h"
 
 #include <algorithm>
+#include <cmath>
+#include <iomanip>
+
+extern Inform* gmsg;
+
+namespace {
+    /// Whether an output with frequency @p freq (0: never) is due at global step @p step: the
+    /// last step of every cycle of @p freq steps.
+    bool outputDue(int freq, long long step) { return freq > 0 && (step % freq) + 1 == freq; }
+}  // namespace
 
 std::string DataSink::diagnosticStemForContainer(
         const std::string& inputBasename, size_t numContainers, size_t index) {
@@ -66,26 +77,139 @@ DataSink::DataSink(
     }
 }
 
-opalx::moments::Request DataSink::requiredMoments(bool psDump, bool statDump, bool hasSpin) {
+DataSink::StepOutputs DataSink::outputsDue(long long step) const {
+    StepOutputs due;
+    due.phaseSpace = outputDue(options_m.psDumpFreq, step);
+    due.statistics = outputDue(options_m.statDumpFreq, step);
+    due.stepLine   = options_m.stepInfoFreq > 0 && step % options_m.stepInfoFreq == 0;
+    due.rankLoad   = outputDue(options_m.printRankDistrFreq, step);
+    return due;
+}
+
+opalx::moments::Request DataSink::requiredMoments(const StepOutputs& due, bool hasSpin) const {
     opalx::moments::Request request;
-    if (statDump) {
+    if (due.stepLine) {
+        request |= opalx::moments::Moment::MeanMomentum;
+    }
+    if (due.statistics) {
         request |= StatWriter::requiredMoments(hasSpin);
     }
-    if (psDump && Options::enableHDF5) {
+    if (due.phaseSpace && options_m.enableHDF5) {
         request |= H5PartWrapperForPT::requiredMoments;
     }
     return request;
 }
 
-opalx::moments::Request DataSink::momentRequest(bool psDump, bool statDump, bool hasSpin) const {
-    opalx::moments::Request request;
-    if (statDump) {
-        request |= StatWriter::requiredMoments(hasSpin);
+std::vector<opalx::moments::BeamMoments> DataSink::momentsOfContainers(
+        const PartBunch_t& bunch, const StepOutputs& due,
+        std::span<const opalx::moments::BeamMoments> computed) const {
+    const auto& containers = bunch.getParticleContainers();
+    std::vector<opalx::moments::BeamMoments> moments(containers.size());
+    for (size_t i = 0; i < containers.size(); ++i) {
+        if (!containers[i] || containers[i]->getTotalNum() == 0) {
+            continue;
+        }
+        const opalx::moments::Request request = requiredMoments(due, containers[i]->hasSpin());
+        if (request.empty()) {
+            continue;
+        }
+        const bool reuse = i < computed.size() && computed[i].available().contains(request);
+        moments[i]       = reuse ? computed[i] : opalx::moments::compute(*containers[i], request);
     }
-    if (psDump && options_m.enableHDF5) {
-        request |= H5PartWrapperForPT::requiredMoments;
+    return moments;
+}
+
+void DataSink::writeStep(
+        PartBunch_t& bunch, const StepOutputs& due,
+        std::span<const opalx::moments::BeamMoments> computed,
+        const std::function<ReferenceFields()>& referenceFields, int reportedBinCount) {
+    OPALTimer::Timer timer;
+    const size_t totalAll      = bunch.getTotalNumAllContainers();
+    const long long globalStep = bunch.getGlobalTrackStep();
+
+    if (totalAll == 0 && due.stepLine) {
+        *gmsg << level1 << "* " << timer.time() << " "
+              << "Step " << std::setw(6) << globalStep << "; "
+              << "   -- no emission yet --     "
+              << "t= " << Util::getTimeString(bunch.getT()) << endl;
     }
-    return request;
+
+    // One request per container covers the step line and every dump due now.
+    const auto moments = momentsOfContainers(bunch, due, computed);
+
+    bool anyNonEmpty       = false;
+    const auto& containers = bunch.getParticleContainers();
+    for (size_t ci = 0; ci < containers.size(); ++ci) {
+        const auto& pc = containers[ci];
+        if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+        const double sPos = pc->get_sPos();
+        if (std::isnan(sPos) || std::isinf(sPos)) {
+            throw OpalException(
+                    "DataSink::writeStep",
+                    "invalid path length s for particle container " + std::to_string(ci));
+        }
+        if (due.stepLine) {
+            *gmsg << level1 << "* " << timer.time() << " "
+                  << "Step " << std::setw(6) << globalStep << " "
+                  << "container[" << ci << "] ";
+            *gmsg << "at " << Util::getLengthString(sPos) << ", ";
+            *gmsg << "t= " << Util::getTimeString(bunch.getT()) << ", "
+                  << "E=" << Util::getEnergyString(moments[ci].meanKineticEnergy()) << endl;
+        }
+        anyNonEmpty = true;
+    }
+
+    if (anyNonEmpty || due.statistics) {
+        writeDumps(bunch, due, moments, referenceFields, reportedBinCount);
+    }
+
+    if (due.rankLoad) {
+        for (size_t i = 0; i < containers.size(); ++i) {
+            const auto& pc = containers[i];
+            if (!pc || !bunch.isPcActive(i)) {
+                continue;
+            }
+            pc->printRankLoadInfo("container[" + std::to_string(i) + "]");
+        }
+    }
+}
+
+void DataSink::writeLastStep(
+        PartBunch_t& bunch, const std::function<ReferenceFields()>& referenceFields,
+        int reportedBinCount) {
+    // The step loop wrote the last step already if a dump was due there.
+    const long long lastStep = bunch.getGlobalTrackStep() - 1;
+    StepOutputs due;
+    due.phaseSpace = options_m.psDumpFreq > 0 && !outputDue(options_m.psDumpFreq, lastStep);
+    due.statistics = options_m.statDumpFreq > 0 && !outputDue(options_m.statDumpFreq, lastStep);
+
+    writeDumps(bunch, due, momentsOfContainers(bunch, due, {}), referenceFields, reportedBinCount);
+
+    if (due.phaseSpace) {
+        *gmsg << level2 << "* Dump phase space of last step" << endl;
+    }
+}
+
+void DataSink::writeDumps(
+        PartBunch_t& bunch, const StepOutputs& due,
+        std::span<const opalx::moments::BeamMoments> moments,
+        const std::function<ReferenceFields()>& referenceFields, int reportedBinCount) {
+    if (!due.phaseSpace && !due.statistics) {
+        return;
+    }
+    const ReferenceFields fields = referenceFields();
+
+    if (due.statistics) {
+        dumpSDDS(bunch, fields, moments, reportedBinCount);
+        *gmsg << level3 << "* Wrote beam statistics." << endl;
+    }
+
+    if (due.phaseSpace && bunch.getTotalNumAllContainers() > 0) {
+        dumpH5(bunch, fields, moments);
+        *gmsg << level3 << "* Wrote beam phase space." << endl;
+    }
 }
 
 void DataSink::dumpH5(

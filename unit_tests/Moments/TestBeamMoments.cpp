@@ -317,13 +317,20 @@ TEST_F(BeamMomentsTest, OutputRequestsAreWhatComputeProvides) {
     // The tracker reuses one value for every output of a step only if the value holds the full
     // request, so an output must not ask for a group compute() leaves out (polarization without
     // spin).
+    DataSinkOptions options;
+    options.enableHDF5 = true;
+    const DataSink sink(options, {}, 0, "", "");
     for (const bool spin : {false, true}) {
         auto pc = makeContainer(correlatedSet(20, 31, 1.0), spin);
         for (const bool psDump : {false, true}) {
             for (const bool statDump : {false, true}) {
-                const Request request = DataSink::requiredMoments(psDump, statDump, pc->hasSpin());
-                EXPECT_TRUE(compute(*pc, request).available().contains(request))
-                        << "spin " << spin << ", ps " << psDump << ", stat " << statDump;
+                for (const bool stepLine : {false, true}) {
+                    const Request request =
+                            sink.requiredMoments({psDump, statDump, stepLine}, pc->hasSpin());
+                    EXPECT_TRUE(compute(*pc, request).available().contains(request))
+                            << "spin " << spin << ", ps " << psDump << ", stat " << statDump
+                            << ", step line " << stepLine;
+                }
             }
         }
     }

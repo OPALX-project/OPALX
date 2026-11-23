@@ -171,12 +171,15 @@ namespace opalx::run {
             const std::string inputBase = context.inputBasename;
 
             DataSinkOptions sinkOptions;
-            sinkOptions.enableHDF5       = options.enableHDF5;
-            sinkOptions.psDumpFreq       = options.psDumpFreq;
-            sinkOptions.rankDump         = options.rankDump;
-            sinkOptions.ebDump           = options.ebDump;
-            sinkOptions.rhoDump          = options.rhoDump;
-            sinkOptions.beamHaloBoundary = options.beamHaloBoundary;
+            sinkOptions.enableHDF5         = options.enableHDF5;
+            sinkOptions.psDumpFreq         = options.psDumpFreq;
+            sinkOptions.statDumpFreq       = options.statDumpFreq;
+            sinkOptions.stepInfoFreq       = options.stepInfoFreq;
+            sinkOptions.printRankDistrFreq = options.printRankDistrFreq;
+            sinkOptions.rankDump           = options.rankDump;
+            sinkOptions.ebDump             = options.ebDump;
+            sinkOptions.rhoDump            = options.rhoDump;
+            sinkOptions.beamHaloBoundary   = options.beamHaloBoundary;
 
             for (size_t i = 0; sinkOptions.enableHDF5 && i < numParticleContainers; ++i) {
                 const std::string stem =

@@ -137,6 +137,28 @@ unsigned long OpalBeamline::getFieldAt(
     return rtv;
 }
 
+std::vector<std::array<Vector_t<double, 3>, 2>> OpalBeamline::getReferenceFields(
+        const PartBunch_t& bunch) {
+    Inform m("OpalBeamline::getReferenceFields");
+    const double t = bunch.getT() - 0.5 * bunch.getdT();
+    std::vector<std::array<Vector_t<double, 3>, 2>> fields(bunch.getNumParticleContainers());
+    for (size_t i = 0; i < fields.size(); ++i) {
+        const auto pc = bunch.getParticleContainer(i);
+        if (!pc || pc->getTotalNum() == 0) {
+            fields[i][0] = Vector_t<double, 3>(0.0);
+            fields[i][1] = Vector_t<double, 3>(0.0);
+            continue;
+        }
+        Vector_t<double, 3> externalE(0.0), externalB(0.0);
+        getFieldAt(pc->getRefPartR(), pc->getRefPartP(), t, externalE, externalB);
+        fields[i][0] = externalB;
+        fields[i][1] = externalE;
+        m << level5 << "External fields (container " << i << "): externalE = " << externalE
+          << ", externalB = " << externalB << endl;
+    }
+    return fields;
+}
+
 void OpalBeamline::switchElementsOff() {
     for (ElementList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
         (*flit)->goOffline();

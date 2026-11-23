@@ -158,7 +158,7 @@ namespace {
             for (const auto& pc : bunch->getParticleContainers()) {
                 moments.push_back(
                         opalx::moments::compute(
-                                *pc, DataSink::requiredMoments(true, true, pc->hasSpin())));
+                                *pc, dataSink->requiredMoments({true, true}, pc->hasSpin())));
             }
             return moments;
         }
@@ -346,7 +346,7 @@ namespace {
         fdTooSmall.push_back(zeroFdPair());
 
         EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()));
-        EXPECT_TRUE(ds.momentRequest(true, false, false).empty());
+        EXPECT_TRUE(ds.requiredMoments({true, false}, false).empty());
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHdf5On) {
@@ -367,7 +367,8 @@ namespace {
             std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
             fdTooSmall.push_back(zeroFdPair());
             EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()), OpalException);
-            EXPECT_EQ(ds.momentRequest(true, false, false), H5PartWrapperForPT::requiredMoments);
+            EXPECT_EQ(
+                    ds.requiredMoments({true, false}, false), H5PartWrapperForPT::requiredMoments);
         }
 
         for (H5PartWrapper* w : wrappers) {
