@@ -129,6 +129,19 @@ private:
 
     // --- Start of tracking ---
 
+    /// @brief Advance the step-size schedule to the checkpointed position.
+    /// @throws OpalException if the input changes the time step there.
+    void resumeRestartSchedule();
+
+    /**
+     * @brief Set the lab-frame pose of each beam's reference particle and its reference-to-lab
+     *        transform for a fresh run; decay daughter containers are skipped.
+     *
+     * Position and momentum come from the bunch mean, else from the emission offsets (R0, P0)
+     * of the sampler, else from the design pose; PC, ENERGY or GAMMA on BEAM sets the momentum.
+     */
+    void setInitialReferencePoses();
+
     /// @brief Integrate references in time until path length reaches sStart_m.
     void findStartPositions(const BorisPusher& pusher);
 
