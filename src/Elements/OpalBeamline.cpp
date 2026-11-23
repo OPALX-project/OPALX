@@ -109,10 +109,12 @@ unsigned long OpalBeamline::getFieldAt(
 
     std::set<std::shared_ptr<ElementBase>> elements = getElements(position);
 
-    std::set<std::shared_ptr<ElementBase>>::const_iterator it        = elements.begin();
-    const std::set<std::shared_ptr<ElementBase>>::const_iterator end = elements.end();
+    // Sum in prepared order; the set is ordered by heap address, which changes the round-off.
+    ElementList::const_iterator it        = elements_m.begin();
+    const ElementList::const_iterator end = elements_m.end();
 
     for (; it != end; ++it) {
+        if (!elements.erase(*it)) continue;
         ElementType type = (*it)->getType();
         if (type == ElementType::MARKER || type == ElementType::MONITOR) continue;
 

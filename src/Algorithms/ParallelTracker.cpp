@@ -1134,7 +1134,7 @@ bool ParallelTracker::hasCyclotronGaps() {
 double ParallelTracker::advanceCyclotronGaps(
         Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
         bool report, bool terminalEndpoint, unsigned long long frameSteps) {
-    const auto all = itsOpalBeamline_m.getElements();
+    const auto& all = itsOpalBeamline_m.getElementList();
     std::vector<std::shared_ptr<ElementBase>> gaps;
     for (const auto& element : all) {
         auto* cavity = dynamic_cast<RFCavity*>(element.get());
@@ -1285,7 +1285,7 @@ void ParallelTracker::prepareCyclotronTransport() {
 void ParallelTracker::prepareCyclotronBunchLattice() {
     std::vector<device_external::MappedCyclotronSector> sectors;
     std::vector<std::pair<std::string, device_external::CyclotronGap>> gaps;
-    for (const auto& element : itsOpalBeamline_m.getElements()) {
+    for (const auto& element : itsOpalBeamline_m.getElementList()) {
         const auto frame =
                 element->getMisalignment() * itsOpalBeamline_m.getCSTrafoLab2Local(element);
         const auto rigid = frame.rigid();

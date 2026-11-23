@@ -1,5 +1,6 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Algorithms/TrackReferenceStep.h"
+#include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
 #include "Algorithms/PartData.h"
 #include "Elements/OpalBeamline.h"
@@ -12,7 +13,8 @@ track_reference::State track_reference::advanceInBeamline(
             state, dt, endTime, reference.getM(), reference.getQ(),
             [&](const auto& r, const auto& p, double t, auto& electric, auto& magnetic) {
                 bool hit = false;
-                for (const auto& element : beamline.getElements(r)) {
+                for (const auto& element :
+                     device_external::orderedCandidates(beamline, beamline.getElements(r))) {
                     if (!diagnostics && element->getType() == ElementType::MONITOR) continue;
                     const auto& transform            = beamline.getCSTrafoLab2Local(element);
                     const Vector_t<double, 3> localR = transform.transformTo(r);

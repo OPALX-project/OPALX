@@ -5,6 +5,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/DefaultVisitor.h"
+#include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/MapExitRoot.h"
 #include "Algorithms/OrbitThreader.h"
@@ -75,7 +76,8 @@ namespace {
                     tracker.step(start, h, [&](const Ray& ray, auto& electric, auto& magnetic) {
                         const auto stageSet = beamline.getElements(ray.position);
                         crossed             = crossed || stageSet != initialSet;
-                        for (const auto& element : stageSet) {
+                        for (const auto& element :
+                             device_external::orderedCandidates(beamline, stageSet)) {
                             if (element->getType() == ElementType::MARKER
                                 || element->getType() == ElementType::MONITOR)
                                 continue;

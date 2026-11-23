@@ -188,6 +188,53 @@ TEST_F(DeviceExternalFieldTest, PreparedOrderMakesDeviceFrameAndFieldWorkIndepen
     }
 }
 
+TEST_F(DeviceExternalFieldTest, PreparedOrderMakesReferenceFieldSumsIndependentOfAddresses) {
+    Beam beam;
+    PartBunch_t bunch(
+            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+    FlaggedBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    // Prepared order sums first, second, third; the second beamline's address order reverses it.
+    const std::array<double, 3> dipoles{0.1, 0.2, 0.3};
+    ASSERT_NE((dipoles[0] + dipoles[1]) + dipoles[2], (dipoles[2] + dipoles[1]) + dipoles[0]);
+    const std::array<std::string, 3> names{"first", "second", "third"};
+    const PartData reference(1., 9.382720813e8, 1e6);
+    const track_reference::State start{Vector(0, 0, 0.5), Vector(0, 0, 0.1)};
+    std::array<std::array<double, 12>, 2> snapshots{};
+    for (unsigned arrangement = 0; arrangement < 2; ++arrangement) {
+        OpalBeamline lattice;
+        for (unsigned i = 0; i < 3; ++i) {
+            MultipoleRep magnet("unassigned");
+            magnet.getGeometry().setElementLength(1.);
+            lattice.visit(magnet, visitor, bunch);
+        }
+        unsigned index = 0;
+        for (const auto& occurrence : lattice.getElements()) {
+            const unsigned role = arrangement == 0 ? index++ : 2 - index++;
+            auto& magnet        = dynamic_cast<Multipole&>(*occurrence);
+            magnet.setName(names[role]);
+            magnet.setNormalComponent(0, dipoles[role]);
+            magnet.setAperture(ApertureType::RECTANGULAR, {2., 2.});
+            magnet.setCSTrafoGlobal2Local(CoordinateSystemTrafo());
+            magnet.fixPosition();
+        }
+        lattice.prepareSections();
+        Vector electric(0.), magnetic(0.);
+        lattice.getFieldAt(start.position, start.momentum, 0., electric, magnetic);
+        EXPECT_EQ(magnetic(1), (dipoles[0] + dipoles[1]) + dipoles[2]);
+        const auto end =
+                track_reference::advanceInBeamline(lattice, reference, start, 1e-9, 1e-9, false);
+        for (unsigned d = 0; d < 3; ++d) {
+            snapshots[arrangement][d]     = electric(d);
+            snapshots[arrangement][3 + d] = magnetic(d);
+            snapshots[arrangement][6 + d] = end.position(d);
+            snapshots[arrangement][9 + d] = end.momentum(d);
+        }
+    }
+    for (unsigned i = 0; i < snapshots[0].size(); ++i)
+        EXPECT_EQ(snapshots[0][i], snapshots[1][i]) << "field/end-state component " << i;
+}
+
 TEST_F(DeviceExternalFieldTest, ThinMagnetDeviceImpulseEnergyAndSpectators) {
     Beam beam;
     PartBunch_t bunch(

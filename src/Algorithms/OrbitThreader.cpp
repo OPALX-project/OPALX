@@ -19,6 +19,7 @@
 
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CompensatedSum.h"
+#include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
 
 #include "AbsBeamline/RFCavity.h"
@@ -327,6 +328,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
     using namespace orbit_threader_diagnostics;
     Vector_t<double, 3> nextR;
     std::vector<ExternalFieldRayTracker::Step> steps;
+    const auto ordered = device_external::orderedCandidates(itsOpalBeamline_m, activeSet);
     do {
         count(&Work::nominalSteps);
         errorFlag_m = EVERYTHINGFINE;
@@ -342,7 +344,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         } else {
             steps.push_back(rayTracker_m.step(
                     currentRay(), dt_m, [&](const RayState& ray, auto& electric, auto& magnetic) {
-                        for (const auto& element : activeSet) {
+                        for (const auto& element : ordered) {
                             const auto localR =
                                     itsOpalBeamline_m.transformToLocalCS(element, ray.position);
                             const auto localP =
@@ -366,7 +368,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             const auto fields = resolveSupport
                                         ? itsOpalBeamline_m.getElements(step.midpoint.position)
                                         : activeSet;
-            for (const auto& element : fields)
+            for (const auto& element :
+                 device_external::orderedCandidates(itsOpalBeamline_m, fields))
                 names += element->getName() + ", ";
             r_m = step.midpoint.position;
             if (step.hitMaterial) {

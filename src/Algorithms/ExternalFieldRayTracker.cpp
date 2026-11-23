@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include "Algorithms/CompensatedSum.h"
+#include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/RungeKuttaTableau.h"
@@ -295,7 +296,7 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     const auto trial = step(initial, dt, [&](const State& ray, auto& electric, auto& magnetic) {
         const auto stageSet = beamline_m.getElements(ray.position);
         crossedSupport      = crossedSupport || stageSet != initialSet;
-        for (const auto& element : stageSet) {
+        for (const auto& element : device_external::orderedCandidates(beamline_m, stageSet)) {
             if (element->getType() == ElementType::MARKER
                 || element->getType() == ElementType::MONITOR)
                 continue;
