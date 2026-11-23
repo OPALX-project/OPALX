@@ -47,12 +47,6 @@ set (HDRS
     SDDSWriter.h
 )
 
-if (UNIX AND NOT APPLE)
-    # for Linux, BSD, Solaris, Minix
-    list (APPEND _SRCS MemoryProfiler.cpp)
-    list (APPEND HDRS MemoryProfiler.h)
-endif()
-
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_sources(opalx PRIVATE ${_SRCS})
