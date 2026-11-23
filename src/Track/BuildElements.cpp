@@ -12,6 +12,7 @@
 #include <string>
 
 #include "AbsBeamline/ElementBase.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Elements/OpalBox.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
@@ -152,6 +153,7 @@ namespace opalx::run {
                 errors.push_back(message);
             }
         };
+        AbstractTimeDependence::clearTimeDependences();
         for (const ObjectDescription& model : line.models) {
             try {
                 registerModels({model});

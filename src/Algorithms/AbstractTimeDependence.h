@@ -83,6 +83,11 @@ public:
      */
     static std::string getName(const std::shared_ptr<AbstractTimeDependence>& time_dep);
 
+    /** Remove every time dependence from the lookup table; a RUN starts its model registration
+     *  with it, so it sees only the time dependences of its own description.
+     */
+    static void clearTimeDependences();
+
 private:
     static std::map<std::string, std::shared_ptr<AbstractTimeDependence> > td_map;
 };

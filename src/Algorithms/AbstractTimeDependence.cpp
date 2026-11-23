@@ -32,6 +32,8 @@ std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependenc
     return pos->second;
 }
 
+void AbstractTimeDependence::clearTimeDependences() { td_map.clear(); }
+
 void AbstractTimeDependence::setTimeDependence(
         const std::string& name, std::shared_ptr<AbstractTimeDependence> time_dep) {
     td_map[name] = std::move(time_dep);

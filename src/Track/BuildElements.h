@@ -44,8 +44,9 @@ namespace opalx::run {
     /**
      * @brief Build the runtime elements of every occurrence of @p line, in line order.
      *
-     * An element or time dependence that cannot be built is left out and its message, naming
-     * the element, is added to @p errors once, so the RUN reports it with its other input errors.
+     * The time dependences of @p line replace those of an earlier RUN. An element or time
+     * dependence that cannot be built is left out and its message, naming the element, is added
+     * to @p errors once, so the RUN reports it with its other input errors.
      */
     std::vector<std::shared_ptr<ElementBase>> buildElements(
             const LineDescription& line, double p0, std::vector<std::string>& errors);

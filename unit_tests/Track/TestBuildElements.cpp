@@ -15,12 +15,15 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/AbstractTimeDependence.h"
+#include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "OpalConfigure/Configure.h"
 #include "Physics/Physics.h"
 #include "Track/BuildElements.h"
 #include "Track/FreezeRun.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -112,6 +115,20 @@ TEST_F(BuildElementsTest, BuildElementsReportsEveryBadElement) {
     EXPECT_EQ(errors[1].rfind("Element \"Q7\"", 0), 0u);
     ASSERT_EQ(built.size(), 1u);
     EXPECT_EQ(built[0]->getName(), "Q6");
+}
+
+TEST_F(BuildElementsTest, TimeDependencesOfAnEarlierRunAreGone) {
+    AbstractTimeDependence::setTimeDependence(
+            "EARLIER", std::make_shared<PolynomialTimeDependence>(std::vector<double>{1.0}));
+    const std::unique_ptr<Object> current(
+            OpalData::getInstance()->makeObject("POLYNOMIAL_TIME_DEPENDENCE", "CURRENT"));
+    LineDescription line;
+    line.models = {describeObject(*current)};
+    std::vector<std::string> errors;
+    buildElements(line, kP0, errors);
+    EXPECT_TRUE(errors.empty());
+    EXPECT_NO_THROW(AbstractTimeDependence::getTimeDependence("CURRENT"));
+    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("EARLIER"), GeneralOpalException);
 }
 
 int main(int argc, char** argv) {
