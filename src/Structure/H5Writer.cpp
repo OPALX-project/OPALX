@@ -17,8 +17,7 @@
 //
 #include "H5Writer.h"
 
-H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart) : h5wrapper_m(h5wrapper) {
-    (void)restart;
+H5Writer::H5Writer(H5PartWrapper* h5wrapper) : h5wrapper_m(h5wrapper) {
     if (!h5wrapper->startedFromExistingFile()) {
         h5wrapper->writeHeader();
     }

@@ -25,8 +25,6 @@
 
 class StatWriter : public StatBaseWriter {
 public:
-    typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
-
     /// @param inputFileName Input file named in the header.
     StatWriter(const std::string& fname, const std::string& inputFileName, bool restart);
 
@@ -36,21 +34,13 @@ public:
      * Writes statistical beam data to proper output file. This is information such as RMS beam
      * parameters etc.
      *
-     * Also gathers and writes load balancing data to load balance statistics file.
      * \param beam The beam.
-     * \param FDext The external E and B field for the head, reference and tail particles. The
-     * vector array has the following layout:
-     *  - FDext[0] = B at head particle location (in x, y and z).
-     *  - FDext[1] = E at head particle location (in x, y and z).
-     *  - FDext[2] = B at reference particle location (in x, y and z).
-     *  - FDext[3] = E at reference particle location (in x, y and z).
-     *  - FDext[4] = B at tail particle location (in x, y, and z).
-     *  - FDext[5] = E at tail particle location (in x, y, and z).
+     * \param FDext The external fields at the reference particle: FDext[0] = B, FDext[1] = E.
      */
     void write(
             PartBunch_t& beam, const opalx::moments::BeamMoments& moments,
-            Vector_t<double, 3> FDext[], int reportedBinCount, const losses_t& losses = losses_t(),
-            const size_t npOutside = 0, size_t particleContainerIndex = 0);
+            Vector_t<double, 3> FDext[], int reportedBinCount, const size_t npOutside = 0,
+            size_t particleContainerIndex = 0);
 
     /// Moment groups write() reads for a non-empty container; Polarization only with spin.
     static constexpr opalx::moments::Request requiredMoments(bool hasSpin) {
@@ -59,9 +49,7 @@ public:
     }
 
 private:
-    void fillHeader(
-            const losses_t& losses = losses_t(), const std::string& species = "",
-            bool hasSpin = false);
+    void fillHeader(const std::string& species = "", bool hasSpin = false);
 
     std::string inputFileName_m;
 };

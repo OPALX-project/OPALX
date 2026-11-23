@@ -14,7 +14,6 @@ set (_SRCS
   IpplInfoWrapper.cpp
   H5Writer.cpp
   MeshGenerator.cpp       
-  LBalWriter.cpp
   LossDataSink.cpp        
   StatBaseWriter.cpp
   StatWriter.cpp
@@ -39,7 +38,6 @@ set (HDRS
     IpplInfoWrapper.h
     H5Writer.h
     MeshGenerator.h
-    LBalWriter.h
     LossDataSink.h
     StatBaseWriter.h
     StatWriter.h

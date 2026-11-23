@@ -24,25 +24,14 @@
 
 class H5Writer {
 public:
-    H5Writer(H5PartWrapper* h5wrapper, bool restart);
-
-    void close();
-
-    double getLastPosition();
+    explicit H5Writer(H5PartWrapper* h5wrapper);
 
     void rewindToTime(double checkpointTime, double timeStep);
 
     /** \brief Dumps Phase Space to H5 file.
      *
      * \param beam The beam.
-     * \param FDext The external E and B field for the head, reference and tail particles. The
-     * vector array has the following layout:
-     *  - FDext[0] = B at head particle location (in x, y and z).
-     *  - FDext[1] = E at head particle location (in x, y and z).
-     *  - FDext[2] = B at reference particle location (in x, y and z).
-     *  - FDext[3] = E at reference particle location (in x, y and z).
-     *  - FDext[4] = B at tail particle location (in x, y, and z).
-     *  - FDext[5] = E at tail particle location (in x, y, and z).
+     * \param FDext The external fields at the reference particle: FDext[0] = B, FDext[1] = E.
      */
     void writePhaseSpace(
             PartBunch_t& beam, const opalx::moments::BeamMoments& moments,
@@ -51,10 +40,6 @@ public:
 private:
     H5PartWrapper* h5wrapper_m;
 };
-
-inline void H5Writer::close() { h5wrapper_m->close(); }
-
-inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
 
 inline void H5Writer::rewindToTime(double checkpointTime, double timeStep) {
     h5wrapper_m->rewindToTime(checkpointTime, timeStep);

@@ -21,13 +21,10 @@
 
 #include "BuildInfo.h"
 #include "Physics/Physics.h"
-#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 #include "h5core/h5_types.h"
 
-#include <cmath>
-#include <set>
 #include <sstream>
 
 H5PartWrapperForPT::H5PartWrapperForPT(

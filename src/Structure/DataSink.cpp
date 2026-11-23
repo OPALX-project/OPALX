@@ -8,9 +8,6 @@
 //   This class also writes the full beam phase space to an H5 file at periodic time
 //   steps in the calculation (this period is different from that of the statistical
 //   numbers).
-
-//   Class also writes processor load balancing data to file to track parallel
-//   calculation efficiency.
 //
 // Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -27,16 +24,12 @@
 //
 #include "Structure/DataSink.h"
 
-#include "Fields/Fieldmap.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
-#include "Structure/LBalWriter.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-#include "Utilities/Timer.h"
-#include "Utilities/Util.h"
 
 #include <algorithm>
-#include <sstream>
 
 std::string DataSink::diagnosticStemForContainer(
         const std::string& inputBasename, size_t numContainers, size_t index) {
@@ -47,20 +40,29 @@ std::string DataSink::diagnosticStemForContainer(
 }
 
 DataSink::DataSink(
-        const DataSinkOptions& options, const std::vector<H5PartWrapper*>& h5wrappers, bool restart,
+        const DataSinkOptions& options, const std::vector<H5PartWrapper*>& h5wrappers,
         size_t numParticleContainers, const std::string& outputBasename,
         const std::string& inputFileName, bool appendStatistics)
-    : options_m(options) {
-    if (restart && !options_m.enableHDF5) {
-        throw OpalException("DataSink::DataSink()", "Can not restart when HDF5 is disabled");
+    : options_m(options), StatMarkerTimer_m(IpplTimings::getTimer("Write Stat")) {
+    for (size_t i = 0; i < numParticleContainers; ++i) {
+        const std::string stem =
+                diagnosticStemForContainer(outputBasename, numParticleContainers, i);
+        statWriters_m.push_back(
+                std::make_unique<StatWriter>(stem + ".stat", inputFileName, appendStatistics));
     }
 
-    this->init(
-            restart, h5wrappers, numParticleContainers, outputBasename, inputFileName,
-            restart || appendStatistics);
-
-    if (restart) {
-        rewindLines();
+    if (options_m.enableHDF5) {
+        if (h5wrappers.size() != numParticleContainers) {
+            throw OpalException(
+                    "DataSink::DataSink",
+                    "HDF5 enabled: expected " + std::to_string(numParticleContainers)
+                            + " H5PartWrapper(s), got " + std::to_string(h5wrappers.size()) + ".");
+        }
+        for (H5PartWrapper* w : h5wrappers) {
+            h5Writers_m.push_back(std::make_unique<H5Writer>(w));
+        }
+    } else if (!h5wrappers.empty()) {
+        throw OpalException("DataSink::DataSink", "H5 wrappers passed while HDF5 is disabled.");
     }
 }
 
@@ -142,10 +144,8 @@ void DataSink::dumpSDDS(
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(beam, moments[i], fd, reportedBinCount, losses_t(), npOutside, i);
+        statWriters_m[i]->write(beam, moments[i], fd, reportedBinCount, npOutside, i);
     }
-
-    beam.gatherLoadBalanceStatistics();
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
@@ -179,83 +179,17 @@ void DataSink::dumpBinConfig(
     binConfigWriter_m->writeEntry(step, time, preMerge, binCounts, binWidths, xMin);
 }
 
-void DataSink::rewindLines() {
-    unsigned int linesToRewind = 0;
-
-    for (size_t i = 0; i < h5Writers_m.size(); ++i) {
-        double spos = h5Writers_m[i]->getLastPosition();
-        if (i < statWriters_m.size() && statWriters_m[i]->exists()) {
-            unsigned int li = statWriters_m[i]->rewindToSpos(spos);
-            statWriters_m[i]->replaceVersionString();
-            linesToRewind = std::max(linesToRewind, li);
-        }
-        h5Writers_m[i]->close();
-    }
-
-    if (linesToRewind > 0) {
-        for (size_t i = 0; i < sddsWriter_m.size(); ++i) {
-            sddsWriter_m[i]->rewindLines(linesToRewind);
-            sddsWriter_m[i]->replaceVersionString();
-        }
-    }
-}
-
 void DataSink::rewindToCheckpoint(PartBunch_t& beam) {
     for (const auto& writer : h5Writers_m) {
         writer->rewindToTime(beam.getT(), beam.getdT());
     }
 
-    unsigned int linesToRewind = 0;
-    const std::size_t count    = std::min(statWriters_m.size(), beam.getNumParticleContainers());
-
+    const std::size_t count = std::min(statWriters_m.size(), beam.getNumParticleContainers());
     for (std::size_t i = 0; i < count; ++i) {
         const auto pc = beam.getParticleContainer(i);
         if (!pc || !statWriters_m[i]->exists()) {
             continue;
         }
-        const unsigned int removed = statWriters_m[i]->rewindToSpos(pc->get_sPos());
-        linesToRewind              = std::max(linesToRewind, removed);
-    }
-
-    if (linesToRewind > 0) {
-        for (const auto& writer : sddsWriter_m) {
-            writer->rewindLines(linesToRewind);
-        }
-    }
-}
-
-void DataSink::init(
-        bool restart, const std::vector<H5PartWrapper*>& h5wrappers, size_t numParticleContainers,
-        const std::string& outputBasename, const std::string& inputFileName,
-        bool appendStatistics) {
-    const std::string& fn = outputBasename;
-
-    lossWrCounter_m   = 0;
-    StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
-
-    statWriters_m.clear();
-    for (size_t i = 0; i < numParticleContainers; ++i) {
-        std::string stem = diagnosticStemForContainer(fn, numParticleContainers, i);
-        statWriters_m.push_back(statWriter_t(
-                new StatWriter(stem + std::string(".stat"), inputFileName, appendStatistics)));
-    }
-
-    sddsWriter_m.clear();
-    sddsWriter_m.push_back(sddsWriter_t(
-            new LBalWriter(fn + std::string(".lbal"), inputFileName, appendStatistics)));
-
-    h5Writers_m.clear();
-    if (options_m.enableHDF5) {
-        if (h5wrappers.size() != numParticleContainers) {
-            throw OpalException(
-                    "DataSink::init",
-                    "HDF5 enabled: expected " + std::to_string(numParticleContainers)
-                            + " H5PartWrapper(s), got " + std::to_string(h5wrappers.size()) + ".");
-        }
-        for (H5PartWrapper* w : h5wrappers) {
-            h5Writers_m.push_back(h5Writer_t(new H5Writer(w, restart)));
-        }
-    } else if (!h5wrappers.empty()) {
-        throw OpalException("DataSink::init", "H5 wrappers passed while HDF5 is disabled.");
+        statWriters_m[i]->rewindToSpos(pc->get_sPos());
     }
 }

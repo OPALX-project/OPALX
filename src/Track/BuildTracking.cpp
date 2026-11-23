@@ -200,8 +200,8 @@ namespace opalx::run {
             // phase-space H5 files are opened for append, absent ones are started. A later RUN
             // of the same input appends to the statistics files of the earlier ones.
             objects.dataSink = std::make_unique<DataSink>(
-                    sinkOptions, sinks, false, numParticleContainers, inputBase,
-                    context.inputFileName, isRestart || context.runIndex > 1);
+                    sinkOptions, sinks, numParticleContainers, inputBase, context.inputFileName,
+                    isRestart || context.runIndex > 1);
             return objects.dataSink.get();
         }
 

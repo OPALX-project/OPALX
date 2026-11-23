@@ -64,7 +64,7 @@ namespace {
             storageConfig.periodicParticleBoundary = true;
 
             dataSink = std::make_shared<DataSink>(
-                    DataSinkOptions{}, std::vector<H5PartWrapper*>{}, false, 1, outputStem(),
+                    DataSinkOptions{}, std::vector<H5PartWrapper*>{}, 1, outputStem(),
                     "unit_test.opal");
             beam = std::make_shared<Beam>();
             Beam::defineBuiltins();
@@ -311,14 +311,14 @@ namespace {
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_MultiContainerInit_DoesNotThrow) {
-        EXPECT_NO_THROW(DataSink(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal"));
+        EXPECT_NO_THROW(DataSink(DataSinkOptions{}, {}, 2, outputStem(), "unit_test.opal"));
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_ThrowsWhenFdextTooSmall) {
         createParticlesInContainer(0, 8u, 0.1, 0.3);
         createParticlesInContainer(1, 6u, 0.1, 0.3);
 
-        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
+        DataSink ds(DataSinkOptions{}, {}, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
@@ -329,7 +329,7 @@ namespace {
         createParticlesInContainer(0, 8u, 0.1, 0.3);
         createParticlesInContainer(1, 6u, 0.1, 0.3);
 
-        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
+        DataSink ds(DataSinkOptions{}, {}, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
         fd[0] = zeroFdPair();
         fd[1] = zeroFdPair();
@@ -341,7 +341,7 @@ namespace {
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_NoThrowWhenHdf5OffEvenIfFdextTooSmall) {
         createParticlesInContainer(0, 4u, 0.1, 0.2);
 
-        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
+        DataSink ds(DataSinkOptions{}, {}, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
@@ -363,7 +363,7 @@ namespace {
         wrappers.push_back(new H5PartWrapperForPT(f1, options, H5_O_WRONLY));
 
         {
-            DataSink ds(options, wrappers, false, 2, outputStem(), "unit_test.opal");
+            DataSink ds(options, wrappers, 2, outputStem(), "unit_test.opal");
             std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
             fdTooSmall.push_back(zeroFdPair());
             EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()), OpalException);
@@ -391,7 +391,7 @@ namespace {
         std::vector<H5PartWrapper*> wrappers{w0.get(), w1.get()};
 
         {
-            DataSink ds(options, wrappers, false, 2, base, "unit_test.opal");
+            DataSink ds(options, wrappers, 2, base, "unit_test.opal");
             std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
             fd[0] = zeroFdPair();
             fd[1] = zeroFdPair();

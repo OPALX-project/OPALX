@@ -2,7 +2,7 @@
 // Class StatWriter
 //   This class writes bunch statistics (*.stat).
 //
-//   One StatWriter instance corresponds to one output file. DataSink::init creates
+//   One StatWriter instance corresponds to one output file. The DataSink constructor creates
 //   statWriters_m.size() == numParticleContainers writers: for a single container the
 //   file stem is the input basename (e.g. myjob -> myjob.stat); for multiple containers
 //   stems are basename + "_c" + index (run_c0.stat, run_c1.stat, ...), see
@@ -41,7 +41,7 @@
 StatWriter::StatWriter(const std::string& fname, const std::string& inputFileName, bool restart)
     : StatBaseWriter(fname, restart), inputFileName_m(inputFileName) {}
 
-void StatWriter::fillHeader(const losses_t& losses, const std::string& species, bool hasSpin) {
+void StatWriter::fillHeader(const std::string& species, bool hasSpin) {
     if (this->hasColumns()) {
         return;
     }
@@ -185,10 +185,6 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
     }
     */
 
-    for (size_t i = 0; i < losses.size(); ++i) {
-        columns_m.addColumn(losses[i].first, "long", "1", "Number of lost particles in element");
-    }
-
     if (mode_m == std::ios::app) return;
 
     OPALTimer::Timer simtimer;
@@ -213,8 +209,7 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
 
 void StatWriter::write(
         PartBunch_t& beam, const opalx::moments::BeamMoments& moments, Vector_t<double, 3> FDext[],
-        int reportedBinCount, const losses_t& losses, const size_t npOutside,
-        size_t particleContainerIndex) {
+        int reportedBinCount, const size_t npOutside, size_t particleContainerIndex) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc) {
@@ -235,7 +230,7 @@ void StatWriter::write(
         return;
     }
 
-    fillHeader(losses, species, pc->hasSpin());
+    fillHeader(species, pc->hasSpin());
 
     this->open();
 
@@ -399,11 +394,6 @@ void StatWriter::write(
             "normalizedEps99_99Percentile_z", beam->get_normalizedEps_99_99Percentile()[2]);
     }
     */
-
-    for (size_t i = 0; i < losses.size(); ++i) {
-        long unsigned int loss = losses[i].second;
-        columns_m.addColumnValue(losses[i].first, loss);
-    }
 
     this->writeRow();
 

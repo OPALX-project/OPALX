@@ -92,8 +92,7 @@ namespace opalx::spacecharge {
             static DataSink makeSink() {
                 auto* opal = OpalData::getInstance();
                 return DataSink(
-                        DataSinkOptions{}, {}, false, 1, opal->getInputBasename(),
-                        opal->getInputFn());
+                        DataSinkOptions{}, {}, 1, opal->getInputBasename(), opal->getInputFn());
             }
 
             struct Run {

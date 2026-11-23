@@ -8,9 +8,6 @@
 //   This class also writes the full beam phase space to an H5 file at periodic time
 //   steps in the calculation (this period is different from that of the statistical
 //   numbers).
-
-//   Class also writes processor load balancing data to file to track parallel
-//   calculation efficiency.
 //
 // Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -32,38 +29,31 @@
 #include "Structure/DataSinkOptions.h"
 #include "Structure/DirichletPlaneWriter.h"
 #include "Structure/H5Writer.h"
-#include "Structure/SDDSWriter.h"
 #include "Structure/StatWriter.h"
 
 #include <array>
-#include <iomanip>
 #include <memory>
 #include <span>
 #include <string>
 #include <vector>
 
 class H5PartWrapper;
-class BinConfigWriter;
-class DirichletPlaneWriter;
 
 class DataSink {
 private:
-    typedef StatWriter::losses_t losses_t;
     typedef std::unique_ptr<StatWriter> statWriter_t;
-    typedef std::unique_ptr<SDDSWriter> sddsWriter_t;
     typedef std::unique_ptr<H5Writer> h5Writer_t;
 
 public:
     /**
      * @param h5wrappers One H5 wrapper per particle container if @p options enable HDF5, none
      *        otherwise.
-     * @param outputBasename Stem of the statistics, load-balance and phase-space files.
-     * @param inputFileName Input file named in the headers of the statistics and load-balance
-     *        files.
+     * @param outputBasename Stem of the statistics and phase-space files.
+     * @param inputFileName Input file named in the headers of the statistics files.
      */
     DataSink(
             const DataSinkOptions& options, const std::vector<H5PartWrapper*>& h5wrappers,
-            bool restart, size_t numParticleContainers, const std::string& outputBasename,
+            size_t numParticleContainers, const std::string& outputBasename,
             const std::string& inputFileName, bool appendStatistics = false);
 
     /** Basename stem for per-container diagnostics: @c basename if @p numContainers<=1 else @c
@@ -73,8 +63,7 @@ public:
 
     /**
      * Remove diagnostic output beyond the restored checkpoint before appending a continuation.
-     * HDF5 is rewound by time, statistics by per-container path position, and load-balance output
-     * by the largest removed statistics-row count.
+     * HDF5 is rewound by time, statistics by per-container path position.
      */
     void rewindToCheckpoint(PartBunch_t& beam);
 
@@ -150,18 +139,10 @@ private:
     DataSink(const DataSink& ds)         = delete;
     DataSink& operator=(const DataSink&) = delete;
 
-    void rewindLines();
-
-    void init(
-            bool restart, const std::vector<H5PartWrapper*>& h5wrappers,
-            size_t numParticleContainers, const std::string& outputBasename,
-            const std::string& inputFileName, bool appendStatistics);
-
     DataSinkOptions options_m;
 
     std::vector<h5Writer_t> h5Writers_m;
     std::vector<statWriter_t> statWriters_m;
-    std::vector<sddsWriter_t> sddsWriter_m;
 
     // Writer for binning configuration JSON output (rank 0 only).
     std::unique_ptr<BinConfigWriter> binConfigWriter_m;
@@ -169,20 +150,9 @@ private:
     // Writer for dirichlet-plane diagnostics (rank 0 only).
     std::unique_ptr<DirichletPlaneWriter> dirichletPlaneWriter_m;
 
-    static std::string convertToString(int number, int setw = 5);
-
-    /// needed to create index for vtk file
-    unsigned int lossWrCounter_m;
-
     /// Timer to track statistics write time.
     IpplTimings::TimerRef StatMarkerTimer_m;
 };
-
-inline std::string DataSink::convertToString(int number, int setw) {
-    std::stringstream ss;
-    ss << std::setw(setw) << std::setfill('0') << number;
-    return ss.str();
-}
 
 template <typename FieldType>
 DirichletPlaneWriter::PlaneDiagnostics DataSink::dumpDirichletPlane(
