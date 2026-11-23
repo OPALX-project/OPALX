@@ -10,7 +10,6 @@
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <array>
 #include <cmath>
@@ -235,7 +234,8 @@ namespace opalx::spacecharge {
     SpaceChargeConfig buildSpaceChargeConfig(
             const ObjectValues& fieldSolver, const std::optional<ObjectValues>& binning,
             const std::vector<ObjectValues>& emissionSources,
-            const std::vector<ObjectValues>& distributions) {
+            const std::vector<ObjectValues>& distributions, int repartFreq,
+            double loadBalancingThreshold, double loadBalancingPairWeight) {
         const FieldSolverCmdType solverType = FieldSolverCmd::getFieldSolverCmdType(fieldSolver);
         if (solverType == FieldSolverCmdType::CG) {
             throw OpalException(
@@ -277,14 +277,13 @@ namespace opalx::spacecharge {
                                         && !FieldSolverCmd::hasP3MCutoff(fieldSolver));
         values.p3mCutoffCells =
                 meshTiedCutoff ? FieldSolverCmd::getP3MCutoffCells(fieldSolver) : 0.0;
-        values.repeatCount   = FieldSolverCmd::getRepeatCount(fieldSolver);
-        values.repeatSpacing = FieldSolverCmd::getRepeatSpacing(fieldSolver);
-        values.periodicBox   = FieldSolverCmd::getPeriodicBox(fieldSolver);
-        values.binning       = buildBinningConfig(binning);
-        values.repartitionFrequency =
-                Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
-        values.loadBalancingThreshold  = Options::loadBalancingThreshold;
-        values.loadBalancingPairWeight = Options::loadBalancingPairWeight;
+        values.repeatCount             = FieldSolverCmd::getRepeatCount(fieldSolver);
+        values.repeatSpacing           = FieldSolverCmd::getRepeatSpacing(fieldSolver);
+        values.periodicBox             = FieldSolverCmd::getPeriodicBox(fieldSolver);
+        values.binning                 = buildBinningConfig(binning);
+        values.repartitionFrequency    = repartFreq > 0 ? static_cast<std::size_t>(repartFreq) : 0;
+        values.loadBalancingThreshold  = loadBalancingThreshold;
+        values.loadBalancingPairWeight = loadBalancingPairWeight;
         values.dirichletPlane          = buildDirichletPlaneConfig(emissionSources);
 
         SpaceChargeConfig config = std::move(values);

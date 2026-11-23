@@ -225,7 +225,7 @@ namespace opalx::spacecharge {
             source.enableShiftedPlane(0.125, 7);
             const auto config = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
                     opalx::test::valuesOf(command), std::nullopt, {opalx::test::valuesOf(source)},
-                    {}));
+                    {}, 0, 0.05, 0.0));
             EXPECT_EQ(config.backend, PoissonSolverType::P3M);
             EXPECT_EQ(config.dirichletPlane.kind, DirichletPlaneType::ShiftedGreen);
             EXPECT_DOUBLE_EQ(config.dirichletPlane.planeZ, 0.125);
@@ -265,7 +265,7 @@ namespace opalx::spacecharge {
             command.setType("CG");
             EXPECT_THROW(
                     static_cast<void>(buildSpaceChargeConfig(
-                            opalx::test::valuesOf(command), std::nullopt, {}, {})),
+                            opalx::test::valuesOf(command), std::nullopt, {}, {}, 0, 0.05, 0.0)),
                     OpalException);
         }
 
@@ -320,22 +320,22 @@ namespace opalx::spacecharge {
             command.setNZ(8);
             EXPECT_NO_THROW(command.execute());
             // Without RCUT, P3M ties its cutoff to the mesh with the default RCUT_CELLS = 2.
-            const auto p3m = std::get<CartesianPIC3DConfig>(
-                    buildSpaceChargeConfig(opalx::test::valuesOf(command), std::nullopt, {}, {}));
+            const auto p3m = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                    opalx::test::valuesOf(command), std::nullopt, {}, {}, 0, 0.05, 0.0));
             EXPECT_DOUBLE_EQ(p3m.p3mCutoff, 0.0);
             EXPECT_DOUBLE_EQ(p3m.p3mCutoffCells, 2.0);
             command.setType("OPEN");
             EXPECT_EQ(
                     FieldSolverCmd::getFieldSolverCmdType(opalx::test::valuesOf(command)),
                     FieldSolverCmdType::OPEN);
-            const auto snapshot = std::get<CartesianPIC3DConfig>(
-                    buildSpaceChargeConfig(opalx::test::valuesOf(command), std::nullopt, {}, {}));
+            const auto snapshot = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                    opalx::test::valuesOf(command), std::nullopt, {}, {}, 0, 0.05, 0.0));
             command.setNX(16);
             EXPECT_EQ(snapshot.grid.meshSize[0], 8u);
             EXPECT_EQ(
-                    std::get<CartesianPIC3DConfig>(
-                            buildSpaceChargeConfig(
-                                    opalx::test::valuesOf(command), std::nullopt, {}, {}))
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                                                           opalx::test::valuesOf(command),
+                                                           std::nullopt, {}, {}, 0, 0.05, 0.0))
                             .grid.meshSize[0],
                     16u);
         }
@@ -352,15 +352,15 @@ namespace opalx::spacecharge {
 
             auto fixed = makeCommand("P3M");
             fixed->setCutoff(0.025);
-            const auto fixedConfig = std::get<CartesianPIC3DConfig>(
-                    buildSpaceChargeConfig(opalx::test::valuesOf(*fixed), std::nullopt, {}, {}));
+            const auto fixedConfig = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                    opalx::test::valuesOf(*fixed), std::nullopt, {}, {}, 0, 0.05, 0.0));
             EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoff, 0.025);
             EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoffCells, 0.0);
 
             auto meshTied = makeCommand("P3M");
             meshTied->setCutoffCells(3.0);
-            const auto meshTiedConfig = std::get<CartesianPIC3DConfig>(
-                    buildSpaceChargeConfig(opalx::test::valuesOf(*meshTied), std::nullopt, {}, {}));
+            const auto meshTiedConfig = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                    opalx::test::valuesOf(*meshTied), std::nullopt, {}, {}, 0, 0.05, 0.0));
             EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoff, 0.0);
             EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoffCells, 3.0);
 
@@ -369,21 +369,21 @@ namespace opalx::spacecharge {
             both->setCutoffCells(2.0);
             EXPECT_THROW(
                     (void)buildSpaceChargeConfig(
-                            opalx::test::valuesOf(*both), std::nullopt, {}, {}),
+                            opalx::test::valuesOf(*both), std::nullopt, {}, {}, 0, 0.05, 0.0),
                     OpalException);
 
             // Other solvers ignore the RCUT_CELLS default but reject an explicit value.
             auto open = makeCommand("OPEN");
             EXPECT_DOUBLE_EQ(
-                    std::get<CartesianPIC3DConfig>(
-                            buildSpaceChargeConfig(
-                                    opalx::test::valuesOf(*open), std::nullopt, {}, {}))
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(
+                                                           opalx::test::valuesOf(*open),
+                                                           std::nullopt, {}, {}, 0, 0.05, 0.0))
                             .p3mCutoffCells,
                     0.0);
             open->setCutoffCells(2.0);
             EXPECT_THROW(
                     (void)buildSpaceChargeConfig(
-                            opalx::test::valuesOf(*open), std::nullopt, {}, {}),
+                            opalx::test::valuesOf(*open), std::nullopt, {}, {}, 0, 0.05, 0.0),
                     OpalException);
         }
 
@@ -399,7 +399,7 @@ namespace opalx::spacecharge {
                 command.setNX(value);
                 EXPECT_THROW(
                         (void)buildSpaceChargeConfig(
-                                opalx::test::valuesOf(command), std::nullopt, {}, {}),
+                                opalx::test::valuesOf(command), std::nullopt, {}, {}, 0, 0.05, 0.0),
                         OpalException);
             }
         }

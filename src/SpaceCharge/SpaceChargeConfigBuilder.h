@@ -20,11 +20,16 @@ namespace opalx::spacecharge {
      * @param emissionSources The emission sources of all beams (Dirichlet-plane settings).
      * @param distributions The distributions these sources name; a FLATTOP or OPALFLATTOP one
      *        changes the decomposition used when the particle layout is rebuilt.
+     * @param repartFreq Steps between load-balancing checks (OPTION REPARTFREQ); zero or less
+     *        disables them.
+     * @param loadBalancingThreshold OPTION LOADBALANCINGTHRESHOLD.
+     * @param loadBalancingPairWeight OPTION LOADBALANCINGPAIRWEIGHT.
      */
     [[nodiscard]] SpaceChargeConfig buildSpaceChargeConfig(
             const ObjectValues& fieldSolver, const std::optional<ObjectValues>& binning,
             const std::vector<ObjectValues>& emissionSources,
-            const std::vector<ObjectValues>& distributions);
+            const std::vector<ObjectValues>& distributions, int repartFreq,
+            double loadBalancingThreshold, double loadBalancingPairWeight);
 
 }  // namespace opalx::spacecharge
 

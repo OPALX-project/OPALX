@@ -702,7 +702,9 @@ namespace opalx::run {
         auto spaceChargeConfig = opalx::spacecharge::buildSpaceChargeConfig(
                 fieldSolver, binning, allSources,
                 std::vector<ObjectValues>(
-                        description.distributions.begin(), description.distributions.end()));
+                        description.distributions.begin(), description.distributions.end()),
+                options.repartFreq, options.loadBalancingThreshold,
+                options.loadBalancingPairWeight);
         const opalx::spacecharge::DirichletPlaneConfig dirichletPlane =
                 std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig)
                         .dirichletPlane;
