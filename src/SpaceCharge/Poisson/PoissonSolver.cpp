@@ -10,7 +10,6 @@
 #include "SpaceCharge/Poisson/P3MAdapters.h"
 #include "SpaceCharge/Poisson/PeriodicPoissonAdapter.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -32,7 +31,9 @@ namespace opalx::spacecharge {
         }
 
 #ifdef OPALX_FIELD_DEBUG
-        void dumpVectorField(VField_t<double, 3>& field, std::string what, std::size_t solveIndex) {
+        void dumpVectorField(
+                VField_t<double, 3>& field, std::string what, std::size_t solveIndex,
+                const std::string& basename) {
             Inform m("PoissonSolver::dumpVectorField");
             if (ippl::Comm->size() > 1 || solveIndex < 2) {
                 m << level5 << "Skipping vector field dump for multiple ranks or first call."
@@ -55,10 +56,10 @@ namespace opalx::spacecharge {
             auto hostView  = field.getHostMirror();
             Kokkos::deep_copy(hostView, view);
 
-            std::filesystem::path file("data/");
+            std::filesystem::path file(Util::auxiliaryOutputDirectory);
             std::ostringstream name;
-            name << OpalData::getInstance()->getInputBasename() << "-" << what << "_" << type << "-"
-                 << std::setfill('0') << std::setw(6) << solveIndex << ".dat";
+            name << basename << "-" << what << "_" << type << "-" << std::setfill('0')
+                 << std::setw(6) << solveIndex << ".dat";
             file /= name.str();
             std::ofstream output(file.string(), std::ios::out);
             output << std::setprecision(9);
@@ -89,7 +90,9 @@ namespace opalx::spacecharge {
               << file.string() << endl;
         }
 
-        void dumpScalarField(Field_t<3>& field, std::string what, std::size_t solveIndex) {
+        void dumpScalarField(
+                Field_t<3>& field, std::string what, std::size_t solveIndex,
+                const std::string& basename) {
             Inform m("PoissonSolver::dumpScalarField");
             m << level5 << "Dumping scalar field: " << what << endl;
             if (ippl::Comm->size() > 1) {
@@ -117,10 +120,10 @@ namespace opalx::spacecharge {
             auto hostView                   = field.getHostMirror();
             Kokkos::deep_copy(hostView, view);
 
-            std::filesystem::path file("data/");
+            std::filesystem::path file(Util::auxiliaryOutputDirectory);
             std::ostringstream name;
-            name << OpalData::getInstance()->getInputBasename() << "-" << what << "_" << type << "-"
-                 << std::setfill('0') << std::setw(6) << solveIndex << ".dat";
+            name << basename << "-" << what << "_" << type << "-" << std::setfill('0')
+                 << std::setw(6) << solveIndex << ".dat";
             file /= name.str();
             std::ofstream output(file.string(), std::ios::out);
             output << std::setprecision(9);
@@ -179,7 +182,7 @@ namespace opalx::spacecharge {
         [[maybe_unused]] const PoissonSolverCapabilities& backendCapabilities = capabilities();
 #ifdef OPALX_FIELD_DEBUG
         if (!options.suppressFieldDump && backendCapabilities.debugDumpChargeBeforeSolve) {
-            dumpScalarField(*fields_m.chargeDensity, "rho", solveIndex);
+            dumpScalarField(*fields_m.chargeDensity, "rho", solveIndex, config_m.fieldDumpBasename);
         }
 #endif
 
@@ -187,10 +190,10 @@ namespace opalx::spacecharge {
 
 #ifdef OPALX_FIELD_DEBUG
         if (!options.suppressFieldDump && backendCapabilities.debugDumpScalarAfterSolve) {
-            dumpScalarField(*fields_m.chargeDensity, "phi", solveIndex);
+            dumpScalarField(*fields_m.chargeDensity, "phi", solveIndex, config_m.fieldDumpBasename);
         }
         if (!options.suppressFieldDump && backendCapabilities.debugDumpVectorAfterSolve) {
-            dumpVectorField(*fields_m.electricField, "ef", solveIndex);
+            dumpVectorField(*fields_m.electricField, "ef", solveIndex, config_m.fieldDumpBasename);
         }
 #endif
         ++runtimeSolveCount_m;

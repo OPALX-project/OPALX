@@ -669,6 +669,8 @@ namespace opalx::run {
                         description.distributions.begin(), description.distributions.end()),
                 options.repartFreq, options.loadBalancingThreshold,
                 options.loadBalancingPairWeight);
+        std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig).fieldDumpBasename =
+                context.inputBasename;
         const opalx::spacecharge::DirichletPlaneConfig dirichletPlane =
                 std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig)
                         .dirichletPlane;

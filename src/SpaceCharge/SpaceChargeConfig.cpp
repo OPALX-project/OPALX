@@ -135,7 +135,7 @@ namespace opalx::spacecharge {
         return {config.backend,        config.greenFunction,
                 config.p3mCutoff,      config.boundaryConditions,
                 config.p3mCutoffCells, config.repeatCount,
-                config.repeatSpacing};
+                config.repeatSpacing,  config.fieldDumpBasename};
     }
 
     void validatePoissonSolverConfig(const PoissonSolverConfig& config) {

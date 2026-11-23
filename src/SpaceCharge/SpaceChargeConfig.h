@@ -39,7 +39,8 @@ namespace opalx::spacecharge {
          * field of a train of identical bunches (OPEN or open P3M only).
          */
         int repeatCount      = 0;
-        double repeatSpacing = 0.0;  ///< Lab-frame spacing of the copies in metres.
+        double repeatSpacing = 0.0;     ///< Lab-frame spacing of the copies in metres.
+        std::string fieldDumpBasename;  ///< Input basename; names the OPALX_FIELD_DEBUG dumps.
     };
 
     /** @brief Cartesian mesh extents, MPI decomposition, and particle-bound margin. */
@@ -111,6 +112,7 @@ namespace opalx::spacecharge {
          */
         double loadBalancingPairWeight = 0.0;
         DirichletPlaneConfig dirichletPlane;
+        std::string fieldDumpBasename;  ///< See PoissonSolverConfig::fieldDumpBasename.
 
         [[nodiscard]] const std::array<bool, 3>& layoutDecomposition() const {
             return layoutRebuildDecomposition.has_value() ? *layoutRebuildDecomposition
