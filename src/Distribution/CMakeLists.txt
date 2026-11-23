@@ -5,7 +5,6 @@ set (_SRCS
     FlatTop.cpp
     FromFile.cpp
     Gaussian.cpp
-    LaserProfile.cpp
     MultiVariateGaussian.cpp
     OpalFlatTop.cpp
     SamplingBase.cpp
@@ -19,7 +18,6 @@ set (HDRS
     FlatTop.h
     FromFile.h
     Gaussian.h
-    LaserProfile.h
     MultiVariateGaussian.h
     OpalFlatTop.h
     SamplingBase.hpp
