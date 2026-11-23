@@ -111,8 +111,10 @@ TEST_F(BuildTrackingTest, RunNeedsOnlyTheDescription) {
     ASSERT_EQ(OpalData::getInstance()->find("B1"), nullptr);
     ASSERT_EQ(OpalData::getInstance()->find("L1"), nullptr);
 
+    std::vector<std::string> errors;
     std::vector<std::shared_ptr<ElementBase>> elements =
-            opalx::run::buildElements(description.line, description.context.p0);
+            opalx::run::buildElements(description.line, description.context.p0, errors);
+    ASSERT_TRUE(errors.empty());
     opalx::run::RunObjects objects;
     TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
 

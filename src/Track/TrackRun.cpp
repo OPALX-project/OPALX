@@ -83,9 +83,9 @@ void TrackRun::execute() {
     OpalData* opal = OpalData::getInstance();
     opalx::run::RunDescription description =
             opalx::run::freeze(*this, *track, ++opal->numberOfRuns);
+    std::vector<std::string> errors = opalx::run::validate(description);
     std::vector<std::shared_ptr<ElementBase>> elements =
-            opalx::run::buildElements(description.line, description.context.p0);
-    const std::vector<std::string> errors = opalx::run::validate(description);
+            opalx::run::buildElements(description.line, description.context.p0, errors);
     if (opal->checkOnly) {
         const std::string fileName = opalx::run::dumpFileName(description);
         if (ippl::Comm->rank() == 0) {

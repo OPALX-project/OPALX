@@ -28,8 +28,9 @@ public:
     virtual ~TrackRun();
 
     /**
-     * @brief Run freeze(), buildElements() and validate(); with --check write the run
+     * @brief Run freeze(), validate() and buildElements(); with --check write the run
      *        description and stop, else build the tracking setup and track.
+     * @throws OpalException with every input error of the RUN, before anything is allocated.
      */
     virtual void execute();
 

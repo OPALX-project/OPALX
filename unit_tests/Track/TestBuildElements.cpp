@@ -9,6 +9,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Multipole.h"
@@ -95,6 +96,22 @@ TEST_F(BuildElementsTest, UnknownKeywordOrFailedAttributeThrows) {
         if (entry.name == "K1") entry.error = "Can't find variable 'X'";
     }
     EXPECT_THROW(buildElement(failed, kP0), OpalException);
+}
+
+TEST_F(BuildElementsTest, BuildElementsReportsEveryBadElement) {
+    LineDescription line;
+    line.elements                   = {quadrupole("Q5"), quadrupole("Q6"), quadrupole("Q7")};
+    line.elements[0].object.keyword = "NOT_A_KEYWORD";
+    for (AttributeEntry& entry : line.elements[2].object.attributes) {
+        if (entry.name == "K1") entry.error = "Can't find variable 'X'";
+    }
+    std::vector<std::string> errors;
+    const auto built = buildElements(line, kP0, errors);
+    ASSERT_EQ(errors.size(), 2u);
+    EXPECT_EQ(errors[0].rfind("Element \"Q5\"", 0), 0u);
+    EXPECT_EQ(errors[1].rfind("Element \"Q7\"", 0), 0u);
+    ASSERT_EQ(built.size(), 1u);
+    EXPECT_EQ(built[0]->getName(), "Q6");
 }
 
 int main(int argc, char** argv) {

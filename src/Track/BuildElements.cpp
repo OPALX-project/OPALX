@@ -6,6 +6,7 @@
 //
 #include "Track/BuildElements.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -141,12 +142,31 @@ namespace opalx::run {
     }
 
     std::vector<std::shared_ptr<ElementBase>> buildElements(
-            const LineDescription& line, double p0) {
-        registerModels(line.models);
+            const LineDescription& line, double p0, std::vector<std::string>& errors) {
+        // Prefix the message with the object, e.g. Element "Q1", unless it starts with it.
+        const auto record = [&errors](const std::string& object, const OpalException& error) {
+            std::string message = error.what();
+            if (message.rfind(object, 0) != 0) message = object + ": " + message;
+            // A line can use one element many times; report it once.
+            if (std::find(errors.begin(), errors.end(), message) == errors.end()) {
+                errors.push_back(message);
+            }
+        };
+        for (const ObjectDescription& model : line.models) {
+            try {
+                registerModels({model});
+            } catch (const OpalException& error) {
+                record(model.keyword + " \"" + model.name + "\"", error);
+            }
+        }
         std::vector<std::shared_ptr<ElementBase>> elements;
         elements.reserve(line.elements.size());
         for (const ElementDescription& element : line.elements) {
-            elements.push_back(buildElement(element, p0));
+            try {
+                elements.push_back(buildElement(element, p0));
+            } catch (const OpalException& error) {
+                record("Element \"" + element.object.name + "\"", error);
+            }
         }
         return elements;
     }

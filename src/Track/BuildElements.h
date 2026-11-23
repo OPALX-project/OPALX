@@ -43,8 +43,12 @@ namespace opalx::run {
 
     /**
      * @brief Build the runtime elements of every occurrence of @p line, in line order.
+     *
+     * An element or time dependence that cannot be built is left out and its message, naming
+     * the element, is added to @p errors once, so the RUN reports it with its other input errors.
      */
-    std::vector<std::shared_ptr<ElementBase>> buildElements(const LineDescription& line, double p0);
+    std::vector<std::shared_ptr<ElementBase>> buildElements(
+            const LineDescription& line, double p0, std::vector<std::string>& errors);
 
     /// True if @p keyword defines a time dependence.
     bool isModelKeyword(const std::string& keyword);
@@ -52,7 +56,7 @@ namespace opalx::run {
     /**
      * @brief Make each time dependence of @p models and register it under its name
      *        (AbstractTimeDependence), where the elements look it up. buildElements() calls it
-     *        for the models of the line.
+     *        for each model of the line.
      */
     void registerModels(const std::vector<ObjectDescription>& models);
 
