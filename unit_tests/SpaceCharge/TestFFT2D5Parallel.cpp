@@ -81,8 +81,6 @@ namespace opalx::spacecharge {
                         }
                         Kokkos::deep_copy(pc.dt.getView(), dt);
                         Kokkos::deep_copy(pc.InvalidMask.getView(), false);
-                        pc.markMomentsDirty();
-                        pc.updateMoments();
                         FFT2D5Config cfg;
                         cfg.grid.meshSize      = {nx, nx, nz};
                         cfg.grid.decomposition = {false, false, true};
@@ -139,15 +137,13 @@ namespace opalx::spacecharge {
                                     ((k + 1 < nz ? lambda[k + 1] : (closed ? lambda[0] : 0.))
                                      - (k > 0 ? lambda[k - 1] : (closed ? lambda[nz - 1] : 0.)))
                                     / (2 * dz);
-                        for (int repeat = 0; repeat < 4; ++repeat) {
-                            step.deferTrackerMoments = repeat % 2 != 0;
+                        for (int repeat = 0; repeat < 2; ++repeat) {
                             SCOPED_TRACE(
                                     ::testing::Message()
                                     << "closed=" << closed << " cic=" << cicZ
                                     << " sparse=" << sparse << " repeat=" << repeat
                                     << " rank=" << ippl::Comm->rank());
                             ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, step})));
-                            EXPECT_EQ(pc.isMomentsDirty(), step.deferTrackerMoments);
                             const auto local   = solver.getRho()->getLayout().getLocalNDIndex();
                             const auto density = Kokkos::create_mirror_view_and_copy(
                                     Kokkos::HostSpace(), solver.getRho()->getView());

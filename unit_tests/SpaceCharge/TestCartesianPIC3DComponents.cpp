@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include "../TemporaryDirectory.h"
+#include "Moments/BeamMoments.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/Quaternion.hpp"
@@ -248,8 +249,6 @@ namespace opalx::spacecharge {
             secondaryMomenta(0)     = Vector_t<double, 3>(0.0);
             Kokkos::deep_copy(secondary->R.getView(), secondaryPositions);
             Kokkos::deep_copy(secondary->P.getView(), secondaryMomenta);
-            secondary->updateMoments();
-            ASSERT_FALSE(secondary->isMomentsDirty());
             particles->createParticles(2);
             auto positions = particles->R.getHostMirror();
             auto momenta   = particles->P.getHostMirror();
@@ -291,25 +290,19 @@ namespace opalx::spacecharge {
                     workspace, *poisson));
             EXPECT_EQ(workspace.layoutExtents(), domainConfig.meshSize);
             EXPECT_EQ(domain.decomposition(), domainConfig.decomposition);
-            EXPECT_FALSE(particles->isMomentsDirty());
-            EXPECT_FALSE(secondary->isMomentsDirty());
             for (unsigned dimension = 0; dimension < 3; ++dimension) {
                 EXPECT_DOUBLE_EQ(domain.lower()[dimension], fixedLower[dimension]);
                 EXPECT_DOUBLE_EQ(domain.upper()[dimension], fixedUpper[dimension]);
             }
 
-            secondary->markMomentsDirty();
             bunchState->clearFixedCartesianDomain();
             EXPECT_FALSE(updater.updateForSolve(
                     DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, *poisson));
             EXPECT_NE(domain.lower()[0], fixedLower[0]);
             EXPECT_NE(domain.upper()[0], fixedUpper[0]);
-            EXPECT_FALSE(particles->isMomentsDirty());
-            EXPECT_TRUE(secondary->isMomentsDirty());
 
             EXPECT_FALSE(updater.updateForSolve(
                     DomainCoordinateFrame::Reference, context, {}, nullptr, workspace, *poisson));
-            EXPECT_FALSE(secondary->isMomentsDirty());
         }
 
         TEST_F(CartesianPIC3DComponentsTest, CartesianAlgorithmRetainsAndClearsFixedMesh) {
@@ -338,9 +331,9 @@ namespace opalx::spacecharge {
             Kokkos::deep_copy(particles->R.getView(), positions);
             Kokkos::deep_copy(particles->P.getView(), momenta);
             Kokkos::deep_copy(particles->dt.getView(), timeSteps);
-            particles->markMomentsDirty();
-            particles->updateMoments();
-            const Vector_t<double, 3> originalMean = particles->getMeanR();
+            const Vector_t<double, 3> originalMean =
+                    opalx::moments::compute(*particles, opalx::moments::Moment::MeanPosition)
+                            .meanR();
 
             std::vector<Container*> particleContainers{particles.get()};
             CartesianPIC3DConfig values;
@@ -369,9 +362,11 @@ namespace opalx::spacecharge {
                 EXPECT_DOUBLE_EQ(fieldObserver->lower()[dimension], fixedLower[dimension]);
                 EXPECT_DOUBLE_EQ(fieldObserver->upper()[dimension], fixedUpper[dimension]);
             }
-            EXPECT_FALSE(particles->isMomentsDirty());
             for (unsigned dimension = 0; dimension < 3; ++dimension) {
-                EXPECT_NEAR(particles->getMeanR()[dimension], originalMean[dimension], 1.0e-14);
+                EXPECT_NEAR(
+                        opalx::moments::compute(*particles, opalx::moments::Moment::MeanPosition)
+                                .meanR()[dimension],
+                        originalMean[dimension], 1.0e-14);
             }
 
             bunchState->clearFixedCartesianDomain();
@@ -380,7 +375,6 @@ namespace opalx::spacecharge {
             EXPECT_EQ(followingResult.backendSolves, 1u);
             EXPECT_NE(fieldObserver->lower()[0], fixedLower[0]);
             EXPECT_NE(fieldObserver->upper()[0], fixedUpper[0]);
-            EXPECT_FALSE(particles->isMomentsDirty());
         }
 
     }  // namespace

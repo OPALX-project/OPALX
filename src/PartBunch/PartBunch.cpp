@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
-#include "Algorithms/Matrix.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Structure/Beam.h"
@@ -110,9 +109,6 @@ PartBunch<T, Dim>::PartBunch(
     this->hr_m     = cartesianDomain_m->spacing();
     this->origin_m = cartesianDomain_m->origin();
     this->dt_m     = 0.5 / this->nr_m[2];
-
-    rmin_m = cartesianDomain_m->lower();
-    rmax_m = cartesianDomain_m->upper();
 
     std::ostringstream fieldLayout;
     fieldLayout << cartesianDomain_m->layout();
@@ -229,128 +225,19 @@ void PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
 }
 
 /**
- * @copybrief PartBunch::calcBeamParameters
- */
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::calcBeamParameters(bool fft2d5) {
-    Inform m("PartBunch::calcBeamParameters");
-    std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
-
-    using view_type = ippl::ParticleAttrib<Vector_t<double, 3>>::view_type;
-    view_type Rview = pc->R.getView();
-    view_type Pview = pc->P.getView();
-    this->getParticleContainer()->updateMoments();
-    m << level5 << "Moments updated." << endl;
-
-    // These legacy reductions publish no results. FFT2D5 uses updateMoments() above
-    // and the bounds below; retain the original sequence for all other solvers.
-    if (!fft2d5) {
-        ////////////////////////////////////
-        //// Calculate Moments of R and P //
-        ////////////////////////////////////
-
-        using MomentsVec = ippl::Vector<double, 2 * Dim>;
-        using MomentsMat = ippl::Vector<MomentsVec, 2 * Dim>;
-
-        MomentsVec loc_centroid(0.0);
-        MomentsMat loc_moment(MomentsVec(0.0));
-
-        MomentsVec centroid(0.0);
-        MomentsMat moment(MomentsVec(0.0));
-
-        for (unsigned i = 0; i < 2 * Dim; ++i) {
-            const size_t nLocal = pc->getLocalNum();
-            Kokkos::parallel_reduce(
-                    "calc moments of particle distr.", nLocal,
-                    KOKKOS_LAMBDA(
-                            const size_t k, double& cent, double& mom0, double& mom1, double& mom2,
-                            double& mom3, double& mom4, double& mom5) {
-                        double part[2 * Dim];
-                        part[0] = Rview(k)[0];
-                        part[1] = Pview(k)[0];
-                        part[2] = Rview(k)[1];
-                        part[3] = Pview(k)[1];
-                        part[4] = Rview(k)[2];
-                        part[5] = Pview(k)[2];
-
-                        cent += part[i];
-                        mom0 += part[i] * part[0];
-                        mom1 += part[i] * part[1];
-                        mom2 += part[i] * part[2];
-                        mom3 += part[i] * part[3];
-                        mom4 += part[i] * part[4];
-                        mom5 += part[i] * part[5];
-                    },
-                    Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
-                    Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
-                    Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-                    Kokkos::Sum<T>(loc_moment[i][5]));
-            Kokkos::fence();
-        }
-        m << level5 << "Local moments calculated." << endl;
-
-        moment   = loc_moment;
-        centroid = loc_centroid;
-        ippl::Comm->allreduce(moment, 1, std::plus<MomentsMat>());
-        ippl::Comm->allreduce(centroid, 1, std::plus<MomentsVec>());
-        ippl::Comm->barrier();
-        m << level5 << "Global moments calculated." << endl;
-    }
-
-    ippl::Vector<double, Dim> rmax_loc(0.0);
-    ippl::Vector<double, Dim> rmin_loc(0.0);
-    ippl::Vector<double, Dim> rmax(0.0);
-    ippl::Vector<double, Dim> rmin(0.0);
-
-    // TODO: fuse min/max reductions with ippl::Vector reductions.
-    for (unsigned d = 0; d < Dim; ++d) {
-        Kokkos::parallel_reduce(
-                "rel max", pc->getLocalNum(),
-                KOKKOS_LAMBDA(const int i, double& mm) {
-                    double tmp_vel = Rview(i)[d];
-                    mm             = tmp_vel > mm ? tmp_vel : mm;
-                },
-                Kokkos::Max<T>(rmax_loc[d]));
-
-        Kokkos::parallel_reduce(
-                "rel min", pc->getLocalNum(),
-                KOKKOS_LAMBDA(const int i, double& mm) {
-                    double tmp_vel = Rview(i)[d];
-                    mm             = tmp_vel < mm ? tmp_vel : mm;
-                },
-                Kokkos::Min<T>(rmin_loc[d]));
-    }
-    m << level5 << "Local min/max calculated." << endl;
-    Kokkos::fence();
-    rmax = rmax_loc;
-    rmin = rmin_loc;
-    ippl::Comm->allreduce(rmax, 1, std::greater<ippl::Vector<double, Dim>>());
-    ippl::Comm->allreduce(rmin, 1, std::less<ippl::Vector<double, Dim>>());
-    ippl::Comm->barrier();
-    m << level5 << "Global min/max calculated." << endl;
-
-    rmax_m = rmax;
-    rmin_m = rmin;
-}
-
-/**
  * @copybrief PartBunch::print
  */
 template <typename T, unsigned Dim>
-Inform& PartBunch<T, Dim>::print(Inform& os) {
-    // if (pc->getLocalNum() != 0) {  // to suppress Nans
+Inform& PartBunch<T, Dim>::print(Inform& os, std::span<const opalx::moments::BeamMoments> moments) {
     Inform::FmtFlags_t ff = os.flags();
 
     const auto& containers = this->getParticleContainers();
+    if (moments.size() != containers.size()) {
+        throw OpalException("PartBunch::print", "Expected one moment snapshot per container.");
+    }
     for (size_t ci = 0; ci < containers.size(); ++ci) {
         const auto& pc = containers[ci];
-        if (!pc) {
-            os << level1 << "Skipping null particle container: " << ci << endl;
-            continue;
-        }
-
-        const double ek  = pc->getMeanKineticEnergy();
-        const double dek = pc->getStdKineticEnergy();
+        const auto& m  = moments[ci];
 
         // ParticleContainer tracks charge/mass storage mode for QM attributes.
         std::string qmStorageModeStr = "SINGLE";
@@ -366,27 +253,23 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* PARTICLES       = " << pc->getTotalNum() << "\n"
            << "* CHARGE          = " << pc->getTotalCharge() << " (Cb) \n"
            << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
-           << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
-           << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
+           << "* <EKIN>          = " << Util::getEnergyString(m.meanKineticEnergy()) << "\n"
+           << "* <dEKIN>         = " << Util::getEnergyString(m.stdKineticEnergy()) << "\n"
            << "* INTEGRATOR      = " << integration_method_m << "\n"
            << "* LB Threshold    = " << lbt_m << "\n"
-           << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
-           << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
-           << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
-           << "* RMS P           = " << pc->getRmsP() << " [beta gamma]\n"
-           << "* Mean R          = " << pc->getMeanR() << " [m]\n"
-           << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
+           << "* MIN R (origin)  = " << Util::getLengthString(m.minR(), 5) << "\n"
+           << "* MAX R (max ext) = " << Util::getLengthString(m.maxR(), 5) << "\n"
+           << "* RMS R           = " << Util::getLengthString(m.rmsR(), 5) << "\n"
+           << "* RMS P           = " << m.rmsP() << " [beta gamma]\n"
+           << "* Mean R          = " << m.meanR() << " [m]\n"
+           << "* Mean P          = " << m.meanP() << " [beta gamma]\n"
            << "* MESH SPACING    = " << Util::getLengthString(hr_m, 5) << "\n"
            << "* COMPDOM INCR    = " << boundingBoxIncreasePercent_m << " (%) \n"
            << "* FIELD LAYOUT    = " << initialFieldLayout_m << "\n"
-           << "* Centroid : \n* ";
-        for (unsigned int i = 0; i < 2 * Dim; i++) {
-            os << level1 << pc->getCentroid()[i] << " ";
-        }
-        os << level1 << endl << "* Cov Matrix : \n* ";
+           << "* Cov Matrix : \n* ";
         for (unsigned int i = 0; i < 2 * Dim; i++) {
             for (unsigned int j = 0; j < 2 * Dim; j++) {
-                os << level1 << pc->getCovMatrix()(i, j) << " ";
+                os << level1 << m.covariance(i, j) << " ";
             }
             os << level1 << "\n* ";
         }
@@ -399,17 +282,6 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 
     os.flags(ff);
     return os;
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::updateAllParticleMoments() {
-    const auto& containers = this->getParticleContainers();
-    for (size_t i = 0; i < containers.size(); ++i) {
-        if (!containers[i]) {
-            continue;
-        }
-        this->getParticleContainer(i)->updateMoments();
-    }
 }
 
 /** Explicit instantiation for 3D double (OPAL-T). */

@@ -21,6 +21,7 @@
 #include <memory>
 #include <span>
 #include <vector>
+#include "Moments/BeamMoments.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/FFT2D5/FFT2D5FieldStorage.h"
 #include "SpaceCharge/FFT2D5/ReferencePath.h"
@@ -756,12 +757,10 @@ namespace opalx::spacecharge {
          */
         void enterParticleSolveFrames(
                 const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
-        /** @internal @brief Restore tracker frames, refreshing moments unless the tracker defers.
-         * @param context Activity flags. @param labToSolve Transform used for entry.
-         * @param refreshMoments Always true when restoring after an exception. */
+        /** @internal @brief Restore tracker frames and their moments, also after solver exceptions.
+         * @param context Activity flags. @param labToSolve Transform used for entry. */
         void restoreParticleSolveFrames(
-                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve,
-                bool refreshMoments = true);
+                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
         /** @internal @brief Reject transverse ownership outside the fixed open FFT domain.
          * @param container Active container index. All ranks participate in the error reduction. */
         void checkMigrationDomain(size_t container);
@@ -771,7 +770,7 @@ namespace opalx::spacecharge {
          * together. */
         void saveMigrationPositions(size_t container);
         /** @internal @brief Restore Cartesian coordinates from the migrated registered attribute.
-         * @param pc Container on its current ownership; invalidates its moment cache. */
+         * @param pc Container on its current ownership. */
         void restoreMigrationPositions(ParticleContainer& pc);
         /** @internal @brief Migrate one container through OPEN spatial infrastructure and restore
          * its BC.
@@ -779,24 +778,18 @@ namespace opalx::spacecharge {
          * throws. */
         void migrateContainer(size_t container);
 
-        /** @internal @brief Check charge and open-path coverage before
+        /** @internal @brief Refresh moments, check charge and validate open-path coverage before
          * deposition.
          * @param container Active source index. @param usePreparedProjections Use the per-solve
-         * caches. @param meansOnly Leave full moments dirty; scatter computes mean pz directly. */
-        void validateDepositionContainer(
-                size_t container, bool usePreparedProjections, bool meansOnly);
-        /// Number-weighted global mean pz in the current solve frame; includes all stored
-        /// particles.
-        T meanLongitudinalMomentum(size_t container) const;
+         * caches. */
+        void validateDepositionContainer(size_t container, bool usePreparedProjections);
         /** @internal @brief Deposit one container and restore its charge-scaled time steps.
          * @tparam DiagnosticPolicy Stage observer. @param container Active source index.
          * @param diagnostic Observer. @param usePreparedProjections Use current projection caches.
-         * @param meansOnly Use the direct global mean pz instead of full distribution moments.
          */
         template <typename DiagnosticPolicy>
         void scatterContainer(
-                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
-                bool meansOnly);
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
         /** @internal @brief Fold serial periodic ghosts, scale charge and accumulate MPI source
          * halos.
          * @tparam DiagnosticPolicy Stage observer. @param context Current dt/activity.
@@ -836,13 +829,10 @@ namespace opalx::spacecharge {
          * @tparam ScatterLongitudinally Select linear z interpolation. @tparam DiagnosticPolicy
          * Observer.
          * @param container Source index. @param diagnostic Field observer.
-         * @param usePreparedProjections Use current per-solve path caches.
-         * @param meansOnly Reuse the prepared scalar mean, or compute it for a standalone gather.
-         */
+         * @param usePreparedProjections Use current per-solve path caches. */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy>
         void gatherContainer(
-                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections,
-                bool meansOnly);
+                size_t container, DiagnosticPolicy diagnostic, bool usePreparedProjections);
 
         /** @internal @brief Recover the unchanged path basis and momentum components from a cached
          * winner.
@@ -862,8 +852,6 @@ namespace opalx::spacecharge {
         bool firstPhysicalSolve_m = true;
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
-        /// Prepared with the projection cache; reused by scatter/gather in one complete solve.
-        std::vector<T> preparedMeanPs_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
         ReferenceView_t solveReferencePath_m;

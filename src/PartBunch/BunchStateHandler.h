@@ -10,13 +10,12 @@
  * @class BunchStateHandler
  * @brief Centralised tracking of mutable bunch-level and per-container status flags.
  *
- * One instance is owned by PartBunch. Per-container coordinate and moment-cache flags live in
- * registered slots whose lifetime follows each ParticleContainer. Fixed Cartesian bounds are
- * bunch-wide and persist independently of container lifetimes.
+ * One instance is owned by PartBunch. Per-container coordinate flags live in registered slots
+ * whose lifetime follows each ParticleContainer. Fixed Cartesian bounds are bunch-wide and persist
+ * independently of container lifetimes.
  *
- * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$ and does not dirty moments.
- * `momentsDirty` is set after position or momentum changes and cleared after recomputation.
- * `Options::aggressiveStateSync` optionally converges these booleans across MPI ranks.
+ * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$.
+ * `Options::aggressiveStateSync` optionally converges it across MPI ranks.
  */
 class BunchStateHandler {
 public:
@@ -33,16 +32,11 @@ public:
         bool operator==(const FixedCartesianDomainState&) const = default;
     };
 
-    /**
-     * @brief Per-container coordinate-representation and moment-cache state.
-     */
+    /** @brief Per-container coordinate-representation state. */
     struct ContainerState {
         bool unitlessPositions = false;
-        bool momentsDirty      = true;
 
         void setUnitlessPositions(bool v);
-        void markMomentsDirty();
-        void markMomentsClean();
     };
 
     BunchStateHandler() = default;

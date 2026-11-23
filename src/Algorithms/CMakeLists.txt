@@ -3,7 +3,6 @@ set (_SRCS
     AbstractTracker.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp
-    DistributionMoments.cpp
     Flagger.cpp
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
@@ -35,7 +34,6 @@ set (HDRS
     CompensatedSum.h
     RungeKuttaTableau.h
     DefaultVisitor.h
-    DistributionMoments.h
     Flagger.h
     IndexMap.h
     ExternalFieldRayTracker.h

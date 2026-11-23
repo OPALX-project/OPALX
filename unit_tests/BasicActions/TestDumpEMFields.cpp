@@ -17,6 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "../TemporaryDirectory.h"
+#include "Physics/Units.h"
 
 #include <filesystem>
 #include <fstream>

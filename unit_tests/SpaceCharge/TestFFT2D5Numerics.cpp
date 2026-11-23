@@ -1545,8 +1545,6 @@ namespace {
                     }
                 }
                 Kokkos::deep_copy(rho->getView(), density);
-                pc_m->markMomentsDirty();
-                pc_m->updateMoments();
                 solver_m->solvePoissons();
                 solver_m->calculateLineDensity();
                 solver_m->gatherFromGrid(context());
@@ -1697,8 +1695,6 @@ namespace {
                 }
                 Kokkos::deep_copy(rho->getView(), host);
                 Kokkos::deep_copy(solver_m->getEField()->getView(), Point_t(0, 0, 0));
-                pc_m->markMomentsDirty();
-                pc_m->updateMoments();
                 solver_m->calculateLineDensity();
                 solver_m->gatherFromGrid(context());
                 const auto e =

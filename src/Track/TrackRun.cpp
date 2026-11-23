@@ -613,8 +613,11 @@ void TrackRun::execute() {
         bunch_m->setMass();
     }
 
-    bunch_m->updateAllParticleMoments();
-    bunch_m->print(*gmsg);
+    std::vector<opalx::moments::BeamMoments> initialMoments;
+    for (const auto& pc : bunch_m->getParticleContainers()) {
+        initialMoments.push_back(opalx::moments::compute(*pc, PartBunch_t::printedMoments));
+    }
+    bunch_m->print(*gmsg, initialMoments);
 
     // Set ZStart, ZStop, and dT
     if (!isRestart && bunch_m->getParticleContainer()->getTotalNum() > 0) {

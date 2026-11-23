@@ -17,7 +17,7 @@
 //
 #include "H5Writer.h"
 
-H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart) : h5wrapper_m(h5wrapper), H5call_m(0) {
+H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart) : h5wrapper_m(h5wrapper) {
     (void)restart;
     if (!h5wrapper->startedFromExistingFile()) {
         h5wrapper->writeHeader();
@@ -26,39 +26,12 @@ H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart) : h5wrapper_m(h5wrapp
 }
 
 void H5Writer::writePhaseSpace(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex) {
+        PartBunch_t& beam, const opalx::moments::BeamMoments& moments, Vector_t<double, 3> FDext[],
+        size_t particleContainerIndex) {
     std::map<std::string, double> additionalAttributes = {
             std::make_pair("B-ref_x", FDext[0](0)), std::make_pair("B-ref_z", FDext[0](1)),
             std::make_pair("B-ref_y", FDext[0](2)), std::make_pair("E-ref_x", FDext[1](0)),
             std::make_pair("E-ref_z", FDext[1](1)), std::make_pair("E-ref_y", FDext[1](2))};
 
-    h5wrapper_m->writeStep(&beam, additionalAttributes, particleContainerIndex);
-}
-
-int H5Writer::writePhaseSpace(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], double /*meanEnergy*/, double refPr,
-        double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-        double elevation, bool /*local*/, size_t particleContainerIndex) {
-    auto pc = beam.getParticleContainer(particleContainerIndex);
-    if (!pc || pc->getTotalNum() < 3) return -1;  // single-particle / tune modes
-
-    std::map<std::string, double> additionalAttributes = {
-            std::make_pair("REFPR", refPr),          std::make_pair("REFPT", refPt),
-            std::make_pair("REFPZ", refPz),          std::make_pair("REFR", refR),
-            std::make_pair("REFTHETA", refTheta),    std::make_pair("REFZ", refZ),
-            std::make_pair("AZIMUTH", azimuth),      std::make_pair("ELEVATION", elevation),
-            std::make_pair("B-head_x", FDext[0](0)), std::make_pair("B-head_z", FDext[0](1)),
-            std::make_pair("B-head_y", FDext[0](2)), std::make_pair("E-head_x", FDext[1](0)),
-            std::make_pair("E-head_z", FDext[1](1)), std::make_pair("E-head_y", FDext[1](2)),
-            std::make_pair("B-ref_x", FDext[2](0)),  std::make_pair("B-ref_z", FDext[2](1)),
-            std::make_pair("B-ref_y", FDext[2](2)),  std::make_pair("E-ref_x", FDext[3](0)),
-            std::make_pair("E-ref_z", FDext[3](1)),  std::make_pair("E-ref_y", FDext[3](2)),
-            std::make_pair("B-tail_x", FDext[4](0)), std::make_pair("B-tail_z", FDext[4](1)),
-            std::make_pair("B-tail_y", FDext[4](2)), std::make_pair("E-tail_x", FDext[5](0)),
-            std::make_pair("E-tail_z", FDext[5](1)), std::make_pair("E-tail_y", FDext[5](2))};
-
-    h5wrapper_m->writeStep(&beam, additionalAttributes, particleContainerIndex);
-
-    ++H5call_m;
-    return H5call_m - 1;
+    h5wrapper_m->writeStep(&beam, moments, additionalAttributes, particleContainerIndex);
 }
