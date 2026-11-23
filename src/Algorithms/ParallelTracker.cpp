@@ -634,10 +634,7 @@ void ParallelTracker::finishTracking() {
     // Ensure all Kokkos operations are complete
     Kokkos::fence();
 
-    if (spaceChargeSolver_m != nullptr) {
-        m << level2 << "Total FieldSolver calls: " << spaceChargeSolver_m->backendSolveCount()
-          << endl;
-    }
+    m << level2 << "Total FieldSolver calls: " << spaceChargeSolver_m->backendSolveCount() << endl;
     if (ippl::Comm->size() > 1) {
         m << level2 << "Total binary repartitions: " << spaceChargeSolver_m->redistributionCount()
           << endl;
