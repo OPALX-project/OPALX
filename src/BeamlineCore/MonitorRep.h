@@ -45,21 +45,9 @@ public:
     //  Version for constant object.
     virtual const Geometry& getGeometry() const;
 
-    /// Get planes.
-    //  Return the plane(s) observed by this monitor.
-    virtual Plane getPlane() const;
-
-    /// Set active flag.
-    //  If [b]flag[/b] is true, the monitor is activated, otherwise it is
-    //  deactivated.
-    virtual void setActive(bool = true);
-
 protected:
     /// The monitor geometry.
     Geometry geometry;
-
-    /// The active/inactive flag.
-    bool active;
 
 private:
     // Not implemented.

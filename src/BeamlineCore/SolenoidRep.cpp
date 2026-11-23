@@ -19,8 +19,7 @@
 
 SolenoidRep::SolenoidRep() : Solenoid(), geometry() {}
 
-SolenoidRep::SolenoidRep(const SolenoidRep& right)
-    : Solenoid(right), geometry(right.geometry), Bz_m(right.Bz_m) {}
+SolenoidRep::SolenoidRep(const SolenoidRep& right) : Solenoid(right), geometry(right.geometry) {}
 
 SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry() {}
 
@@ -31,7 +30,3 @@ ElementBase* SolenoidRep::clone() const { return new SolenoidRep(*this); }
 Geometry& SolenoidRep::getGeometry() { return geometry; }
 
 const Geometry& SolenoidRep::getGeometry() const { return geometry; }
-
-double SolenoidRep::getBz() const { return Bz_m; }
-
-void SolenoidRep::setBz(double Bz) { Bz_m = Bz; }

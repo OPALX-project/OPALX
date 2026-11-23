@@ -17,8 +17,6 @@
 //
 #include "BeamlineCore/RFCavityRep.h"
 
-bool RFCavityRep::ignoreCavities = false;
-
 RFCavityRep::RFCavityRep() : RFCavity() {}
 
 RFCavityRep::RFCavityRep(const RFCavityRep& right) : RFCavity(right), geometry(right.geometry) {}
@@ -32,17 +30,3 @@ ElementBase* RFCavityRep::clone() const { return new RFCavityRep(*this); }
 Geometry& RFCavityRep::getGeometry() { return geometry; }
 
 const Geometry& RFCavityRep::getGeometry() const { return geometry; }
-
-double RFCavityRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
-
-double RFCavityRep::getFrequency() const { return getFrequencym(); }
-
-double RFCavityRep::getPhase() const { return getPhasem(); }
-
-void RFCavityRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
-
-void RFCavityRep::setFrequency(double frequency) { setFrequencym(frequency); }
-
-void RFCavityRep::setPhase(double phase) { setPhasem(phase); }
-
-void RFCavityRep::setIgnore(bool ignore) { ignoreCavities = ignore; }

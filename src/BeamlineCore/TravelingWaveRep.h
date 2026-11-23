@@ -44,43 +44,12 @@ public:
     //  Version for constant object.
     virtual const Geometry& getGeometry() const;
 
-    /// Get amplitude.
-    //  Return the RF amplitude in Volts.
-    virtual double getAmplitude() const;
-
-    /// Get frequency.
-    //  Return the RF frequency in Hertz.
-    virtual double getFrequency() const;
-
-    /// Get phase.
-    //  Return the RF phase in radians.
-    virtual double getPhase() const;
-
-    /// Set amplitude.
-    //  Assign the RF amplitude in Volts.
-    virtual void setAmplitude(double V);
-
-    /// Set frequency.
-    //  Assign the RF frequency in Hertz.
-    virtual void setFrequency(double f);
-
-    /// Set phase.
-    //  Assing the RF phase in radians.
-    virtual void setPhase(double phi);
-
-    /// Set ignore switch.
-    //  If [b]ignore[/b] is true, cavities are ignored for static calculations.
-    static void setIgnore(bool ignore = false);
-
 private:
     // Not implemented.
     void operator=(const TravelingWaveRep&);
 
     /// The cavity's geometry.
     Geometry geometry;
-
-    /// Cavities are ignored (amplitude = 0) when this switch is set.
-    static bool ignoreCavities;
 };
 
 #endif  // OPALX_TravelingWaveRep_HH

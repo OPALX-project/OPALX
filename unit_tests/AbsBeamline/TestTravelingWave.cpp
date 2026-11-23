@@ -12,7 +12,6 @@
  *
  * 1. Basic API
  *    - getType()
- *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
  *    - getFieldExtent()
@@ -131,20 +130,12 @@ class TestTravelingWave : public TravelingWave {
 public:
     TestTravelingWave() : TravelingWave("test_tw") {}
 
-    double getAmplitude() const override { return amplitude_; }
-    double getFrequency() const override { return frequency_; }
-    double getPhase() const override { return phase_; }
-
     ElementBase* clone() const override { return new TestTravelingWave(*this); }
 
     void setTestElementLength(double v) { geom_.setElementLength(v); }
 
     Geometry& getGeometry() override { return geom_; }
     const Geometry& getGeometry() const override { return geom_; }
-
-    void setAmplitude(double v) { amplitude_ = v; }
-    void setFrequency(double v) { frequency_ = v; }
-    void setPhase(double v) { phase_ = v; }
 
     void setScale(double v) { scale_m = v; }
     void setScaleError(double v) { scaleError_m = v; }
@@ -160,10 +151,6 @@ public:
     void setEndField(double v) { endField_m = v; }
 
 private:
-    double amplitude_ = 0.0;
-    double frequency_ = 0.0;
-    double phase_     = 0.0;
-
     Geometry geom_;
 };
 
@@ -215,16 +202,6 @@ protected:
 // Basic API
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetType) { EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE); }
-
-TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
-    tw_->setAmplitude(5.0);
-    tw_->setFrequency(2.0);
-    tw_->setPhase(0.5);
-
-    EXPECT_DOUBLE_EQ(tw_->getAmplitude(), 5.0);
-    EXPECT_DOUBLE_EQ(tw_->getFrequency(), 2.0);
-    EXPECT_DOUBLE_EQ(tw_->getPhase(), 0.5);
-}
 
 // ---------------------------------------------------------------------------
 // Geometry

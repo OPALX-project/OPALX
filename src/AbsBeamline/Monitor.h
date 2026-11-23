@@ -28,27 +28,12 @@
 
 class Monitor : public ElementBase {
 public:
-    /// Plane selection.
-    enum Plane {
-        /// Monitor is off (inactive).
-        OFF,
-        /// Monitor acts on x-plane.
-        X,
-        /// Monitor acts on y-plane.
-        Y,
-        /// Monitor acts on both planes.
-        XY
-    };
-
     /// Constructor with given name.
     explicit Monitor(const std::string& name);
 
     Monitor();
     Monitor(const Monitor&);
     ~Monitor() override;
-
-    /// Get plane on which monitor observes.
-    virtual Plane getPlane() const = 0;
 
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
@@ -96,7 +81,6 @@ private:
     Monitor& operator=(const Monitor&) = delete;
 
     std::string filename_m; /**< The name of the output file */
-    Plane plane_m;
     CollectionType type_m;
     unsigned int numPassages_m;
     bool recordReference_m = true;  ///< See setRecordReference().

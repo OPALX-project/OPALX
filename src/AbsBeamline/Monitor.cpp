@@ -37,7 +37,6 @@ Monitor::Monitor() : Monitor("") {}
 Monitor::Monitor(const Monitor& right)
     : ElementBase(right),
       filename_m(right.filename_m),
-      plane_m(right.plane_m),
       type_m(right.type_m),
       numPassages_m(0),
       asciiDump_m(right.asciiDump_m),
@@ -48,7 +47,6 @@ Monitor::Monitor(const Monitor& right)
 Monitor::Monitor(const std::string& name)
     : ElementBase(name),
       filename_m(""),
-      plane_m(OFF),
       type_m(CollectionType::SPATIAL),
       numPassages_m(0) {}
 

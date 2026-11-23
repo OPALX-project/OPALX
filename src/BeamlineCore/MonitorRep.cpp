@@ -18,12 +18,11 @@
 //
 #include "BeamlineCore/MonitorRep.h"
 
-MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}
+MonitorRep::MonitorRep() : Monitor(), geometry() {}
 
-MonitorRep::MonitorRep(const MonitorRep& right)
-    : Monitor(right), geometry(right.geometry), active(true) {}
+MonitorRep::MonitorRep(const MonitorRep& right) : Monitor(right), geometry(right.geometry) {}
 
-MonitorRep::MonitorRep(const std::string& name) : Monitor(name), geometry(), active(true) {}
+MonitorRep::MonitorRep(const std::string& name) : Monitor(name), geometry() {}
 
 MonitorRep::~MonitorRep() {}
 
@@ -32,7 +31,3 @@ ElementBase* MonitorRep::clone() const { return new MonitorRep(*this); }
 Geometry& MonitorRep::getGeometry() { return geometry; }
 
 const Geometry& MonitorRep::getGeometry() const { return geometry; }
-
-Monitor::Plane MonitorRep::getPlane() const { return active ? XY : OFF; }
-
-void MonitorRep::setActive(bool flag) { active = flag; }

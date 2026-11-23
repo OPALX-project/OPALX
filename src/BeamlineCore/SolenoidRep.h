@@ -42,23 +42,12 @@ public:
     //  Version for constant object.
     virtual const Geometry& getGeometry() const;
 
-    /// Get field.
-    //  Return the solenoid field in Teslas.
-    virtual double getBz() const;
-
-    /// Set field.
-    //  Assign the solenoid field in Teslas.
-    virtual void setBz(double Bz);
-
 private:
     // Not implemented.
     void operator=(const SolenoidRep&);
 
     /// The solenoid geometry.
     Geometry geometry;
-
-    /// Nominal on-axis field Bz in Teslas (backs the "BZ" channel attribute).
-    double Bz_m = 0.0;
 };
 
 #endif  // OPALX_SolenoidRep_HH

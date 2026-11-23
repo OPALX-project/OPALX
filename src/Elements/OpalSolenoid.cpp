@@ -21,7 +21,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SolenoidRep.h"
-#include "Physics/Physics.h"
 
 OpalSolenoid::OpalSolenoid()
     : OpalElement(SIZE, "SOLENOID", "The \"SOLENOID\" element defines a Solenoid.") {
@@ -40,25 +39,23 @@ OpalSolenoid::OpalSolenoid()
 
 OpalSolenoid::~OpalSolenoid() {}
 
-std::shared_ptr<ElementBase> OpalSolenoid::build(const ObjectValues& values, double p0) {
+std::shared_ptr<ElementBase> OpalSolenoid::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<SolenoidRep>(values.getName());
-    fill(*element, values, p0);
+    fill(*element, values);
     return element;
 }
 
-void OpalSolenoid::fill(ElementBase& element, const ObjectValues& values, double p0) {
+void OpalSolenoid::fill(ElementBase& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
     SolenoidRep* sol = dynamic_cast<SolenoidRep*>(&element);
     double length    = values.getReal("L");
-    double Bz        = values.getReal("KS") * p0 / Physics::c;
     bool fast        = values.getBool("FAST");
 
     sol->getGeometry().setElementLength(length);
     sol->setFieldMapFN(values.getString("FMAPFN"));
     sol->setFast(fast);
     sol->setIsZReversed(values.getBool("ZREVERSE"));
-    sol->setBz(Bz);
     sol->setKS(values.getReal("KS"));
     sol->setDKS(values.getReal("DKS"));
 }

@@ -48,15 +48,7 @@ public:
     RFCavity(const RFCavity&);
     virtual ~RFCavity();
 
-    /// Get RF amplitude.
-    virtual double getAmplitude() const = 0;
-
-    /// Get RF frequency.
-    virtual double getFrequency() const = 0;
     void setFrequency(double freq);
-
-    /// Get RF phase.
-    virtual double getPhase() const = 0;
 
     void dropFieldmaps();
 

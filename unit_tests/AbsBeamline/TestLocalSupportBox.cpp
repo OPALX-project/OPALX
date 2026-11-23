@@ -97,9 +97,6 @@ namespace {
     class BoxTravelingWave : public TravelingWave {
     public:
         BoxTravelingWave() : TravelingWave("TW") {}
-        double getAmplitude() const override { return 0.0; }
-        double getFrequency() const override { return 0.0; }
-        double getPhase() const override { return 0.0; }
         ElementBase* clone() const override { return new BoxTravelingWave(*this); }
         Geometry& getGeometry() override { return geometry_m; }
         const Geometry& getGeometry() const override { return geometry_m; }

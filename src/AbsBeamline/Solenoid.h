@@ -86,9 +86,6 @@ public:
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /* ========================================================================== */
     /* ============================== Functions ================================= */
-    /// @brief Get solenoid field Bz
-    virtual double getBz() const = 0;
-
     /// @brief Set the strength scaling factor ks
     void setKS(double ks);
 

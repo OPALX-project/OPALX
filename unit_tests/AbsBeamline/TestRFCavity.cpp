@@ -12,7 +12,6 @@
  *
  * 1. Basic API
  *    - getType()
- *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
  *    - getFieldExtent()
@@ -137,21 +136,12 @@ class TestRFCavity : public RFCavity {
 public:
     TestRFCavity() : RFCavity("test") {}
 
-    // ---- REQUIRED PURE VIRTUALS ----
-    double getAmplitude() const override { return amplitude_; }
-    double getFrequency() const override { return frequency_; }
-    double getPhase() const override { return phase_; }
-
     ElementBase* clone() const override { return new TestRFCavity(*this); }
 
     Geometry& getGeometry() override { return geom_; }
     const Geometry& getGeometry() const override { return geom_; }
 
     // ---- Simple setters for testing ----
-    void setAmplitude(double v) { amplitude_ = v; }
-    void setFrequency(double v) { frequency_ = v; }
-    void setPhase(double v) { phase_ = v; }
-
     void setScale(double v) { scale_m = v; }
     void setPhaseInternal(double v) { phase_m = v; }
     void setFrequencyInternal(double v) { frequency_m = v; }
@@ -161,10 +151,6 @@ public:
     void setEndField(double val) { endField_m = val; }
 
 private:
-    double amplitude_ = 0.0;
-    double frequency_ = 0.0;
-    double phase_     = 0.0;
-
     Geometry geom_;
 };
 
@@ -196,16 +182,6 @@ protected:
 // Basic API
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, GetType) { EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY); }
-
-TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
-    cav_->setAmplitude(5.0);
-    cav_->setFrequency(2.0);
-    cav_->setPhase(0.5);
-
-    EXPECT_DOUBLE_EQ(cav_->getAmplitude(), 5.0);
-    EXPECT_DOUBLE_EQ(cav_->getFrequency(), 2.0);
-    EXPECT_DOUBLE_EQ(cav_->getPhase(), 0.5);
-}
 
 // ---------------------------------------------------------------------------
 // Geometry / dimensions

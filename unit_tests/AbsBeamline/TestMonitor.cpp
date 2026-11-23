@@ -67,10 +67,6 @@ public:
 
     const Geometry& getGeometry() const override { return geom_; }
 
-    Plane getPlane() const override { return plane_; }
-
-    void setPlane(Plane plane) { plane_ = plane; }
-
     void setLength(double length) { geom_.setElementLength(length); }
 
     /// What initialise() sets at the end, without the bunch and the loss file it also needs.
@@ -78,7 +74,6 @@ public:
 
 private:
     Geometry geom_;
-    Plane plane_ = OFF;
 };
 
 // ---------------------------------------------------------------------------
@@ -141,23 +136,6 @@ TEST_F(MonitorTest, SetCollectionTypeUpdatesCollectionMode) {
     monitor.setCollectionType(CollectionType::SPATIAL);
 
     EXPECT_EQ(monitor.type_m, CollectionType::SPATIAL);
-}
-
-// ---------------------------------------------------------------------------
-// Plane bookkeeping
-// ---------------------------------------------------------------------------
-TEST_F(MonitorTest, PlaneDefaultsToOff) {
-    TestMonitor monitor;
-
-    EXPECT_EQ(monitor.getPlane(), Monitor::OFF);
-}
-
-TEST_F(MonitorTest, PlaneCanBeSetInConcreteTestMonitor) {
-    TestMonitor monitor;
-
-    monitor.setPlane(Monitor::XY);
-
-    EXPECT_EQ(monitor.getPlane(), Monitor::XY);
 }
 
 // ---------------------------------------------------------------------------

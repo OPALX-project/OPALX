@@ -50,14 +50,6 @@ public:
     //  Version for constant object.
     virtual const Geometry& getGeometry() const;
 
-    /// Get arc length.
-    //  Always return zero.      :return always zero
-    virtual double getArcLength() const;
-
-    /// Get design length.
-    //  Always return zero.      :return always zero
-    virtual double getElementLength() const;
-
 private:
     /// The marker geometry.
     Geometry geometry{Geometry::makeNull()};

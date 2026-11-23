@@ -17,11 +17,10 @@
 //
 #include "BeamlineCore/TravelingWaveRep.h"
 
-bool TravelingWaveRep::ignoreCavities = false;
-
 TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}
 
-TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right) : TravelingWave(right) {}
+TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right)
+    : TravelingWave(right), geometry(right.geometry) {}
 
 TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name) {}
 
@@ -32,17 +31,3 @@ ElementBase* TravelingWaveRep::clone() const { return new TravelingWaveRep(*this
 Geometry& TravelingWaveRep::getGeometry() { return geometry; }
 
 const Geometry& TravelingWaveRep::getGeometry() const { return geometry; }
-
-double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
-
-double TravelingWaveRep::getFrequency() const { return getFrequencym(); }
-
-double TravelingWaveRep::getPhase() const { return getPhasem(); }
-
-void TravelingWaveRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
-
-void TravelingWaveRep::setFrequency(double frequency) { setFrequencym(frequency); }
-
-void TravelingWaveRep::setPhase(double phase) { setPhasem(phase); }
-
-void TravelingWaveRep::setIgnore(bool ignore) { ignoreCavities = ignore; }

@@ -34,15 +34,6 @@ public:
     TravelingWave(const TravelingWave&);
     virtual ~TravelingWave();
 
-    /// Get RF amplitude.
-    virtual double getAmplitude() const override = 0;
-
-    /// Get RF frequency.
-    virtual double getFrequency() const override = 0;
-
-    /// Get RF phase.
-    virtual double getPhase() const override = 0;
-
     virtual void setPhasem(double phase) override;
 
     void setNumCells(int NumCells);
