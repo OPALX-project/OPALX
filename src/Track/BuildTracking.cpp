@@ -456,19 +456,8 @@ namespace opalx::run {
 
                 // File-based distributions carry absolute momenta. PC/ENERGY/GAMMA on the BEAM is
                 // optional for them and only sets the reference momentum (see the return value).
-                const bool usesFileMomentum =
-                        opalDist.getType() == DistributionType::FROMFILE
-                        || opalDist.getType() == DistributionType::EMITTEDFROMFILE;
-                if (usesFileMomentum) {
-                    hasFileSource = true;
-                } else {
-                    if (!beam.hasExplicitEnergy) {
-                        throw OpalException(
-                                "TrackRun::setupDistributionsAndSamplers()",
-                                "The energy hasn't been set. "
-                                "Set either \"GAMMA\", \"ENERGY\" or \"PC\" on the BEAM command.");
-                    }
-                }
+                hasFileSource = hasFileSource || opalDist.getType() == DistributionType::FROMFILE
+                                || opalDist.getType() == DistributionType::EMITTEDFROMFILE;
 
                 // Build a sampler instance for this emission source.
                 std::shared_ptr<SamplingBase> sampler;
@@ -555,12 +544,6 @@ namespace opalx::run {
                   << endl;
             IpplTimings::stopTimer(samplingTime);
 
-            if (beam.hasReferenceDirection && !hasFileSource) {
-                throw OpalException(
-                        "TrackRun::setupDistributionsAndSamplers()",
-                        "\"REFDIRECTION\" on beam \"" + beam.object.name
-                                + "\" needs a FROMFILE or EMITTEDFROMFILE distribution.");
-            }
             if (!hasFileSource || !beam.hasExplicitEnergy) {
                 return std::nullopt;
             }

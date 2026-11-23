@@ -182,6 +182,33 @@ namespace opalx::run {
             }
         }
 
+        // A fresh run samples the distributions: generated ones take the reference momentum from
+        // GAMMA, ENERGY or PC, and REFDIRECTION applies to file distributions only.
+        for (std::size_t i = 0; !restart && roots && i < beams.size(); ++i) {
+            bool fileSource = false, generatedSource = false;
+            if ((*roots)[i] == i) {
+                for (const SourceDescription& source : beams[i]->sources) {
+                    if (source.distributionType == "FROMFILE"
+                        || source.distributionType == "EMITTEDFROMFILE") {
+                        fileSource = true;
+                    } else if (!source.distributionType.empty()) {
+                        generatedSource = true;
+                    }
+                }
+            }
+            if (generatedSource && !beams[i]->hasExplicitEnergy) {
+                errors.push_back(
+                        "The energy of beam \"" + names[i]
+                        + "\" hasn't been set. Set either \"GAMMA\", \"ENERGY\" or \"PC\" on "
+                          "the BEAM command.");
+            }
+            if (beams[i]->hasReferenceDirection && !fileSource) {
+                errors.push_back(
+                        "\"REFDIRECTION\" on beam \"" + names[i]
+                        + "\" needs a FROMFILE or EMITTEDFROMFILE distribution.");
+            }
+        }
+
         // Beam stops (TRACK ZSTOP for the first beam, BEAM ZSTOP / UNTILMAXSTEPS for others).
         const auto quoted = [&](std::size_t i) {
             return "\"" + names[i] + "\"";

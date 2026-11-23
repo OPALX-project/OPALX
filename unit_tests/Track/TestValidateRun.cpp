@@ -56,6 +56,7 @@ namespace {
         beam.emissionSourceList      = "SRC";
         beam.emissionSourceListFound = true;
         beam.hasEmissionSources      = true;
+        beam.hasExplicitEnergy       = true;
         SourceDescription source;
         source.name              = "ES1";
         source.distribution      = "DI";
@@ -118,6 +119,22 @@ TEST(ValidateRun, MissingDistributionOnFreshRunAndRestart) {
     EXPECT_TRUE(contains(validate(run), "Distribution \"DI\" not found"));
     run.context.restart = true;
     EXPECT_TRUE(contains(validate(run), "Distribution \"DI\" not found"));
+}
+
+TEST(ValidateRun, GeneratedDistributionNeedsBeamEnergy) {
+    RunDescription run             = validRun();
+    run.beams[0].hasExplicitEnergy = false;
+    EXPECT_TRUE(contains(validate(run), "The energy of beam \"B1\" hasn't been set."));
+    run.beams[0].sources[0].distributionType = "FROMFILE";
+    EXPECT_TRUE(validate(run).empty());
+}
+
+TEST(ValidateRun, ReferenceDirectionNeedsFileDistribution) {
+    RunDescription run                 = validRun();
+    run.beams[0].hasReferenceDirection = true;
+    EXPECT_TRUE(contains(validate(run), "\"REFDIRECTION\" on beam \"B1\" needs a FROMFILE"));
+    run.beams[0].sources[0].distributionType = "EMITTEDFROMFILE";
+    EXPECT_TRUE(validate(run).empty());
 }
 
 TEST(ValidateRun, DecayDaughterBeams) {
