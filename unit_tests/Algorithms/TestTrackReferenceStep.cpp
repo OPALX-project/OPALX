@@ -180,3 +180,79 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
     for (unsigned i = 0; i < snapshots[0].size(); ++i)
         EXPECT_EQ(snapshots[0][i], snapshots[1][i]) << "field/end-state component " << i;
 }
+
+TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
+    auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+    PartBunch_t bunch(
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(*beamObject)}, {2}, 1., "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{});
+    // A quadrupole over lab z in [0, 1) m with a 4 mm bore, shifted by DX = 3 mm and DZ = 0.3 m.
+    // In the misaligned frame a lab point has local x - 3 mm and local z - 0.3 m.
+    auto quad = std::make_shared<MultipoleRep>("Q");
+    quad->getGeometry().setElementLength(1.);
+    quad->setNormalComponent(1, 2.);
+    quad->setAperture(ApertureType::RECTANGULAR, {4e-3, 4e-3});
+    quad->setCSTrafoGlobal2Local(CoordinateSystemTrafo());
+    quad->setMisalignment(CoordinateSystemTrafo(Vector(3e-3, 0., 0.3), Quaternion()));
+    quad->fixPosition();
+    OpalBeamline lattice;
+    lattice.addElement(quad, bunch);
+    lattice.prepareSections();
+    lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
+
+    // Reference side: the element at its nominal place. At z = 0.15 m only the nominal body is
+    // there; at x = -2 mm the nominal bore holds the point and the misaligned one does not.
+    const Vector forward(0., 0., 1.);
+    for (const Vector& point : {Vector(1e-3, 0., 0.15), Vector(-2e-3, 0., 0.5)}) {
+        EXPECT_EQ(lattice.getElements(point).size(), 1u);
+        Vector electric(0.), magnetic(0.), expectedE(0.), expectedB(0.);
+        lattice.getFieldAt(point, forward, 0., electric, magnetic);
+        quad->applyToReferenceParticle(point, forward, 0., expectedE, expectedB);
+        EXPECT_NE(expectedB(1), 0.);
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(magnetic(d), expectedB(d), 1e-15) << d;
+    }
+    EXPECT_NO_THROW(lattice.getElementMapping().checkReferencePoint(Vector(-2e-3, 0., 0.5), 0.5));
+    EXPECT_THROW(
+            lattice.getElementMapping().checkReferencePoint(Vector(5e-3, 0., 0.5), 0.5),
+            OpalException);
+    // On the nominal axis the reference feels no quadrupole field.
+    const PartData reference(1., 9.382720813e8, 1e6);
+    const auto end = track_reference::advanceInBeamline(
+            lattice, reference, State{Vector(0., 0., 0.5), forward}, 1e-10, 1e-10, false);
+    EXPECT_FALSE(end.hitMaterial);
+    EXPECT_EQ(end.momentum(0), 0.);
+    EXPECT_EQ(end.momentum(1), 0.);
+
+    // Bunch side: the misaligned element. The particle on the nominal axis gets the field at
+    // misaligned x = -3 mm; the one at x = -2 mm is outside the misaligned bore.
+    const std::array<Vector, 2> positions{Vector(0., 0., 0.5), Vector(-2e-3, 0., 0.5)};
+    auto pc = bunch.getParticleContainer(0);
+    pc->createParticles(positions.size());
+    auto R = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto P = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    for (size_t i = 0; i < positions.size(); ++i) {
+        R(i) = positions[i];
+        P(i) = forward;
+    }
+    Kokkos::deep_copy(pc->R.getView(), R);
+    Kokkos::deep_copy(pc->P.getView(), P);
+    bunch.resetPcActive();
+    bunch.setTimeStep(1e-12);
+
+    lattice.applyExternalFields(bunch);
+    const auto B = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+    const CoordinateSystemTrafo misaligned =
+            quad->getMisalignment() * quad->getCSTrafoGlobal2Local();
+    Vector expectedE(0.), expectedB(0.);
+    quad->apply(misaligned.transformTo(positions[0]), forward, 0., expectedE, expectedB);
+    EXPECT_NE(expectedB(1), 0.);
+    for (unsigned d = 0; d < 3; ++d)
+        EXPECT_NEAR(B(0)(d), expectedB(d), 1e-15) << d;
+
+    EXPECT_EQ(lattice.applyElementApertures(bunch), 1u);
+    const auto invalid =
+            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
+    EXPECT_FALSE(invalid(0));
+    EXPECT_TRUE(invalid(1));
+}

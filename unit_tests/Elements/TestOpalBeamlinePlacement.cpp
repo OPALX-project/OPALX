@@ -140,7 +140,7 @@ protected:
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
 };
 
-TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndAppliesTheMisalignment) {
+TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndKeepsNominalLocalFrames) {
     OpalBeamline beamline;
     auto drift = std::make_shared<DriftRep>("D2");
     drift->getGeometry().setElementLength(2.0);
@@ -148,15 +148,14 @@ TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndAppliesTheMis
             CoordinateSystemTrafo(Vector3(0.5, -1.0, 4.0), rotationAroundY(M_PI / 8.0)));
     drift->setMisalignment(CoordinateSystemTrafo(Vector3(0.25, 0.0, 0.0), Quaternion()));
 
+    // The local-frame helpers use the nominal placement, where the reference sees the element.
     const CoordinateSystemTrafo nominal = drift->getCSTrafoGlobal2Local();
-    // The local-frame helpers use the frame in which the tracker applies the element.
-    const CoordinateSystemTrafo applied = drift->getMisalignment() * nominal;
     const Vector3 point(1.0, 2.0, 3.0);
 
-    expectVectorNear(beamline.transformToLocalCS(drift, point), applied.transformTo(point));
-    expectVectorNear(beamline.transformFromLocalCS(drift, point), applied.transformFrom(point));
-    expectVectorNear(beamline.rotateToLocalCS(drift, point), applied.rotateTo(point));
-    expectVectorNear(beamline.rotateFromLocalCS(drift, point), applied.rotateFrom(point));
+    expectVectorNear(beamline.transformToLocalCS(drift, point), nominal.transformTo(point));
+    expectVectorNear(beamline.transformFromLocalCS(drift, point), nominal.transformFrom(point));
+    expectVectorNear(beamline.rotateToLocalCS(drift, point), nominal.rotateTo(point));
+    expectVectorNear(beamline.rotateFromLocalCS(drift, point), nominal.rotateFrom(point));
     expectVectorNear(beamline.getCSTrafoLab2Local(drift).getOrigin(), nominal.getOrigin());
     // entry edge is identity for a straight element ⇒ entry origin equals nominal origin
     expectVectorNear(beamline.getNominalEntryTransform(drift).getOrigin(), nominal.getOrigin());

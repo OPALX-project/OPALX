@@ -64,12 +64,15 @@ GeneralElementMapping::GeneralElementMapping(
     entries_m.reserve(elements.size());
     for (const auto& element : elements) {
         Entry entry;
-        entry.element    = element;
-        entry.reach      = element->getReach().value_or(reach);
-        entry.labToLocal = element->getMisalignment() * element->getCSTrafoGlobal2Local();
-        entry.localBoxes = element->getLocalSupportBoxes(entry.reach);
-        for (const SupportBox& local : entry.localBoxes)
+        entry.element           = element;
+        entry.reach             = element->getReach().value_or(reach);
+        entry.nominalLabToLocal = element->getCSTrafoGlobal2Local();
+        entry.labToLocal        = element->getMisalignment() * entry.nominalLabToLocal;
+        entry.localBoxes        = element->getLocalSupportBoxes(entry.reach);
+        for (const SupportBox& local : entry.localBoxes) {
             entry.boxes.push_back(placeInLab(local, entry.labToLocal));
+            entry.nominalBoxes.push_back(placeInLab(local, entry.nominalLabToLocal));
+        }
 
         entryOf_m.emplace(element.get(), entries_m.size());
         entries_m.push_back(entry);
@@ -80,10 +83,12 @@ GeneralElementMapping::GeneralElementMapping(
 
     BoundingBox mesh;
     for (const Entry& entry : entries_m) {
-        for (const SupportBox& box : entry.boxes) {
-            const Vector_t<double, 3> half = labHalfExtent(box);
-            mesh.enlargeToContainPosition(box.centre - half);
-            mesh.enlargeToContainPosition(box.centre + half);
+        for (const auto* boxes : {&entry.boxes, &entry.nominalBoxes}) {
+            for (const SupportBox& box : *boxes) {
+                const Vector_t<double, 3> half = labHalfExtent(box);
+                mesh.enlargeToContainPosition(box.centre - half);
+                mesh.enlargeToContainPosition(box.centre + half);
+            }
         }
     }
     std::tie(meshLower_m, meshUpper_m) = mesh.getCorners();
@@ -95,16 +100,19 @@ GeneralElementMapping::GeneralElementMapping(
         cellSize_m(d) = (meshUpper_m(d) - meshLower_m(d)) / cells_m[d];
     }
 
-    // Each element writes only its own list, so no synchronization is needed.
+    // Each element writes only its own list, so no synchronization is needed. A cell lists the
+    // element if its misaligned (bunch) or nominal (reference) boxes touch it.
     std::vector<std::vector<std::uint32_t>> cellsOfEntry(entries_m.size());
     Kokkos::parallel_for(
             "GeneralElementMapping::rasterize",
             Kokkos::RangePolicy<Kokkos::DefaultHostExecutionSpace>(0, entries_m.size()),
             [&](const std::size_t e) {
                 std::vector<std::uint32_t>& cells = cellsOfEntry[e];
-                for (const SupportBox& box : entries_m[e].boxes) {
-                    const std::vector<std::uint32_t> overlapped = overlappedCells(box);
-                    cells.insert(cells.end(), overlapped.begin(), overlapped.end());
+                for (const auto* boxes : {&entries_m[e].boxes, &entries_m[e].nominalBoxes}) {
+                    for (const SupportBox& box : *boxes) {
+                        const std::vector<std::uint32_t> overlapped = overlappedCells(box);
+                        cells.insert(cells.end(), overlapped.begin(), overlapped.end());
+                    }
                 }
                 std::sort(cells.begin(), cells.end());
                 cells.erase(std::unique(cells.begin(), cells.end()), cells.end());
@@ -171,7 +179,7 @@ GeneralElementMapping::ElementSet GeneralElementMapping::elementsAt(
     const std::size_t cell = flatIndex(first[0], first[1], first[2]);
     for (std::size_t i = cellOffsets_m[cell]; i < cellOffsets_m[cell + 1]; ++i) {
         const Entry& entry = entries_m[cellElements_m[i]];
-        if (contains(entry.boxes, position)) found.push_back(entry.element);
+        if (contains(entry.nominalBoxes, position)) found.push_back(entry.element);
     }
     return found;
 }
@@ -193,7 +201,8 @@ void GeneralElementMapping::checkReferencePoint(
         }
         const Entry& entry           = entries_m[entryOf_m.at(element.get())];
         const ElementRegions regions = element->getRegions();
-        const Vector_t<double, 3> p  = regions.toArcCoords(entry.labToLocal.transformTo(position));
+        const Vector_t<double, 3> p =
+                regions.toArcCoords(entry.nominalLabToLocal.transformTo(position));
         if (!regions.particleLostAt(p)) continue;
 
         const double offset = std::max(std::abs(p(0)), std::abs(p(1)));

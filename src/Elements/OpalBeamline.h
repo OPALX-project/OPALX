@@ -49,7 +49,8 @@ public:
     OpalBeamline();
     OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation);
 
-    /// Select runtime elements whose isInside() support contains lab position x [m].
+    /// Select runtime elements whose isInside() support contains lab position x [m] in their
+    /// nominal placement (transformToLocalCS()), as the reference particle sees them.
     /// Includes aperture checks; selection does not imply a nonzero field. Candidates come
     /// from the element grid once placement is final, otherwise every element is tested.
     ElementSet getElements(const Vector_t<double, 3>& x);
@@ -78,8 +79,9 @@ public:
     Vector_t<double, 3> rotateTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
 
-    /// Lab <-> element frame, misalignment included: the frame in which the tracker applies
-    /// the element to the bunch.
+    /// Lab <-> element frame of the nominal placement, without misalignment: the frame in which
+    /// the reference particle sees the element. The bunch sees the misaligned element in
+    /// elementFrame().
     Vector_t<double, 3> transformToLocalCS(
             const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFromLocalCS(
@@ -276,23 +278,22 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
 
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    // Applied one after the other: composing the two frames costs far more per call.
-    return comp->getMisalignment().transformTo(comp->getCSTrafoGlobal2Local().transformTo(r));
+    return getCSTrafoLab2Local(comp).transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return comp->getCSTrafoGlobal2Local().transformFrom(comp->getMisalignment().transformFrom(r));
+    return getCSTrafoLab2Local(comp).transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return comp->getMisalignment().rotateTo(comp->getCSTrafoGlobal2Local().rotateTo(r));
+    return getCSTrafoLab2Local(comp).rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return comp->getCSTrafoGlobal2Local().rotateFrom(comp->getMisalignment().rotateFrom(r));
+    return getCSTrafoLab2Local(comp).rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
