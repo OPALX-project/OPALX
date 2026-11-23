@@ -17,7 +17,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "AbsBeamline/VariableRFCavity.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
@@ -162,7 +161,7 @@ BoundingBox VariableRFCavity::getLocalSupportBox(const double reach) const {
 
 void VariableRFCavity::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
-    // Every tracked copy looks up its amplitude, frequency and phase models by name. An
+    // Every tracked element looks up its amplitude, frequency and phase models by name. An
     // element whose models were set directly (without names) keeps them.
     if (!amplitudeName_m.empty() && !frequencyName_m.empty() && !phaseName_m.empty())
         initialiseTimeDependencies();
@@ -171,11 +170,6 @@ void VariableRFCavity::initialise(PartBunch_t* bunch) {
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 
 ElementBase* VariableRFCavity::clone() const { return new VariableRFCavity(*this); }
-
-void VariableRFCavity::accept(BeamlineVisitor& visitor) const {
-    initialiseTimeDependencies();
-    visitor.visitVariableRFCavity(*this);
-}
 
 void VariableRFCavity::initialiseTimeDependencies() const {
     const std::shared_ptr<AbstractTimeDependence> phaseTD =

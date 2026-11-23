@@ -3,7 +3,6 @@ set (_SRCS
     BeamStop.cpp
     BunchReference.cpp
     CavityAutophaser.cpp
-    DefaultVisitor.cpp
     GeneralElementMapping.cpp
     ExternalFieldRayTracker.cpp
     ReferenceTracer.cpp
@@ -25,7 +24,6 @@ set (HDRS
     CavityAutophaser.h
     CompensatedSum.h
     RungeKuttaTableau.h
-    DefaultVisitor.h
     GeneralElementMapping.h
     ExternalFieldRayTracker.h
     ParallelTracker.h

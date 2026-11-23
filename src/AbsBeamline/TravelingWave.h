@@ -34,9 +34,6 @@ public:
     TravelingWave(const TravelingWave&);
     virtual ~TravelingWave();
 
-    /// Apply visitor to TravelingWave.
-    virtual void accept(BeamlineVisitor&) const override;
-
     /// Get RF amplitude.
     virtual double getAmplitude() const override = 0;
 

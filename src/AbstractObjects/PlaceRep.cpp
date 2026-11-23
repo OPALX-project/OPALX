@@ -19,7 +19,6 @@
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/OpalData.h"
-#include "Beamlines/FlaggedElmPtr.h"
 #include "Utilities/OpalException.h"
 
 // Class PlaceRep
@@ -51,28 +50,6 @@ void PlaceRep::append(const std::string& name, int occur) {
 void PlaceRep::initialize() {
     status = false;
     seen   = 0;
-}
-
-void PlaceRep::enter(const FlaggedElmPtr& fep) const {
-    const std::string& name = fep.getElement()->getName();
-    const int occur         = fep.getCounter();
-
-    if (seen < data.size() && name == data[seen].first && occur == data[seen].second) {
-        ++seen;
-    }
-
-    if (seen == data.size()) status = true;
-}
-
-void PlaceRep::leave(const FlaggedElmPtr& fep) const {
-    const std::string& name = fep.getElement()->getName();
-    const int occur         = fep.getCounter();
-
-    if (seen > 0 && name == data[seen - 1].first && occur == data[seen - 1].second) {
-        --seen;
-    }
-
-    if (seen < data.size()) status = false;
 }
 
 bool PlaceRep::isActive() const { return status; }

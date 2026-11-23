@@ -5,7 +5,6 @@
 
 #include "AbsBeamline/ConstantFocusing.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
 
@@ -29,10 +28,6 @@ ConstantFocusing::ConstantFocusing(const std::string& name)
       gradientInitialized_m(false) {}
 
 ConstantFocusing::~ConstantFocusing() {}
-
-void ConstantFocusing::accept(BeamlineVisitor& visitor) const {
-    visitor.visitConstantFocusing(*this);
-}
 
 void ConstantFocusing::initialise(PartBunch_t* bunch) {
     if (radius_m <= 0.0) {

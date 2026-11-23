@@ -1,5 +1,4 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 
 ConstantEFieldCavity::ConstantEFieldCavity() : ConstantEFieldCavity("") {}
@@ -11,10 +10,6 @@ ConstantEFieldCavity::ConstantEFieldCavity(const std::string& name)
     : ElementBase(name), Ex_m(0.0), Ey_m(0.0), Ez_m(0.0) {}
 
 ConstantEFieldCavity::~ConstantEFieldCavity() {}
-
-void ConstantEFieldCavity::accept(BeamlineVisitor& visitor) const {
-    visitor.visitConstantEFieldCavity(*this);
-}
 
 void ConstantEFieldCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 

@@ -28,8 +28,6 @@
 #include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 
-#include "AbsBeamline/Marker.h"
-#include "Beamlines/Beamline.h"
 #include "Utilities/ElementList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -41,8 +39,8 @@
 /**
  * @brief Placed runtime lattice used for external-field queries.
  *
- * visit() clones concrete sequence occurrences into a flattened element list. Element lookups
- * by position go through one GeneralElementMapping built from the placed elements.
+ * addElement() takes the runtime elements into a flat element list. Element lookups by position
+ * go through one GeneralElementMapping built from the placed elements.
  */
 class OpalBeamline {
 public:
@@ -148,14 +146,6 @@ public:
      */
     std::vector<std::array<Vector_t<double, 3>, 2>> getReferenceFields(const PartBunch_t& bunch);
 
-    template <class T>
-    void visit(const T&, BeamlineVisitor&, PartBunch_t&);
-
-    /**
-     * @brief Add a copy of @p element to the tracked elements and call its initialise().
-     * @note The copy gets the next line index (see ElementBase::getLineIndex()).
-     */
-    void addElement(const ElementBase& element, PartBunch_t& bunch);
     /**
      * @brief Add @p element itself (no copy) to the tracked elements and call its initialise().
      * @note For elements built for one RUN only (opalx::run::buildElements()).
@@ -231,10 +221,6 @@ private:
     CoordinateSystemTrafo coordTransformationTo_m;
 };
 
-inline void OpalBeamline::addElement(const ElementBase& element, PartBunch_t& bunch) {
-    addElement(std::shared_ptr<ElementBase>(element.clone()), bunch);
-}
-
 inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBunch_t& bunch) {
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
@@ -244,15 +230,6 @@ inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBun
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
     elementMapping_m.reset();
-}
-
-template <class T>
-inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    addElement(element, bunch);
-}
-
-template <>
-inline void OpalBeamline::visit<Marker>(const Marker& /*element*/, BeamlineVisitor&, PartBunch_t&) {
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3>& r) const {

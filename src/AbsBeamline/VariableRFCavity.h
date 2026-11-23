@@ -55,9 +55,6 @@ public:
     /** Return a deep copy */
     ElementBase* clone() const override;
 
-    /** Visitor dispatch */
-    void accept(BeamlineVisitor& visitor) const override;
-
     /** Apply the field at the common Boris midpoint t + dt/2 [s].
      * Amplitude [MV/m], integrated frequency [MHz s], and phase [rad]
      * are evaluated on the host; the additive field kernel runs on the device.
@@ -181,19 +178,19 @@ public:
 
     /** Set the amplitude time dependence name
      *
-     *  The name is used to find the amplitude model at accept time
+     *  The name is used to find the amplitude model in initialise()
      */
     virtual void setAmplitudeName(const std::string& amplitude) { amplitudeName_m = amplitude; }
 
     /** Set the phase time dependence name
      *
-     *  The name is used to find the phase model at accept time
+     *  The name is used to find the phase model in initialise()
      */
     virtual void setPhaseName(const std::string& phase) { phaseName_m = phase; }
 
     /** Set the frequency time dependence name
      *
-     *  The name is used to find the frequency model at accept time
+     *  The name is used to find the frequency model in initialise()
      */
     virtual void setFrequencyName(const std::string& frequency) { frequencyName_m = frequency; }
 

@@ -37,9 +37,6 @@ public:
     Marker(const Marker&);
     virtual ~Marker();
 
-    /// Apply visitor to Marker.
-    virtual void accept(BeamlineVisitor&) const override;
-
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;

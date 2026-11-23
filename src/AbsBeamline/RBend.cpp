@@ -4,7 +4,6 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 #include "Steppers/BorisPusher.h"
@@ -222,8 +221,6 @@ void RBend::setB(double B) {
     normalComponentsHost_m(0) = B;
     Kokkos::deep_copy(Kokkos::subview(normalComponents_m, 0), B);
 }
-
-void RBend::accept(BeamlineVisitor& visitor) const { visitor.visitRBend(*this); }
 
 ElementType RBend::getType() const { return ElementType::RBEND; }
 

@@ -44,9 +44,6 @@ public:
     Collimator(const Collimator& right);
     virtual ~Collimator();
 
-    /// Apply visitor to Collimator.
-    virtual void accept(BeamlineVisitor&) const override;
-
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;

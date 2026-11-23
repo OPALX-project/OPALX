@@ -3,14 +3,12 @@
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/Geometry.h"
-#include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
@@ -109,21 +107,6 @@ namespace {
         same(a.pathLengthCorrection, b.pathLengthCorrection);
     }
 
-    class DummyBeamline final : public Beamline {
-    public:
-        DummyBeamline() : Beamline("dummy") {}
-
-        ElementType getType() const override { return ElementType::BEAMLINE; }
-        Geometry& getGeometry() override { return geometry_; }
-        const Geometry& getGeometry() const override { return geometry_; }
-        void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
-        ElementBase* clone() const override { return new DummyBeamline(*this); }
-        void iterate(BeamlineVisitor&, bool) const override {}
-
-    private:
-        Geometry geometry_{Geometry::makeNull()};
-    };
-
     /**
      * @brief Mock component with zero body extent but finite field-support extent.
      *
@@ -142,7 +125,6 @@ namespace {
               electricField_m(longitudinalElectricField),
               magneticField_m(magneticField) {}
 
-        void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
@@ -394,15 +376,13 @@ TEST_F(ExternalFieldRayTrackerTest, AcceleratedPathQuadratureConvergesAtSecondOr
 
 TEST_F(ExternalFieldRayTrackerTest, RayTrackerResolvesThinSupportForEachMomentumAndReverseTime) {
     auto bunch = makeBunch(0);
-    DummyBeamline line;
-    DefaultVisitor visitor(line, false, false);
     OpalBeamline beamline;
     // Both the entrance and exit are beyond the nominal drift midpoint. The body
     // has zero length: only field support can prevent this region being skipped.
-    FieldSupportOnlyComponent field("THIN_E", 0.003, 0.0034, 1.0e8);
-    field.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
-    field.fixPosition();
-    beamline.visit(field, visitor, *bunch);
+    auto field = std::make_shared<FieldSupportOnlyComponent>("THIN_E", 0.003, 0.0034, 1.0e8);
+    field->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    field->fixPosition();
+    beamline.addElement(field, *bunch);
     beamline.prepareSections();
     beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     PartData reference(1.0, 9.382720813e8, 1.0e6);
@@ -450,16 +430,14 @@ TEST_F(ExternalFieldRayTrackerTest, RayTrackerResolvesThinSupportForEachMomentum
 
 TEST_F(ExternalFieldRayTrackerTest, MembershipReusePreservesUncachedSubstepsExactly) {
     auto bunch = makeBunch(0);
-    DummyBeamline line;
-    DefaultVisitor visitor(line, false, false);
     OpalBeamline beamline;
-    FieldSupportOnlyComponent electric("E", 0.003, 0.0034, 1.0e8);
-    FieldSupportOnlyComponent magnetic("B", 0.0032, 0.004, 0.0, 0.02);
-    for (auto* field : {&electric, &magnetic}) {
+    auto electric = std::make_shared<FieldSupportOnlyComponent>("E", 0.003, 0.0034, 1.0e8);
+    auto magnetic = std::make_shared<FieldSupportOnlyComponent>("B", 0.0032, 0.004, 0.0, 0.02);
+    for (const auto& field : {electric, magnetic}) {
         field->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
         field->fixPosition();
-        beamline.visit(*field, visitor, *bunch);
+        beamline.addElement(field, *bunch);
     }
     beamline.prepareSections();
     beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
@@ -504,16 +482,14 @@ TEST_F(ExternalFieldRayTrackerTest, MembershipReusePreservesUncachedSubstepsExac
 
 TEST_F(ExternalFieldRayTrackerTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
     auto bunch = makeBunch(0);
-    DummyBeamline line;
-    DefaultVisitor visitor(line, false, false);
     OpalBeamline beamline;
-    FieldSupportOnlyComponent first("E1", 0.001, 0.003, 1.0e8);
-    FieldSupportOnlyComponent second("E2", 0.002, 0.0035, -2.0e7);
-    for (auto* field : {&first, &second}) {
+    auto first  = std::make_shared<FieldSupportOnlyComponent>("E1", 0.001, 0.003, 1.0e8);
+    auto second = std::make_shared<FieldSupportOnlyComponent>("E2", 0.002, 0.0035, -2.0e7);
+    for (const auto& field : {first, second}) {
         field->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
         field->fixPosition();
-        beamline.visit(*field, visitor, *bunch);
+        beamline.addElement(field, *bunch);
     }
     beamline.prepareSections();
     beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);

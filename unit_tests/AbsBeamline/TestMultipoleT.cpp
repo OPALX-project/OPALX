@@ -16,7 +16,6 @@
 
 #include <csignal>
 #include <memory>
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/SplineTimeDependence.h"
@@ -29,7 +28,7 @@
 #include "Utility/Inform.h"
 #include "gtest/gtest.h"
 
-class TestMultipoleT : public testing::Test, public MultipoleT, public BeamlineVisitor {
+class TestMultipoleT : public testing::Test, public MultipoleT {
 public:
     TestMultipoleT() : MultipoleT("Magnet") {}
 
@@ -79,28 +78,6 @@ public:
         }
         ippl::finalize();
     }
-
-    // Overrides of BeamlineVisitor
-    void execute() override {}
-    void visitBeamline(const Beamline&) override {}
-    void visitElementBase(const ElementBase&) override {}
-    void visitBox(const Box&) override {}
-    void visitCollimator(const Collimator&) override {}
-    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
-    void visitDrift(const Drift&) override {}
-    void visitFieldmapElement(const FieldmapElement&) override {}
-    void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
-    void visitLaser(const Laser&) override {}
-    void visitMarker(const Marker&) override {}
-    void visitMonitor(const Monitor&) override {}
-    void visitMultipole(const Multipole&) override {}
-    void visitMultipoleT(const MultipoleT&) override {}
-    void visitRBend(const RBend&) override {}
-    void visitRFCavity(const RFCavity&) override {}
-    void visitSBend(const SBend&) override {}
-    void visitSolenoid(const Solenoid&) override {}
-    void visitTravelingWave(const TravelingWave&) override {}
-    void visitVariableRFCavity(const VariableRFCavity&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
@@ -160,7 +137,7 @@ TEST_F(TestMultipoleT, TimeDependency) {
     setTransProfile({1});
     setScalingName("STEPFUNCTION");
     // This initialises the time dependency
-    accept(*this);
+    initialiseTimeDependencies();
     // Test the field at the magnet center at various times
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 0.0), 1.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);
@@ -169,7 +146,7 @@ TEST_F(TestMultipoleT, TimeDependency) {
     // Now clear the time dependence
     setScalingName("");
     // This initialises the time dependency
-    accept(*this);
+    initialiseTimeDependencies();
     // Test the field at the magnet center at various times
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 0.0), 1.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);

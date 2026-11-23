@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
@@ -127,9 +126,6 @@ bool Solenoid::applyToReferenceParticle(
 }
 /* ========================================================================== */
 /* ============================== Functions ================================= */
-/// @brief Apply visitor to Solenoid
-void Solenoid::accept(BeamlineVisitor& visitor) const { visitor.visitSolenoid(*this); }
-
 /// @brief Set the strength scaling factor ks
 void Solenoid::setKS(double ks) { scale_m = ks; }
 

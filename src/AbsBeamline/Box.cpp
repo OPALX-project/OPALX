@@ -17,7 +17,6 @@
 //
 #include "AbsBeamline/Box.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 
 Box::Box() : Box("") {}
@@ -28,8 +27,6 @@ Box::Box(const Box& right)
 Box::Box(const std::string& name) : FramelessElement(name), halfWidth_m(0.0), halfHeight_m(0.0) {}
 
 Box::~Box() {}
-
-void Box::accept(BeamlineVisitor& visitor) const { visitor.visitBox(*this); }
 
 void Box::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 

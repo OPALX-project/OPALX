@@ -2,12 +2,10 @@
 #include "gtest/gtest.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/ReferenceTracer.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
-#include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
@@ -23,28 +21,12 @@
 extern Inform* gmsg;
 
 namespace {
-    class DummyBeamline final : public Beamline {
-    public:
-        DummyBeamline() : Beamline("dummy") {}
-
-        ElementType getType() const override { return ElementType::BEAMLINE; }
-        Geometry& getGeometry() override { return geometry_; }
-        const Geometry& getGeometry() const override { return geometry_; }
-        void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
-        ElementBase* clone() const override { return new DummyBeamline(*this); }
-        void iterate(BeamlineVisitor&, bool) const override {}
-
-    private:
-        Geometry geometry_{Geometry::makeNull()};
-    };
-
     /// Zero body length, finite field extent: the length check must use the field extent.
     class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(const std::string& name, const double fieldLength)
             : ElementBase(name), fieldLength_m(fieldLength) {}
 
-        void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
         }
@@ -144,10 +126,8 @@ protected:
         return quadrupole;
     }
 
-    void add(OpalBeamline& beamline, const ElementBase& element) {
-        DummyBeamline line;
-        DefaultVisitor visitor(line, false, false);
-        beamline.visit(element, visitor, *bunch_m);
+    void add(OpalBeamline& beamline, std::shared_ptr<ElementBase> element) {
+        beamline.addElement(std::move(element), *bunch_m);
     }
 
     static ReferenceTracer::RayState launch() {
@@ -170,9 +150,10 @@ protected:
 
 TEST_F(ReferenceTracerTest, LengthCheckUsesTheFieldExtent) {
     OpalBeamline beamline;
-    FieldSupportOnlyComponent component("TW_LIKE", 0.1);
-    component.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
-    component.fixPosition();
+    auto component = std::make_shared<FieldSupportOnlyComponent>("TW_LIKE", 0.1);
+    component->setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    component->fixPosition();
     add(beamline, component);
     beamline.prepareSections();
     beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
@@ -191,11 +172,11 @@ TEST_F(ReferenceTracerTest, LengthCheckUsesTheFieldExtent) {
 TEST_F(ReferenceTracerTest, ReachCheckStopsWhenAParallelBranchWouldDeleteTheReference) {
     const auto traceWith = [this](const double branchReach) {
         OpalBeamline beamline;
-        add(beamline, *makeQuadrupole("Q_HERE", 0.0, 0.5));
+        add(beamline, makeQuadrupole("Q_HERE", 0.0, 0.5));
         auto branch = makeQuadrupole("Q_BRANCH", 0.3, 0.5);
         branch->setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
         if (branchReach > 0.0) branch->setReach(branchReach);
-        add(beamline, *branch);
+        add(beamline, branch);
         beamline.prepareSections();
         beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
         ReferenceTracer tracer(
@@ -209,7 +190,7 @@ TEST_F(ReferenceTracerTest, ReachCheckStopsWhenAParallelBranchWouldDeleteTheRefe
 
 TEST_F(ReferenceTracerTest, EndsWhenTheReferenceLeavesTheLattice) {
     OpalBeamline beamline;
-    add(beamline, *makeQuadrupole("Q", 0.0, 0.5));
+    add(beamline, makeQuadrupole("Q", 0.0, 0.5));
     beamline.prepareSections();
     beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
 

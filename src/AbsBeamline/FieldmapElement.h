@@ -94,9 +94,6 @@ public:
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /* ============================== Functions ================================= */
-    /// @brief Apply visitor to FieldmapElement.
-    virtual void accept(BeamlineVisitor&) const override;
-
     /**
      * @brief Load the map, check its type, take the element's box from its extent, and read
      *        the map data.

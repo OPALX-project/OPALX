@@ -1,10 +1,8 @@
 #include "../KeywordObjects.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/TrackReferenceStep.h"
 #include "BeamlineCore/MonitorRep.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "Beamlines/FlaggedBeamline.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
@@ -107,13 +105,11 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     PartBunch_t bunch(
             {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{});
-    FlaggedBeamline line;
-    DefaultVisitor visitor(line, false, false);
     OpalBeamline lattice;
-    CountingMonitor monitor;
-    monitor.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0), Quaternion()));
-    monitor.fixPosition();
-    lattice.visit(monitor, visitor, bunch);
+    auto monitor = std::make_shared<CountingMonitor>();
+    monitor->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0), Quaternion()));
+    monitor->fixPosition();
+    lattice.addElement(monitor, bunch);
     lattice.prepareSections();
     lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     auto* stored = dynamic_cast<CountingMonitor*>(lattice.getElements().begin()->get());

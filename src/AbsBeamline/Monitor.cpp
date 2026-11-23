@@ -17,7 +17,6 @@
 //
 #include "AbsBeamline/Monitor.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
@@ -54,8 +53,6 @@ Monitor::Monitor(const std::string& name)
       numPassages_m(0) {}
 
 Monitor::~Monitor() {}
-
-void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
 void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     if (!online_m || lossDs_m == nullptr || pc == nullptr) {

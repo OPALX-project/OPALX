@@ -17,12 +17,10 @@
 #include <cmath>
 #include <limits>
 #include <vector>
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
-#include "Beamlines/FlaggedBeamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -31,7 +29,7 @@
 #include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
-class TestVariableRFCavity : public testing::Test, public VariableRFCavity, public BeamlineVisitor {
+class TestVariableRFCavity : public testing::Test, public VariableRFCavity {
 public:
     TestVariableRFCavity() : VariableRFCavity("Cavity") {}
 
@@ -49,28 +47,6 @@ public:
         gmsg = nullptr;
         ippl::finalize();
     }
-
-    // Overrides of BeamlineVisitor
-    void execute() override {}
-    void visitBeamline(const Beamline&) override {}
-    void visitElementBase(const ElementBase&) override {}
-    void visitBox(const Box&) override {}
-    void visitCollimator(const Collimator&) override {}
-    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
-    void visitDrift(const Drift&) override {}
-    void visitFieldmapElement(const FieldmapElement&) override {}
-    void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
-    void visitLaser(const Laser&) override {}
-    void visitMarker(const Marker&) override {}
-    void visitMonitor(const Monitor&) override {}
-    void visitMultipole(const Multipole&) override {}
-    void visitMultipoleT(const MultipoleT&) override {}
-    void visitRBend(const RBend&) override {}
-    void visitRFCavity(const RFCavity&) override {}
-    void visitSBend(const SBend&) override {}
-    void visitSolenoid(const Solenoid&) override {}
-    void visitTravelingWave(const TravelingWave&) override {}
-    void visitVariableRFCavity(const VariableRFCavity&) override {}
 
     // Test helpers
 
@@ -196,16 +172,16 @@ TEST_F(TestVariableRFCavity, TimeDependencyNames) {
     cav1.setPhaseName("PHASE");
     cav1.setHeight(1.0);
     cav1.setWidth(1.0);
-    EXPECT_NO_THROW(cav1.accept(*this));
+    EXPECT_NO_THROW(cav1.initialiseTimeDependencies());
     EXPECT_DOUBLE_EQ(cav1.getAmplitude(0), 1.0);
     EXPECT_DOUBLE_EQ(cav1.getFrequency(0), 2.0);
     EXPECT_DOUBLE_EQ(cav1.getPhase(0), 3.0);
     // Initialise failures
     cav1.setHeight(0.0);
-    EXPECT_ANY_THROW(cav1.accept(*this));
+    EXPECT_ANY_THROW(cav1.initialiseTimeDependencies());
     cav1.setHeight(1.0);
     cav1.setWidth(0.0);
-    EXPECT_ANY_THROW(cav1.accept(*this));
+    EXPECT_ANY_THROW(cav1.initialiseTimeDependencies());
 }
 
 TEST_F(TestVariableRFCavity, TestAssignmentNull) {
@@ -570,28 +546,15 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
 
 TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
     // Exercise the tracker's element registration without executing an OPALX tracking run.
-    // Previously the inherited DefaultVisitor handler silently dropped this
-    // element, despite the cavity's direct host/device field tests passing.
-    struct Observation {
-        unsigned clones           = 0;
-        PartBunch_t* attached     = nullptr;
-        VariableRFCavity* runtime = nullptr;
-    } observed;
     struct ObservedCavity final : VariableRFCavity {
-        explicit ObservedCavity(Observation& state)
-            : VariableRFCavity("registeredRF"), state(state) {}
-        ElementBase* clone() const override {
-            ++state.clones;
-            auto* copy    = new ObservedCavity(*this);
-            state.runtime = copy;
-            return copy;
-        }
+        ObservedCavity() : VariableRFCavity("registeredRF") {}
         void initialise(PartBunch_t* bunch) override {
             VariableRFCavity::initialise(bunch);
-            state.attached = bunch;
+            attached = bunch;
         }
-        Observation& state;
-    } cavity(observed);
+        PartBunch_t* attached = nullptr;
+    };
+    const auto cavity = std::make_shared<ObservedCavity>();
     AbstractTimeDependence::setTimeDependence(
             "REGISTER_RF_A", std::make_shared<PolynomialTimeDependence>(std::vector{0.05}));
     AbstractTimeDependence::setTimeDependence(
@@ -599,32 +562,32 @@ TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
     AbstractTimeDependence::setTimeDependence(
             "REGISTER_RF_P",
             std::make_shared<PolynomialTimeDependence>(std::vector{Physics::pi / 2.}));
-    cavity.setAmplitudeName("REGISTER_RF_A");
-    cavity.setFrequencyName("REGISTER_RF_F");
-    cavity.setPhaseName("REGISTER_RF_P");
-    cavity.setLength(0.1);
-    cavity.setWidth(1.);
-    cavity.setHeight(0.2);
+    cavity->setAmplitudeName("REGISTER_RF_A");
+    cavity->setFrequencyName("REGISTER_RF_F");
+    cavity->setPhaseName("REGISTER_RF_P");
+    cavity->setLength(0.1);
+    cavity->setWidth(1.);
+    cavity->setHeight(0.2);
     const auto bunch = makeBunch(1);
     const auto pc    = bunch->getParticleContainer();
     // buildTracking() adds every element whose trackedAs() is FieldElement to the tracked
-    // OpalBeamline with addElement(); the overload taking a reference, used here, clones it.
-    ASSERT_EQ(cavity.trackedAs(), TrackedAs::FieldElement);
+    // OpalBeamline with addElement(), which keeps the element itself and initialises it.
+    ASSERT_EQ(cavity->trackedAs(), TrackedAs::FieldElement);
     OpalBeamline lattice;
     lattice.addElement(cavity, *bunch);
-    ASSERT_EQ(observed.clones, 1u);
-    ASSERT_EQ(observed.attached, bunch.get());
-    ASSERT_NE(observed.runtime, nullptr);
-    EXPECT_NE(observed.runtime, &cavity);
-    EXPECT_DOUBLE_EQ(observed.runtime->getAmplitude(0.), 0.05);
+    ASSERT_EQ(cavity->attached, bunch.get());
+    const auto registered = lattice.getElements();
+    ASSERT_EQ(registered.size(), 1u);
+    EXPECT_EQ(registered.begin()->get(), cavity.get());
+    EXPECT_DOUBLE_EQ(cavity->getAmplitude(0.), 0.05);
     Vector_t<double, 3> hostE(0), hostB(0);
-    EXPECT_FALSE(observed.runtime->applyToReferenceParticle({0., 0., 0.05}, {}, 0., hostE, hostB));
+    EXPECT_FALSE(cavity->applyToReferenceParticle({0., 0., 0.05}, {}, 0., hostE, hostB));
     EXPECT_DOUBLE_EQ(hostE[2], 50000.);
     Kokkos::deep_copy(pc->R.getView(), Vector_t<double, 3>{0., 0., 0.05});
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
     bunch->setT(-1.e-9);
     bunch->setdT(2.e-9);
-    observed.runtime->apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
+    cavity->apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
     const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     for (unsigned d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(fields(0)[d], hostE[d]);

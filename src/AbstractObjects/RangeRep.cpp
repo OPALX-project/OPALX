@@ -51,24 +51,6 @@ void RangeRep::initialize() {
 
 bool RangeRep::isActive() const { return status; }
 
-void RangeRep::enter(const FlaggedElmPtr& fep) const {
-    if (!fullRange) {
-        // Enter range, if we are in first element.
-        first.enter(fep);
-        if (first.isActive()) status = true;
-        last.enter(fep);
-    }
-}
-
-void RangeRep::leave(const FlaggedElmPtr& fep) const {
-    if (!fullRange) {
-        // Leave range, if we are in last element.
-        if (last.isActive()) status = false;
-        first.leave(fep);
-        last.leave(fep);
-    }
-}
-
 void RangeRep::print(std::ostream& os) const {
     if (fullRange) {
         os << "FULL";

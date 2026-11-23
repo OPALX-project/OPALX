@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Drift.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 
 extern Inform* gmsg;
@@ -34,8 +33,6 @@ Drift::Drift(const Drift& right) : FramelessElement(right), nSlices_m(right.nSli
 Drift::Drift(const std::string& name) : FramelessElement(name), nSlices_m(1) {}
 
 Drift::~Drift() {}
-
-void Drift::accept(BeamlineVisitor& visitor) const { visitor.visitDrift(*this); }
 
 void Drift::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 

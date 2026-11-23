@@ -48,9 +48,6 @@ public:
     RFCavity(const RFCavity&);
     virtual ~RFCavity();
 
-    /// Apply visitor to RFCavity.
-    virtual void accept(BeamlineVisitor&) const override;
-
     /// Get RF amplitude.
     virtual double getAmplitude() const = 0;
 

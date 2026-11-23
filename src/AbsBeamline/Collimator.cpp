@@ -17,7 +17,6 @@
 //
 #include "AbsBeamline/Collimator.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 
 Collimator::Collimator() : Collimator("") {}
@@ -27,8 +26,6 @@ Collimator::Collimator(const Collimator& right) : FramelessElement(right) {}
 Collimator::Collimator(const std::string& name) : FramelessElement(name) {}
 
 Collimator::~Collimator() {}
-
-void Collimator::accept(BeamlineVisitor& visitor) const { visitor.visitCollimator(*this); }
 
 void Collimator::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 

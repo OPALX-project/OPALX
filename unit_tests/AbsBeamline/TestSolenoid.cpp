@@ -1,6 +1,5 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "BeamlineCore/DriftRep.h"
@@ -12,7 +11,6 @@
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
 #include "BeamlineGeometry/Geometry.h"
-#include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
@@ -155,21 +153,6 @@ protected:
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
 };
 
-class DummyBeamline final : public Beamline {
-public:
-    DummyBeamline() : Beamline("dummy") {}
-
-    ElementType getType() const override { return ElementType::BEAMLINE; }
-    Geometry& getGeometry() override { return geometry_; }
-    const Geometry& getGeometry() const override { return geometry_; }
-    void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
-    ElementBase* clone() const override { return new DummyBeamline(*this); }
-    void iterate(BeamlineVisitor&, bool) const override {}
-
-private:
-    Geometry geometry_{Geometry::makeNull()};
-};
-
 TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     const auto mapFile = writeXZFieldmap("solenoid_edges.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
@@ -217,17 +200,15 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
 TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType) {
     const auto mapFile = writeXZFieldmap("solenoid_lattice.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
-    SolenoidRep solenoid("SOL1");
-    solenoid.getGeometry().setElementLength(1.0);
-    solenoid.setFieldMapFN(mapFile.string());
-    solenoid.setElementPosition(1.0);
+    auto solenoid = std::make_shared<SolenoidRep>("SOL1");
+    solenoid->getGeometry().setElementLength(1.0);
+    solenoid->setFieldMapFN(mapFile.string());
+    solenoid->setElementPosition(1.0);
 
     auto bunch = makeBunch(0);
-    DummyBeamline beamlineForVisitor;
-    DefaultVisitor visitor(beamlineForVisitor, false, false);
     OpalBeamline beamline;
     try {
-        beamline.visit(solenoid, visitor, *bunch);
+        beamline.addElement(solenoid, *bunch);
     } catch (const OpalException& ex) {
         FAIL() << ex.where() << ": " << ex.what();
     } catch (...) {
@@ -343,21 +324,19 @@ TEST_F(SolenoidPlacementTest, EmptyMeshSerializesAsValidPython) {
 TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReference) {
     const auto mapFile = writeXZFieldmap("solenoid_drift_mesh.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
-    DriftRep drift("DR1");
-    drift.getGeometry().setElementLength(0.5);
-    drift.setElementPosition(0.0);
+    auto drift = std::make_shared<DriftRep>("DR1");
+    drift->getGeometry().setElementLength(0.5);
+    drift->setElementPosition(0.0);
 
-    SolenoidRep solenoid("SOL1");
-    solenoid.getGeometry().setElementLength(1.0);
-    solenoid.setFieldMapFN(mapFile.string());
-    solenoid.setElementPosition(0.5);
+    auto solenoid = std::make_shared<SolenoidRep>("SOL1");
+    solenoid->getGeometry().setElementLength(1.0);
+    solenoid->setFieldMapFN(mapFile.string());
+    solenoid->setElementPosition(0.5);
 
     auto bunch = makeBunch(0);
-    DummyBeamline beamlineForVisitor;
-    DefaultVisitor visitor(beamlineForVisitor, false, false);
     OpalBeamline beamline;
-    beamline.visit(drift, visitor, *bunch);
-    beamline.visit(solenoid, visitor, *bunch);
+    beamline.addElement(drift, *bunch);
+    beamline.addElement(solenoid, *bunch);
     beamline.compute3DLattice();
     beamline.save3DLattice(testStem_, false);
 
@@ -370,17 +349,15 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
 }
 
 TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinder) {
-    MultipoleRep quadrupole("Q1");
-    quadrupole.getGeometry().setElementLength(0.4);
-    quadrupole.setElementPosition(0.0);
-    quadrupole.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
-    quadrupole.setNormalComponent(1, 1.0);
+    auto quadrupole = std::make_shared<MultipoleRep>("Q1");
+    quadrupole->getGeometry().setElementLength(0.4);
+    quadrupole->setElementPosition(0.0);
+    quadrupole->setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
+    quadrupole->setNormalComponent(1, 1.0);
 
     auto bunch = makeBunch(0);
-    DummyBeamline beamlineForVisitor;
-    DefaultVisitor visitor(beamlineForVisitor, false, false);
     OpalBeamline beamline;
-    beamline.visit(quadrupole, visitor, *bunch);
+    beamline.addElement(quadrupole, *bunch);
     beamline.compute3DLattice();
     beamline.save3DLattice(testStem_, false);
 

@@ -20,9 +20,6 @@
 #include "Moments/BeamMoments.h"
 
 #include "AbsBeamline/RFCavity.h"
-#include "Algorithms/DefaultVisitor.h"
-
-#include "Beamlines/TBeamline.h"
 
 #include "Distribution/DistributionSettings.h"
 

@@ -20,7 +20,6 @@
  */
 
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/GeneralOpalException.h"
 
@@ -312,13 +311,6 @@ bool Multipole::applyToReferenceParticle(
 }
 /* ========================================================================== */
 /* ============================== Functions ================================= */
-/**
- * @brief Accepts a BeamlineVisitor
- *
- * @param visitor BeamlineVisitor reference
- */
-void Multipole::accept(BeamlineVisitor& visitor) const { visitor.visitMultipole(*this); }
-
 template <class ViewType>
 KOKKOS_INLINE_FUNCTION void Multipole::computeField(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& B, const ViewType& normal,

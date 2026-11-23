@@ -37,9 +37,6 @@ public:
     Drift(const Drift& right);
     virtual ~Drift();
 
-    /// Apply visitor to Drift.
-    virtual void accept(BeamlineVisitor&) const override;
-
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;

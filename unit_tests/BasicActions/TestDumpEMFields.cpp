@@ -48,7 +48,6 @@ namespace {
         MockComponent() : ElementBase("MockComponent") {}
         MockComponent(const MockComponent& /*rhs*/) : ElementBase("MockComponent") {}
         ~MockComponent() override = default;
-        void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new MockComponent(*this); }
         void apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/, const StepTime& /*time*/)
                 override {}

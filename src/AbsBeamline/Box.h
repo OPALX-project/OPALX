@@ -45,9 +45,6 @@ public:
     Box(const Box& right);
     virtual ~Box();
 
-    /// Apply visitor to Box.
-    virtual void accept(BeamlineVisitor&) const override;
-
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;

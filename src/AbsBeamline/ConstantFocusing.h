@@ -19,8 +19,6 @@ public:
     ConstantFocusing(const ConstantFocusing& right);
     ~ConstantFocusing() override;
 
-    void accept(BeamlineVisitor& visitor) const override;
-
     void initialise(PartBunch_t* bunch) override;
     void finalise() override;
     ElementType getType() const override;

@@ -20,8 +20,6 @@
 
 #include "AbstractObjects/PlaceRep.h"
 
-class FlaggedElmPtr;
-
 // Class RangeRep
 // ------------------------------------------------------------------------
 /// Representation of a range within a beam line or sequence.
@@ -50,14 +48,6 @@ public:
     /// Test for active range.
     //  Return true, if we are within the specified range.
     bool isActive() const;
-
-    /// Enter an element or line.
-    //  Sets the internal state to active, when we enter the specified range.
-    void enter(const FlaggedElmPtr&) const;
-
-    /// Leave an element or line.
-    //  Sets the internal state to inactive, when we leave the specified range.
-    void leave(const FlaggedElmPtr&) const;
 
     /// Print in input format.
     void print(std::ostream& os) const;

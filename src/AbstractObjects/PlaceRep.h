@@ -22,8 +22,6 @@
 #include <string>
 #include <vector>
 
-class FlaggedElmPtr;
-
 // Class PlaceRep
 // ------------------------------------------------------------------------
 /// Representation of a place within a beam line or sequence.
@@ -33,7 +31,7 @@ class FlaggedElmPtr;
 //  [ul]
 //  [li]"#S", the start of the beam line.
 //  [li]"#E", the end of the beam line.
-//  [li]"SELECTED", all selected positions (flag set in FlaggedElmPtr).
+//  [li]"SELECTED", all selected positions.
 //  [li]name[occurrence]::name[occurrence]..., denoting a specific place.
 //  [/ul]
 
@@ -57,16 +55,6 @@ public:
     /// Initialise data for search.
     //  Sets the internal state to the beginning of the line.
     void initialize();
-
-    /// Enter an element or line.
-    //  Sets the internal state to active, when the specified place is
-    //  entered.
-    void enter(const FlaggedElmPtr&) const;
-
-    /// Leave an element or line.
-    //  Sets the internal state to inactive, when the specified place is
-    //  left.
-    void leave(const FlaggedElmPtr&) const;
 
     /// Return status.
     //  Returns true, if we are at the specified place.

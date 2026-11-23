@@ -35,7 +35,6 @@
 #include <utility>
 #include <vector>
 
-class BeamlineVisitor;
 class Channel;
 class ConstChannel;
 
@@ -46,7 +45,6 @@ namespace opalx::run {
 
 enum class ElementType : unsigned short {
     ANY,
-    BEAMLINE,
     BOX,
     COLLIMATOR,
     DRIFT,
@@ -101,11 +99,6 @@ enum class ElementFrame : unsigned char {
  * element selection). All geometric state — lengths, bend angle, pole-face
  * rotations, edge transforms — lives in the element's Geometry, accessed
  * through getGeometry().
- *
- * The parser builds lattices by cloning registered prototypes: clone() makes
- * a deep copy, copyStructure() copies a structure while reusing elements
- * marked sharable (makeSharable()). Algorithms dispatch on the concrete
- * element type through accept(BeamlineVisitor&).
  */
 /**
  * @brief Time of the current tracking step, passed to ElementBase::apply().
@@ -120,7 +113,7 @@ struct StepTime {
 
 /// How ParallelTracker uses an element of the tracked line.
 enum class TrackedAs {
-    FieldElement,  ///< Copied into OpalBeamline: applies its field or aperture, or records.
+    FieldElement,  ///< Added to OpalBeamline: applies its field or aperture, or records.
     Ignored,       ///< Left out of tracking (MARKER).
     Unsupported    ///< Tracking it is an error (LASER).
 };
@@ -146,21 +139,6 @@ public:
     /// @return The cloned element.
     virtual ElementBase* clone() const = 0;
 
-    /// @brief Make a structural copy.
-    /// @note A fresh copy of the beam line structure is made, but sharable
-    ///       elements remain shared.
-    /// @return The copied structure.
-    virtual ElementBase* copyStructure();
-
-    /// @brief Test if the element can be shared.
-    /// @return True if the element is sharable.
-    bool isSharable() const;
-
-    /// @brief Set the sharable flag.
-    /// @note The whole structure depending on this is marked as sharable.
-    ///       After this call a copyStructure() call reuses the element.
-    virtual void makeSharable();
-
     /* =============================== Identity ================================ */
 
     /// @brief Get the element name.
@@ -184,13 +162,6 @@ public:
     /// @param type The element type.
     /// @return The element type string.
     static std::string getTypeString(ElementType type);
-
-    /// @brief Apply a visitor.
-    /// @note This method must be overridden by derived classes. It should call
-    ///       the method of the visitor corresponding to the element class. If
-    ///       any error occurs, this method throws an exception.
-    /// @param visitor The visitor to apply.
-    virtual void accept(BeamlineVisitor& visitor) const = 0;
 
     /* =============================== Geometry ================================ */
 
@@ -527,10 +498,6 @@ protected:
     /// The axis-aligned box @p box as a SupportBox.
     static SupportBox toSupportBox(const BoundingBox& box);
 
-    // Sharable flag.
-    // If this flag is true, the element is always shared.
-    mutable bool shareFlag;
-
     // --- Coordinate system & placement ---
     CoordinateSystemTrafo csTrafoGlobal2Local_m;
     CoordinateSystemTrafo misalignment_m;
@@ -582,7 +549,7 @@ private:
 public:
     /// Position in the tracked line, counted from 1; 0 for an element outside a tracked line.
     std::size_t getLineIndex() const { return lineIndex_m; }
-    /// Set by OpalBeamline when it takes its copy of the element.
+    /// Set by OpalBeamline when it adds the element.
     void setLineIndex(std::size_t index) { lineIndex_m = index; }
 };
 
@@ -620,8 +587,6 @@ using ElementSet = std::set<std::shared_ptr<ElementBase>, ByLinePosition>;
 // ------------------------------------------------------------------------
 
 /* ============================ Lifecycle & identity ========================= */
-
-inline bool ElementBase::isSharable() const { return shareFlag; }
 
 inline std::string ElementBase::getTypeString() const { return getTypeString(getType()); }
 

@@ -17,8 +17,6 @@ public:
     ConstantEFieldCavity(const ConstantEFieldCavity& right);
     virtual ~ConstantEFieldCavity();
 
-    virtual void accept(BeamlineVisitor& visitor) const override;
-
     virtual void initialise(PartBunch_t* bunch) override;
     virtual void finalise() override;
     virtual ElementType getType() const override;

@@ -78,8 +78,6 @@ public:
     ~MultipoleT() override = default;
     /** Inheritable copy constructor */
     ElementBase* clone() const override;
-    /** Accept a beamline visitor */
-    void accept(BeamlineVisitor& visitor) const override;
     /** @return The element type (ElementType::MULTIPOLET). */
     ElementType getType() const override;
     /** Return the cell geometry */

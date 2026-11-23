@@ -17,7 +17,6 @@
 //
 #include "AbsBeamline/FieldmapElement.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
@@ -139,10 +138,6 @@ bool FieldmapElement::applyToReferenceParticle(
 }
 
 /* ============================== Functions ================================= */
-void FieldmapElement::accept(BeamlineVisitor& visitor) const {
-    visitor.visitFieldmapElement(*this);
-}
-
 void FieldmapElement::initialise(PartBunch_t* bunch) {
     Inform msg("FieldmapElement ", *gmsg);
 

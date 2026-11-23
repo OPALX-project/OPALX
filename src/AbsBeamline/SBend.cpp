@@ -1,7 +1,5 @@
 #include "AbsBeamline/SBend.h"
 
-#include "AbsBeamline/BeamlineVisitor.h"
-
 #include "BeamlineGeometry/Geometry.h"
 
 #include "PartBunch/PartBunch.h"
@@ -224,7 +222,5 @@ void SBend::setB(double B) {
     normalComponentsHost_m(0) = B;
     Kokkos::deep_copy(Kokkos::subview(normalComponents_m, 0), B);
 }
-
-void SBend::accept(BeamlineVisitor& visitor) const { visitor.visitSBend(*this); }
 
 ElementType SBend::getType() const { return ElementType::SBEND; }
