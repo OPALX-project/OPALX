@@ -221,7 +221,7 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
                 /*totalParticlesPerBeam=*/std::vector{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2",
+                /*lbt=*/1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;

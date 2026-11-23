@@ -22,12 +22,11 @@ template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi,
         const std::vector<opalx::run::BeamDescription>& beams,
-        std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
+        std::vector<size_t> totalParticlesPerBeam, double lbt,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
     : dt_m(0),
       it_m(0),
-      integration_method_m(integration_method),
       lbt_m(lbt),
       boundingBoxIncreasePercent_m(0.0),
       t_m(0.0),
@@ -381,7 +380,6 @@ Inform& PartBunch<T, Dim>::print(Inform& os, std::span<const opalx::moments::Bea
            << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
            << "* <EKIN>          = " << Util::getEnergyString(m.meanKineticEnergy()) << "\n"
            << "* <dEKIN>         = " << Util::getEnergyString(m.stdKineticEnergy()) << "\n"
-           << "* INTEGRATOR      = " << integration_method_m << "\n"
            << "* LB Threshold    = " << lbt_m << "\n"
            << "* MIN R (origin)  = " << Util::getLengthString(m.minR(), 5) << "\n"
            << "* MAX R (max ext) = " << Util::getLengthString(m.maxR(), 5) << "\n"

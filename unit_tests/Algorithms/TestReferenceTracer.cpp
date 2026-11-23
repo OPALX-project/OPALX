@@ -110,7 +110,6 @@ protected:
         auto bunch = std::make_shared<PartBunch_t>(
                 std::vector{1.0}, std::vector{1.0},
                 std::vector{opalx::run::describeBeamForBunch(*opBeam)}, std::vector<size_t>{0}, 1.0,
-                "LF2",
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         return bunch;
     }

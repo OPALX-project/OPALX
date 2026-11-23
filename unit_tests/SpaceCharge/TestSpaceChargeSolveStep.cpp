@@ -77,7 +77,7 @@ namespace opalx::spacecharge {
                 bunch_m         = std::make_unique<PartBunch_t>(
                         std::vector<double>(2, 1e-15), std::vector<double>(2, 0.938),
                         std::vector(2, opalx::run::describeBeamForBunch(*beam)),
-                        std::vector<size_t>(2, 8), 1.0, "LF2", domain_m);
+                        std::vector<size_t>(2, 8), 1.0, domain_m);
                 const std::vector<Vector> positions{
                         Vector({1e-3, 0.0, -1e-3}), Vector({-1e-3, 5e-4, 0.0}),
                         Vector({0.0, -1e-3, 1e-3}), Vector({5e-4, 1e-3, 2e-3})};

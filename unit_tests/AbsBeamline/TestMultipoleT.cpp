@@ -233,7 +233,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
             std::vector{
                     opalx::run::describeBeamForBunch(*testBeam),
                     opalx::run::describeBeamForBunch(*testBeam)},
-            std::vector<size_t>{1, 1}, 1.0, "LF2",
+            std::vector<size_t>{1, 1}, 1.0,
             opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 

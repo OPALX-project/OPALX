@@ -283,7 +283,7 @@ TEST_F(FM3DDynamicTest, ParticleKernelAccumulatesWithIndependentRFScalesAndBound
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1.,
             opalx::spacecharge::CartesianDomainConfig3D{});
     auto particles = bunch.getParticleContainer();
     const std::vector<Vector> positions{Vector(0.005, 0.005, 0.025), Vector(0.039, 0.029, 0.149),
@@ -326,7 +326,7 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1.,
             opalx::spacecharge::CartesianDomainConfig3D{});
     bunch.setT(1.3e-9);
     bunch.setdT(0.4e-9);

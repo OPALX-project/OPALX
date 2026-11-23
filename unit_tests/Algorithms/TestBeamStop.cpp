@@ -38,7 +38,7 @@ namespace {
             return std::make_unique<PartBunch_t>(
                     std::vector<double>(beams, 1.0), std::vector<double>(beams, 1.0),
                     std::vector(beams, opalx::run::describeBeamForBunch(*beam)),
-                    std::vector<size_t>(beams, 8), 1.0, "LF2",
+                    std::vector<size_t>(beams, 8), 1.0,
                     opalx::spacecharge::CartesianDomainConfig3D{});
         }
 

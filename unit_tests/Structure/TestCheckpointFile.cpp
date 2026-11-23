@@ -75,8 +75,7 @@ namespace {
                     std::vector{
                             opalx::run::describeBeamForBunch(*beam),
                             opalx::run::describeBeamForBunch(*beam)},
-                    std::vector<std::size_t>{16, 16}, 1.0, "LF2", storageConfig,
-                    Options::useQMAttributes);
+                    std::vector<std::size_t>{16, 16}, 1.0, storageConfig, Options::useQMAttributes);
         }
 
         void populate(Bunch& bunch) {

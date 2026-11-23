@@ -82,8 +82,7 @@ namespace {
                             opalx::run::describeBeamForBunch(*testBeam),
                             opalx::run::describeBeamForBunch(*testBeam)},
                     std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
-                    /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", storageConfig);
+                    /*lbt=*/1.0, storageConfig);
             q0_m = q0;
             q1_m = q1;
             m0_m = m0;
@@ -222,7 +221,7 @@ namespace {
                         std::vector{
                                 opalx::run::describeBeamForBunch(*testBeam),
                                 opalx::run::describeBeamForBunch(*testBeam)},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
+                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0,
                         storageConfig)),
                 OpalException);
     }
@@ -243,7 +242,7 @@ namespace {
                         std::vector{
                                 opalx::run::describeBeamForBunch(*testBeam),
                                 opalx::run::describeBeamForBunch(*testBeam)},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
+                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0,
                         overlapConfig));
 
         const auto& domain      = overlapBunch->cartesianDomain();
@@ -270,7 +269,7 @@ namespace {
         const auto overlapBunch = std::make_shared<PartBunch_t>(
                 std::vector<double>{q0_m}, std::vector<double>{m0_m},
                 std::vector{opalx::run::describeBeamForBunch(*testBeam)},
-                std::vector<size_t>{kParticlesPerBeam}, 1.0, "LF2", overlapConfig);
+                std::vector<size_t>{kParticlesPerBeam}, 1.0, overlapConfig);
         EXPECT_DOUBLE_EQ(
                 overlapBunch->getParticleContainer()->getP3MLayout().getCutoff(), 6.0 / 8.0);
     }

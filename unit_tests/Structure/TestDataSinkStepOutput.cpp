@@ -49,7 +49,7 @@ namespace {
             withSpin.hasPolarization = true;
             bunch_m                  = std::make_unique<PartBunch_t>(
                     std::vector<double>(2, 1.0), std::vector<double>(2, 1.0),
-                    std::vector{withoutSpin, withSpin}, std::vector<size_t>(2, 8), 1.0, "LF2",
+                    std::vector{withoutSpin, withSpin}, std::vector<size_t>(2, 8), 1.0,
                     opalx::spacecharge::CartesianDomainConfig3D{});
             for (const auto& pc : bunch_m->getParticleContainers())
                 place(*pc, {1e-3, 2e-3, 3e-3, 6e-3});

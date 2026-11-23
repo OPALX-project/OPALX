@@ -54,12 +54,11 @@ public:
 public:
     // --- Shared state (all containers / mesh) ---
 
-    double dt_m;                       ///< Global time step @f$\Delta t@f$ (s).
-    int it_m;                          ///< Iteration counter (legacy / diagnostics).
-    std::string integration_method_m;  ///< Integrator name (e.g. leapfrog).
-    Vector_t<int, Dim> nr_m;           ///< Mesh cell count per dimension.
-    Vector_t<double, Dim> origin_m;    ///< Mesh origin (lab coordinates).
-    Vector_t<double, Dim> hr_m;        ///< Mesh spacing (m).
+    double dt_m;                     ///< Global time step @f$\Delta t@f$ (s).
+    int it_m;                        ///< Iteration counter (legacy / diagnostics).
+    Vector_t<int, Dim> nr_m;         ///< Mesh cell count per dimension.
+    Vector_t<double, Dim> origin_m;  ///< Mesh origin (lab coordinates).
+    Vector_t<double, Dim> hr_m;      ///< Mesh spacing (m).
 
     double lbt_m;                    ///< Load-balancer timescale parameter.
     ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
@@ -103,7 +102,6 @@ public:
      *                               and whether it tracks spin (POLARIZATION).
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
      * @param lbt                    Load-balancer timescale.
-     * @param integration_method     Integrator label (e.g. leapfrog).
      * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
      * @param qmAttributes           Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
      * @param aggressiveStateSync    OPTION AGGRESSIVE_STATE_SYNC, see BunchStateHandler.
@@ -111,7 +109,7 @@ public:
     PartBunch(
             std::vector<double> qi, std::vector<double> mi,
             const std::vector<opalx::run::BeamDescription>& beams,
-            std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
+            std::vector<size_t> totalParticlesPerBeam, double lbt,
             opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig,
             bool qmAttributes = false, bool aggressiveStateSync = false);
 
@@ -437,24 +435,6 @@ public:
             return "";
         }
         return particleNames_m[i];
-    }
-
-    /// @brief Do not use; throws (access positions via @c ParticleContainer::R).
-    Vector_t<double, Dim> R(size_t) {
-        throw OpalException(
-                "PartBunch::R",
-                "Not implemented: shouldn't be called, since this is not the correct way to access "
-                "particle positions.");
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    /// @brief Do not use; throws (access momenta via @c ParticleContainer::P).
-    Vector_t<double, Dim> P(size_t) {
-        throw OpalException(
-                "PartBunch::P",
-                "Not implemented: shouldn't be called, since this is not the correct way to access "
-                "particle momenta.");
-        return Vector_t<double, Dim>(0.0);
     }
 
     /// @brief Set the global time step.

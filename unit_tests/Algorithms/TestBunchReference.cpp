@@ -59,8 +59,7 @@ namespace {
             bunch_m = std::make_unique<PartBunch_t>(
                     std::vector<double>(3, 1.0), std::vector<double>(3, 1.0),
                     std::vector(3, opalx::run::describeBeamForBunch(*beam)),
-                    std::vector<size_t>(3, 8), 1.0, "LF2",
-                    opalx::spacecharge::CartesianDomainConfig3D{});
+                    std::vector<size_t>(3, 8), 1.0, opalx::spacecharge::CartesianDomainConfig3D{});
             auto pc = bunch_m->getParticleContainer(0);
             pc->createParticles(3);
             auto R = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());

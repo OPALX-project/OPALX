@@ -102,7 +102,7 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1.,
             opalx::spacecharge::CartesianDomainConfig3D{});
     OpalBeamline lattice;
     auto monitor = std::make_shared<CountingMonitor>();
@@ -131,7 +131,7 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     Beam& beam      = *beamObject;
     PartBunch_t bunch(
-            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(beam)}, {0}, 1.,
             opalx::spacecharge::CartesianDomainConfig3D{});
     // Line order sums first, second, third; the second lattice holds them in reverse address
     // order, so a sum in address order would round differently.
@@ -179,7 +179,7 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
 TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     PartBunch_t bunch(
-            {1.}, {1.}, {opalx::run::describeBeamForBunch(*beamObject)}, {2}, 1., "LF2",
+            {1.}, {1.}, {opalx::run::describeBeamForBunch(*beamObject)}, {2}, 1.,
             opalx::spacecharge::CartesianDomainConfig3D{});
     // A quadrupole over lab z in [0, 1) m with a 4 mm bore, shifted by DX = 3 mm and DZ = 0.3 m.
     // In the misaligned frame a lab point has local x - 3 mm and local z - 0.3 m.
