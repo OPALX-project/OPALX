@@ -385,7 +385,6 @@ void ParallelTracker::trackSteps() {
             writeCheckpointIfDue(segmentComplete, segmentIndex, stepsCompletedInSegment);
 
             if (stop.runFinished) {
-                *gmsg << level1 << "* Every beam with a ZSTOP is done; the run ends." << endl;
                 stopRun = true;
                 break;
             }
@@ -592,7 +591,11 @@ ParallelTracker::StopRules ParallelTracker::applyStopRules() {
     if (referenceHitMaterial_m) {
         *gmsg << level1 << "* A reference particle hit an element; the run ends." << endl;
     }
-    stop.runFinished = referenceHitMaterial_m || beam_stop::runFinished(beamStops_m);
+    const bool beamsDone = beam_stop::runFinished(beamStops_m);
+    if (beamsDone) {
+        *gmsg << level1 << "* Every beam with a ZSTOP is done; the run ends." << endl;
+    }
+    stop.runFinished = referenceHitMaterial_m || beamsDone;
     return stop;
 }
 

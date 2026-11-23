@@ -116,8 +116,8 @@ private:
      */
     std::vector<opalx::moments::BeamMoments> removeLostParticles(bool psDump, bool statDump);
 
-    /// @brief DT segment switch, ZSTOP planes, finished beams and a reference that hit an element.
-    ///        Collective.
+    /// @brief DT segment switch, ZSTOP planes, finished beams and a reference that hit an element;
+    ///        prints why the run ends. Collective.
     StopRules applyStopRules();
 
     /**
