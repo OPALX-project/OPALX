@@ -1,7 +1,6 @@
 #include "FlatTop.h"
 #include <mpi.h>
 #include <cmath>
-#include <fstream>
 #include <memory>
 #include "Distribution/DistributionSettings.h"
 #include "SamplingBase.hpp"
@@ -367,60 +366,4 @@ void FlatTop::emitParticles(double t, double dt) {
     fillPolarization(nlocal, nNew);
 
     msgAll << level3 << "* " << nNew << " new particles emmitted" << endl;
-}
-
-void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
-    size_type nNew;
-    int rank, numRanks;
-    double t = 0.0;
-    double c = Physics::c;
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-
-    std::string filename = "timeNpart_" + std::to_string(rank) + ".txt";
-    std::ofstream file(filename);
-
-    // Check if the file opened successfully
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file: " + filename);
-    }
-
-    for (size_type i = 0; i < nsteps; i++) {
-        nNew = countEnteringParticlesPerRank(t, t + dt);
-
-        // current number of particles per rank
-        size_type nlocal = pc_m->getLocalNum();
-
-        // extend particle container to accomodate new particles
-        pc_m->createParticles(nNew);
-
-        // generate new particles on uniform disc
-        generateUniformDisk(nlocal, nNew, dt);
-
-        // write to a file
-        auto rViewDevice = pc_m->R.getView();
-        auto rView       = Kokkos::create_mirror_view(rViewDevice);
-        Kokkos::deep_copy(rView, rViewDevice);
-
-        for (size_type j = nlocal; j < nlocal + nNew; j++) {
-            file << t << " " << (emissionTime_m - t) * c << " " << rView(j)[0] << " " << rView(j)[1]
-                 << "\n";
-        }
-        file.flush();  // Ensure data is written to disk
-
-        t = t + dt;
-    }
-    file.close();
-    ippl::Comm->barrier();
-}
-
-void FlatTop::testEmitParticles(size_type nsteps, double dt) {
-    double t = 0.0;
-
-    for (size_type i = 0; i < nsteps; i++) {
-        emitParticles(t, dt);
-
-        t = t + dt;
-    }
 }

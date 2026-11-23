@@ -372,21 +372,6 @@ public:
         return 0;
     }
 
-    /// @brief Stub; logs only.
-    void calcLineDensity(
-            unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/,
-            std::pair<double, double>& /*meshInfo*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-    }
-
-    /// @brief Stub; logs and returns zero vector.
-    Vector_t<double, Dim> getEExtrema() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0);
-    }
-
     /**
      * @brief Human-readable dump of each container to @p os.
      * @param moments One snapshot per container holding at least printedMoments.
@@ -397,13 +382,6 @@ public:
     static constexpr opalx::moments::Request printedMoments =
             opalx::moments::Moment::Bounds | opalx::moments::Moment::MeanPosition
             | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
-
-    /// @brief Compatibility stub; logs and returns 0.
-    double calcMeanPhi() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-        return 0.0;
-    }
 
     /// @brief Particle species name for container @p i (from BEAM PARTICLE input).
     std::string getParticleName(size_t i) const {

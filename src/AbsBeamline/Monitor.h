@@ -23,7 +23,6 @@
 #include "Structure/LossDataSink.h"
 
 #include <cmath>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -86,8 +85,6 @@ public:
      */
     void setRecordReference(bool record) { recordReference_m = record; }
 
-    static void writeStatistics();
-
     virtual int getRequiredNumberOfTimeSteps() const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
@@ -108,7 +105,6 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    static std::map<double, SetStatistics> statFileEntries_sm;
     static const double halfLength_s;
 };
 

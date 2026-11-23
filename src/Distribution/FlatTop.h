@@ -55,20 +55,6 @@ public:
             Vector_t<double, 3> sigmaR);
 
     /**
-     * @brief Tests the number of emitted particles over a given number of steps.
-     * @param nsteps Number of time steps to simulate.
-     * @param dt Time step size.
-     */
-    void testNumEmitParticles(size_type nsteps, double dt) override;
-
-    /**
-     * @brief Tests particle emission over a given number of steps.
-     * @param nsteps Number of time steps to simulate.
-     * @param dt Time step size.
-     */
-    void testEmitParticles(size_type nsteps, double dt) override;
-
-    /**
      * @brief Sets the total area of the distribution.
      */
     void setDistArea(double distArea) { distArea_m = distArea; }

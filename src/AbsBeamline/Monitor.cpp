@@ -24,7 +24,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
-#include "Structure/MonitorStatisticsWriter.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
@@ -33,7 +32,6 @@
 #include <fstream>
 #include <memory>
 
-std::map<double, SetStatistics> Monitor::statFileEntries_sm;
 const double Monitor::halfLength_s = 0.005;
 
 Monitor::Monitor() : Monitor("") {}
@@ -282,8 +280,6 @@ bool Monitor::applyToReferenceParticle(
 
             auto stats = lossDs_m->computeStatistics(1);
             if (!stats.empty()) {
-                statFileEntries_sm.insert(std::make_pair(stats.begin()->spos_m, *stats.begin()));
-
                 OpalData::OpenMode openMode = (numPassages_m > 0)
                                                       ? OpalData::OpenMode::APPEND
                                                       : OpalData::getInstance()->getOpenMode();
@@ -347,11 +343,6 @@ void Monitor::goOffline() {
         return;
     }
 
-    auto stats = lossDs_m->computeStatistics(numPassages_m);
-    for (auto& stat : stats) {
-        statFileEntries_sm.insert(std::make_pair(stat.spos_m, stat));
-    }
-
     if (type_m != CollectionType::TEMPORAL) {
         lossDs_m->save(numPassages_m);
     }
@@ -375,24 +366,3 @@ BoundingBox Monitor::getLocalSupportBox(const double reach) const {
 
 /// \todo Check switch statements over ElementType and add a MONITOR case where needed.
 ElementType Monitor::getType() const { return ElementType::MONITOR; }
-
-void Monitor::writeStatistics() {
-    if (statFileEntries_sm.size() == 0) return;
-
-    std::string fileName =
-            OpalData::getInstance()->getInputBasename() + std::string("_Monitors.stat");
-    auto instance     = OpalData::getInstance();
-    bool inRestartRun = instance->inRestartRun();
-
-    auto it     = statFileEntries_sm.begin();
-    double spos = it->first;
-    Util::rewindLinesSDDS(fileName, spos, false);
-
-    MonitorStatisticsWriter writer(fileName, inRestartRun);
-
-    for (const auto& entry : statFileEntries_sm) {
-        writer.addRow(entry.second);
-    }
-
-    statFileEntries_sm.clear();
-}

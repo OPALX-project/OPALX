@@ -117,12 +117,6 @@ public:
     /// @brief Optional OPAL-like tracker time step while this sampler is still emitting.
     virtual double getEmissionTimeStep() const { return 0.0; }
 
-    // testNumEmitParticles is purely made for testing and should be removed
-    virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
-
-    // testEmitParticles is purely made for testing and should be removed
-    virtual void testEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
-
     /**
      * @brief Computes the number of particles this rank should emit so that the global
      *        total equals totalToSample and no rank exceeds its capacity (space left).
