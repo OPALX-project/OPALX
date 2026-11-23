@@ -238,6 +238,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
         FAIL() << "non-OPAL exception";
     }
     ASSERT_NO_THROW(beamline.compute3DLattice());
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
 
     const auto elements = beamline.getElements();
     ASSERT_EQ(elements.size(), 1u);

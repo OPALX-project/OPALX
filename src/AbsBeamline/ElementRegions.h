@@ -23,6 +23,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <array>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -147,5 +148,11 @@ struct ElementRegions {
         return particleLostAt(toArcCoords(r));
     }
 };
+
+/// Reach [m] of an element without REACH; the default of OPTION ELEMENTMAPPINGREACH.
+inline constexpr double defaultElementReach = 0.5;
+
+/// Cells of the element grid along x, y and z; the default of OPTION ELEMENTMAPPINGGRID.
+inline constexpr std::array<unsigned, 3> defaultElementMappingGrid{8, 8, 8};
 
 #endif  // OPALX_ELEMENT_REGIONS_H

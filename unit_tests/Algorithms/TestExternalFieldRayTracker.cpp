@@ -407,6 +407,7 @@ TEST_F(ExternalFieldRayTrackerTest, RayTrackerResolvesThinSupportForEachMomentum
     field.fixPosition();
     beamline.visit(field, visitor, *bunch);
     beamline.prepareSections();
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
         SCOPED_TRACE(method);
@@ -464,6 +465,7 @@ TEST_F(ExternalFieldRayTrackerTest, MembershipReusePreservesUncachedSubstepsExac
         beamline.visit(*field, visitor, *bunch);
     }
     beamline.prepareSections();
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     PartData particle(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
         SCOPED_TRACE(method);
@@ -517,6 +519,7 @@ TEST_F(ExternalFieldRayTrackerTest, RayTrackerSumsOverlappingSupportsAcrossBound
         beamline.visit(*field, visitor, *bunch);
     }
     beamline.prepareSections();
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
         SCOPED_TRACE(method);

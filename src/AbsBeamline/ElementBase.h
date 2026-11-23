@@ -224,8 +224,9 @@ public:
      * @brief Where the element applies its field and where it deletes particles.
      *
      * Field window: getFieldExtent(). Body window: [startZ, startZ + L), from 0 in the arc
-     * coordinates of a sector bend. Reach: getReach(), else 0.5 m, across both axes.
-     * buildTracking() sets OPTION ELEMENTMAPPINGREACH on every tracked element without REACH.
+     * coordinates of a sector bend. Reach: getReach(), else defaultElementReach, across both
+     * axes. buildTracking() sets OPTION ELEMENTMAPPINGREACH on every tracked element without
+     * REACH.
      * Aperture, in this order:
      * - the APERTURE (values of 1e5 m or more count as none); particles outside it are lost;
      * - getFieldMapRange(); nothing is lost;

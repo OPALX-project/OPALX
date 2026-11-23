@@ -358,8 +358,8 @@ TEST_F(GeneralElementMappingTest, MappingOptionsAreValidatedAndPersist) {
         EXPECT_DOUBLE_EQ(Options::elementMappingReach, 0.25);
     }
 
-    Options::elementMappingGrid  = {8, 8, 8};
-    Options::elementMappingReach = 0.5;
+    Options::elementMappingGrid  = defaultElementMappingGrid;
+    Options::elementMappingReach = defaultElementReach;
 }
 
 namespace {

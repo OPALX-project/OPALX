@@ -17,6 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Options.h"
+#include "AbsBeamline/ElementRegions.h"
 #include "BuildInfo.h"
 #include "Utilities/ExpressionRandom.h"
 
@@ -61,8 +62,8 @@ namespace Options {
 
     bool enableVTK = true;
 
-    std::array<unsigned, 3> elementMappingGrid{8, 8, 8};
-    double elementMappingReach = 0.5;
+    std::array<unsigned, 3> elementMappingGrid = defaultElementMappingGrid;
+    double elementMappingReach                 = defaultElementReach;
 
     bool asciidump = false;
 

@@ -115,6 +115,7 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     monitor.fixPosition();
     lattice.visit(monitor, visitor, bunch);
     lattice.prepareSections();
+    lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
     auto* stored = dynamic_cast<CountingMonitor*>(lattice.getElements().begin()->get());
     ASSERT_NE(stored, nullptr);
     const PartData reference(1., 9.382720813e8, 1e6);
@@ -163,6 +164,7 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
             magnet.fixPosition();
         }
         lattice.prepareSections();
+        lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
         Vector electric(0.), magnetic(0.);
         lattice.getFieldAt(start.position, start.momentum, 0., electric, magnetic);
         EXPECT_EQ(magnetic(1), (dipoles[0] + dipoles[1]) + dipoles[2]);

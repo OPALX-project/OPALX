@@ -18,6 +18,7 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
+#include <array>
 #include <memory>
 #include <set>
 #include <string>
@@ -52,15 +53,17 @@ public:
     ElementSet getElements(const Vector_t<double, 3>& x);
 
     /**
-     * @brief Build the element grid from the placed elements with the current OPTION values.
+     * @brief Build the element grid from the placed elements.
      *
      * Call once placement, misalignment and field-map extents are final. A later change of the
      * element list discards the grid.
+     * @param grid Cells along x, y and z (OPTION ELEMENTMAPPINGGRID).
+     * @param reach Reach [m] of the elements without REACH (OPTION ELEMENTMAPPINGREACH).
      */
-    void buildElementMapping();
+    void buildElementMapping(const std::array<unsigned, 3>& grid, double reach);
 
-    /// The element grid, built on first use.
-    const GeneralElementMapping& getElementMapping();
+    /// The element grid. @throws LogicalError if buildElementMapping() has not built it.
+    const GeneralElementMapping& getElementMapping() const;
 
     /**
      * Get all elements in the beamline, regardless of their position.

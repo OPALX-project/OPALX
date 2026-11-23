@@ -23,7 +23,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
-#include "Utilities/Options.h"
+#include "Utilities/LogicalError.h"
 #include "Utilities/Util.h"
 
 #include <filesystem>
@@ -72,13 +72,16 @@ ElementSet OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     return elementSet;
 }
 
-void OpalBeamline::buildElementMapping() {
-    elementMapping_m = std::make_shared<const GeneralElementMapping>(
-            elements_m, Options::elementMappingGrid, Options::elementMappingReach);
+void OpalBeamline::buildElementMapping(const std::array<unsigned, 3>& grid, double reach) {
+    elementMapping_m = std::make_shared<const GeneralElementMapping>(elements_m, grid, reach);
 }
 
-const GeneralElementMapping& OpalBeamline::getElementMapping() {
-    if (!elementMapping_m) buildElementMapping();
+const GeneralElementMapping& OpalBeamline::getElementMapping() const {
+    if (!elementMapping_m) {
+        throw LogicalError(
+                "OpalBeamline::getElementMapping",
+                "buildElementMapping() was not called after the last change of the elements.");
+    }
     return *elementMapping_m;
 }
 

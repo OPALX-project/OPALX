@@ -192,8 +192,6 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
 namespace {
     /// An APERTURE half-width of this size or more counts as no aperture (the default is 1e6 m).
     constexpr double unboundedAperture = 1e5;
-    /// Reach [m] of an element without setReach(); the default of OPTION ELEMENTMAPPINGREACH.
-    constexpr double unsetReach = 0.5;
 }  // namespace
 
 std::optional<ApertureShape> ElementBase::getFieldRange() const { return std::nullopt; }
@@ -219,7 +217,7 @@ ElementRegions ElementBase::getRegions() const {
     regions.bodyBegin  = arc ? 0.0 : geometry.getStartZ();
     regions.bodyEnd    = regions.bodyBegin + geometry.getElementLength();
 
-    const double reach = reach_m.value_or(unsetReach);
+    const double reach = reach_m.value_or(defaultElementReach);
     regions.reachX     = reach;
     regions.reachY     = reach;
 

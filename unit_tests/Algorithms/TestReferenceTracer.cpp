@@ -178,6 +178,7 @@ TEST_F(ReferenceTracerTest, LengthCheckUsesTheFieldExtent) {
     component.fixPosition();
     add(beamline, component);
     beamline.prepareSections();
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
 
     // About 0.2 mm per step at beta gamma = 1: ten steps fit into the 0.1 m field extent.
     ReferenceTracer fine(
@@ -199,6 +200,7 @@ TEST_F(ReferenceTracerTest, ReachCheckStopsWhenAParallelBranchWouldDeleteTheRefe
         if (branchReach > 0.0) branch->setReach(branchReach);
         add(beamline, *branch);
         beamline.prepareSections();
+        beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
         ReferenceTracer tracer(
                 reference_m, beamline, schedule(1.0e-11, 0.7, 512), 1.0e-11, /*autoPhase=*/0);
         tracer.execute(launch(), 0.0);
@@ -212,6 +214,7 @@ TEST_F(ReferenceTracerTest, EndsWhenTheReferenceLeavesTheLattice) {
     OpalBeamline beamline;
     add(beamline, *makeQuadrupole("Q", 0.0, 0.5));
     beamline.prepareSections();
+    beamline.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
 
     // Without ZSTOP and with a large step budget the pass still ends just after the element.
     ReferenceTracer tracer(

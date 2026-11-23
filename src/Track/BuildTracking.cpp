@@ -340,12 +340,14 @@ namespace opalx::run {
          * @brief Hand the elements of the line to an OpalBeamline in line order (addElement()
          *        calls initialise()), place them, write the 3D lattice files and build the
          *        element mapping.
+         *
+         * An element without REACH gets OPTION ELEMENTMAPPINGREACH before it is added.
          * @param cavityPhases The cavity phases a checkpoint stored; empty for a fresh run.
          */
         OpalBeamline buildBeamline(
                 const LineDescription& line,
                 const std::vector<std::shared_ptr<ElementBase>>& elements, PartBunch_t& bunch,
-                const CavityPhases& cavityPhases) {
+                const CavityPhases& cavityPhases, const OptionValues& options) {
             OpalBeamline beamline(
                     Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
                     Quaternion(
@@ -354,6 +356,7 @@ namespace opalx::run {
             for (const auto& built : elements) {
                 switch (built->trackedAs()) {
                     case TrackedAs::FieldElement:
+                        if (!built->getReach()) built->setReach(options.elementMappingReach);
                         beamline.addElement(built, bunch);
                         break;
                     case TrackedAs::Unsupported:
@@ -379,7 +382,7 @@ namespace opalx::run {
             // aperture must lie inside its reach before the grid is built from the reaches.
             for (const auto& element : beamline.getElementByType(ElementType::ANY))
                 element->checkRegions();
-            beamline.buildElementMapping();
+            beamline.buildElementMapping(options.elementMappingGrid, options.elementMappingReach);
             return beamline;
         }
 
@@ -698,10 +701,6 @@ namespace opalx::run {
         // BC handler
         *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
 
-        for (const auto& element : elements) {
-            if (!element->getReach()) element->setReach(options.elementMappingReach);
-        }
-
         // A fresh run samples its distributions. A restart restores the exact saved particle state
         // instead, so sampling it again would duplicate particles and consume random numbers.
         double globalPhaseShift = 0.0;
@@ -782,8 +781,8 @@ namespace opalx::run {
 
         // The tracker steps with a positive time step; elements read it in initialise().
         bunch.setdT(std::abs(bunch.getdT()));
-        setup.beamline =
-                buildBeamline(description.line, elements, bunch, restartMetadata.cavityPhases);
+        setup.beamline = buildBeamline(
+                description.line, elements, bunch, restartMetadata.cavityPhases, options);
         setup.spaceChargeFieldUpdate = run.getString("SCFIELDUPDATE") == "PRESTEP"
                                                ? SpaceChargeFieldUpdate::PRESTEP
                                                : SpaceChargeFieldUpdate::MIDPOINT;
