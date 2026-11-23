@@ -2,7 +2,6 @@
 
 #include "Utility/PAssert.h"
 
-#include "AbstractObjects/OpalData.h"
 /* To be ported from OPAL
 #include "Fields/Astra1DElectroStatic.h"
 #include "Fields/Astra1DElectroStatic_fast.h"
@@ -34,9 +33,7 @@
 #include "Fields/G4BL2DMagnetoStatic.h"
 #include "Fields/G4BL3DGrid.h"
 
-#include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Util.h"
 
 #include "H5hut.h"
 
@@ -48,7 +45,6 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
-#include <iomanip>
 #include <ios>
 #include <iostream>
 #include <new>
@@ -438,84 +434,6 @@ void Fieldmap::freeMap(std::string Filename) {
     }
 }
 
-void Fieldmap::checkMap(
-        unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
-        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-        gsl_interp_accel* splineAccelerator) {
-    double length             = fieldDimensions.second - fieldDimensions.first;
-    unsigned int sizeSampling = std::round(length / deltaZ);
-    std::vector<double> zSampling(sizeSampling);
-    zSampling[0] = fieldDimensions.first;
-    for (unsigned int i = 1; i < sizeSampling; ++i) {
-        zSampling[i] = zSampling[i - 1] + deltaZ;
-    }
-    checkMap(
-            accuracy, length, zSampling, fourierCoefficients, splineCoefficients,
-            splineAccelerator);
-}
-
-void Fieldmap::checkMap(
-        unsigned int accuracy, double length, const std::vector<double>& zSampling,
-        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-        gsl_interp_accel* splineAccelerator) {
-    double error     = 0.0;
-    double maxDiff   = 0.0;
-    double ezMax     = 0.0;
-    double ezSquare  = 0.0;
-    size_t lastDot   = Filename_m.find_last_of(".");
-    size_t lastSlash = Filename_m.find_last_of("/");
-    lastSlash        = (lastSlash == std::string::npos) ? 0 : lastSlash + 1;
-
-    auto opal = OpalData::getInstance();
-    std::ofstream out;
-    if (ippl::Comm->rank() == 0) {
-        std::string fname = Util::combineFilePath(
-                {opal->getAuxiliaryOutputDirectory(),
-                 Filename_m.substr(lastSlash, lastDot) + ".check"});
-        out.open(fname);
-        out << "# z  original reproduced\n";
-    }
-    auto it  = zSampling.begin();
-    auto end = zSampling.end();
-    for (; it != end; ++it) {
-        const double kz         = Physics::two_pi * (*it / length + 0.5);
-        double onAxisFieldCheck = fourierCoefficients[0];
-        unsigned int n          = 1;
-        for (unsigned int l = 1; l < accuracy; ++l, n += 2) {
-            double coskzl = std::cos(kz * l);
-            double sinkzl = std::sin(kz * l);
-
-            onAxisFieldCheck +=
-                    (fourierCoefficients[n] * coskzl - fourierCoefficients[n + 1] * sinkzl);
-        }
-        double ez         = gsl_spline_eval(splineCoefficients, *it, splineAccelerator);
-        double difference = std::abs(ez - onAxisFieldCheck);
-        maxDiff           = difference > maxDiff ? difference : maxDiff;
-        ezMax             = std::abs(ez) > ezMax ? std::abs(ez) : ezMax;
-        error += std::pow(difference, 2.0);
-        ezSquare += std::pow(ez, 2.0);
-
-        if (ippl::Comm->rank() == 0) {
-            out << std::setw(16) << std::setprecision(8) << *it << std::setw(16)
-                << std::setprecision(8) << ez << std::setw(16) << std::setprecision(8)
-                << onAxisFieldCheck << std::endl;
-        }
-    }
-    out.close();
-
-    if (std::sqrt(error / ezSquare) > 1e-1 || maxDiff > 1e-1 * ezMax) {
-        lowResolutionWarning(std::sqrt(error / ezSquare), maxDiff / ezMax);
-
-        throw GeneralOpalException(
-                "Fieldmap::checkMap",
-                "Field map can't be reproduced properly with the given number of fourier "
-                "components");
-    }
-    if (std::sqrt(error / ezSquare) > 1e-2 || maxDiff > 1e-2 * ezMax) {
-        lowResolutionWarning(std::sqrt(error / ezSquare), maxDiff / ezMax);
-    }
-}
-
 void Fieldmap::setEdgeConstants(
         const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/) {
 };
@@ -608,30 +526,6 @@ void Fieldmap::noFieldmapWarning() {
     throw GeneralOpalException("Fieldmap::noFieldmapsWarning()", errormsg.str());
 }
 
-void Fieldmap::lowResolutionWarning(double squareError, double maxError) {
-    std::stringstream errormsg;
-    errormsg << "IT SEEMS THAT YOU USE TOO FEW FOURIER COMPONENTS TO SUFFICIENTLY WELL\n"
-             << "RESOLVE THE FIELD MAP '" << Filename_m << "'.\n"
-             << "PLEASE INCREASE THE NUMBER OF FOURIER COMPONENTS!\n"
-             << "The ratio (e_i - E_i)^2 / E_i^2 is " << std::to_string(squareError) << " and\n"
-             << "the ratio (max_i(|e_i - E_i|) / max_i(|E_i|) is " << std::to_string(maxError)
-             << ".\n"
-             << "Here E_i is the field as in the field map and e_i is the reconstructed field.\n"
-             << "The lower limit for the two ratios is 1e-2\n"
-             << "Have a look into the directory "
-             << OpalData::getInstance()->getAuxiliaryOutputDirectory()
-             << " for a reconstruction of the field map.\n";
-    std::string errormsg_str = typeset_msg(errormsg.str(), "warning");
-
-    *ippl::Error << errormsg_str << "\n" << endl;
-
-    if (ippl::Comm->rank() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg.str() << std::endl;
-        omsg.close();
-    }
-}
-
 std::string Fieldmap::typeset_msg(const std::string& msg, const std::string& title) {
     static std::string frame(
             "* ******************************************************************************\n");
@@ -708,73 +602,6 @@ void Fieldmap::get1DProfile1ExitParam(
 double Fieldmap::getFieldGap() { return 0.0; }
 
 void Fieldmap::setFieldGap(double /*gap*/) {}
-
-void Fieldmap::write3DField(
-        unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,
-        const std::pair<double, double>& yrange, const std::pair<double, double>& zrange,
-        const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf) {
-    const size_t numpoints = nx * ny * nz;
-    if (ippl::Comm->rank() != 0 || (ef.size() != numpoints && bf.size() != numpoints)) return;
-
-    std::filesystem::path p(Filename_m);
-    std::string fname = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), p.stem().string() + ".vtk"});
-    std::ofstream of;
-    of.open(fname);
-    PAssert(of.is_open());
-    of.precision(6);
-
-    const double hx = (xrange.second - xrange.first) / (nx - 1);
-    const double hy = (yrange.second - yrange.first) / (ny - 1);
-    const double hz = (zrange.second - zrange.first) / (nz - 1);
-
-    of << "# vtk DataFile Version 2.0" << std::endl;
-    of << "generated by 3D fieldmaps" << std::endl;
-    of << "ASCII" << std::endl << std::endl;
-    of << "DATASET RECTILINEAR_GRID" << std::endl;
-    of << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
-
-    of << "X_COORDINATES " << nx << " float" << std::endl;
-    of << xrange.first;
-    for (unsigned int i = 1; i < nx - 1; ++i) {
-        of << " " << xrange.first + i * hx;
-    }
-    of << " " << xrange.second << std::endl;
-
-    of << "Y_COORDINATES " << ny << " float" << std::endl;
-    of << yrange.first;
-    for (unsigned int i = 1; i < ny - 1; ++i) {
-        of << " " << yrange.first + i * hy;
-    }
-    of << " " << yrange.second << std::endl;
-
-    of << "Z_COORDINATES " << nz << " float" << std::endl;
-    of << zrange.first;
-    for (unsigned int i = 1; i < nz - 1; ++i) {
-        of << " " << zrange.first + i * hz;
-    }
-    of << " " << zrange.second << std::endl;
-
-    of << "POINT_DATA " << numpoints << std::endl;
-
-    if (ef.size() == numpoints) {
-        of << "VECTORS EField float" << std::endl;
-        // of << "LOOKUP_TABLE default" << std::endl;
-        for (size_t i = 0; i < numpoints; ++i) {
-            of << ef[i](0) << " " << ef[i](1) << " " << ef[i](2) << std::endl;
-        }
-        // of << std::endl;
-    }
-
-    if (bf.size() == numpoints) {
-        of << "VECTORS BField float" << std::endl;
-        // of << "LOOKUP_TABLE default" << std::endl;
-        for (size_t i = 0; i < numpoints; ++i) {
-            of << bf[i](0) << " " << bf[i](1) << " " << bf[i](2) << std::endl;
-        }
-        // of << std::endl;
-    }
-}
 
 REGISTER_PARSE_TYPE(int);
 REGISTER_PARSE_TYPE(unsigned int);

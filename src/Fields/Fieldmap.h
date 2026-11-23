@@ -9,8 +9,6 @@
 #include "AbsBeamline/ElementRegions.h"
 #include "OPALTypes.h"
 
-#include "Utilities/GSLSpline.h"
-
 enum MapType {
     UNKNOWN = 0,
     T1DDynamic,
@@ -314,24 +312,6 @@ protected:
     void disableFieldmapWarning();
 
     void noFieldmapWarning();
-
-    void lowResolutionWarning(double squareError, double maxError);
-
-    void checkMap(
-            unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
-            const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-            gsl_interp_accel* splineAccelerator);
-
-    void checkMap(
-            unsigned int accuracy, double length, const std::vector<double>& zSampling,
-            const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-            gsl_interp_accel* splineAccelerator);
-
-    void write3DField(
-            unsigned int nx, unsigned int ny, unsigned int nz,
-            const std::pair<double, double>& xrange, const std::pair<double, double>& yrange,
-            const std::pair<double, double>& zrange, const std::vector<Vector_t<double, 3>>& ef,
-            const std::vector<Vector_t<double, 3>>& bf);
 
 private:
     template <typename T>
