@@ -135,8 +135,6 @@ PartBunch<T, Dim>::PartBunch(
               << " particles allocated." << endl;
     }
 
-    globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
-
     resetPcActive();
 
     m << level5 << "* PartBunch constructor done." << endl;
@@ -350,16 +348,6 @@ void PartBunch<T, Dim>::deleteInvalidParticles(
               << ", " << pc->getTotalNum() << " remaining (container " << ci << ")." << endl;
         }
     }
-}
-
-/**
- * @copybrief PartBunch::gatherLoadBalanceStatistics
- */
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
-    std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
-    globalPartPerNode_m[ippl::Comm->rank()] = this->getParticleContainer()->getLocalNum();
-    ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
 }
 
 /**

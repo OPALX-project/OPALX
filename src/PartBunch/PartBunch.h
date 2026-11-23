@@ -91,9 +91,6 @@ private:
 
     long long globalTrackStep_m;  ///< Global integration step counter.
 
-    std::unique_ptr<size_t[]>
-            globalPartPerNode_m;  ///< Per-rank particle counts for load-balance stats.
-
     double rmsDensity_m;  ///< Legacy RMS density placeholder (may still appear in stats).
 
 public:
@@ -415,10 +412,6 @@ public:
         }
         return mass;
     }
-
-    void gatherLoadBalanceStatistics();
-
-    size_t getLoadBalance(int p) { return globalPartPerNode_m[p]; }
 
     /// @brief Stub; logs and returns 0.
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {

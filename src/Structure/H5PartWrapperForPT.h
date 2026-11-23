@@ -45,8 +45,6 @@ public:
             opalx::moments::Moment::Bounds | opalx::moments::Moment::MeanPosition
             | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
 
-    virtual bool predecessorIsSameFlavour() const;
-
 private:
     void writeStepHeader(
             PartBunch_t*, const opalx::moments::BeamMoments& moments,
@@ -60,9 +58,5 @@ private:
     IpplTimings::TimerRef h5DeviceHostCopyTimer_m;
     IpplTimings::TimerRef h5DatasetWriteTimer_m;
 };
-
-inline bool H5PartWrapperForPT::predecessorIsSameFlavour() const {
-    return (predecessorOPALFlavour_m == "opal-t");
-}
 
 #endif  // OPAL_H5PARTWRAPPERFORPT_H

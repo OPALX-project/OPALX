@@ -414,45 +414,4 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         WRITE_TIMED_DATA(Float64, file_m, "Bz", f64buffer);
     }
 #undef WRITE_TIMED_DATA
-
-    /*
-    /// Write space charge field map if asked for.
-    if (Options::rhoDump) {
-        NDIndex<3> idx = bunch->getFieldLayout().getLocalNDIndex();
-        NDIndex<3> elem;
-        h5_err_t herr = H5Block3dSetView(
-            file_m, idx[0].min(), idx[0].max(), idx[1].min(), idx[1].max(), idx[2].min(),
-            idx[2].max());
-        reportOnError(herr, __FILE__, __LINE__);
-
-        std::unique_ptr<h5_float64_t[]> data(
-            new h5_float64_t[(idx[0].max() + 1) * (idx[1].max() + 1) * (idx[2].max() + 1)]);
-
-        int ii = 0;
-        // h5block uses the fortran convention of storing data:
-        // INTEGER, DIMENSION(2,3) :: a
-        // => {a(1,1), a(2,1), a(1,2), a(2,2), a(1,3), a(2,3)}
-        for (int i = idx[2].min(); i <= idx[2].max(); ++i) {
-            for (int j = idx[1].min(); j <= idx[1].max(); ++j) {
-                for (int k = idx[0].min(); k <= idx[0].max(); ++k) {
-                    data[ii] = bunch->getRho(k, j, i);
-                    ++ii;
-                }
-            }
-        }
-        herr = H5Block3dWriteScalarFieldFloat64(file_m, "rho", data.get());
-        reportOnError(herr, __FILE__, __LINE__);
-
-        /// Need this to align particles and fields when writing space charge map.
-        herr = H5Block3dSetFieldOrigin(
-            file_m, "rho", (h5_float64_t)bunch->get_origin()(0),
-            (h5_float64_t)bunch->get_origin()(1), (h5_float64_t)bunch->get_origin()(2));
-        reportOnError(herr, __FILE__, __LINE__);
-
-        herr = H5Block3dSetFieldSpacing(
-            file_m, "rho", (h5_float64_t)bunch->get_hr()(0), (h5_float64_t)bunch->get_hr()(1),
-            (h5_float64_t)bunch->get_hr()(2));
-        reportOnError(herr, __FILE__, __LINE__);
-    }
-    */
 }

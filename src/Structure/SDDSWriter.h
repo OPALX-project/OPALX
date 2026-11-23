@@ -53,17 +53,6 @@ public:
 
     virtual ~SDDSWriter() {};
 
-    virtual void write(const PartBunch_t& /*beam*/) {};
-
-    /** \brief
-     *  delete the last 'numberOfLines' lines of the file 'fileName'
-     */
-    void rewindLines(size_t numberOfLines);
-
-    void replaceVersionString();
-
-    double getLastValue(const std::string& column);
-
     bool exists() const;
 
 protected:

@@ -38,7 +38,7 @@ enum class SpaceChargeFieldUpdate {
  * @brief Everything buildTracking() makes for one RUN and ParallelTracker reads.
  *
  * Made by opalx::run::buildTracking(). The bunch, the space-charge solver and the data sink are
- * owned elsewhere (opalx::run::RunObjects, OpalData) and borrowed here.
+ * owned by opalx::run::RunObjects and borrowed here.
  */
 struct TrackingSetup {
     PartBunch_t* bunch = nullptr;  ///< Borrowed particle bunch (one container per beam).

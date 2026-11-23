@@ -54,8 +54,6 @@ public:
             PartBunch_t*, const opalx::moments::BeamMoments& moments,
             const std::map<std::string, double>&, size_t particleContainerIndex = 0) = 0;
 
-    virtual bool predecessorIsSameFlavour() const = 0;
-
     size_t getNumParticles() const;
 
 protected:

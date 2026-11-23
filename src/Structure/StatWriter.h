@@ -28,7 +28,6 @@ public:
     /// @param inputFileName Input file named in the header.
     StatWriter(const std::string& fname, const std::string& inputFileName, bool restart);
 
-    using SDDSWriter::write;
     /** \brief Write statistical data.
      *
      * Writes statistical beam data to proper output file. This is information such as RMS beam

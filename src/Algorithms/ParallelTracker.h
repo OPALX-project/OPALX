@@ -154,7 +154,7 @@ private:
 
     /// The particle bunch to track. Borrowed; opalx::run::RunObjects owns it.
     PartBunch_t* itsBunch_m;
-    /// OPTION values of this RUN; the tracker reads no Options:: globals.
+    /// OPTION values of this RUN.
     opalx::run::OptionValues options_m;
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.

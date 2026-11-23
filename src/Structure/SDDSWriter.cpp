@@ -19,13 +19,9 @@
 #include "Structure/SDDSWriter.h"
 
 #include "BuildInfo.h"
-#include "PartBunch/PartBunch.h"
-#include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
 
 #include "Utility/IpplInfo.h"
-
-#include <queue>
 
 extern Inform* gmsg;
 
@@ -39,84 +35,6 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
     } else {
         *gmsg << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
-}
-
-void SDDSWriter::rewindLines(size_t numberOfLines) {
-    if (numberOfLines == 0 || ippl::Comm->rank() != 0) {
-        return;
-    }
-
-    std::string line;
-    std::queue<std::string> allLines;
-    std::fstream fs;
-
-    fs.open(fname_m.c_str(), std::fstream::in);
-
-    if (!fs.is_open()) return;
-
-    while (getline(fs, line)) {
-        allLines.push(line);
-    }
-    fs.close();
-
-    fs.open(fname_m.c_str(), std::fstream::out);
-
-    if (!fs.is_open()) return;
-
-    while (allLines.size() > numberOfLines) {
-        fs << allLines.front() << "\n";
-        allLines.pop();
-    }
-    fs.close();
-}
-
-void SDDSWriter::replaceVersionString() {
-    if (ippl::Comm->rank() != 0) return;
-
-    std::string versionFile;
-    SDDS::SDDSParser parser(fname_m);
-    parser.run();
-    parser.getParameterValue("revision", versionFile);
-
-    std::string line;
-    std::queue<std::string> allLines;
-    std::fstream fs;
-
-    fs.open(fname_m.c_str(), std::fstream::in);
-
-    if (!fs.is_open()) return;
-
-    while (getline(fs, line)) {
-        allLines.push(line);
-    }
-    fs.close();
-
-    fs.open(fname_m.c_str(), std::fstream::out);
-
-    if (!fs.is_open()) return;
-
-    while (!allLines.empty()) {
-        line = allLines.front();
-
-        if (line != versionFile) {
-            fs << line << "\n";
-        } else {
-            fs << buildinfo::project_name << " " << buildinfo::project_version << " git rev. #"
-               << Util::getGitRevision() << "\n";
-        }
-
-        allLines.pop();
-    }
-
-    fs.close();
-}
-
-double SDDSWriter::getLastValue(const std::string& column) {
-    SDDS::SDDSParser parser(fname_m);
-    parser.run();
-    double val = 0.0;
-    parser.getValue(-1, column, val);
-    return val;
 }
 
 void SDDSWriter::open() {
