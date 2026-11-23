@@ -300,7 +300,7 @@ void ParallelTracker::advanceParticles() {
     // through the first half drift. Keep this as an explicit compatibility mode; the default
     // evaluates the field at R_{n+1/2} below.
     if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
-        resetFields();
+        itsBunch_m->resetFields();
         computeSpaceChargeFields();
     }
 
@@ -309,7 +309,7 @@ void ParallelTracker::advanceParticles() {
     m << level4 << "timeIntegration1 done at step " << step << "." << endl;
 
     if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
-        resetFields();
+        itsBunch_m->resetFields();
         computeSpaceChargeFields();
     }
 
@@ -323,18 +323,18 @@ void ParallelTracker::advanceParticles() {
     // First half of the Thomas-BMT spin rotation (momentum before the kick);
     // timeIntegration2 does the second half after the kick.
     // No-op for containers that have not registered the Pol attribute.
-    evolveSpinTBMT();
+    itsBunch_m->evolveSpinHalfStep();
 
     // Second half of the time integration
     timeIntegration2();
 
     // Apply global processes (e.g. decay) and mark affected particles for deletion
-    const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
+    const size_t nProcessMarked = itsBunch_m->applyGlobalProcesses(itsBunch_m->getdT());
     if (nProcessMarked > 0) {
         // Decay-like global processes may have created daughters and marked parents
         // invalid. Delete the parents before time/reference updates so they do not
         // contribute to post-step moments.
-        deleteInvalidParticles(false, m, "global processes");
+        itsBunch_m->deleteInvalidParticles(false, m, "global processes");
     }
 
     // Small sanity check
@@ -356,12 +356,10 @@ void ParallelTracker::advanceReference() {
 std::vector<opalx::moments::BeamMoments> ParallelTracker::removeLostParticles(
         bool psDump, bool statDump) {
     Inform m("ParallelTracker::removeLostParticles");
-    const auto& particleContainers = itsBunch_m->getParticleContainers();
 
     // Every frame change of this step is closed: moments, output and the next step read
     // reference-frame data.
-    for (const auto& pc : particleContainers)
-        if (pc) pc->requireReferenceFrame("ParallelTracker::removeLostParticles");
+    itsBunch_m->requireReferenceFrame("ParallelTracker::removeLostParticles");
 
     // Enforce the transverse aperture of every nearby element (collective call).
     size_t nStepMarked = itsOpalBeamline_m.applyElementApertures(*itsBunch_m);
@@ -373,30 +371,16 @@ std::vector<opalx::moments::BeamMoments> ParallelTracker::removeLostParticles(
     // The outlier box and the outputs of this step read one computation per container,
     // unless particles are deleted in between.
     const double sigmas = options_m.boundpDestroy;
-    std::vector<opalx::moments::BeamMoments> stepMoments(particleContainers.size());
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        const auto& pc = particleContainers[i];
-        if (!pc || !itsBunch_m->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
-            continue;
-        }
-        stepMoments[i] = opalx::moments::compute(
-                *pc, Moment::MeanPosition | Moment::Spread
-                             | outputMomentsDue(*pc, psDump, statDump, stepLogDue()));
-        const Vector_t<double, 3> halfWidth = sigmas * stepMoments[i].rmsR();
-        const size_t nMarked                = pc->markParticlesOutside(
-                stepMoments[i].meanR() - halfWidth, stepMoments[i].meanR() + halfWidth);
-        nStepMarked += nMarked;
-        if (nMarked > 0) {
-            m << level2 << "Marked " << nMarked << " particles outside " << sigmas
-              << "-sigma boundary for deletion (container " << i << ")." << endl;
-        }
-    }
+    const auto outputs  = [&](const ParticleContainer_t& pc) {
+        return outputMomentsDue(pc, psDump, statDump, stepLogDue());
+    };
+    auto stepMoments = itsBunch_m->markOutliers(sigmas, outputs, nStepMarked);
 
     // Single flush of all marks accumulated this step.
     if (nStepMarked > 0) {
-        deleteInvalidParticles(
+        itsBunch_m->deleteInvalidParticles(
                 true, m, "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
-        stepMoments.assign(particleContainers.size(), {});
+        stepMoments.assign(stepMoments.size(), {});
     }
     return stepMoments;
 }
@@ -505,17 +489,7 @@ void ParallelTracker::finishTracking() {
 void ParallelTracker::timeIntegration1() {
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
-        pc->pushParticles();
-    }
+    itsBunch_m->pushParticles();
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
 }
@@ -524,22 +498,7 @@ void ParallelTracker::timeIntegration2() {
     Inform m("ParallelTracker::timeIntegration2");
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
-        pc->kickParticles();
-        if (pc->hasSpin()) {
-            pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
-        }
-        pc->pushParticles();
-        pc->dt = itsBunch_m->getdT();
-    }
+    itsBunch_m->kickAndPushParticles();
     m << level4 << "Kick/push particles done for all containers." << endl;
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
@@ -570,46 +529,16 @@ void ParallelTracker::computeExternalFields() {
     // from where particles are emitted. It can happen that particles land behind the source plane
     // because e.g. of space-charge kicks. Particles with negative z momentum located behind R0Z
     // (with a certain threshold) are then removed from the simulation.
-    const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
+    const size_t nSourceMarked =
+            itsOpalBeamline_m.markBackwardParticlesAtSourcePlane(*itsBunch_m, dirichletPlane_m);
     if (nSourceMarked > 0) {
-        deleteInvalidParticles(
+        itsBunch_m->deleteInvalidParticles(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
     itsOpalBeamline_m.applyExternalFields(*itsBunch_m);
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
-}
-
-size_t ParallelTracker::applyGlobalProcesses(double dt) {
-    const size_t nContainers        = itsBunch_m->getNumParticleContainers();
-    const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
-    size_t nMarked                  = 0;
-
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc) {
-            continue;
-        }
-        // Decay writes daughters in the shared reference frame of parent and daughter.
-        pc->requireReferenceFrame("ParallelTracker::applyGlobalProcesses");
-        const auto& processes = pc->getGlobalProcesses();
-        if (processes.empty()) {
-            continue;
-        }
-        for (const auto& process : processes) {
-            if (process) {
-                nMarked += process->apply(*pc, dt, globalTrackStep, ci);
-            }
-        }
-    }
-    // A decay may have put the first particles into an empty daughter container. Switch it on
-    // now, so its particles take part in the next step's first push. nMarked is the global
-    // count, so every rank does the same.
-    if (nMarked > 0) {
-        itsBunch_m->refreshPcActiveAfterEmit();
-    }
-    return nMarked;
 }
 
 void ParallelTracker::updateBeamStops() {
@@ -633,96 +562,6 @@ void ParallelTracker::updateBeamStops() {
                   << Util::getTimeString(itsBunch_m->getT()) << "; it is no longer tracked."
                   << endl;
         }
-    }
-}
-
-void ParallelTracker::deleteInvalidParticles(
-        bool activeOnly, Inform& m, const std::string& reason) {
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
-
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (activeOnly && !itsBunch_m->isPcActive(ci)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc) {
-            continue;
-        }
-
-        const size_t nContainerDeleted = pc->deleteInvalidParticles();
-        if (nContainerDeleted > 0) {
-            m << level2 << "Deleted " << nContainerDeleted << " particles marked by " << reason
-              << ", " << pc->getTotalNum() << " remaining (container " << ci << ")." << endl;
-        }
-    }
-}
-
-size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
-    /// \todo this function should probably be integrated as a GunSource element similar to old
-    /// OPAL.
-    if (spaceChargeSolver_m == nullptr) {
-        return 0;
-    }
-
-    using namespace opalx::spacecharge;
-    if (dirichletPlane_m.kind == DirichletPlaneType::None) {
-        return 0;
-    }
-
-    const double sourcePlaneZ = dirichletPlane_m.planeZ;
-    // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
-    // Source::apply deletes only once a particle crosses the element-local entrance plane
-    // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.
-    constexpr double legacySourceLength = 0.05;
-    const double sourceLossPlaneZ       = sourcePlaneZ - legacySourceLength;
-
-    size_type localTotalMarked = 0;
-    const size_t nContainers   = itsBunch_m->getNumParticleContainers();
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (!itsBunch_m->isPcActive(ci)) {
-            continue;
-        }
-
-        auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc || pc->getLocalNum() == 0) {
-            continue;
-        }
-
-        // Read source-frame coordinates in the kernel; the particles stay where they are.
-        const auto toSource = pc->frame().to(itsOpalBeamline_m.beamlineFrame(*pc)).rigid();
-        localTotalMarked += pc->markBackwardParticles(toSource, sourceLossPlaneZ);
-    }
-
-    size_type globalTotalMarked = 0;
-    ippl::Comm->allreduce(localTotalMarked, globalTotalMarked, 1, std::plus<size_type>());
-    return static_cast<size_t>(globalTotalMarked);
-}
-
-void ParallelTracker::resetFields() {
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
-        pc->zeroFields();
-    }
-}
-
-void ParallelTracker::evolveSpinTBMT() {
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(i);
-        if (!pc || !pc->hasSpin()) {
-            continue;
-        }
-        pc->evolveSpinHalfStep();
     }
 }
 

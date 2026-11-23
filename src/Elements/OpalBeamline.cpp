@@ -220,6 +220,44 @@ ParticleFrame OpalBeamline::elementFrame(
             element.get());
 }
 
+size_t OpalBeamline::markBackwardParticlesAtSourcePlane(
+        PartBunch_t& bunch, const opalx::spacecharge::DirichletPlaneConfig& plane) const {
+    /// \todo this function should probably be integrated as a GunSource element similar to old
+    /// OPAL.
+    using namespace opalx::spacecharge;
+    if (plane.kind == DirichletPlaneType::None) {
+        return 0;
+    }
+
+    const double sourcePlaneZ = plane.planeZ;
+    // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
+    // Source::apply deletes only once a particle crosses the element-local entrance plane
+    // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.
+    constexpr double legacySourceLength = 0.05;
+    const double sourceLossPlaneZ       = sourcePlaneZ - legacySourceLength;
+
+    size_type localTotalMarked = 0;
+    const size_t nContainers   = bunch.getNumParticleContainers();
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (!bunch.isPcActive(ci)) {
+            continue;
+        }
+
+        auto pc = bunch.getParticleContainer(ci);
+        if (!pc || pc->getLocalNum() == 0) {
+            continue;
+        }
+
+        // Read source-frame coordinates in the kernel; the particles stay where they are.
+        const auto toSource = pc->frame().to(beamlineFrame(*pc)).rigid();
+        localTotalMarked += pc->markBackwardParticles(toSource, sourceLossPlaneZ);
+    }
+
+    size_type globalTotalMarked = 0;
+    ippl::Comm->allreduce(localTotalMarked, globalTotalMarked, 1, std::plus<size_type>());
+    return static_cast<size_t>(globalTotalMarked);
+}
+
 size_t OpalBeamline::applyElementApertures(PartBunch_t& bunch) {
     size_t localMarked = 0;
     for (size_t ci = 0; ci < bunch.getNumParticleContainers(); ++ci) {

@@ -34,6 +34,7 @@
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/GeneralElementMapping.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
 
 #include "OPALTypes.h"
 
@@ -119,6 +120,18 @@ public:
 
     /// Beamline (emission source) frame for the particles of @p pc.
     ParticleFrame beamlineFrame(const ParticleContainer_t& pc) const;
+
+    /**
+     * @brief Mark the particles of the active containers that move backwards at or behind the
+     *        source plane, read in the beamline frame; the particles stay where they are.
+     *
+     * The source plane is the Dirichlet plane of the space-charge solver at z = R0Z of the
+     * emitting EMISSIONSOURCE; particles are lost 5 cm upstream of it, at the entrance of the
+     * legacy OPAL SOURCE element.
+     * @return Global number of newly marked particles; 0 without a Dirichlet plane. Collective.
+     */
+    size_t markBackwardParticlesAtSourcePlane(
+            PartBunch_t& bunch, const opalx::spacecharge::DirichletPlaneConfig& plane) const;
 
     unsigned long getFieldAt(
             const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,

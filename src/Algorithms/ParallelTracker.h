@@ -154,15 +154,6 @@ private:
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2();
 
-    /// @brief First half of the Thomas-BMT spin rotation for all active containers that store
-    /// Pol, with the momentum before the kick. timeIntegration2 does the second half with the
-    /// momentum after the kick, so the spin update is second order in dt. Call after the
-    /// external and space-charge fields at the half-step position have been accumulated.
-    void evolveSpinTBMT();
-
-    /// @brief Zero E and B on all active particle containers.
-    void resetFields();
-
     /// @brief The space-charge solve of this step (SpaceChargeSolver::solveStep()).
     /// @throws OpalException if the run has no space-charge solver.
     void computeSpaceChargeFields();
@@ -170,16 +161,7 @@ private:
     /// @brief Apply external fields from elements intersecting each active container.
     void computeExternalFields();
 
-    /// @brief Apply global processes and return the global number of particles marked invalid.
-    size_t applyGlobalProcesses(double dt);
-
     // --- Particle loss and beam stops ---
-
-    /// @brief Mark particles moving backward behind an active source/cathode plane.
-    size_t markBackwardParticlesAtSourcePlane();
-
-    /// @brief Delete particles marked invalid by the central per-container mask.
-    void deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
     /// @brief Mark a beam done once every particle has passed its stop plane (collective call).
     void updateBeamStops();

@@ -7,6 +7,7 @@
 #define PARTBUNCH_H
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -181,6 +182,57 @@ public:
         }
         return false;
     }
+
+    /// @throws OpalException from @p where if a container's particles are not in its reference
+    ///         frame.
+    void requireReferenceFrame(const std::string& where) const {
+        for (const auto& pc : pcontainers_m)
+            if (pc) pc->requireReferenceFrame(where);
+    }
+
+    // --- Particle push, fields and loss over the active containers ---
+
+    /// @brief First half of the leapfrog step: half drift of every active container.
+    void pushParticles();
+
+    /// @brief Second half of the leapfrog step for every active container: kick, second half of
+    ///        the spin rotation with the momentum after the kick, half drift; then each
+    ///        container's particle dt is set to the bunch time step.
+    void kickAndPushParticles();
+
+    /// @brief First half of the Thomas-BMT spin rotation for every active container that stores
+    ///        Pol, with the momentum before the kick. kickAndPushParticles() does the second
+    ///        half, so the spin update is second order in dt. Call after the external and
+    ///        space-charge fields at the half-step position have been accumulated.
+    void evolveSpinHalfStep();
+
+    /// @brief Zero E and B on every active container.
+    void resetFields();
+
+    /// @brief Apply the global processes of every container (e.g. decay) over @p dt [s] and
+    ///        switch on daughter containers that received particles. Collective.
+    /// @return Global number of particles the processes marked invalid.
+    size_t applyGlobalProcesses(double dt);
+
+    /**
+     * @brief Mark the particles of each active, non-empty container outside the box of
+     *        @p sigmas rms sizes around its mean position (OPTION BOUNDPDESTROY). Collective.
+     *
+     * Deletion waits for deleteInvalidParticles().
+     * @param request Moment groups to compute per container in addition to those of the box,
+     *        so the caller can reuse the moments.
+     * @param[in,out] nMarked Gets the global number of newly marked particles added.
+     * @return Per container the moments computed for the box; empty for a container without box
+     *         and for all if @p sigmas is not positive.
+     */
+    std::vector<opalx::moments::BeamMoments> markOutliers(
+            double sigmas,
+            const std::function<opalx::moments::Request(const ParticleContainer_t&)>& request,
+            size_t& nMarked);
+
+    /// @brief Delete the particles marked invalid in every container, or in the active ones
+    ///        only, and log the count per container with @p reason. Collective.
+    void deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
     /// @return True if any container is active.
     bool anyPcActive() const {

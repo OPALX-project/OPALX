@@ -9,6 +9,7 @@
 #include <sstream>
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 #include "Track/RunDescription.h"
 #include "Utilities/Util.h"
 
@@ -189,6 +190,153 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
         const auto& pc = containers[i];
         if (pc && pc->getTotalNum() > 0) {
             pcActive_m[i] = true;
+        }
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::pushParticles() {
+    const size_t n = this->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!this->isPcActive(i)) {
+            continue;
+        }
+        auto pc = this->getParticleContainer(i);
+        if (!pc) {
+            continue;
+        }
+        pc->pushParticles();
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::kickAndPushParticles() {
+    const size_t n = this->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!this->isPcActive(i)) {
+            continue;
+        }
+        auto pc = this->getParticleContainer(i);
+        if (!pc) {
+            continue;
+        }
+        pc->kickParticles();
+        if (pc->hasSpin()) {
+            pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
+        }
+        pc->pushParticles();
+        pc->dt = this->getdT();
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::evolveSpinHalfStep() {
+    const size_t n = this->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!this->isPcActive(i)) {
+            continue;
+        }
+        auto pc = this->getParticleContainer(i);
+        if (!pc || !pc->hasSpin()) {
+            continue;
+        }
+        pc->evolveSpinHalfStep();
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::resetFields() {
+    const size_t n = this->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!this->isPcActive(i)) {
+            continue;
+        }
+        auto pc = this->getParticleContainer(i);
+        if (!pc) {
+            continue;
+        }
+        pc->zeroFields();
+    }
+}
+
+template <typename T, unsigned Dim>
+size_t PartBunch<T, Dim>::applyGlobalProcesses(double dt) {
+    const size_t nContainers        = this->getNumParticleContainers();
+    const long long globalTrackStep = this->getGlobalTrackStep();
+    size_t nMarked                  = 0;
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        auto pc = this->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+        // Decay writes daughters in the shared reference frame of parent and daughter.
+        pc->requireReferenceFrame("PartBunch::applyGlobalProcesses");
+        const auto& processes = pc->getGlobalProcesses();
+        if (processes.empty()) {
+            continue;
+        }
+        for (const auto& process : processes) {
+            if (process) {
+                nMarked += process->apply(*pc, dt, globalTrackStep, ci);
+            }
+        }
+    }
+    // A decay may have put the first particles into an empty daughter container. Switch it on
+    // now, so its particles take part in the next step's first push. nMarked is the global
+    // count, so every rank does the same.
+    if (nMarked > 0) {
+        this->refreshPcActiveAfterEmit();
+    }
+    return nMarked;
+}
+
+template <typename T, unsigned Dim>
+std::vector<opalx::moments::BeamMoments> PartBunch<T, Dim>::markOutliers(
+        double sigmas,
+        const std::function<opalx::moments::Request(const ParticleContainer_t&)>& request,
+        size_t& nMarked) {
+    using opalx::moments::Moment;
+    Inform m("PartBunch::markOutliers");
+    const auto& particleContainers = this->getParticleContainers();
+    std::vector<opalx::moments::BeamMoments> moments(particleContainers.size());
+    for (size_t i = 0; i < particleContainers.size(); ++i) {
+        const auto& pc = particleContainers[i];
+        if (!pc || !this->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
+            continue;
+        }
+        moments[i] =
+                opalx::moments::compute(*pc, Moment::MeanPosition | Moment::Spread | request(*pc));
+        const Vector_t<double, 3> halfWidth = sigmas * moments[i].rmsR();
+        const size_t nContainerMarked       = pc->markParticlesOutside(
+                moments[i].meanR() - halfWidth, moments[i].meanR() + halfWidth);
+        nMarked += nContainerMarked;
+        if (nContainerMarked > 0) {
+            m << level2 << "Marked " << nContainerMarked << " particles outside " << sigmas
+              << "-sigma boundary for deletion (container " << i << ")." << endl;
+        }
+    }
+    return moments;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::deleteInvalidParticles(
+        bool activeOnly, Inform& m, const std::string& reason) {
+    const size_t nContainers = this->getNumParticleContainers();
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (activeOnly && !this->isPcActive(ci)) {
+            continue;
+        }
+        auto pc = this->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+
+        const size_t nContainerDeleted = pc->deleteInvalidParticles();
+        if (nContainerDeleted > 0) {
+            m << level2 << "Deleted " << nContainerDeleted << " particles marked by " << reason
+              << ", " << pc->getTotalNum() << " remaining (container " << ci << ")." << endl;
         }
     }
 }

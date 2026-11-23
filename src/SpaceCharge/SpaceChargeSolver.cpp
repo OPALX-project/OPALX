@@ -45,8 +45,7 @@ namespace opalx::spacecharge {
                                        frame};
         SpaceChargeSolveContext context(containerActivity_m, std::move(stepState));
         solve(context);
-        for (const auto& pc : bunch.getParticleContainers())
-            if (pc) pc->requireReferenceFrame("SpaceChargeSolver::solveStep");
+        bunch.requireReferenceFrame("SpaceChargeSolver::solveStep");
         m << level3 << "Compute space-charge fields done." << endl;
     }
 
