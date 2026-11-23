@@ -153,30 +153,32 @@ namespace opalx::run {
             }
         }
 
-        // Restart: only one-shot sources at t = 0 and no stochastic processes.
-        if (restart) {
-            for (std::size_t i = 0; roots && i < beams.size(); ++i) {
-                if ((*roots)[i] == i) {
-                    for (const SourceDescription& source : beams[i]->sources) {
-                        if (!source.distributionFound) {
-                            errors.push_back(
-                                    "Distribution \"" + source.distribution + "\" not found.");
-                        } else if (
-                                source.emitted || source.t0 > 0.0
-                                || source.distributionType == "EMITTEDFROMFILE") {
-                            errors.push_back(
-                                    "Checkpoint restart does not yet support time-dependent or "
-                                    "delayed emission sources (beam '"
-                                    + names[i] + "', distribution '" + source.distribution + "').");
-                        }
+        // The distribution of every source; a restart allows only one-shot sources at t = 0 and no
+        // stochastic processes.
+        for (std::size_t i = 0; roots && i < beams.size(); ++i) {
+            if ((*roots)[i] == i) {
+                for (const SourceDescription& source : beams[i]->sources) {
+                    if (!source.distributionFound) {
+                        errors.push_back(
+                                "Distribution \"" + source.distribution
+                                + "\" not found; emission source \"" + source.name
+                                + "\" names it as its DISTRIBUTION.");
+                    } else if (
+                            restart
+                            && (source.emitted || source.t0 > 0.0
+                                || source.distributionType == "EMITTEDFROMFILE")) {
+                        errors.push_back(
+                                "Checkpoint restart does not yet support time-dependent or "
+                                "delayed emission sources (beam '"
+                                + names[i] + "', distribution '" + source.distribution + "').");
                     }
                 }
-                if (!beams[i]->globalProcesses.empty()) {
-                    errors.push_back(
-                            "Checkpoint restart does not yet support stochastic global processes "
-                            "such as DECAY (beam '"
-                            + names[i] + "').");
-                }
+            }
+            if (restart && !beams[i]->globalProcesses.empty()) {
+                errors.push_back(
+                        "Checkpoint restart does not yet support stochastic global processes "
+                        "such as DECAY (beam '"
+                        + names[i] + "').");
             }
         }
 

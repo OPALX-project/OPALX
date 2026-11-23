@@ -112,6 +112,14 @@ TEST(ValidateRun, RestartRefusesEmittingSourcesAndDecay) {
     EXPECT_TRUE(contains(errors, "stochastic global processes such as DECAY (beam 'B1')"));
 }
 
+TEST(ValidateRun, MissingDistributionOnFreshRunAndRestart) {
+    RunDescription run                        = validRun();
+    run.beams[0].sources[0].distributionFound = false;
+    EXPECT_TRUE(contains(validate(run), "Distribution \"DI\" not found"));
+    run.context.restart = true;
+    EXPECT_TRUE(contains(validate(run), "Distribution \"DI\" not found"));
+}
+
 TEST(ValidateRun, DecayDaughterBeams) {
     RunDescription run           = validRun();
     BeamDescription mu           = run.beams[0];
