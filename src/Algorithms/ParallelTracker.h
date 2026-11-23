@@ -25,7 +25,6 @@
 #include <optional>
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/TrackingSetup.h"
-#include "Steppers/BorisPusher.h"
 
 #include "Moments/BeamMoments.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
@@ -98,7 +97,7 @@ private:
      *        drift-kick-drift push, emission, external fields, spin, and the global processes
      *        with their deletions.
      */
-    void advanceParticles(BorisPusher& pusher);
+    void advanceParticles();
 
     /// @brief Advance the bunch time by one step, then the reference particles and the
     ///        reference-to-lab transforms.
@@ -143,10 +142,10 @@ private:
     void setInitialReferencePoses();
 
     /// @brief Integrate references in time until path length reaches sStart_m.
-    void findStartPositions(const BorisPusher& pusher);
+    void findStartPositions();
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
-    void autophaseCavities(const BorisPusher& pusher);
+    void autophaseCavities();
 
     /**
      * @brief Copy each decay daughter container's root reference particle, frame and path
@@ -189,10 +188,10 @@ private:
     // --- Particle push and fields ---
 
     /// @brief First half of the leapfrog step: push all active containers.
-    void timeIntegration1(BorisPusher& pusher);
+    void timeIntegration1();
 
     /// @brief Second half: kick then push all active containers.
-    void timeIntegration2(BorisPusher& pusher);
+    void timeIntegration2();
 
     /// @brief First half of the Thomas-BMT spin rotation for all active containers that store
     /// Pol, with the momentum before the kick. timeIntegration2 does the second half with the

@@ -538,9 +538,9 @@ public:
     }
 
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
-    template <typename Pusher>
-    void applyFractionalStep(const Pusher& pusher, double tau, double pathLengthTarget) {
+    void applyFractionalStep(double tau, double pathLengthTarget) {
         requireReferenceFrame("ParticleContainer::applyFractionalStep");
+        const BorisPusher pusher;
         refPartR_m /= (Physics::c * 2 * tau);
         pusher.push(refPartR_m, refPartP_m, tau);
         refPartR_m *= (Physics::c * 2 * tau);
@@ -561,11 +561,12 @@ public:
      * @brief Drift every local particle over half its own dt, R += (dt / 2) v, on unitless
      *        positions R / (c dt).
      */
-    void pushParticles(const BorisPusher& pusher) {
+    void pushParticles() {
         // Per-particle dt is used so that newly emitted particles with fractional dt
         // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
         switchToUnitlessPositions();
 
+        const BorisPusher pusher;
         auto Rview             = this->R.getView();
         auto Pview             = P.getView();
         const size_type nLocal = this->getLocalNum();
@@ -589,7 +590,7 @@ public:
      * @brief Boris kick of every local particle over its own dt, with E and B at the particle
      *        and the mass and charge of the reference particle.
      */
-    void kickParticles(const BorisPusher& pusher) {
+    void kickParticles() {
         Inform m("ParticleContainer::kickParticles");
 
         auto Pview  = P.getView();
@@ -604,6 +605,7 @@ public:
         const double mass      = ref.getM();
         const double charge    = ref.getQ();
         const size_type nLocal = this->getLocalNum();
+        const BorisPusher pusher;
         Kokkos::parallel_for(
                 "ParticleContainer::kickParticles", nLocal, KOKKOS_LAMBDA(const size_type i) {
                     // Boris kick: Birdsall & Langdon (1985), ch. 4-4 (non-relativistic) and ch.

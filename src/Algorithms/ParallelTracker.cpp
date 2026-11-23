@@ -40,6 +40,8 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
+#include "Steppers/BorisPusher.h"
+
 #include "SpaceCharge/SpaceChargeSolver.h"
 
 #include "Structure/CheckpointFile.h"
@@ -134,9 +136,6 @@ bool ParallelTracker::startTracking() {
     }
     activateEmittingContainers(itsBunch_m->getT());
 
-    BorisPusher pusher;
-    m << level3 << "Initialized Boris pusher." << endl;
-
     // Ensure the time step is positive for the setup phase (buildTracking() did so as well,
     // before the elements were initialised).
     itsBunch_m->setdT(std::abs(itsBunch_m->getdT()));
@@ -150,7 +149,7 @@ bool ParallelTracker::startTracking() {
         setInitialReferencePoses();
 
         // Integrate reference orbits forward until all container path lengths reach sStart_m.
-        findStartPositions(pusher);
+        findStartPositions();
         stepSizes_m.advanceToPos(sStart_m);
     } else {
         stepSizes_m.advanceToIndex(restartPosition_m.segment);
@@ -350,7 +349,6 @@ void ParallelTracker::setInitialReferencePoses() {
 
 void ParallelTracker::trackSteps() {
     Inform m("ParallelTracker::trackSteps");
-    BorisPusher pusher;
 
     // The position within the step-size schedule.
     std::size_t segmentIndex = stepSizes_m.getCurrentIndex();
@@ -372,7 +370,7 @@ void ParallelTracker::trackSteps() {
                 break;
             }
 
-            advanceParticles(pusher);
+            advanceParticles();
             advanceReference();
 
             const long long step   = itsBunch_m->getGlobalTrackStep();
@@ -443,7 +441,7 @@ void ParallelTracker::startSegment(
  * computeSpaceChargeFields() (the solve frame) and computeExternalFields() (each element's local
  * frame, through a FrameScope).
  */
-void ParallelTracker::advanceParticles(BorisPusher& pusher) {
+void ParallelTracker::advanceParticles() {
     Inform m("ParallelTracker::advanceParticles");
     const long long step = itsBunch_m->getGlobalTrackStep();
 
@@ -456,7 +454,7 @@ void ParallelTracker::advanceParticles(BorisPusher& pusher) {
     }
 
     // First half of the time integration
-    timeIntegration1(pusher);
+    timeIntegration1();
     m << level4 << "timeIntegration1 done at step " << step << "." << endl;
 
     if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
@@ -476,7 +474,7 @@ void ParallelTracker::advanceParticles(BorisPusher& pusher) {
     evolveSpinTBMT();
 
     // Second half of the time integration
-    timeIntegration2(pusher);
+    timeIntegration2();
 
     // Apply global processes (e.g. decay) and mark affected particles for deletion
     const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
@@ -666,7 +664,7 @@ void ParallelTracker::finishTracking() {
 /**
  * @copybrief ParallelTracker::timeIntegration1
  */
-void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
+void ParallelTracker::timeIntegration1() {
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
     const size_t n = itsBunch_m->getNumParticleContainers();
@@ -678,7 +676,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        pc->pushParticles(pusher);
+        pc->pushParticles();
     }
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
@@ -687,7 +685,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
 /**
  * @copybrief ParallelTracker::timeIntegration2
  */
-void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
+void ParallelTracker::timeIntegration2() {
     Inform m("ParallelTracker::timeIntegration2");
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
@@ -700,11 +698,11 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        pc->kickParticles(pusher);
+        pc->kickParticles();
         if (pc->hasSpin()) {
             pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
         }
-        pc->pushParticles(pusher);
+        pc->pushParticles();
         pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
@@ -1325,7 +1323,7 @@ void ParallelTracker::copyFollowerReferences() {
 /**
  * @copybrief ParallelTracker::findStartPositions
  */
-void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
+void ParallelTracker::findStartPositions() {
     // Primary container (index 0) drives segment advances.
     auto primary = itsBunch_m->getParticleContainer(0);
 
@@ -1357,12 +1355,12 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
                     pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
             double speed_i = euclidean_norm(pv);
             double tau_i   = (sTarget - pc->get_sPos()) / speed_i;
-            pc->applyFractionalStep(pusher, tau_i, sStart_m);
+            pc->applyFractionalStep(tau_i, sStart_m);
         }
     };
 
     while (true) {
-        autophaseCavities(pusher);
+        autophaseCavities();
 
         t += itsBunch_m->getdT();
         itsBunch_m->setT(t);
@@ -1551,7 +1549,8 @@ void ParallelTracker::writePhaseSpace(
 /**
  * @copybrief ParallelTracker::autophaseCavities
  */
-void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
+void ParallelTracker::autophaseCavities() {
+    const BorisPusher pusher;
     const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
     double t            = itsBunch_m->getT();
     Vector_t<double, 3> nextR =
