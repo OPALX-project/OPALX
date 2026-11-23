@@ -37,6 +37,9 @@
 // ------- DON'T DELETE: end   --------
 
 namespace Util {
+    /// Directory, relative to the working directory, for the auxiliary output files of a run.
+    inline constexpr const char* auxiliaryOutputDirectory = "data";
+
     std::string getGitRevision();
 
     double erfinv(double x);

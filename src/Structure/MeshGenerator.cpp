@@ -2,7 +2,6 @@
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
 
@@ -256,9 +255,8 @@ void MeshGenerator::add(const ElementBase& element) {
 #include <sstream>
 
 void MeshGenerator::write(const std::string& fname) {
-    std::string filename = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-             fname + "_ElementPositions.py"});
+    std::string filename =
+            Util::combineFilePath({Util::auxiliaryOutputDirectory, fname + "_ElementPositions.py"});
     std::ofstream out(filename);
     const char* buffer;
     const std::string indent("    ");

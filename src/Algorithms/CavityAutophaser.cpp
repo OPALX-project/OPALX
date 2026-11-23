@@ -24,7 +24,6 @@
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
 //
 #include "Physics/Units.h"
@@ -147,15 +146,13 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
         element->setPhasem(newPhase);
         element->setAutophaseVeto();
 
-        auto opal = OpalData::getInstance();
-
         if (phases_m) phases_m->emplace_back(itsCavity_m->getName(), newPhase);
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
         if (ippl::Comm->rank() == 0) {
             std::string fname = Util::combineFilePath(
-                    {opal->getAuxiliaryOutputDirectory(), itsCavity_m->getName() + "_AP.dat"});
+                    {Util::auxiliaryOutputDirectory, itsCavity_m->getName() + "_AP.dat"});
             std::ofstream out(fname);
             track(t + tErr, dt, newPhase, &out);
             out.close();

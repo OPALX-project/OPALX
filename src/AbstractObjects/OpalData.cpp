@@ -34,6 +34,7 @@
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -238,7 +239,7 @@ void OpalData::setP0(ValueDefinition* p0) { p->referenceMomentum = p0; }
 
 void OpalData::storeInputFn(const std::string& fn) { p->inputFn_m = fn; }
 
-std::string OpalData::getAuxiliaryOutputDirectory() const { return "data"; }
+std::string OpalData::getAuxiliaryOutputDirectory() const { return Util::auxiliaryOutputDirectory; }
 
 std::string OpalData::getInputFn() { return p->inputFn_m; }
 

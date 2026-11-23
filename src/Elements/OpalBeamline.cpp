@@ -363,7 +363,7 @@ void OpalBeamline::save3DLattice() {
 
     std::ofstream pos;
     std::string fileName = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            {Util::auxiliaryOutputDirectory,
              OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"});
     if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::APPEND
         && std::filesystem::exists(fileName)) {
@@ -546,7 +546,7 @@ void OpalBeamline::save3DInput() {
 
     std::string input = parseInput();
     std::string fname = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            {Util::auxiliaryOutputDirectory,
              OpalData::getInstance()->getInputBasename() + "_3D.opal"});
     std::ofstream pos(fname);
 

@@ -220,16 +220,16 @@ int main(int argc, char* argv[]) {
         OpalData* opal = OpalData::getInstance();
 
         if (ippl::Comm->rank() == 0) {
-            if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
+            if (!fs::exists(Util::auxiliaryOutputDirectory)) {
                 std::error_code error_code;
-                if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
+                if (!fs::create_directory(Util::auxiliaryOutputDirectory, error_code)) {
                     std::cerr << error_code.message() << std::endl;
                     //  use error code to prevent create_directory from throwing an exception
                 }
             }
         }
         ippl::Comm->barrier();
-        if (!fs::is_directory(opal->getAuxiliaryOutputDirectory())) {
+        if (!fs::is_directory(Util::auxiliaryOutputDirectory)) {
             std::cerr << "unable to create directory; aborting" << std::endl;
             abort();
         }
