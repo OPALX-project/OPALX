@@ -32,7 +32,6 @@
 #include "BasicActions/DumpEMFields.h"
 
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ReferenceTracer.h"
@@ -1459,6 +1458,24 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
 
     const auto& containers = itsBunch_m->getParticleContainers();
 
+    // The last, fractional step takes every reference to sTarget; the bunch time advances by the
+    // primary's share.
+    const auto applyLastStep = [&](double sTarget, double speed) {
+        const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
+        itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
+        for (size_t i = 0; i < containers.size(); ++i) {
+            const auto& pc = containers[i];
+            if (!pc || itsBunch_m->isFollower(i)) {
+                continue;
+            }
+            Vector_t<double, 3> pv =
+                    pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
+            double speed_i = euclidean_norm(pv);
+            double tau_i   = (sTarget - pc->get_sPos()) / speed_i;
+            pc->applyFractionalStep(pusher, tau_i, sStart_m);
+        }
+    };
+
     while (true) {
         autophaseCavities(pusher);
 
@@ -1491,21 +1508,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
 
             if (stepSizesCopy.reachedEnd()) {
                 --stepSizesCopy;
-                const double sTarget    = stepSizesCopy.getSStop();
-                const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
-                itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
-                for (size_t i = 0; i < containers.size(); ++i) {
-                    const auto& pc = containers[i];
-                    if (!pc || itsBunch_m->isFollower(i)) {
-                        continue;
-                    }
-                    Vector_t<double, 3> pv =
-                            pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
-                    double speed_i = euclidean_norm(pv);
-                    double tau_i   = (sTarget - pc->get_sPos()) / speed_i;
-                    pc->applyFractionalStep(pusher, tau_i, sStart_m);
-                }
-
+                applyLastStep(stepSizesCopy.getSStop(), speed);
                 break;
             }
 
@@ -1514,21 +1517,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
         }
 
         if (std::abs(primary->get_sPos() - sStart_m) <= 0.5 * itsBunch_m->getdT() * speed) {
-            const double sTarget    = sStart_m;
-            const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
-            itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
-            for (size_t i = 0; i < containers.size(); ++i) {
-                const auto& pc = containers[i];
-                if (!pc || itsBunch_m->isFollower(i)) {
-                    continue;
-                }
-                Vector_t<double, 3> pv =
-                        pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
-                double speed_i = euclidean_norm(pv);
-                double tau_i   = (sTarget - pc->get_sPos()) / speed_i;
-                pc->applyFractionalStep(pusher, tau_i, sStart_m);
-            }
-
+            applyLastStep(sStart_m, speed);
             break;
         }
     }
@@ -1677,29 +1666,20 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     for (auto element : elementSet) {
-        if (element->getType() == ElementType::TRAVELINGWAVE) {
-            const TravelingWave* TWelement = static_cast<const TravelingWave*>(element.get());
-            if (!TWelement->getAutophaseVeto()) {
-                CavityAutophaser ap(ref, element, &cavityPhases_m);
-                ap.getPhaseAtMaxEnergy(
-                        itsOpalBeamline_m.transformToLocalCS(
-                                element, itsBunch_m->getParticleContainer()->getRefPartR()),
-                        itsOpalBeamline_m.rotateToLocalCS(
-                                element, itsBunch_m->getParticleContainer()->getRefPartP()),
-                        t, itsBunch_m->getdT());
-            }
-
-        } else if (element->getType() == ElementType::RFCAVITY) {
-            const RFCavity* RFelement = static_cast<const RFCavity*>(element.get());
-            if (!RFelement->getAutophaseVeto()) {
-                CavityAutophaser ap(ref, element, &cavityPhases_m);
-                ap.getPhaseAtMaxEnergy(
-                        itsOpalBeamline_m.transformToLocalCS(
-                                element, itsBunch_m->getParticleContainer()->getRefPartR()),
-                        itsOpalBeamline_m.rotateToLocalCS(
-                                element, itsBunch_m->getParticleContainer()->getRefPartP()),
-                        t, itsBunch_m->getdT());
-            }
+        // A TravelingWave is an RFCavity.
+        if (element->getType() != ElementType::TRAVELINGWAVE
+            && element->getType() != ElementType::RFCAVITY) {
+            continue;
+        }
+        const RFCavity* cavity = static_cast<const RFCavity*>(element.get());
+        if (!cavity->getAutophaseVeto()) {
+            CavityAutophaser ap(ref, element, &cavityPhases_m);
+            ap.getPhaseAtMaxEnergy(
+                    itsOpalBeamline_m.transformToLocalCS(
+                            element, itsBunch_m->getParticleContainer()->getRefPartR()),
+                    itsOpalBeamline_m.rotateToLocalCS(
+                            element, itsBunch_m->getParticleContainer()->getRefPartP()),
+                    t, itsBunch_m->getdT());
         }
     }
 }
