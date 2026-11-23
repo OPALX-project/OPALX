@@ -49,8 +49,7 @@ public:
     void write(
             PartBunch_t& beam, const opalx::moments::BeamMoments& moments,
             Vector_t<double, 3> FDext[], int reportedBinCount, const losses_t& losses = losses_t(),
-            const double& azimuth = -1, const size_t npOutside = 0,
-            size_t particleContainerIndex = 0);
+            const size_t npOutside = 0, size_t particleContainerIndex = 0);
 
     /// Moment groups write() reads for a non-empty container; Polarization only with spin.
     static constexpr opalx::moments::Request requiredMoments(bool hasSpin) {

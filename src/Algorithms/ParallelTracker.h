@@ -216,10 +216,10 @@ private:
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
 
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
-    void updateReference(const BorisPusher& pusher);
+    void updateReference();
 
     /// @brief Advance reference positions/momenta through the beamline for one step.
-    void updateReferenceParticles(const BorisPusher& pusher);
+    void updateReferenceParticles();
 
     /// @brief Refresh each container's reference-to-lab transform from current state.
     void updateRefToLabCSTrafo();
@@ -234,26 +234,22 @@ private:
 
     /**
      * @brief Write phase space and/or statistics when flags request it.
-     * @param step     Step index (reserved for diagnostics; may be unused in body).
      * @param psDump   If true, write phase-space snapshot when applicable.
      * @param statDump If true, write statistics (e.g. SDDS).
      * @param computed Moments already computed at this particle state, reused where they hold
      *        the groups the outputs read.
      */
     void writePhaseSpace(
-            const long long step, bool psDump, bool statDump,
-            std::span<const opalx::moments::BeamMoments> computed = {});
+            bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed = {});
 
     /**
      * @brief Log per-container stats and trigger dumps according to dump flags.
-     * @param step     Current integration step index.
      * @param psDump   Forwarded to writePhaseSpace when logging occurs.
      * @param statDump Forwarded to writePhaseSpace when logging occurs.
      * @param computed See writePhaseSpace().
      */
     void dumpStats(
-            long long step, bool psDump, bool statDump,
-            std::span<const opalx::moments::BeamMoments> computed = {});
+            bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed = {});
 
     /// @brief Whether this step prints the per-container step line (STEPINFOFREQ).
     [[nodiscard]] bool stepLogDue() const;
@@ -278,7 +274,7 @@ private:
     void updateBeamStops();
 
     /// @brief Delete particles marked invalid by the central per-container mask.
-    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
+    void deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);

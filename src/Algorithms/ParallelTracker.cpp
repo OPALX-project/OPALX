@@ -278,14 +278,6 @@ bool ParallelTracker::startTracking() {
     // Start timing for the reference pass
     IpplTimings::startTimer(referencePassTimer_m);
 
-    // Flags to control phase space and statistics dumping for the initial step
-    bool const psDump0   = 0;
-    bool const statDump0 = 0;
-
-    // Write initial phase space and statistics
-    writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump0, statDump0);
-    m << level2 << "Dump initial phase space done." << endl;
-
     // The primary beam (the first container with a reference) traces its reference particle once
     // through the lattice: autophasing, element-length and reach checks.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
@@ -466,7 +458,7 @@ void ParallelTracker::trackSteps() {
 
             // Update reference particle
             if (itsBunch_m->getT() > 0.0) {
-                updateReference(pusher);
+                updateReference();
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
@@ -530,7 +522,7 @@ void ParallelTracker::trackSteps() {
             }
 
             // Dump phase space and statistics at configured intervals
-            dumpStats(step, psDump, statDump, stepMoments);
+            dumpStats(psDump, statDump, stepMoments);
 
             if (options_m.printRankDistrFreq > 0
                 && (itsBunch_m->getGlobalTrackStep() % options_m.printRankDistrFreq) + 1
@@ -636,7 +628,7 @@ void ParallelTracker::trackSteps() {
                           && (((itsBunch_m->getGlobalTrackStep() - 1) % options_m.statDumpFreq) + 1
                               != options_m.statDumpFreq);
 
-    writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump, statDump);
+    writePhaseSpace(psDump, statDump);
 
     if (psDump) {
         *gmsg << level2 << "* Dump phase space of last step" << endl;
@@ -1047,10 +1039,9 @@ void ParallelTracker::updateBeamStops() {
     }
 }
 
-size_t ParallelTracker::deleteInvalidParticles(
+void ParallelTracker::deleteInvalidParticles(
         bool activeOnly, Inform& m, const std::string& reason) {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    size_t nDeleted          = 0;
 
     for (size_t ci = 0; ci < nContainers; ++ci) {
         if (activeOnly && !itsBunch_m->isPcActive(ci)) {
@@ -1062,14 +1053,11 @@ size_t ParallelTracker::deleteInvalidParticles(
         }
 
         const size_t nContainerDeleted = pc->deleteInvalidParticles();
-        nDeleted += nContainerDeleted;
         if (nContainerDeleted > 0) {
             m << level2 << "Deleted " << nContainerDeleted << " particles marked by " << reason
               << ", " << pc->getTotalNum() << " remaining (container " << ci << ")." << endl;
         }
     }
-
-    return nDeleted;
 }
 
 size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
@@ -1361,9 +1349,9 @@ void ParallelTracker::printInitialContainerRefs(Inform& m) const {
 /**
  * @copybrief ParallelTracker::updateReference
  */
-void ParallelTracker::updateReference(const BorisPusher& pusher) {
+void ParallelTracker::updateReference() {
     Inform m("ParallelTracker::updateReference");
-    updateReferenceParticles(pusher);
+    updateReferenceParticles();
     updateRefToLabCSTrafo();
     m << level5 << "Updated reference particles." << endl;
 }
@@ -1371,7 +1359,7 @@ void ParallelTracker::updateReference(const BorisPusher& pusher) {
 /**
  * @copybrief ParallelTracker::updateReferenceParticles
  */
-void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
+void ParallelTracker::updateReferenceParticles() {
     const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
 
     const size_t n = itsBunch_m->getNumParticleContainers();
@@ -1484,7 +1472,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
             }
         }
 
-        updateReferenceParticles(pusher);
+        updateReferenceParticles();
 
         for (size_t i = 0; i < containers.size(); ++i) {
             if (!containers[i] || itsBunch_m->isFollower(i)) {
@@ -1584,8 +1572,7 @@ std::vector<opalx::moments::BeamMoments> ParallelTracker::momentsOfContainers(
  * @copybrief ParallelTracker::dumpStats
  */
 void ParallelTracker::dumpStats(
-        long long step, bool psDump, bool statDump,
-        std::span<const opalx::moments::BeamMoments> computed) {
+        bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed) {
     OPALTimer::Timer myt2;
     const size_t totalAll      = itsBunch_m->getTotalNumAllContainers();
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
@@ -1626,7 +1613,7 @@ void ParallelTracker::dumpStats(
     }
 
     if (anyLogged || statDump) {
-        writePhaseSpace(step, psDump, statDump, moments);
+        writePhaseSpace(psDump, statDump, moments);
     }
 }
 
@@ -1634,8 +1621,7 @@ void ParallelTracker::dumpStats(
  * @copybrief ParallelTracker::writePhaseSpace
  */
 void ParallelTracker::writePhaseSpace(
-        const long long /*step*/, bool psDump, bool statDump,
-        std::span<const opalx::moments::BeamMoments> computed) {
+        bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed) {
     Inform m("ParallelTracker::writePhaseSpace");
     Vector_t<double, 3> externalE, externalB;
 
@@ -1666,7 +1652,7 @@ void ParallelTracker::writePhaseSpace(
     if (statDump) {
         const int reportedBinCount =
                 spaceChargeSolver_m == nullptr ? 1 : spaceChargeSolver_m->reportedBinCount();
-        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, moments, reportedBinCount, -1.0);
+        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, moments, reportedBinCount);
         *gmsg << level3 << "* Wrote beam statistics." << endl;
     }
 

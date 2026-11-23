@@ -317,8 +317,7 @@ namespace {
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
-        const double azimuth = 0.0;
-        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, outputMoments(), 1, azimuth), OpalException);
+        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, outputMoments(), 1), OpalException);
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_NoThrowWithMatchingFdextAndHdf5Off) {
@@ -330,8 +329,7 @@ namespace {
         fd[0] = zeroFdPair();
         fd[1] = zeroFdPair();
 
-        const double azimuth = 0.0;
-        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, outputMoments(), 1, azimuth));
+        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, outputMoments(), 1));
     }
 
     // When HDF5 is disabled, dumpH5 returns before validating fdext size.

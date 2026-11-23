@@ -214,8 +214,8 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
 
 void StatWriter::write(
         PartBunch_t& beam, const opalx::moments::BeamMoments& moments, Vector_t<double, 3> FDext[],
-        int reportedBinCount, const losses_t& losses, const double& /*azimuth*/,
-        const size_t npOutside, size_t particleContainerIndex) {
+        int reportedBinCount, const losses_t& losses, const size_t npOutside,
+        size_t particleContainerIndex) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc) {

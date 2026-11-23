@@ -106,22 +106,14 @@ public:
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
-            const double& azimuth) const;
+            std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount) const;
 
     /** @brief As above, with losses. */
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
             std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
-            const losses_t& losses, const double& azimuth) const;
-
-    /**
-     * Write geometry points and surface triangles to vtk file
-     *
-     * @param fn specifies the name of vtk file contains the geometry
-     *
-     */
+            const losses_t& losses) const;
 
     /**
      * Write impact number and outgoing secondaries in each time step
