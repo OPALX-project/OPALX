@@ -19,16 +19,12 @@
 
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Bool.h"
-#include "Attributes/BoolArray.h"
 #include "Attributes/OpalString.h"
 #include "Attributes/PredefinedString.h"
 #include "Attributes/Range.h"
 #include "Attributes/Real.h"
 #include "Attributes/RealArray.h"
-#include "Attributes/Reference.h"
 #include "Attributes/StringArray.h"
-#include "Attributes/TokenList.h"
-#include "Attributes/TokenListArray.h"
 #include "Attributes/UpperCaseString.h"
 #include "Attributes/UpperCaseStringArray.h"
 #include "Expressions/AValue.h"
@@ -126,39 +122,6 @@ namespace Attributes {
             throw OpalException(
                     "Attributes::setBool()",
                     "Attribute \"" + attr.getName() + "\" is not logical.");
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    // Boolean array value.
-    Attribute makeBoolArray(const std::string& name, const std::string& help) {
-        return Attribute(new BoolArray(name, help), nullptr);
-    }
-
-    std::vector<bool> getBoolArray(const Attribute& attr) {
-        if (attr.isBaseAllocated()) {
-            AttributeBase* base = &attr.getBase();
-            if (AValue<bool>* value = dynamic_cast<AValue<bool>*>(base)) {
-                return value->evaluate();
-            } else {
-                throw OpalException(
-                        "Attributes::getBoolArray()",
-                        "Attribute \"" + attr.getName() + "\" is not a logical array.");
-            }
-        } else {
-            return std::vector<bool>();
-        }
-    }
-
-    void setBoolArray(Attribute& attr, const std::vector<bool>& value) {
-        if (dynamic_cast<const BoolArray*>(&attr.getHandler())) {
-            // Use ADeferred here, since a component may be overridden later
-            // by an expression.
-            attr.set(new ADeferred<bool>(value));
-        } else {
-            throw OpalException(
-                    "Attributes::setBoolArray()",
-                    "Attribute \"" + attr.getName() + "\" is not a logical array");
         }
     }
 
@@ -271,13 +234,6 @@ namespace Attributes {
                     "Attributes::setRealArray()",
                     "Attribute \"" + attr.getName() + "\" is not a real array.");
         }
-    }
-
-    // ----------------------------------------------------------------------
-    // Reference value.
-
-    Attribute makeReference(const std::string& name, const std::string& help) {
-        return Attribute(new Reference(name, help), nullptr);
     }
 
     // ----------------------------------------------------------------------
@@ -510,64 +466,5 @@ namespace Attributes {
                     "Attributes::setUpperCaseStringArray()",
                     "Attribute \"" + attr.getName() + "\" is not an upper case string array.");
         }
-    }
-
-    // ----------------------------------------------------------------------
-    // Token list value.
-
-    Attribute makeTokenList(const std::string& name, const std::string& help) {
-        return Attribute(new TokenList(name, help), nullptr);
-    }
-
-    std::list<Token> getTokenList(const Attribute& attr) {
-        if (attr.isBaseAllocated()) {
-            AttributeBase* base = &attr.getBase();
-            if (dynamic_cast<TokenList*>(&attr.getHandler())) {
-                return dynamic_cast<SValue<std::list<Token> >*>(base)->evaluate();
-            } else {
-                throw OpalException(
-                        "Attributes::getTokenList()",
-                        "Attribute \"" + attr.getName() + "\" is not a token list.");
-            }
-        } else {
-            return std::list<Token>();
-        }
-    }
-
-    void setTokenList(Attribute& attr, const std::list<Token>& val) {
-        if (dynamic_cast<const TokenList*>(&attr.getHandler())) {
-            attr.set(new SValue<std::list<Token> >(val));
-        } else {
-            throw OpalException(
-                    "Attributes::setTokenList()",
-                    "Attribute \"" + attr.getName() + "\" is not a token list.");
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    // Token list array value.
-
-    Attribute makeTokenListArray(const std::string& name, const std::string& help) {
-        return Attribute(new TokenListArray(name, help), nullptr);
-    }
-
-    std::vector<std::list<Token> > getTokenListArray(const Attribute& attr) {
-        if (attr.isBaseAllocated()) {
-            AttributeBase* base = &attr.getBase();
-            if (dynamic_cast<TokenListArray*>(&attr.getHandler())) {
-                return dynamic_cast<AValue<std::list<Token> >*>(base)->evaluate();
-            } else {
-                throw OpalException(
-                        "Attributes::getTokenListArray()",
-                        "Attribute \"" + attr.getName() + "\" is not a token list array.");
-            }
-        } else {
-            return std::vector<std::list<Token> >();
-        }
-    }
-
-    void setTokenListArray(Attribute& attr, const std::vector<std::list<Token> >& value) {
-        // Token lists are never expressions, so AValue will do here.
-        attr.set(new AValue<std::list<Token> >(value));
     }
 }  // namespace Attributes

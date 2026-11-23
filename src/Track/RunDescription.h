@@ -18,11 +18,10 @@
 
 namespace opalx::run {
 
-    /// An evaluated attribute value. Attribute types without a plain value (range, reference,
-    /// token list) are kept as their text image.
-    using AttributeValue = std::variant<
-            double, bool, std::string, std::vector<double>, std::vector<bool>,
-            std::vector<std::string>>;
+    /// An evaluated attribute value. A range attribute, which has no plain value, is kept as
+    /// its text image.
+    using AttributeValue =
+            std::variant<double, bool, std::string, std::vector<double>, std::vector<std::string>>;
 
     /**
      * @brief One attribute of a parsed object, evaluated when the RUN command executes.

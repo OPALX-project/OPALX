@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <cerrno>
 #include <cmath>
-#include <list>
 #include <sstream>
 #include <vector>
 #include "AbstractObjects/Attribute.h"
@@ -41,7 +40,6 @@
 #include "Expressions/SFunction.h"
 #include "Expressions/SHash.h"
 #include "Expressions/SNull.h"
-#include "Expressions/SRefAttr.h"
 #include "Expressions/SRefExpr.h"
 #include "Expressions/SUnary.h"
 #include "Expressions/TFind.h"
@@ -257,10 +255,6 @@ namespace Expressions {
     // Parse an array term.
     PtrToArray<double> parseArrayTerm(Statement& stat);
 
-    // Parse a token list in brackets (for macro argument and the like).
-    // This method also checks the nesting of parentheses.
-    void parseBracketList(Statement& stat, char close, std::list<Token>& result);
-
     // Parse a real factor.
     PtrToScalar<double> parseFactor(Statement& stat);
 
@@ -412,24 +406,6 @@ namespace Expressions {
     // PARSE ARRAY EXPRESSIONS
     // ------------------------------------------------------------------------
 
-    PtrToArray<bool> parseBoolArray(Statement& stat) {
-        ArrayOfPtrs<bool> array;
-
-        if (stat.delimiter('{')) {
-            // List of boolean expressions within braces.
-            do {
-                array.push_back(parseBool(stat));
-            } while (stat.delimiter(','));
-
-            parseDelimiter(stat, '}');
-        } else {
-            // A single boolean expression.
-            array.push_back(parseBool(stat));
-        }
-
-        return new AList<bool>(array);
-    }
-
     PtrToArray<double> parseRealArray(Statement& stat) {
         PtrToArray<double> result;
         PtrToArray<double> second;
@@ -555,83 +531,8 @@ namespace Expressions {
         }
     }
 
-    SRefAttr<double>* parseReference(Statement& stat) {
-        std::string objName = parseString(stat, "Object name expected.");
-
-        // Test for attribute name.
-        std::string attrName;
-
-        if (stat.delimiter("->")) {
-            // Reference to object attribute.
-            attrName = parseString(stat, "Attribute name expected.");
-        }
-
-        // Parse an index, if present.
-        int index = 0;
-
-        if (stat.delimiter('[')) {
-            index = int(std::round(parseRealConst(stat)));
-            parseDelimiter(stat, ']');
-
-            if (index <= 0) {
-                throw ParseError("Expressions::parseReference()", "Index must be positive.");
-            }
-        }
-
-        // Build reference and fill in the attribute pointer.
-        return new SRefAttr<double>(objName, attrName, index);
-    }
-
     // ANCILLARY FUNCTIONS.
     // ------------------------------------------------------------------------
-
-    std::list<Token> parseTokenList(Statement& stat) {
-        std::list<Token> result;
-
-        while (!stat.atEnd()) {
-            stat.mark();
-            Token token = stat.getCurrent();
-
-            // End of list if one of the following tokens occurs outside
-            // of brackets.
-            if (token.isDel(',') || token.isDel(';') || token.isDel(')') || token.isDel(']')
-                || token.isDel('}')) {
-                // Must reread the terminating token.
-                stat.restore();
-                break;
-            }
-
-            result.push_back(token);
-
-            if (token.isDel('(')) {
-                parseBracketList(stat, ')', result);
-            } else if (token.isDel('[')) {
-                parseBracketList(stat, ']', result);
-            } else if (token.isDel('{')) {
-                parseBracketList(stat, '}', result);
-            }
-        }
-
-        return result;
-    }
-
-    std::vector<std::list<Token> > parseTokenListArray(Statement& stat) {
-        std::vector<std::list<Token> > array;
-
-        if (stat.delimiter('{')) {
-            // List of token lists within braces.
-            do {
-                array.push_back(parseTokenList(stat));
-            } while (stat.delimiter(','));
-
-            parseDelimiter(stat, '}');
-        } else {
-            // A single token list.
-            array.push_back(parseTokenList(stat));
-        }
-
-        return array;
-    }
 
     // LOCAL FUNCTIONS.
     PtrToScalar<bool> parseAnd(Statement& stat) {
@@ -737,29 +638,6 @@ namespace Expressions {
         }
 
         return result;
-    }
-
-    void parseBracketList(Statement& stat, char close, std::list<Token>& result) {
-        while (true) {
-            if (stat.atEnd() || stat.delimiter(';')) {
-                throw ParseError(
-                        "Expressions::parseBracketList()",
-                        "Parentheses, brackets or braces do not nest.");
-            }
-
-            Token token = stat.getCurrent();
-            result.push_back(token);
-
-            if (token.isDel('(')) {
-                parseBracketList(stat, ')', result);
-            } else if (token.isDel('[')) {
-                parseBracketList(stat, ']', result);
-            } else if (token.isDel('{')) {
-                parseBracketList(stat, '}', result);
-            } else if (token.isDel(close)) {
-                return;
-            }
-        }
     }
 
     PtrToScalar<double> parseFactor(Statement& stat) {

@@ -42,7 +42,6 @@ namespace opalx::run {
             if (type == "logical") return Attributes::getBool(attribute);
             if (type == "string") return Attributes::getString(attribute);
             if (type == "real array") return Attributes::getRealArray(attribute);
-            if (type == "logical array") return Attributes::getBoolArray(attribute);
             if (type == "string array") return Attributes::getStringArray(attribute);
             return attribute.getImage();
         }

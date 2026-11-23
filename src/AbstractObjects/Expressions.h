@@ -45,11 +45,9 @@
 #define OPAL_Expressions_HH 1
 
 #include <iosfwd>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
-#include "OpalParser/Token.h"
 
 class PlaceRep;
 class RangeRep;
@@ -222,9 +220,6 @@ namespace Expressions {
 
     // ARRAY EXPRESSION PARSERS.
 
-    /// Parse boolean array expression.
-    extern PtrToArray<bool> parseBoolArray(Statement&);
-
     /// Parse real array expression.
     extern PtrToArray<double> parseRealArray(Statement&);
 
@@ -247,19 +242,6 @@ namespace Expressions {
 
     /// Parse range specification.
     extern RangeRep parseRange(Statement&);
-
-    // Forward declaration.
-    template <class T>
-    class SRefAttr;
-
-    /// Parse variable reference.
-    extern SRefAttr<double>* parseReference(Statement&);
-
-    /// Parse a token list (for macro argument and the like).
-    extern std::list<Token> parseTokenList(Statement&);
-
-    /// Parse a token list array (for LIST commands).
-    extern std::vector<std::list<Token>> parseTokenListArray(Statement&);
 
     // Implementation of class Expression::Scalar<T>.
     // ----------------------------------------------------------------------

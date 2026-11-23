@@ -38,10 +38,8 @@ namespace opalx::run {
                                 using E = std::decay_t<decltype(v[i])>;
                                 if constexpr (std::is_same_v<E, std::string>) {
                                     out += "\"" + v[i] + "\"";
-                                } else if constexpr (std::is_same_v<E, double>) {
-                                    out += number(v[i]);
                                 } else {
-                                    out += v[i] ? "true" : "false";
+                                    out += number(v[i]);
                                 }
                             }
                             return out + "]";
