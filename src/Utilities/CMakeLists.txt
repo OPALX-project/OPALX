@@ -14,7 +14,6 @@ set (_SRCS
     ParseError.cpp
     PortableGraymapReader.cpp
     Util.cpp
-    SDDSParser.cpp
     OpalException.cpp
     RegularExpression.cpp
     Timer.cpp

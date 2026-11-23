@@ -2,7 +2,6 @@
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
-#include "Utilities/SDDSParser/SDDSParserException.h"
 
 #include <gtest/gtest.h>
 
@@ -35,7 +34,6 @@ TEST(OpalExceptionTest, GenericExceptionIsCaughtAsOpalException) {
 
 TEST(OpalExceptionTest, ParserExceptionsAreCaughtAsOpalException) {
     EXPECT_THROW(throw ParseError("parse", "bad token"), OpalException);
-    EXPECT_THROW(throw SDDSParserException("sdds", "bad column"), OpalException);
 }
 
 TEST(OpalExceptionTest, ArithmeticDerivedExceptionsAreCaughtAsOpalException) {
