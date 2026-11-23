@@ -538,9 +538,6 @@ public:
     /// @brief Get local-to-lab coordinate transformation (const).
     const CoordinateSystemTrafo& getToLabTrafo() const { return toLabTrafo_m; }
 
-    /// @brief Get local-to-lab coordinate transformation.
-    CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
-
     /// @brief Redefine the reference frame; the particle data is declared to be in it.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
         requireReferenceFrame("ParticleContainer::setToLabTrafo");
