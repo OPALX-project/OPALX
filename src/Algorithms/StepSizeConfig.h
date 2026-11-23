@@ -52,10 +52,6 @@ public:
     /// Whether the current segment is the last one.
     bool isLastSegment() const;
 
-    void clear();
-
-    void reverseDirection();
-
     StepSizeConfig& advanceToPos(double spos);
 
     /// Advance to the zero-based configuration index; the size selects the end iterator.
@@ -80,8 +76,6 @@ public:
 
     StepSizeConfig& operator--();
 
-    void shiftSStopRight(double front);
-
     double getdT() const;
 
     double getSStop() const;
@@ -96,7 +90,6 @@ public:
 
     double getFinalSStop() const;
 
-    Inform& print(Inform& out) const;
     void printDirect(Inform& out) const;
 
 private:
@@ -106,10 +99,6 @@ private:
     container_t configurations_m;
     container_t::iterator it_m;
 };
-
-// Inform& operator<<(Inform& os, StepSizeConfig& s) {
-//     return s.print(os);
-// }
 
 inline StepSizeConfig::StepSizeConfig() : configurations_m(), it_m(configurations_m.begin()) {}
 
@@ -125,10 +114,5 @@ inline void StepSizeConfig::resetIterator() { it_m = configurations_m.begin(); }
 inline bool StepSizeConfig::reachedStart() const { return (it_m == configurations_m.begin()); }
 
 inline bool StepSizeConfig::reachedEnd() const { return (it_m == configurations_m.end()); }
-
-inline void StepSizeConfig::clear() {
-    configurations_m.clear();
-    it_m = configurations_m.begin();
-}
 
 #endif

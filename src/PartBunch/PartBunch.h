@@ -55,14 +55,11 @@ public:
     // --- Shared state (all containers / mesh) ---
 
     double dt_m;                     ///< Global time step @f$\Delta t@f$ (s).
-    int it_m;                        ///< Iteration counter (legacy / diagnostics).
     Vector_t<int, Dim> nr_m;         ///< Mesh cell count per dimension.
     Vector_t<double, Dim> origin_m;  ///< Mesh origin (lab coordinates).
     Vector_t<double, Dim> hr_m;      ///< Mesh spacing (m).
 
-    double lbt_m;                    ///< Load-balancer timescale parameter.
-    ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
-    std::array<bool, Dim> decomp_m;  ///< Domain decomposition flags (per axis).
+    double lbt_m;  ///< Load-balancer timescale parameter.
 
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
@@ -454,9 +451,6 @@ public:
 
     /// @brief Get the current simulation time.
     double getT() const { return t_m; }
-
-    /// @brief Get mesh spacing
-    Vector_t<double, Dim> get_hr() const { return hr_m; }
 
     /// @param n Global step counter to store.
     void setGlobalTrackStep(long long n) { globalTrackStep_m = n; }

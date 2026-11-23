@@ -33,13 +33,6 @@ void StepSizeConfig::sortAscendingSStop() {
     });
 }
 
-void StepSizeConfig::reverseDirection() {
-    unsigned int posIterator = std::distance(it_m, configurations_m.end()) - 1;
-    configurations_m.reverse();
-    it_m = configurations_m.begin();
-    std::advance(it_m, posIterator);
-}
-
 StepSizeConfig& StepSizeConfig::advanceToPos(double spos) {
     while (getSStop() < spos && std::next(it_m) != configurations_m.end()) {
         ++it_m;
@@ -131,21 +124,6 @@ StepSizeConfig& StepSizeConfig::operator--() {
     return *this;
 }
 
-void StepSizeConfig::shiftSStopRight(double front) {
-    auto it = configurations_m.begin();
-    while (std::get<1>(*it) < front && std::next(it) != configurations_m.end()) {
-        ++it;
-    }
-
-    double sStop = std::get<1>(*it);
-    if (sStop < front) return;
-
-    std::get<1>(*it) = front;
-    for (++it; it != configurations_m.end(); ++it) {
-        std::swap(sStop, std::get<1>(*it));
-    }
-}
-
 double StepSizeConfig::getdT() const {
     if (reachedEnd()) {
         throw OpalException(
@@ -213,23 +191,6 @@ double StepSizeConfig::getMinTimeStep() const {
 }
 
 double StepSizeConfig::getFinalSStop() const { return std::get<1>(configurations_m.back()); }
-
-Inform& StepSizeConfig::print(Inform& out) const {
-    out << std::scientific << "   " << std::setw(20) << "dt [ns] " << std::setw(20) << "sStop [m] "
-        << std::setw(20) << "num Steps [1]" << endl;
-
-    for (auto it = configurations_m.begin(); it != configurations_m.end(); ++it) {
-        if (it_m == it) {
-            out << "-> ";
-        } else {
-            out << "   ";
-        }
-
-        out << std::setw(20) << std::get<0>(*it) << std::setw(20) << std::get<1>(*it)
-            << std::setw(20) << std::get<2>(*it) << endl;
-    }
-    return out;
-}
 
 void StepSizeConfig::printDirect(Inform& out) const {
     out << std::scientific << "   " << std::setw(20) << "dt [ns] " << std::setw(20) << "sStop [m] "

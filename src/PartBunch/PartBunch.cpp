@@ -26,7 +26,6 @@ PartBunch<T, Dim>::PartBunch(
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
     : dt_m(0),
-      it_m(0),
       lbt_m(lbt),
       boundingBoxIncreasePercent_m(0.0),
       t_m(0.0),
@@ -60,9 +59,7 @@ PartBunch<T, Dim>::PartBunch(
     cartesianDomain_m            = std::make_unique<CartesianDomain_t>(domainConfig);
     boundingBoxIncreasePercent_m = domainConfig.boundingBoxIncreasePercent;
     for (unsigned dimension = 0; dimension < Dim; ++dimension) {
-        nr_m[dimension]     = static_cast<int>(domainConfig.meshSize[dimension]);
-        domain_m[dimension] = ippl::Index(nr_m[dimension]);
-        decomp_m[dimension] = domainConfig.decomposition[dimension];
+        nr_m[dimension] = static_cast<int>(domainConfig.meshSize[dimension]);
     }
 
     const bool useOverlap =

@@ -94,7 +94,6 @@ struct matrix_t {
 
 // Type aliases for common matrix sizes
 using matrix3x3_t = matrix_t<3, 3>;
-using matrix6x6_t = matrix_t<6, 6>;
 
 // Kokkos-friendly vector_t using ippl::Vector
 // Note: ippl::Vector uses unsigned int for dimension, so we use unsigned here too
@@ -144,39 +143,6 @@ KOKKOS_INLINE_FUNCTION matrix_t<Cols, Rows> get_transpose(const matrix_t<Rows, C
         }
     }
     return transpose;
-}
-
-// Kokkos-friendly matrix-matrix multiplication
-template <int Rows1, int Cols1, int Rows2, int Cols2>
-KOKKOS_INLINE_FUNCTION matrix_t<Rows1, Cols2> prod(
-        const matrix_t<Rows1, Cols1>& a, const matrix_t<Rows2, Cols2>& b) {
-    matrix_t<Rows1, Cols2> result(0.0);
-    for (int i = 0; i < Rows1; ++i) {
-        for (int j = 0; j < Cols2; ++j) {
-            double sum = 0.0;
-            for (int k = 0; k < Cols1; ++k) {
-                sum += a(i, k) * b(k, j);
-            }
-            result(i, j) = sum;
-        }
-    }
-    return result;
-}
-
-// Kokkos-friendly matrix-vector multiplication (matrix * vector)
-// Note: Casts int template parameters to unsigned for ippl::Vector compatibility
-template <int Rows, int Cols>
-KOKKOS_INLINE_FUNCTION ippl::Vector<double, static_cast<unsigned>(Rows)> prod_matrix_vector(
-        const matrix_t<Rows, Cols>& m, const ippl::Vector<double, static_cast<unsigned>(Cols)>& v) {
-    ippl::Vector<double, static_cast<unsigned>(Rows)> result(0.0);
-    for (int i = 0; i < Rows; ++i) {
-        double sum = 0.0;
-        for (int j = 0; j < Cols; ++j) {
-            sum += m(i, j) * v[j];
-        }
-        result[i] = sum;
-    }
-    return result;
 }
 
 #endif

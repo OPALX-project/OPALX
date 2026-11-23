@@ -206,17 +206,6 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zRever
     }
 }
 
-std::vector<std::string> Fieldmap::getListFieldmapNames() {
-    std::vector<std::string> name_list;
-    for (std::map<std::string, FieldmapDescription>::const_iterator it = FieldmapDictionary.begin();
-         it != FieldmapDictionary.end(); ++it) {
-        name_list.push_back((*it).first);
-    }
-    return name_list;
-}
-
-void Fieldmap::deleteFieldmap(std::string Filename) { freeMap(Filename); }
-
 void Fieldmap::clearDictionary() {
     std::map<std::string, FieldmapDescription>::iterator it = FieldmapDictionary.begin();
     for (; it != FieldmapDictionary.end(); ++it) {
@@ -434,12 +423,6 @@ void Fieldmap::freeMap(std::string Filename) {
     }
 }
 
-void Fieldmap::setEdgeConstants(
-        const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/) {
-};
-
-void Fieldmap::setFieldLength(const double&) {};
-
 void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) {
     size_t firstof = 0;
     size_t lastof;
@@ -588,20 +571,6 @@ std::string Fieldmap::typeset_msg(const std::string& msg, const std::string& tit
 }
 
 void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double>>& /*onaxis*/) {}
-
-void Fieldmap::get1DProfile1EngeCoeffs(
-        std::vector<double>& /*engeCoeffsEntry*/, std::vector<double>& /*engeCoeffsExit*/) {}
-
-void Fieldmap::get1DProfile1EntranceParam(
-        double& /*entranceParameter1*/, double& /*entranceParameter2*/,
-        double& /*entranceParameter3*/) {}
-
-void Fieldmap::get1DProfile1ExitParam(
-        double& /*exitParameter1*/, double& /*exitParameter2*/, double& /*exitParameter3*/) {}
-
-double Fieldmap::getFieldGap() { return 0.0; }
-
-void Fieldmap::setFieldGap(double /*gap*/) {}
 
 REGISTER_PARSE_TYPE(int);
 REGISTER_PARSE_TYPE(unsigned int);

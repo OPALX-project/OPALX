@@ -358,8 +358,6 @@ public:
         *containerState_m = held;
     }
 
-    bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
-
     /**
      * @brief Set particle charge for the active Q storage mode.
      * @param q Charge value in [Cb].

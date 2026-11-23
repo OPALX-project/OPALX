@@ -25,87 +25,10 @@
 #include <cctype>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <queue>
 
 namespace Util {
     std::string getGitRevision() { return std::string(GIT_VERSION); }
-
-#define erfinv_a3 -0.140543331
-#define erfinv_a2 0.914624893
-#define erfinv_a1 -1.645349621
-#define erfinv_a0 0.886226899
-
-#define erfinv_b4 0.012229801
-#define erfinv_b3 -0.329097515
-#define erfinv_b2 1.442710462
-#define erfinv_b1 -2.118377725
-#define erfinv_b0 1
-
-#define erfinv_c3 1.641345311
-#define erfinv_c2 3.429567803
-#define erfinv_c1 -1.62490649
-#define erfinv_c0 -1.970840454
-
-#define erfinv_d2 1.637067800
-#define erfinv_d1 3.543889200
-#define erfinv_d0 1
-
-    double erfinv(double x)  // inverse error function
-    {
-        double r;
-        int sign_x;
-
-        if (x < -1 || x > 1) return NAN;
-
-        if (x == 0) return 0;
-
-        if (x > 0)
-            sign_x = 1;
-        else {
-            sign_x = -1;
-            x      = -x;
-        }
-
-        if (x <= 0.7) {
-            double x2 = x * x;
-            r         = x * (((erfinv_a3 * x2 + erfinv_a2) * x2 + erfinv_a1) * x2 + erfinv_a0);
-            r /= (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 + erfinv_b1) * x2
-                 + erfinv_b0;
-        } else {
-            double y = std::sqrt(-std::log((1 - x) / 2));
-            r        = (((erfinv_c3 * y + erfinv_c2) * y + erfinv_c1) * y + erfinv_c0);
-            r /= ((erfinv_d2 * y + erfinv_d1) * y + erfinv_d0);
-        }
-
-        r = r * sign_x;
-        x = x * sign_x;
-
-        r -= (std::erf(r) - x) / (2 / std::sqrt(M_PI) * std::exp(-r * r));
-        r -= (std::erf(r) - x) / (2 / std::sqrt(M_PI) * std::exp(-r * r));
-
-        return r;
-    }
-
-#undef erfinv_a3
-#undef erfinv_a2
-#undef erfinv_a1
-#undef erfinv_a0
-
-#undef erfinv_b4
-#undef erfinv_b3
-#undef erfinv_b2
-#undef erfinv_b1
-#undef erfinv_b0
-
-#undef erfinv_c3
-#undef erfinv_c2
-#undef erfinv_c1
-#undef erfinv_c0
-
-#undef erfinv_d2
-#undef erfinv_d1
-#undef erfinv_d0
 
     Vector_t<double, 3> getTaitBryantAngles(
             Quaternion rotation, const std::string& /*elementName*/) {
@@ -145,49 +68,6 @@ namespace Util {
         });
 
         return output;
-    }
-
-    std::string boolToUpperString(const bool& b) {
-        std::ostringstream valueStream;
-        valueStream << std::boolalpha << b;
-        std::string output = Util::toUpper(valueStream.str());
-        return output;
-    }
-
-    std::string boolVectorToUpperString(const std::vector<bool>& b) {
-        std::ostringstream output;
-        if (b.size() > 1) {
-            output << "(";
-        }
-        for (size_t i = 0; i < b.size(); ++i) {
-            output << std::boolalpha << boolToUpperString(b[i]);
-            if (b.size() > 1) {
-                (i < (b.size() - 1)) ? (output << ", ") : (output << ")");
-            }
-        }
-
-        return output.str();
-    }
-
-    std::string doubleVectorToString(const std::vector<double>& v) {
-        std::vector<std::string> stringVec;
-        stringVec.reserve(v.size());
-        Util::toString(std::begin(v), std::end(v), std::back_inserter(stringVec));
-
-        std::ostringstream output;
-        if (v.size() > 1) {
-            output << "(";
-        }
-        unsigned int i = 0;
-        for (auto& s : stringVec) {
-            ++i;
-            output << s;
-            if (v.size() > 1) {
-                (i < stringVec.size()) ? (output << ", ") : (output << ")");
-            }
-        }
-
-        return output.str();
     }
 
     std::string combineFilePath(std::initializer_list<std::string> ilist) {
@@ -352,10 +232,6 @@ namespace Util {
             "abcdefghijklmnopqrstuvwxyz"
             "0123456789+/";
 
-    static inline bool is_base64(unsigned char c) {
-        return (std::isalnum(c) || (c == '+') || (c == '/'));
-    }
-
     std::string base64_encode(const std::string& string_to_encode) {
         const char* bytes_to_encode = string_to_encode.c_str();
         unsigned int in_len         = string_to_encode.size();
@@ -393,49 +269,6 @@ namespace Util {
 
             while ((i++ < 3))
                 ret += '=';
-        }
-
-        return ret;
-    }
-
-    std::string base64_decode(std::string const& encoded_string) {
-        int in_len = encoded_string.size();
-        int i      = 0;
-        int j      = 0;
-        int in_    = 0;
-        unsigned char char_array_4[4], char_array_3[3];
-        std::string ret;
-
-        while (in_len-- && (encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
-            char_array_4[i++] = encoded_string[in_];
-            in_++;
-            if (i == 4) {
-                for (i = 0; i < 4; i++)
-                    char_array_4[i] = base64_chars.find(char_array_4[i]);
-
-                char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-                char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-                char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-                for (i = 0; (i < 3); i++)
-                    ret += char_array_3[i];
-                i = 0;
-            }
-        }
-
-        if (i) {
-            for (j = i; j < 4; j++)
-                char_array_4[j] = 0;
-
-            for (j = 0; j < 4; j++)
-                char_array_4[j] = base64_chars.find(char_array_4[j]);
-
-            char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-            char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-            char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-            for (j = 0; (j < i - 1); j++)
-                ret += char_array_3[j];
         }
 
         return ret;

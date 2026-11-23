@@ -28,7 +28,6 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <type_traits>
 #include "OPALTypes.h"
 
 // ------- DON'T DELETE: start --------
@@ -41,8 +40,6 @@ namespace Util {
     inline constexpr const char* auxiliaryOutputDirectory = "data";
 
     std::string getGitRevision();
-
-    double erfinv(double x);
 
     inline double getGamma(ippl::Vector<double, 3> p) {
         double dotP = 0.0;  // \todo dot(p, p);  // .apply();
@@ -62,8 +59,6 @@ namespace Util {
         if (value < std::numeric_limits<double>::epsilon()) value = std::sqrt(2 * Ekin / mass);
         return value;
     }
-
-    inline double convertMomentumEVoverCToBetaGamma(double p, double mass) { return p / mass; }
 
     inline std::string getTimeString(double time, unsigned int precision = 3) {
         std::string timeUnit(" [ps]");
@@ -158,51 +153,12 @@ namespace Util {
         return energyOutput.str();
     }
 
-    inline std::string getChargeString(double charge, unsigned int precision = 3) {
-        std::string chargeUnit(" [fC]");
-
-        charge *= 1e15;
-
-        if (std::abs(charge) > 1000.0) {
-            charge /= 1000.0;
-            chargeUnit = std::string(" [pC]");
-        }
-
-        if (std::abs(charge) > 1000.0) {
-            charge /= 1000.0;
-            chargeUnit = std::string(" [nC]");
-        }
-
-        if (std::abs(charge) > 1000.0) {
-            charge /= 1000.0;
-            chargeUnit = std::string(" [uC]");
-        }
-
-        std::stringstream chargeOutput;
-        chargeOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision)
-                     << charge << chargeUnit;
-
-        return chargeOutput.str();
-    }
-
     ippl::Vector<double, 3> getTaitBryantAngles(
             Quaternion rotation, const std::string& elementName = "");
 
     std::string toUpper(const std::string& str);
 
-    std::string boolToUpperString(const bool& b);
-
-    std::string boolVectorToUpperString(const std::vector<bool>& b);
-
-    std::string doubleVectorToString(const std::vector<double>& v);
-
     std::string combineFilePath(std::initializer_list<std::string>);
-
-    template <class IteratorIn, class IteratorOut>
-    void toString(IteratorIn first, IteratorIn last, IteratorOut out);
-
-    template <typename T>
-    std::string toStringWithThousandSep(T value, char sep = '\'');
 
     struct KahanAccumulation {
         long double sum;
@@ -217,7 +173,6 @@ namespace Util {
 
     std::string base64_encode(
             const std::string& string_to_encode);  // unsigned char const* , unsigned int len);
-    std::string base64_decode(std::string const& s);
 
     template <typename T, typename A>
     T* c_data(std::vector<T, A>& v) {
@@ -229,48 +184,5 @@ namespace Util {
         return v.empty() ? static_cast<T const*>(0) : &(v[0]);
     }
 }  // namespace Util
-
-template <typename T>
-std::string Util::toStringWithThousandSep(T value, char sep) {
-    static_assert(
-            std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type");
-
-    unsigned int powers =
-            std::floor(std::max(0.0, std::log(std::abs((double)value)) / std::log(10.0)));
-    powers -= powers % 3u;
-
-    std::ostringstream ret;
-    unsigned int i = 0;
-    while (powers >= 3u) {
-        T multiplicator = std::pow(T(10), powers);
-        T pre           = value / multiplicator;
-        if (i > 0) {
-            ret << std::setw(3) << std::setfill('0') << pre << sep;
-        } else {
-            ret << pre << sep;
-        }
-        value -= pre * multiplicator;
-
-        powers -= 3;
-        ++i;
-    }
-
-    if (i > 0) {
-        ret << std::setw(3) << std::setfill('0') << value;
-    } else {
-        ret << value;
-    }
-
-    return ret.str();
-}
-
-template <class IteratorIn, class IteratorOut>
-void Util::toString(IteratorIn first, IteratorIn last, IteratorOut out) {
-    std::transform(first, last, out, [](auto d) {
-        std::ostringstream stm;
-        stm << d;
-        return stm.str();
-    });
-}
 
 #endif

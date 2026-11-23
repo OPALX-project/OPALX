@@ -78,18 +78,6 @@ public:
     static Fieldmap* getFieldmap(std::string Filename, bool fast = false, bool zReverse = false);
 
     /**
-     * @brief Get a list of all loaded field map names.
-     * @return Vector of filenames.
-     */
-    static std::vector<std::string> getListFieldmapNames();
-
-    /**
-     * @brief Delete a specific field map from the cache and memory.
-     * @param Filename The filename of the map to delete.
-     */
-    static void deleteFieldmap(std::string Filename);
-
-    /**
      * @brief Clear the entire field map cache.
      */
     static void clearDictionary();
@@ -204,24 +192,6 @@ public:
      * @param freq Frequency [MHz].
      */
     virtual void setFrequency(double freq) = 0;
-
-    virtual void setEdgeConstants(
-            const double& bendAngle, const double& entranceAngle, const double& exitAngle);
-
-    virtual void setFieldLength(const double&);
-
-    virtual void get1DProfile1EngeCoeffs(
-            std::vector<double>& engeCoeffsEntry, std::vector<double>& engeCoeffsExit);
-
-    virtual void get1DProfile1EntranceParam(
-            double& entranceParameter1, double& entranceParameter2, double& entranceParameter3);
-
-    virtual void get1DProfile1ExitParam(
-            double& exitParameter1, double& exitParameter2, double& exitParameter3);
-
-    virtual double getFieldGap();
-
-    virtual void setFieldGap(double gap);
 
     MapType getType() { return Type; }
 

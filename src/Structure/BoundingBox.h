@@ -1,10 +1,9 @@
 //
 // Class BoundingBox: defines a 3D box and provides functionality to determine whether a point
-//                    is in- or outside it. Additionally provides functionality to compute the
-//                    intersection point with a line.
+//                    is in- or outside it.
 //
-// This class provides functionality to compute bounding boxes, to compute if a position
-// is inside the box and to compute the intersection point between a ray and the bounding box.
+// This class provides functionality to compute bounding boxes and to compute if a position
+// is inside the box.
 //
 // Copyright (c) 201x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
@@ -25,7 +24,6 @@
 
 #include "OPALTypes.h"
 
-#include <optional>
 #include <utility>
 #include <vector>
 
@@ -36,13 +34,8 @@ public:
     static BoundingBox getBoundingBox(const std::vector<Vector_t<double, 3>>& positions);
 
     void enlargeToContainPosition(const Vector_t<double, 3>& position);
-    void enlargeToContainBoundingBox(const BoundingBox& boundingBox);
-
-    std::optional<Vector_t<double, 3>> getIntersectionPoint(
-            const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     bool isInside(const Vector_t<double, 3>& position) const;
-    bool isOutside(const Vector_t<double, 3>& position) const;
     void print(std::ostream& output) const;
 
     std::pair<Vector_t<double, 3>, Vector_t<double, 3>> getCorners() const;
@@ -54,9 +47,5 @@ private:
 
 inline std::pair<Vector_t<double, 3>, Vector_t<double, 3>> BoundingBox::getCorners() const {
     return std::make_pair(lowerLeftCorner_m, upperRightCorner_m);
-}
-
-inline bool BoundingBox::isOutside(const Vector_t<double, 3>& position) const {
-    return !isInside(position);
 }
 #endif

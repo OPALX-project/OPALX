@@ -43,7 +43,6 @@ public:
 
     void close();
 
-    double getLastPosition();
     bool startedFromExistingFile() const;
 
     /** Remove diagnostic steps after @p checkpointTime in the direction of @p timeStep. */
@@ -88,19 +87,6 @@ protected:
 inline void H5PartWrapper::reportOnError(h5_int64_t rc, const char* file, int line) {
     if (rc != H5_SUCCESS)
         *ippl::Error << "H5 rc= " << rc << " in " << file << " @ line " << line << endl;
-}
-
-inline double H5PartWrapper::getLastPosition() {
-    if (!file_m) open(H5_O_RDONLY);
-
-    h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
-    h5_ssize_t readStep         = numStepsInSource - 1;
-    REPORTONERROR(H5SetStep(file_m, readStep));
-
-    h5_float64_t pathLength;
-    READSTEPATTRIB(Float64, file_m, "SPOS", &pathLength);
-
-    return pathLength;
 }
 
 inline bool H5PartWrapper::startedFromExistingFile() const { return startedFromExistingFile_m; }
