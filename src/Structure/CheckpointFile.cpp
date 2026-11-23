@@ -12,7 +12,6 @@ extern "C" {
 #include "H5hut.h"
 }
 
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/PartBunch.h"

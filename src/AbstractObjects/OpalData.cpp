@@ -31,7 +31,6 @@
 #include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/StringStream.h"
-#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"

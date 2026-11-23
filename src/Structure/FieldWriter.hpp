@@ -21,7 +21,6 @@
 
 #include <filesystem>
 
-#include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
 // #include "Algorithms/PBunchDefs.h"
 

@@ -17,7 +17,6 @@
 //
 #include "Structure/H5PartWrapperForPT.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "PartBunch/PartBunch.h"
 
 #include "BuildInfo.h"

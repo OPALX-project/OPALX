@@ -18,7 +18,6 @@
 //
 #include "Structure/SDDSWriter.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/SDDSParser.h"

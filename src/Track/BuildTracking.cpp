@@ -22,11 +22,7 @@
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
 
-#include "AbstractObjects/BeamSequence.h"
-
 #include "AbstractObjects/OpalData.h"
-
-#include "Attributes/Attributes.h"
 
 #include "Beamlines/TBeamline.h"
 

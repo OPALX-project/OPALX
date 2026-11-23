@@ -14,7 +14,6 @@
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/PartData.h"
-#include "Attributes/Attributes.h"
 #include "Moments/BeamMoments.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
@@ -75,8 +74,6 @@ private:
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
     std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
-
-    const PartData* reference_m = nullptr;  ///< Reference particle data (set by TrackRun::execute).
 
     std::shared_ptr<BunchStateHandler>
             bunchState_m;  ///< Shared per-container coordinate state and fixed bounds.
@@ -363,11 +360,6 @@ public:
         }
         return mass;
     }
-
-    const PartData* getReference() const { return reference_m; }
-
-    /// Set inside TrackRun::execute
-    void setReference(const PartData* ref) { reference_m = ref; }
 
     void gatherLoadBalanceStatistics();
 
