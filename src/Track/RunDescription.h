@@ -18,8 +18,8 @@
 
 namespace opalx::run {
 
-    /// An evaluated attribute value. Attribute types without a plain value (place, range,
-    /// reference, token list, table line) are kept as their text image.
+    /// An evaluated attribute value. Attribute types without a plain value (range, reference,
+    /// token list) are kept as their text image.
     using AttributeValue = std::variant<
             double, bool, std::string, std::vector<double>, std::vector<bool>,
             std::vector<std::string>>;

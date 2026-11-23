@@ -29,19 +29,14 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/RangeRep.h"
-#include "AbstractObjects/Table.h"
-#include "AbstractObjects/TableRowRep.h"
 #include "Expressions/ABinary.h"
-#include "Expressions/AColumn.h"
 #include "Expressions/AList.h"
 #include "Expressions/ARefExpr.h"
-#include "Expressions/ARow.h"
 #include "Expressions/ASUnary.h"
 #include "Expressions/ATable.h"
 #include "Expressions/AUnary.h"
 #include "Expressions/Indexer.h"
 #include "Expressions/SBinary.h"
-#include "Expressions/SCell.h"
 #include "Expressions/SConstant.h"
 #include "Expressions/SFunction.h"
 #include "Expressions/SHash.h"
@@ -245,7 +240,6 @@ namespace Expressions {
             {0, -1, 0}};
 
     // Internal variables.
-    const Table* currentTable = 0;
     std::unique_ptr<ATable> currentArray;
 
     // FORWARD DECLARATIONS FOR LOCAL FUNCTIONS.
@@ -278,12 +272,6 @@ namespace Expressions {
 
     // Parse a real term.
     PtrToScalar<double> parseTerm(Statement& stat);
-
-    // Parse a column generator "COLUMN(table,column,range)".
-    PtrToArray<double> parseColumnGenerator(Statement& stat);
-
-    // Parse a row generator "ROW(table,place,...)".
-    PtrToArray<double> parseRowGenerator(Statement& stat);
 
     // Parse a table generator "TABLE(n1:n2:n3,expr)".
     PtrToArray<double> parseTableGenerator(Statement& stat);
@@ -594,21 +582,8 @@ namespace Expressions {
         return new SRefAttr<double>(objName, attrName, index);
     }
 
-    TableRowRep parseTableRow(Statement& stat) {
-        std::string tabName = parseString(stat, "Table name expected.");
-        parseDelimiter(stat, '@');
-        return TableRowRep(tabName, parsePlace(stat));
-    }
-
     // ANCILLARY FUNCTIONS.
     // ------------------------------------------------------------------------
-
-    PtrToScalar<double> parseTableExpression(Statement& stat, const Table* t) {
-        currentTable               = t;
-        PtrToScalar<double> result = parseReal(stat);
-        currentTable               = 0;
-        return result;
-    }
 
     std::list<Token> parseTokenList(Statement& stat) {
         std::list<Token> result;
@@ -697,10 +672,6 @@ namespace Expressions {
             } while (stat.delimiter(','));
             parseDelimiter(stat, '}');
             result = new AList<double>(array);
-        } else if (stat.keyword("COLUMN")) {
-            result = parseColumnGenerator(stat);
-        } else if (stat.keyword("ROW")) {
-            result = parseRowGenerator(stat);
         } else if (stat.keyword("TABLE")) {
             result = parseTableGenerator(stat);
         } else if (stat.real(value)) {
@@ -741,15 +712,6 @@ namespace Expressions {
             } else if (stat.delimiter("->")) {
                 std::string scndName = parseString(stat, "Attribute name expected.");
                 result               = new ARefExpr<double>(frstName, scndName);
-            } else if (stat.delimiter('@')) {
-                PlaceRep row = parsePlace(stat);
-                // Possible column names.
-                if (stat.delimiter("->")) {
-                    std::vector<std::string> cols = parseStringArray(stat);
-                    result                        = new ARow(frstName, row, cols);
-                } else {
-                    throw ParseError("Expressions::parseReal()", "Expected a column name.");
-                }
             } else {
                 result = new ARefExpr<double>(frstName, "");
             }
@@ -867,15 +829,6 @@ namespace Expressions {
                 } else {
                     result = new SRefExpr<double>(frstName, scndName);
                 }
-            } else if (stat.delimiter('@')) {
-                PlaceRep row = parsePlace(stat);
-                // Possible column name.
-                if (stat.delimiter("->")) {
-                    std::string col = parseString(stat, "Column name expected.");
-                    result          = new SCell(frstName, row, col);
-                } else {
-                    throw ParseError("Expressions::parseReal()", "Expected a column name.");
-                }
             } else {
                 // If the name is indexed, the name must be a global vector.
                 if (stat.delimiter('[')) {
@@ -883,13 +836,6 @@ namespace Expressions {
                     parseDelimiter(stat, ']');
                     PtrToArray<double> arg1 = new ARefExpr<double>(frstName, "");
                     result                  = new Indexer<double>(arg1, arg2);
-                } else if (currentTable) {
-                    // Try making a column expression.
-                    result = currentTable->makeColumnExpression(frstName);
-                    if (!result.isValid()) {
-                        // Could not make a column expression from this name.
-                        result = new SRefExpr<double>(frstName, "");
-                    }
                 } else {
                     // Simple name must be a global variable.
                     result = new SRefExpr<double>(frstName, "");
@@ -962,50 +908,6 @@ namespace Expressions {
         }
 
         return result;
-    }
-
-    PtrToArray<double> parseColumnGenerator(Statement& stat) {
-        // COLUMN function builds an array from a table column.
-        // format: COLUMN(<table>, <column>) or
-        //         COLUMN(<table>, <column>, <range>).
-        // The word "COLUMN" has already been seen by the caller.
-        parseDelimiter(stat, '(');
-        std::string tabName = parseString(stat, "Table name expected.");
-
-        // Column name.
-        parseDelimiter(stat, ',');
-        std::string colName = parseString(stat, "Column name expected.");
-
-        // Optional range specification.
-        RangeRep range;
-        if (stat.delimiter(',')) {
-            range = parseRange(stat);
-        }
-
-        parseDelimiter(stat, ')');
-        return new AColumn(tabName, colName, range);
-    }
-
-    PtrToArray<double> parseRowGenerator(Statement& stat) {
-        // ROW function builds an array from a table row.
-        // format: ROW(<table>, <place>) or
-        //         ROW(<table>, <place>, <columns>).
-        // The word "ROW" has already been seen by the caller.
-        parseDelimiter(stat, '(');
-        std::string tabName = parseString(stat, "Table name expected.");
-
-        // Row position.
-        parseDelimiter(stat, ',');
-        PlaceRep row = parsePlace(stat);
-
-        // Optional column specifications.
-        std::vector<std::string> columns;
-        if (stat.delimiter(',')) {
-            columns = parseStringArray(stat);
-            parseDelimiter(stat, ')');
-        }
-
-        return new ARow(tabName, row, columns);
     }
 
     PtrToArray<double> parseTableGenerator(Statement& stat) {

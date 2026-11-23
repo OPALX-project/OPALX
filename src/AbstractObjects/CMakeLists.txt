@@ -14,8 +14,6 @@ set (_SRCS
   ObjectFunction.cpp
   PlaceRep.cpp
   RangeRep.cpp
-  Table.cpp
-  TableRowRep.cpp
   ValueDefinition.cpp
   )
 
@@ -36,8 +34,6 @@ set (HDRS
     OpalParticle.h
     PlaceRep.h
     RangeRep.h
-    Table.h
-    TableRowRep.h
     ValueDefinition.h
 )
 

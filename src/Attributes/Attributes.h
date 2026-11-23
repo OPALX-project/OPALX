@@ -25,9 +25,7 @@
 #include "AbstractObjects/Attribute.h"
 #include "OpalParser/Token.h"
 
-class PlaceRep;
 class RangeRep;
-class TableRowRep;
 
 // Namespace Attributes.
 // ------------------------------------------------------------------------
@@ -66,16 +64,6 @@ namespace Attributes {
 
     /// Set logical array value.
     extern void setBoolArray(Attribute&, const std::vector<bool>&);
-
-    /// Create a place attribute.
-    //  Initial value is "#S".
-    extern Attribute makePlace(const std::string& name, const std::string& help);
-
-    /// Get place value.
-    extern PlaceRep getPlace(const Attribute&);
-
-    /// Set place value.
-    extern void setPlace(Attribute&, const PlaceRep&);
 
     /// Create a range attribute.
     //  Initial value is "FULL".
@@ -174,16 +162,6 @@ namespace Attributes {
 
     /// Set upper case string array value.
     extern void setUpperCaseStringArray(Attribute&, const std::vector<std::string>&);
-
-    /// Create a table row attribute.
-    //  Initial value is undefined.
-    extern Attribute makeTableRow(const std::string& name, const std::string& help);
-
-    /// Get table row value.
-    extern TableRowRep getTableRow(const Attribute&);
-
-    /// Set table row value.
-    extern void setTableRow(Attribute&, const TableRowRep&);
 
     /// Make token list attribute.
     //  Initial value is empty list.

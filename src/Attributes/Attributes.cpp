@@ -21,14 +21,12 @@
 #include "Attributes/Bool.h"
 #include "Attributes/BoolArray.h"
 #include "Attributes/OpalString.h"
-#include "Attributes/Place.h"
 #include "Attributes/PredefinedString.h"
 #include "Attributes/Range.h"
 #include "Attributes/Real.h"
 #include "Attributes/RealArray.h"
 #include "Attributes/Reference.h"
 #include "Attributes/StringArray.h"
-#include "Attributes/TableRow.h"
 #include "Attributes/TokenList.h"
 #include "Attributes/TokenListArray.h"
 #include "Attributes/UpperCaseString.h"
@@ -161,37 +159,6 @@ namespace Attributes {
             throw OpalException(
                     "Attributes::setBoolArray()",
                     "Attribute \"" + attr.getName() + "\" is not a logical array");
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    // Place value.
-
-    Attribute makePlace(const std::string& name, const std::string& help) {
-        return Attribute(new Place(name, help), new SValue<PlaceRep>(PlaceRep("#S")));
-    }
-
-    PlaceRep getPlace(const Attribute& attr) {
-        if (attr.isBaseAllocated()) {
-            if (SValue<PlaceRep>* place = dynamic_cast<SValue<PlaceRep>*>(&attr.getBase())) {
-                return place->evaluate();
-            } else {
-                throw OpalException(
-                        "Attributes::getPlace()",
-                        "Attribute \"" + attr.getName() + "\" is not a place reference.");
-            }
-        } else {
-            return PlaceRep();
-        }
-    }
-
-    void setPlace(Attribute& attr, const PlaceRep& rep) {
-        if (dynamic_cast<const Place*>(&attr.getHandler())) {
-            attr.set(new SValue<PlaceRep>(rep));
-        } else {
-            throw OpalException(
-                    "Attributes::setPlace()",
-                    "Attribute \"" + attr.getName() + "\" is not a place reference.");
         }
     }
 
@@ -542,37 +509,6 @@ namespace Attributes {
             throw OpalException(
                     "Attributes::setUpperCaseStringArray()",
                     "Attribute \"" + attr.getName() + "\" is not an upper case string array.");
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    // Table row reference value.
-
-    Attribute makeTableRow(const std::string& name, const std::string& help) {
-        return Attribute(new TableRow(name, help), nullptr);
-    }
-
-    TableRowRep getTableRow(const Attribute& attr) {
-        if (attr.isBaseAllocated()) {
-            if (SValue<TableRowRep>* row = dynamic_cast<SValue<TableRowRep>*>(&attr.getBase())) {
-                return row->evaluate();
-            } else {
-                throw OpalException(
-                        "Attributes::getTableRow()",
-                        "Attribute \"" + attr.getName() + "\" is not a table row reference.");
-            }
-        } else {
-            return TableRowRep();
-        }
-    }
-
-    void setTableRow(Attribute& attr, const TableRowRep& rep) {
-        if (dynamic_cast<const TableRow*>(&attr.getHandler())) {
-            attr.set(new SValue<TableRowRep>(rep));
-        } else {
-            throw OpalException(
-                    "Attributes::setTableRow()",
-                    "Attribute \"" + attr.getName() + "\" is not a table row reference.");
         }
     }
 

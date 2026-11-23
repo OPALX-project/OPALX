@@ -132,7 +132,7 @@ public:
     /// Set the global momentum.
     void setP0(ValueDefinition* p0);
 
-    /// Mark all expressions and tables for re-evaluation after a value changed.
+    /// Mark all expressions for re-evaluation after a value changed.
     void update();
 
     /// Set by --check: RUN writes its run description and does not track.

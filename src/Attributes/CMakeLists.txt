@@ -2,7 +2,6 @@ set (_SRCS
     Attributes.cpp
     Bool.cpp
     BoolArray.cpp
-    Place.cpp
     PredefinedString.cpp
     Range.cpp
     Real.cpp
@@ -10,7 +9,6 @@ set (_SRCS
     Reference.cpp
     OpalString.cpp
     StringArray.cpp
-    TableRow.cpp
     TokenList.cpp
     TokenListArray.cpp
     UpperCaseString.cpp
@@ -21,7 +19,6 @@ set (HDRS
     Attributes.h
     BoolArray.h
     Bool.h
-    Place.h
     PredefinedString.h
     Range.h
     RealArray.h
@@ -29,7 +26,6 @@ set (HDRS
     Reference.h
     OpalString.h
     StringArray.h
-    TableRow.h
     TokenListArray.h
     TokenList.h
     UpperCaseString.h
