@@ -74,6 +74,56 @@ private:
     }
     /// The step loop and the final output; startTracking() must have returned true.
     void trackSteps();
+
+    /// What applyStopRules() decided after a step.
+    struct StopRules {
+        /// The primary reference reached the sStop of its DT segment.
+        bool switchSegment = false;
+        /// Every beam with a ZSTOP is done, or a reference particle hit an element.
+        bool runFinished = false;
+    };
+
+    /**
+     * @brief Start a DT segment: its time step, the container activity, the emitting containers
+     *        and the beams already stopped.
+     * @param resumesInSegment A restart resumes inside this segment; the container activity of
+     *        the checkpoint is kept.
+     */
+    void startSegment(bool resumesInSegment, unsigned long long stepsCompletedInSegment);
+
+    /**
+     * @brief The particle part of one step: space charge (PRESTEP or MIDPOINT), the
+     *        drift-kick-drift push, emission, external fields, spin, and the global processes
+     *        with their deletions.
+     */
+    void advanceParticles(BorisPusher& pusher);
+
+    /// @brief Advance the bunch time by one step, then the reference particles and the
+    ///        reference-to-lab transforms.
+    void advanceReference();
+
+    /**
+     * @brief Mark particles outside an element aperture or the BOUNDPDESTROY box and delete them
+     *        in one flush. Collective.
+     * @return Per container the moments computed for the box, holding what the outputs due now
+     *         (@p psDump, @p statDump) read; all empty if particles were deleted.
+     */
+    std::vector<opalx::moments::BeamMoments> removeLostParticles(bool psDump, bool statDump);
+
+    /// @brief DT segment switch, ZSTOP planes, finished beams and a reference that hit an element.
+    ///        Collective.
+    StopRules applyStopRules();
+
+    /**
+     * @brief Write a checkpoint every CHECKPOINTFREQ global steps, with the schedule position the
+     *        next step resumes at: the next segment if @p segmentComplete, else this one.
+     */
+    void writeCheckpointIfDue(
+            bool segmentComplete, std::size_t segmentIndex,
+            unsigned long long stepsCompletedInSegment);
+
+    /// @brief The last output, elements off, the solver counters and the final banner.
+    void finishTracking();
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
@@ -215,9 +265,6 @@ private:
     [[nodiscard]] ParticleFrame makeSpaceChargeFrame(opalx::spacecharge::SolveFrame request) const;
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
 
-    /// @brief Update reference trajectories and lab/reference coordinate transforms.
-    void updateReference();
-
     /// @brief Advance reference positions/momenta through the beamline for one step.
     void updateReferenceParticles();
 
@@ -243,7 +290,8 @@ private:
             bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed = {});
 
     /**
-     * @brief Log per-container stats and trigger dumps according to dump flags.
+     * @brief Log per-container stats, trigger dumps according to dump flags and print the rank
+     *        load when PRINTRANKDISTRFREQ is due.
      * @param psDump   Forwarded to writePhaseSpace when logging occurs.
      * @param statDump Forwarded to writePhaseSpace when logging occurs.
      * @param computed See writePhaseSpace().
