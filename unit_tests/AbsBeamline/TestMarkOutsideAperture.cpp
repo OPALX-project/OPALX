@@ -24,7 +24,7 @@
  *
  * Particles are created directly in element-local coordinates (z measured
  * from the entrance face), matching the frame ParallelTracker's element loop
- * provides via transformBunch().
+ * provides via ParticleContainer::enterFrame().
  */
 
 #include <gtest/gtest.h>
@@ -134,7 +134,7 @@ namespace {
                             {0.009, 0.000, 0.00},   // 5: entrance face, in aperture -> kept
                     });
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 2u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 2u);
 
         const std::vector<bool> mask     = invalidMaskOnHost(pc);
         const std::vector<bool> expected = {false, true, true, false, false, false};
@@ -153,7 +153,7 @@ namespace {
                             {0.000, -0.30, 0.05},  // 2: beyond the reach -> kept
                     });
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, false, false}));
     }
 
@@ -164,7 +164,7 @@ namespace {
 
         createParticlesAt(pc, {{0.02, 0.0, 0.05}});
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false}));
     }
 
@@ -183,7 +183,7 @@ namespace {
         Kokkos::deep_copy(pc->InvalidMask.getView(), mask_host);
         Kokkos::fence();
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, true}));
     }
 
@@ -199,7 +199,7 @@ namespace {
                             {0.005, 0.00, 0.05},  // kept
                     });
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 2u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 2u);
         EXPECT_EQ(pc->deleteInvalidParticles(), 2u * ippl::Comm->size());
         // Each rank creates four local particles and retains two locally.
         EXPECT_EQ(pc->getLocalNum(), 2u);
@@ -219,8 +219,8 @@ namespace {
         DriftRep drift = makeDrift(0.1, 0.01);
         auto pc        = makeContainer();
 
-        EXPECT_EQ(drift.markOutsideAperture(pc), 0u);
-        EXPECT_EQ(drift.markOutsideAperture(nullptr), 0u);
+        EXPECT_EQ(drift.markOutsideAperture(pc, {}), 0u);
+        EXPECT_EQ(drift.markOutsideAperture(nullptr, {}), 0u);
     }
 
     // ================================================================
@@ -251,7 +251,7 @@ namespace {
                             {0.005, 0.0, 0.5 * length},      // in body, in aperture -> kept
                     });
 
-        EXPECT_EQ(monitor.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(monitor.markOutsideAperture(pc, {}), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, false, false, false}));
     }
 
@@ -295,7 +295,7 @@ namespace {
         auto pc = makeContainer();
         createParticlesAt(pc, {onOrbit, offOrbit});
 
-        EXPECT_EQ(sbend.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(sbend.markOutsideAperture(pc, {}), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true}));
     }
 
@@ -328,7 +328,7 @@ namespace {
         auto pc = makeContainer();
         createParticlesAt(pc, {onOrbit, offOrbit});
 
-        EXPECT_EQ(magnet.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(magnet.markOutsideAperture(pc, {}), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true}));
     }
 
@@ -371,7 +371,7 @@ namespace {
                             downstream,        // downstream fringe, outside aperture -> kept
                     });
 
-        EXPECT_EQ(sbend.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(sbend.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, false}));
     }
 

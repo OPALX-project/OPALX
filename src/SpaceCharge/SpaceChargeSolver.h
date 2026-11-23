@@ -51,6 +51,8 @@ namespace opalx::spacecharge {
             reportedBinCount_m = result.reportedBins;
         }
 
+        [[nodiscard]] SolveFrame solveFrame() const { return algorithm_m->solveFrame(); }
+
         [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
         [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
         [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }

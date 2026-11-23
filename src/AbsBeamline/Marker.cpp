@@ -24,11 +24,11 @@
 // Class Marker
 // ------------------------------------------------------------------------
 
-Marker::Marker() : ElementBase() {}
+Marker::Marker() : FramelessElement() {}
 
-Marker::Marker(const Marker& right) : ElementBase(right) {}
+Marker::Marker(const Marker& right) : FramelessElement(right) {}
 
-Marker::Marker(const std::string& name) : ElementBase(name) {}
+Marker::Marker(const std::string& name) : FramelessElement(name) {}
 
 Marker::~Marker() {}
 

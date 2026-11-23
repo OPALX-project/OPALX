@@ -36,7 +36,7 @@
  *       reach to the larger half-size, so the element's box in the grid covers the
  *       block.
  */
-class Box : public ElementBase {
+class Box : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Box(const std::string& name);
@@ -61,14 +61,15 @@ public:
     /**
      * @brief Mark particles inside the block in the container's InvalidMask.
      *
-     * The tracker calls this for every element near the bunch, with the bunch
-     * already moved into the element-local frame. Despite the inherited name,
+     * The tracker calls this for every element near the bunch; the kernel reads
+     * element-local positions through @p toLocal. Despite the inherited name,
      * a Box marks the particles inside its body, not outside an aperture.
      *
-     * @param pc Particle container in the element-local frame.
+     * @param toLocal Transform from the particles' current frame to the element-local frame.
      * @return Number of particles newly marked on this rank.
      */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) override;
 
     /**
      * @brief Set the transverse size of the block.

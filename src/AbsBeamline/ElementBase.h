@@ -79,6 +79,12 @@ struct SupportBox {
     }
 };
 
+/// Frame in which an element callback needs the particle data.
+enum class ElementFrame : unsigned char {
+    None,  ///< The callback leaves the particles untouched; the tracker neither calls nor moves.
+    Local  ///< Element-local coordinates, misalignment included.
+};
+
 /**
  * @class ElementBase
  * @brief Base class for all beam line elements.
@@ -343,10 +349,18 @@ public:
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
-     * @param pc   The particles, in the element's local frame.
+     * @param pc   The particles, in the frame fieldFrame() requests.
      * @param time Bunch time, time step and step number of the current step.
      */
     virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time);
+
+    /**
+     * @brief Frame that apply(pc) needs; the tracker moves the particles there before the call.
+     *
+     * Only FramelessElement returns ElementFrame::None; the tracker then skips both the call and
+     * the transform. The default keeps a new element correct.
+     */
+    virtual ElementFrame fieldFrame() const { return ElementFrame::Local; }
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -383,16 +397,18 @@ public:
      * @brief Mark local particles inside the element's longitudinal window but
      * outside its transverse aperture in pc->InvalidMask.
      *
-     * Called by ParallelTracker::applyElementApertures with the bunch in the
-     * element-local frame. ORs into InvalidMask and never clears existing
-     * marks; the tracker's end-of-step deletion flushes all marks. A particle is marked
-     * where getRegions().inLossRegion() holds: inside the body window and the reach, outside
-     * the aperture.
+     * Called by ParallelTracker::applyElementApertures. The kernel reads the element-local
+     * position through @p toLocal; the stored particles do not change frame. ORs into
+     * InvalidMask and never clears existing marks; the tracker's end-of-step deletion flushes
+     * all marks. A particle is marked where getRegions().inLossRegion() holds: inside the body
+     * window and the reach, outside the aperture.
      * No-op when getFlagDeleteOnTransverseExit() is false.
      *
+     * @param toLocal Transform from the particles' current frame to the element-local frame.
      * @return local number of newly marked particles
      */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal);
 
     // Design energy for elements such as RF-cavities
     virtual double getDesignEnergy() const;
@@ -550,6 +566,16 @@ public:
     std::size_t getLineIndex() const { return lineIndex_m; }
     /// Set by OpalBeamline when it takes its copy of the element.
     void setLineIndex(std::size_t index) { lineIndex_m = index; }
+};
+
+/// Element without a bunch field: apply(pc) stays the no-op, so the tracker skips the call
+/// and the transform.
+class FramelessElement : public ElementBase {
+public:
+    using ElementBase::apply;
+    using ElementBase::ElementBase;
+    ElementFrame fieldFrame() const final { return ElementFrame::None; }
+    void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime&) final {}
 };
 
 /**

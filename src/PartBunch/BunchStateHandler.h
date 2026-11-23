@@ -6,6 +6,8 @@
 #include <optional>
 #include <vector>
 
+#include "PartBunch/ParticleFrame.h"
+
 /**
  * @class BunchStateHandler
  * @brief Centralised tracking of mutable bunch-level and per-container status flags.
@@ -15,14 +17,17 @@
  * independently of container lifetimes.
  *
  * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$.
- * `Options::aggressiveStateSync` optionally converges it across MPI ranks.
+ * `Options::aggressiveStateSync` optionally converges it across MPI ranks. `frame` is the frame the
+ * container's particle data is in; only ParticleContainer::enterFrame() changes it. Every rank is
+ * back in the reference frame at the same points of a step, so it needs no synchronization.
  */
 class BunchStateHandler {
 public:
     /**
      * @brief Persistent fixed bounds for CartesianPIC3D solves.
      *
-     * Bounds use metres in the CartesianPIC3D solve frame. This state is bunch-wide rather than
+     * Bounds use metres in the CartesianPIC3D path-length solve frame (SolveFrame::PathLength).
+     * This state is bunch-wide rather than
      * tied to a particle container, and remains active until explicitly cleared.
      */
     struct FixedCartesianDomainState {
@@ -35,6 +40,7 @@ public:
     /** @brief Per-container coordinate-representation state. */
     struct ContainerState {
         bool unitlessPositions = false;
+        ParticleFrame frame;
 
         void setUnitlessPositions(bool v);
     };

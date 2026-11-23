@@ -28,7 +28,7 @@
 /// Interface for a marker.
 //  Class Marker defines the abstract interface for a marker element.
 
-class Marker : public ElementBase {
+class Marker : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Marker(const std::string& name);

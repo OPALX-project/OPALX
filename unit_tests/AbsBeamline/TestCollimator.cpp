@@ -22,7 +22,7 @@
  *
  * Particles are created directly in element-local coordinates (z measured
  * from the entrance face), matching the frame ParallelTracker's element loop
- * provides via transformBunch().
+ * provides via ParticleContainer::enterFrame().
  */
 
 #include <gtest/gtest.h>
@@ -173,7 +173,7 @@ namespace {
                             {0.020, 0.000, 0.15},   // 6: downstream of the body -> kept
                     });
 
-        EXPECT_EQ(coll.markOutsideAperture(pc), 3u);
+        EXPECT_EQ(coll.markOutsideAperture(pc, {}), 3u);
         EXPECT_EQ(
                 invalidMaskOnHost(pc),
                 std::vector<bool>({false, true, true, false, true, false, false}));
@@ -192,7 +192,7 @@ namespace {
 
         // The corner particle 0 would be outside an ellipse with the same
         // half-widths; the shapes must not be confused.
-        EXPECT_EQ(coll.markOutsideAperture(pc), 2u);
+        EXPECT_EQ(coll.markOutsideAperture(pc, {}), 2u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true, true}));
     }
 
@@ -203,7 +203,7 @@ namespace {
 
         createParticlesAt(pc, {{0.02, 0.0, 0.05}});
 
-        EXPECT_EQ(coll.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(coll.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false}));
     }
 
@@ -219,7 +219,7 @@ namespace {
                             {0.005, 0.00, 0.05},  // kept
                     });
 
-        EXPECT_EQ(coll.markOutsideAperture(pc), 2u);
+        EXPECT_EQ(coll.markOutsideAperture(pc, {}), 2u);
         EXPECT_EQ(pc->deleteInvalidParticles(), 2u);
         EXPECT_EQ(pc->getTotalNum(), 2u);
     }

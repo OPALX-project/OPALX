@@ -22,9 +22,9 @@
 
 Collimator::Collimator() : Collimator("") {}
 
-Collimator::Collimator(const Collimator& right) : ElementBase(right) {}
+Collimator::Collimator(const Collimator& right) : FramelessElement(right) {}
 
-Collimator::Collimator(const std::string& name) : ElementBase(name) {}
+Collimator::Collimator(const std::string& name) : FramelessElement(name) {}
 
 Collimator::~Collimator() {}
 

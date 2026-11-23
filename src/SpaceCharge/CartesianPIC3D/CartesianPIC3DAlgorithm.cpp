@@ -129,6 +129,19 @@ namespace opalx::spacecharge {
         throw OpalException("CartesianPIC3DAlgorithm::passProperties", "Unknown solve pass.");
     }
 
+    SolveFrame CartesianPIC3DAlgorithm::solveFrame() const {
+        // Fixed bounds (also PERIODICBOX, whose particle wrap needs them) and a cathode plane
+        // (planeZ) are given in path-length coordinates.
+        if (config_m.periodicBox > 0.0 || bunchState_m->fixedCartesianDomain().has_value())
+            return SolveFrame::PathLength;
+        // TYPE=NONE computes no field: its mesh update, migration and ORB work in any frame.
+        if (poissonSolver_m->capabilities().isNoOp) return SolveFrame::Reference;
+        if (config_m.dirichletPlane.enabled()) return SolveFrame::PathLength;
+        // Open and periodic Green's functions are translation invariant; centred coordinates stay
+        // at bunch size instead of growing with the path length.
+        return SolveFrame::Centroid;
+    }
+
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
@@ -171,18 +184,18 @@ namespace opalx::spacecharge {
                         "the bunch are active.");
             }
         }
-        clearSelfFields(*primary_m);
         // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
         // Fixed bounds remain valid and must still be applied.
-        if (fixedDomain || primary_m->getTotalNum() > 1) {
-            enterSolveFrame(context.stepState().frames, *primary_m);
-            result.redistributions += domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
-                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
-
-            solveInBeamFrame(context, plan, result);
-
-            leaveSolveFrame(context.stepState().frames, *primary_m);
+        const bool solves = fixedDomain || primary_m->getTotalNum() > 1;
+        {
+            const ParticleContainer::FrameScope scope(
+                    *primary_m, solves ? context.stepState().solveFrame : ParticleFrame(), true);
+            if (solves) {
+                result.redistributions += domainUpdater_m.updateForSolve(
+                        DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
+                        fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
+                solveInBeamFrame(context, plan, result);
+            }
         }
         if (!fixedDomain) {
             result.redistributions += domainUpdater_m.updateForSolve(

@@ -236,16 +236,63 @@ public:
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
-    void transformBunch(const CoordinateSystemTrafo& trafo) {
-        const size_t nLoc = this->getLocalNum();
-        trafo.transformBunchTo(this->R.getView(), nLoc);
-        trafo.rotateBunchTo(this->P.getView(), nLoc);
-        trafo.rotateBunchTo(this->E.getView(), nLoc);
-        trafo.rotateBunchTo(this->B.getView(), nLoc);
-        if (spinEnabled_m) {
-            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+    /// Frame the local particle data is in now.
+    const ParticleFrame& frame() const { return containerState_m->frame; }
+
+    /**
+     * @brief Move the local particle data into @p target with one transform, or none if it is
+     * already there.
+     *
+     * This is the only way particle data changes frame. It translates R and rotates P, E, B and
+     * Pol; it is rank-local. Build @p target from the current reference frame (see
+     * ParticleFrame).
+     *
+     * @param clearFields E and B are zeroed instead of rotated, also when no transform is needed.
+     */
+    void enterFrame(const ParticleFrame& target, bool clearFields = false) {
+        if (clearFields) {
+            this->E = Vector_t<T, Dim>(0.0);
+            this->B = Vector_t<T, Dim>(0.0);
         }
+        if (frame() == target) return;
+        transformBunch(frame().to(target), clearFields);
+        containerState_m->frame = target;
+    }
+
+    void enterReferenceFrame() { enterFrame(ParticleFrame()); }
+
+    /// Holds the container in @p frame and returns it to its reference frame when the scope
+    /// ends, also when an exception unwinds it.
+    class FrameScope {
+    public:
+        FrameScope(
+                ParticleContainer& container, const ParticleFrame& frame, bool clearFields = false)
+            : container_m(container) {
+            container_m.enterFrame(frame, clearFields);
+        }
+        FrameScope(const FrameScope&) = delete;
+        ~FrameScope() { container_m.enterReferenceFrame(); }
+
+    private:
+        ParticleContainer& container_m;
+    };
+
+    /// @throws OpalException from @p where if the particle data is not in the reference frame.
+    void requireReferenceFrame(const std::string& where) const {
+        if (!frame().isReference())
+            throw OpalException(
+                    where, std::string("Particle data is in the ") + frame().name()
+                                   + " frame, but the reference frame is required.");
+    }
+
+    /**
+     * @brief Bring the local particles from index @p first on, written in @p createdIn, into
+     * the current frame. The particles before @p first do not move.
+     *
+     * For emission: samplers append new particles in their own frame.
+     */
+    void adoptParticles(const ParticleFrame& createdIn, size_t first) {
+        if (!(createdIn == frame())) transformBunch(createdIn.to(frame()), false, first);
     }
     SpatialLayout_t& getPL() {
         return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
@@ -305,7 +352,10 @@ public:
         // We only keep the slot: per-container flags own their own sync, so
         // no back-reference to the handler is needed. The handler itself
         // manages bunch-wide state, which ParticleContainer never touches.
-        containerState_m = handler->registerContainer();
+        // The new slot takes over the state held so far.
+        const auto held   = *containerState_m;
+        containerState_m  = handler->registerContainer();
+        *containerState_m = held;
     }
 
     bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
@@ -422,22 +472,14 @@ public:
     /// @brief Get longitudinal position along design trajectory.
     double get_sPos() const { return sPos_m; }
 
-    /// @brief Set global-to-local rotation quaternion.
-    void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
-        globalToLocalQuaternion_m = globalToLocalQuaternion;
-    }
-
-    /// @brief Get global-to-local rotation quaternion.
-    Quaternion_t getGlobalToLocalQuaternion() const { return globalToLocalQuaternion_m; }
-
     /// @brief Get local-to-lab coordinate transformation (const).
     const CoordinateSystemTrafo& getToLabTrafo() const { return toLabTrafo_m; }
 
-    /// @brief Get local-to-lab coordinate transformation.
-    CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
-
-    /// @brief Set local-to-lab coordinate transformation.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
+    /// @brief Redefine the reference frame; the particle data is declared to be in it.
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
+        requireReferenceFrame("ParticleContainer::setToLabTrafo");
+        toLabTrafo_m = toLabTrafo;
+    }
 
     /**
      * @brief Advance reference/lab transform state and map bunch accordingly.
@@ -445,6 +487,7 @@ public:
      *   containers that use this container's reference can apply the same change.
      */
     CoordinateSystemTrafo updateRefToLabCSTrafo(double bunchDT) {
+        requireReferenceFrame("ParticleContainer::updateRefToLabCSTrafo");
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -468,6 +511,7 @@ public:
      * @param root Container whose reference particle this container uses.
      */
     void copyReferenceOf(const ParticleContainer& root) {
+        requireReferenceFrame("ParticleContainer::copyReferenceOf");
         refPartR_m   = root.refPartR_m;
         refPartP_m   = root.refPartP_m;
         toLabTrafo_m = root.toLabTrafo_m;
@@ -485,6 +529,7 @@ public:
      * @param update Frame change @p root applied to its own particles in this step.
      */
     void followFrameOf(const ParticleContainer& root, const CoordinateSystemTrafo& update) {
+        requireReferenceFrame("ParticleContainer::followFrameOf");
         transformBunch(update);
         copyReferenceOf(root);
     }
@@ -492,16 +537,14 @@ public:
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
     template <typename Pusher>
     void applyFractionalStep(const Pusher& pusher, double tau, double pathLengthTarget) {
+        requireReferenceFrame("ParticleContainer::applyFractionalStep");
         refPartR_m /= (Physics::c * 2 * tau);
         pusher.push(refPartR_m, refPartP_m, tau);
         refPartR_m *= (Physics::c * 2 * tau);
 
         sPos_m = pathLengthTarget;
-        toLabTrafo_m.transformFrom(refPartR_m);
-        Vector_t<double, 3> R = refPartR_m;
-        toLabTrafo_m.rotateFrom(refPartP_m);
-        Vector_t<double, 3> P = refPartP_m;
-        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        CoordinateSystemTrafo update(
+                refPartR_m, getQuaternion(refPartP_m, Vector_t<double, 3>(0, 0, 1)));
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
@@ -873,16 +916,36 @@ public:
     }
 
 private:
+    /// Translate R and rotate P, E, B and Pol of the local particles from index @p first on;
+    /// see enterFrame().
+    void transformBunch(
+            const CoordinateSystemTrafo& trafo, bool fieldsCleared = false, size_t first = 0) {
+        const size_t nLoc = this->getLocalNum();
+        if (first >= nLoc) return;
+        const auto range = std::make_pair(first, nLoc);
+        const size_t n   = nLoc - first;
+        trafo.transformBunchTo(Kokkos::subview(this->R.getView(), range), n);
+        trafo.rotateBunchTo(Kokkos::subview(this->P.getView(), range), n);
+        if (!fieldsCleared) {
+            trafo.rotateBunchTo(Kokkos::subview(this->E.getView(), range), n);
+            trafo.rotateBunchTo(Kokkos::subview(this->B.getView(), range), n);
+        }
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(Kokkos::subview(this->Pol.getView(), range), n);
+        }
+    }
+
     std::unique_ptr<SpatialLayout_t> spatialLayout_m;
     std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 
-    /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
-    /// Owned here as the only strong reference; the handler keeps a weak_ptr, so
-    /// destroying this container automatically releases the slot. The slot's own
+    /// Per-container state slot; standalone until `setBunchStateHandler` replaces it with a slot
+    /// allocated by the handler. Owned here as the only strong reference; the handler keeps a
+    /// weak_ptr, so destroying this container automatically releases the slot. The slot's own
     /// methods handle MPI consistency, so no direct handler reference is needed.
-    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
+    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m =
+            std::make_shared<BunchStateHandler::ContainerState>();
 
     // Single shared scalar mode stored as a length-1 Kokkos view.
     qm_view_type QView_m;
@@ -898,9 +961,6 @@ private:
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;
     Vector_t<double, Dim> refPartP_m;
-
-    // Global to local quaternion
-    Quaternion_t globalToLocalQuaternion_m;
 
     // Reference particle to lab transformation
     CoordinateSystemTrafo toLabTrafo_m;

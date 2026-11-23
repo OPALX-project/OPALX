@@ -353,7 +353,7 @@ namespace opalx::spacecharge {
             const CoordinateSystemTrafo trackerToSolve(
                     Vector_t<double, 3>(0.1, -0.2, 0.3),
                     Quaternion(std::cos(Physics::pi / 4.0), 0.0, 0.0, std::sin(Physics::pi / 4.0)));
-            step.frames = {trackerToSolve, trackerToSolve.inverted()};
+            step.solveFrame = ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve);
             const std::array<std::uint8_t, 1> activity{1};
             SpaceChargeSolveContext fixedContext(activity, step);
             const SpaceChargeSolveResult fixedResult = algorithm.solve(fixedContext);

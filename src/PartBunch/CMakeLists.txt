@@ -13,6 +13,7 @@ set (HDRS
     CartesianDomain.tpp
     ParticleContainerTypes.h
     ParticleContainer.hpp
+    ParticleFrame.h
     BCHandler.hpp
 )
 

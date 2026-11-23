@@ -1,10 +1,8 @@
 #include "Algorithms/Quaternion.hpp"
 #include <cmath>
 #include <iostream>
-#include <random>
 #include "Algorithms/Matrix.h"
 #include "OPALTypes.h"
-#include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
 
 namespace {
@@ -46,19 +44,14 @@ Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref)
         if (std::abs(dot(u, ref) - 1.0) < tol) {
             return Quaternion(1.0, ippl::Vector<double, 3>(0.0));
         }
-        // Only the antiparallel case needs an arbitrary perpendicular axis.
-        static thread_local std::mt19937 generator(std::random_device{}());
-        std::uniform_real_distribution<double> uniform(0.0, 1.0);
-        do {  // find any vector in plane with ref as normal
-            double u = uniform(generator);
-            double v = 2 * Physics::pi * uniform(generator);
-            axis(0)  = std::sqrt(1 - u * u) * std::cos(v);
-            axis(1)  = std::sqrt(1 - u * u) * std::sin(v);
-            axis(2)  = u;
-        } while (std::abs(dot(axis, ref)) > 0.9);
-
-        axis -= dot(axis, ref) * ref;
-        axis = normalize(axis);
+        // Only the antiparallel case needs a perpendicular axis. Take it from the coordinate axis
+        // least aligned with ref, so every MPI rank and every run rotates about the same axis.
+        unsigned least = 0;
+        for (unsigned d = 1; d < 3; ++d)
+            if (std::abs(ref(d)) < std::abs(ref(least))) least = d;
+        ippl::Vector<double, 3> unit(0.0);
+        unit(least) = 1.0;
+        axis        = normalize(cross(ref, unit));
 
         return Quaternion(0, axis);
     }

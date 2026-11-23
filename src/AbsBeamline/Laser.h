@@ -22,7 +22,7 @@
  * The Compton helpers operate on electron total energy in GeV and return photon
  * energies in GeV.
  */
-class Laser : public ElementBase {
+class Laser : public FramelessElement {
 public:
     /** @brief Construct an unnamed laser element. */
     Laser();

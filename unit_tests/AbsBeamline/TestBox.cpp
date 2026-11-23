@@ -20,7 +20,7 @@
  *
  * Particles are created directly in element-local coordinates (z measured
  * from the entrance face), matching the frame ParallelTracker's element loop
- * provides via transformBunch().
+ * provides via ParticleContainer::enterFrame().
  */
 
 #include <gtest/gtest.h>
@@ -177,7 +177,7 @@ namespace {
                             {0.000, 0.000, 0.1},     // 7: on the exit face -> kept
                     });
 
-        EXPECT_EQ(box.markOutsideAperture(pc), 3u);
+        EXPECT_EQ(box.markOutsideAperture(pc, {}), 3u);
         EXPECT_EQ(
                 invalidMaskOnHost(pc),
                 std::vector<bool>({true, true, false, false, false, false, true, false}));
@@ -190,7 +190,7 @@ namespace {
 
         createParticlesAt(pc, {{0.0, 0.0, 0.05}});
 
-        EXPECT_EQ(box.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(box.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false}));
     }
 
@@ -206,7 +206,7 @@ namespace {
                             {0.005, 0.001, 0.05},  // absorbed
                     });
 
-        EXPECT_EQ(box.markOutsideAperture(pc), 2u);
+        EXPECT_EQ(box.markOutsideAperture(pc, {}), 2u);
         EXPECT_EQ(pc->deleteInvalidParticles(), 2u);
         EXPECT_EQ(pc->getTotalNum(), 2u);
     }

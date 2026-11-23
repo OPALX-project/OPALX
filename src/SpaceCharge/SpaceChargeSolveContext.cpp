@@ -5,11 +5,35 @@
 
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
+#include "Algorithms/Quaternion.hpp"
+
 #include <cmath>
 #include <stdexcept>
 #include <utility>
 
 namespace opalx::spacecharge {
+
+    ParticleFrame makeSolveFrame(
+            SolveFrame request, const ippl::Vector<double, 3>& meanR, ippl::Vector<double, 3> meanP,
+            const ippl::Vector<double, 3>& fallbackP, double pathOrigin) {
+        if (request == SolveFrame::Reference) return ParticleFrame();
+        // getQuaternion needs a direction; the mean vanishes with zero particles.
+        constexpr double tolerance = 1e-12;
+        const auto vanishes        = [](const ippl::Vector<double, 3>& p) {
+            return p[0] * p[0] + p[1] * p[1] + p[2] * p[2] < tolerance * tolerance;
+        };
+        if (vanishes(meanP)) meanP = fallbackP;
+        if (vanishes(meanP)) meanP = ippl::Vector<double, 3>(0, 0, 1);
+        const Quaternion alignment = getQuaternion(meanP, ippl::Vector<double, 3>(0, 0, 1));
+        if (request == SolveFrame::Centroid) {
+            return ParticleFrame(
+                    ParticleFrame::Kind::SpaceChargeSolve, CoordinateSystemTrafo(meanR, alignment));
+        }
+        const CoordinateSystemTrafo solveToTracker(
+                ippl::Vector<double, 3>(0, 0, pathOrigin), alignment.conjugate());
+        return ParticleFrame(
+                ParticleFrame::Kind::SpaceChargeSolve, solveToTracker.inverted(), solveToTracker);
+    }
 
     SpaceChargeSolveContext::SpaceChargeSolveContext(
             std::span<const std::uint8_t> trackingActive, SpaceChargeStepState stepState)

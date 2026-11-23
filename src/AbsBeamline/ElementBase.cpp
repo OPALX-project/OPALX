@@ -463,7 +463,8 @@ void ElementBase::apply(
     // bool overload performed here only produced the (unused) return value.
 }
 
-size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t ElementBase::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -481,7 +482,7 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
     Kokkos::parallel_reduce(
             "ElementBase::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                const bool hit         = regions.inLossRegion(Rview(i));
+                const bool hit         = regions.inLossRegion(toLocal.pointTo(Rview(i)));
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;
