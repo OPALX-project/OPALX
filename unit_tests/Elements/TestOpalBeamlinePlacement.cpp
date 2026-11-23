@@ -15,7 +15,6 @@
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -114,7 +113,6 @@ protected:
     };
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
@@ -140,7 +138,6 @@ protected:
     }
 
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
-    std::shared_ptr<DataSink> dataSink_m;
 };
 
 TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndAppliesTheMisalignment) {

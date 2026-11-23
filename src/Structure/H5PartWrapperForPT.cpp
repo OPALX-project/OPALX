@@ -23,7 +23,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "h5core/h5_types.h"
 
@@ -31,16 +30,20 @@
 #include <set>
 #include <sstream>
 
-H5PartWrapperForPT::H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags)
+H5PartWrapperForPT::H5PartWrapperForPT(
+        const std::string& fileName, const DataSinkOptions& options, h5_int32_t flags)
     : H5PartWrapper(fileName, flags),
+      options_m(options),
       h5TotalStepTimer_m(IpplTimings::getTimer("H5 total step")),
       h5StepHeaderTimer_m(IpplTimings::getTimer("H5 step header")),
       h5DeviceHostCopyTimer_m(IpplTimings::getTimer("H5 device host copy")),
       h5DatasetWriteTimer_m(IpplTimings::getTimer("H5 dataset write")) {}
 
 H5PartWrapperForPT::H5PartWrapperForPT(
-        const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
+        const std::string& fileName, const DataSinkOptions& options, int restartStep,
+        std::string sourceFile, h5_int32_t flags)
     : H5PartWrapper(fileName, restartStep, sourceFile, flags),
+      options_m(options),
       h5TotalStepTimer_m(IpplTimings::getTimer("H5 total step")),
       h5StepHeaderTimer_m(IpplTimings::getTimer("H5 step header")),
       h5DeviceHostCopyTimer_m(IpplTimings::getTimer("H5 device host copy")),
@@ -55,7 +58,7 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
-    if (Options::rankDump) {
+    if (options_m.rankDump) {
         WRITESTRINGFILEATTRIB(file_m, "rankUnit", "1");
     }
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
@@ -70,7 +73,7 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "poriginUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "qUnit", "C");
 
-    if (Options::ebDump) {
+    if (options_m.ebDump) {
         WRITESTRINGFILEATTRIB(file_m, "ExUnit", "V/m");
         WRITESTRINGFILEATTRIB(file_m, "EyUnit", "V/m");
         WRITESTRINGFILEATTRIB(file_m, "EzUnit", "V/m");
@@ -80,7 +83,7 @@ void H5PartWrapperForPT::writeHeader() {
         WRITESTRINGFILEATTRIB(file_m, "BzUnit", "T");
     }
 
-    if (Options::rhoDump) {
+    if (options_m.rhoDump) {
         WRITESTRINGFILEATTRIB(file_m, "rhoUnit", "C/m^3");
     }
 
@@ -126,7 +129,7 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "dPhiGlobalUnit", "rad")
 
     /// Write file dump frequency.
-    h5_int64_t dumpfreq = Options::psDumpFreq;
+    h5_int64_t dumpfreq = options_m.psDumpFreq;
     WRITEFILEATTRIB(Int64, file_m, "dump frequency", &dumpfreq, 1);
 
     /// The header is written before the samplers give the phase shift; nothing reads this
@@ -342,7 +345,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         i64buffer[i] = idView(i);
     WRITE_TIMED_DATA(Int64, file_m, "id", i64buffer);
 
-    if (Options::rankDump) {
+    if (options_m.rankDump) {
         const h5_int32_t rank = static_cast<h5_int32_t>(ippl::Comm->rank());
         for (size_t i = 0; i < numLocalParticles; ++i)
             i32buffer[i] = rank;
@@ -380,7 +383,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         WRITE_TIMED_DATA(Float64, file_m, "polz", f64buffer);
     }
 
-    if (Options::ebDump) {
+    if (options_m.ebDump) {
         auto EViewDevice = pc->E.getView();
         auto EView       = Kokkos::create_mirror_view(EViewDevice);
         copyToHost(EView, EViewDevice);

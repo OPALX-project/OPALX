@@ -63,8 +63,10 @@ namespace {
             opal->storeInputFn((directory / "unit_test.opal").string());
             storageConfig.periodicParticleBoundary = true;
 
-            dataSink = std::make_shared<DataSink>();
-            beam     = std::make_shared<Beam>();
+            dataSink = std::make_shared<DataSink>(
+                    DataSinkOptions{}, std::vector<H5PartWrapper*>{}, false, 1, outputStem(),
+                    "unit_test.opal");
+            beam = std::make_shared<Beam>();
             Beam::defineBuiltins();
             testBeam = Beam::find("UNNAMED_BEAM");
             ASSERT_NE(testBeam, nullptr);
@@ -160,6 +162,9 @@ namespace {
             }
             return moments;
         }
+
+        /// Stem of the diagnostic files the sinks of a test write, in the test directory.
+        std::string outputStem() const { return (outputDirectory_m.path() / "unit_test").string(); }
 
         static std::array<Vector_t<double, 3>, 2> zeroFdPair() {
             std::array<Vector_t<double, 3>, 2> fd{};
@@ -306,14 +311,14 @@ namespace {
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_MultiContainerInit_DoesNotThrow) {
-        EXPECT_NO_THROW(DataSink(std::vector<H5PartWrapper*>{}, false, 2));
+        EXPECT_NO_THROW(DataSink(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal"));
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_ThrowsWhenFdextTooSmall) {
         createParticlesInContainer(0, 8u, 0.1, 0.3);
         createParticlesInContainer(1, 6u, 0.1, 0.3);
 
-        DataSink ds(std::vector<H5PartWrapper*>{}, false, 2);
+        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
@@ -324,7 +329,7 @@ namespace {
         createParticlesInContainer(0, 8u, 0.1, 0.3);
         createParticlesInContainer(1, 6u, 0.1, 0.3);
 
-        DataSink ds(std::vector<H5PartWrapper*>{}, false, 2);
+        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
         fd[0] = zeroFdPair();
         fd[1] = zeroFdPair();
@@ -334,65 +339,59 @@ namespace {
 
     // When HDF5 is disabled, dumpH5 returns before validating fdext size.
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_NoThrowWhenHdf5OffEvenIfFdextTooSmall) {
-        ASSERT_FALSE(Options::enableHDF5);
-
         createParticlesInContainer(0, 4u, 0.1, 0.2);
 
-        DataSink ds(std::vector<H5PartWrapper*>{}, false, 2);
+        DataSink ds(DataSinkOptions{}, {}, false, 2, outputStem(), "unit_test.opal");
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
 
         EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()));
+        EXPECT_TRUE(ds.momentRequest(true, false, false).empty());
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHdf5On) {
         createParticlesInContainer(0, 4u, 0.1, 0.2);
 
-        const bool savedH5  = Options::enableHDF5;
-        Options::enableHDF5 = true;
+        DataSinkOptions options;
+        options.enableHDF5 = true;
 
         const std::string f0 = (outputDirectory_m.path() / "test_mc_h5_c0.h5").string();
         const std::string f1 = (outputDirectory_m.path() / "test_mc_h5_c1.h5").string();
 
         std::vector<H5PartWrapper*> wrappers;
-        wrappers.push_back(new H5PartWrapperForPT(f0, H5_O_WRONLY));
-        wrappers.push_back(new H5PartWrapperForPT(f1, H5_O_WRONLY));
+        wrappers.push_back(new H5PartWrapperForPT(f0, options, H5_O_WRONLY));
+        wrappers.push_back(new H5PartWrapperForPT(f1, options, H5_O_WRONLY));
 
         {
-            DataSink ds(wrappers, false, 2);
+            DataSink ds(options, wrappers, false, 2, outputStem(), "unit_test.opal");
             std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
             fdTooSmall.push_back(zeroFdPair());
             EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall, outputMoments()), OpalException);
+            EXPECT_EQ(ds.momentRequest(true, false, false), H5PartWrapperForPT::requiredMoments);
         }
 
         for (H5PartWrapper* w : wrappers) {
             delete w;
         }
-
-        Options::enableHDF5 = savedH5;
     }
 
     TEST_F(MultiContainerPartBunchTest, DataSink_RewindToCheckpointAppendsDiagnosticH5InPlace) {
         createParticlesInContainer(0, 4u, 0.1, 0.2);
         createParticlesInContainer(1, 4u, 0.1, 0.2);
 
-        const bool savedH5  = Options::enableHDF5;
-        Options::enableHDF5 = true;
-        struct RestoreH5Option {
-            bool value;
-            ~RestoreH5Option() { Options::enableHDF5 = value; }
-        } restoreH5{savedH5};
+        DataSinkOptions options;
+        options.enableHDF5 = true;
 
         const std::string base =
                 (outputDirectory_m.path() / "test_diagnostic_checkpoint_rewind").string();
         const std::string f0 = base + "_c0.h5";
         const std::string f1 = base + "_c1.h5";
-        auto w0              = std::make_unique<H5PartWrapperForPT>(f0, H5_O_WRONLY);
-        auto w1              = std::make_unique<H5PartWrapperForPT>(f1, H5_O_WRONLY);
+        auto w0              = std::make_unique<H5PartWrapperForPT>(f0, options, H5_O_WRONLY);
+        auto w1              = std::make_unique<H5PartWrapperForPT>(f1, options, H5_O_WRONLY);
         std::vector<H5PartWrapper*> wrappers{w0.get(), w1.get()};
 
         {
-            DataSink ds(wrappers, false, 2, base);
+            DataSink ds(options, wrappers, false, 2, base, "unit_test.opal");
             std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
             fd[0] = zeroFdPair();
             fd[1] = zeroFdPair();

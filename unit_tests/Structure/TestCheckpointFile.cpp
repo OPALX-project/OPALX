@@ -10,7 +10,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/CheckpointFile.h"
-#include "Structure/DataSink.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -70,8 +69,7 @@ namespace {
             directory_m.reset();
         }
 
-        std::unique_ptr<Bunch> makeBunch(DataSink& sink) {
-            static_cast<void>(sink);
+        std::unique_ptr<Bunch> makeBunch() {
             return std::make_unique<Bunch>(
                     std::vector<double>{1.25e-12, -2.5e-12}, std::vector<double>{0.511e-3, 0.938},
                     std::vector{
@@ -123,8 +121,7 @@ namespace {
     };
 
     TEST_F(CheckpointFileTest, RoundTripRestoresMultiContainerStateWithHdf5DiagnosticsDisabled) {
-        DataSink sourceSink;
-        auto source = makeBunch(sourceSink);
+        auto source = makeBunch();
         populate(*source);
 
         struct SavedLocal {
@@ -187,8 +184,7 @@ namespace {
         expectVectorEqual(inspected.beamStops[1].planeOrigin, Vector_t<double, 3>(1.0, 2.0, 3.0));
         expectVectorEqual(inspected.beamStops[1].planeNormal, Vector_t<double, 3>(0.0, 0.6, 0.8));
 
-        DataSink targetSink;
-        auto target         = makeBunch(targetSink);
+        auto target         = makeBunch();
         const auto restored = CheckpointFile::read(path, *target);
         ASSERT_EQ(restored.cavityPhases.size(), 1u);
         EXPECT_EQ(restored.cavityPhases[0].first, "TEST_CAVITY");
@@ -233,8 +229,7 @@ namespace {
         Options::useQMAttributes = true;
         Attributes::setRealArray(*beam->findAttribute("POLARIZATION"), {0.0, 0.0, 1.0});
 
-        DataSink sourceSink;
-        auto source = makeBunch(sourceSink);
+        auto source = makeBunch();
         populate(*source);
 
         for (std::size_t ci = 0; ci < source->getNumParticleContainers(); ++ci) {
@@ -256,8 +251,7 @@ namespace {
         const std::string path = (directory_m.path() / "checkpoint_unit_attributes.h5").string();
         ASSERT_NO_THROW(CheckpointFile::write(path, *source, 0, 5));
 
-        DataSink targetSink;
-        auto target = makeBunch(targetSink);
+        auto target = makeBunch();
         ASSERT_NO_THROW(CheckpointFile::read(path, *target));
 
         for (std::size_t ci = 0; ci < target->getNumParticleContainers(); ++ci) {

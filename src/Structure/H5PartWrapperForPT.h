@@ -19,16 +19,19 @@
 #define OPAL_H5PARTWRAPPERFORPT_H
 
 #include "OPALTypes.h"
+#include "Structure/DataSinkOptions.h"
 #include "Structure/H5PartWrapper.h"
 
 #include "H5hut.h"
 
 class H5PartWrapperForPT : public H5PartWrapper {
 public:
-    H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags = H5_O_WRONLY);
     H5PartWrapperForPT(
-            const std::string& fileName, int restartStep, std::string sourceFile,
-            h5_int32_t flags = H5_O_RDWR);
+            const std::string& fileName, const DataSinkOptions& options,
+            h5_int32_t flags = H5_O_WRONLY);
+    H5PartWrapperForPT(
+            const std::string& fileName, const DataSinkOptions& options, int restartStep,
+            std::string sourceFile, h5_int32_t flags = H5_O_RDWR);
     virtual ~H5PartWrapperForPT();
 
     virtual void writeHeader();
@@ -49,6 +52,8 @@ private:
             PartBunch_t*, const opalx::moments::BeamMoments& moments,
             const std::map<std::string, double>&, size_t particleContainerIndex);
     void writeStepData(PartBunch_t*, size_t particleContainerIndex);
+
+    DataSinkOptions options_m;
 
     IpplTimings::TimerRef h5TotalStepTimer_m;
     IpplTimings::TimerRef h5StepHeaderTimer_m;

@@ -27,7 +27,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
@@ -40,14 +39,10 @@ public:
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
-        // DataSink requires a basename to create *.stat / *.lbal writers.
         OpalData::getInstance()->storeInputFn("unit_test.opal");
         // Many OPAL writers assume `gmsg` is initialized (see SDDSWriter/StatWriter).
         // Unit tests normally don't set this up via Main().
         gmsg = new Inform(nullptr, -1);
-        // DataSink::DataSink() constructs HDF5 writers when enabled, but the unit
-        // test doesn't have an H5PartWrapper. Disable HDF5 for this smoke test.
-        Options::enableHDF5 = false;
     }
     static void TearDownTestSuite() {
         delete gmsg;
@@ -97,10 +92,8 @@ public:
     };
 
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
-    std::shared_ptr<DataSink> dataSink_m;
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");

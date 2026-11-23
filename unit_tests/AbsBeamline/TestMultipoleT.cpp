@@ -22,7 +22,6 @@
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Track/FreezeRun.h"
 #include "Utilities/OpalException.h"
@@ -248,9 +247,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     setTransProfile({1.0});
 
     // Build a multi-container bunch.
-    const auto dataSink = std::make_shared<DataSink>();
-    const auto fsCmd    = makeNoFieldSolver();
-    const auto beam     = std::make_shared<Beam>();
+    const auto fsCmd = makeNoFieldSolver();
+    const auto beam  = std::make_shared<Beam>();
     Beam::defineBuiltins();
     Beam* testBeam = Beam::find("UNNAMED_BEAM");
     ASSERT_NE(testBeam, nullptr);

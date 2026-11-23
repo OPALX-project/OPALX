@@ -155,6 +155,7 @@ namespace opalx::run {
     struct RunContext {
         int runIndex = 0;  ///< 1 for the first RUN of the input file, 2 for the second, ...
         std::string inputBasename;
+        std::string inputFileName;  ///< The input file as given on the command line.
         bool restart = false;
         std::string restartFileName;
         std::string openMode;

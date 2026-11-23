@@ -10,7 +10,6 @@
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -114,7 +113,6 @@ protected:
     };
 
     std::shared_ptr<PartBunch_t> makeBunch() {
-        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmd_m          = fsCmd;
         fsCmd->setType("NONE");
@@ -168,7 +166,6 @@ protected:
     PartData reference_m{1.0, 9.382720813e8, 1.0e6};
     std::shared_ptr<PartBunch_t> bunch_m;
     std::shared_ptr<FieldSolverCmd> fsCmd_m;
-    std::shared_ptr<DataSink> dataSink_m;
 };
 
 TEST_F(ReferenceTracerTest, LengthCheckUsesTheFieldExtent) {

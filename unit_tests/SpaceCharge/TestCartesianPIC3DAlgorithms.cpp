@@ -88,12 +88,20 @@ namespace opalx::spacecharge {
             opalx::test::TemporaryDirectory outputDirectory_m;
             std::string savedInput_m;
 
+            /// Sink for the solver diagnostics, named after the input file SetUp() stores.
+            static DataSink makeSink() {
+                auto* opal = OpalData::getInstance();
+                return DataSink(
+                        DataSinkOptions{}, {}, false, 1, opal->getInputBasename(),
+                        opal->getInputFn());
+            }
+
             struct Run {
                 CartesianDomain<double, 3> domain;
                 std::shared_ptr<BunchStateHandler> state = std::make_shared<BunchStateHandler>();
                 Particles particles;
                 Particles secondary;
-                DataSink sink;
+                DataSink sink = makeSink();
                 std::unique_ptr<CartesianPIC3DAlgorithm> algorithm;
                 std::array<std::uint8_t, 2> activity{1, 0};
 
@@ -963,7 +971,7 @@ namespace opalx::spacecharge {
                 Kokkos::deep_copy(secondary.P.getView(), Vector(0.0));
                 Kokkos::deep_copy(secondary.E.getView(), Vector(7.0));
                 Kokkos::deep_copy(secondary.B.getView(), Vector(9.0));
-                DataSink sink;
+                DataSink sink = makeSink();
                 const std::array containers{&primary, &secondary};
                 CartesianPIC3DAlgorithm algorithm(
                         values, containers,

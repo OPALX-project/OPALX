@@ -27,7 +27,8 @@ class StatWriter : public StatBaseWriter {
 public:
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
 
-    StatWriter(const std::string& fname, bool restart);
+    /// @param inputFileName Input file named in the header.
+    StatWriter(const std::string& fname, const std::string& inputFileName, bool restart);
 
     using SDDSWriter::write;
     /** \brief Write statistical data.
@@ -61,6 +62,8 @@ private:
     void fillHeader(
             const losses_t& losses = losses_t(), const std::string& species = "",
             bool hasSpin = false);
+
+    std::string inputFileName_m;
 };
 
 #endif

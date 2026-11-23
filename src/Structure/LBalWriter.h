@@ -23,12 +23,15 @@
 
 class LBalWriter : public SDDSWriter {
 public:
-    LBalWriter(const std::string& fname, bool restart);
+    /// @param inputFileName Input file named in the header.
+    LBalWriter(const std::string& fname, const std::string& inputFileName, bool restart);
 
     void write(const PartBunch_t& beam) override;
 
 private:
     void fillHeader();
+
+    std::string inputFileName_m;
 };
 
 #endif

@@ -30,7 +30,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -39,7 +38,8 @@
 
 #include <sstream>
 
-StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {}
+StatWriter::StatWriter(const std::string& fname, const std::string& inputFileName, bool restart)
+    : StatBaseWriter(fname, restart), inputFileName_m(inputFileName) {}
 
 void StatWriter::fillHeader(const losses_t& losses, const std::string& species, bool hasSpin) {
     if (this->hasColumns()) {
@@ -196,8 +196,7 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
     std::string timeStr(simtimer.time());
 
     std::stringstream ss;
-    ss << "Statistics data '" << OpalData::getInstance()->getInputFn() << "' " << dateStr << " "
-       << timeStr;
+    ss << "Statistics data '" << inputFileName_m << "' " << dateStr << " " << timeStr;
 
     this->addDescription(ss.str(), "stat parameters");
 

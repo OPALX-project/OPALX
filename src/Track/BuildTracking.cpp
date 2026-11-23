@@ -162,25 +162,34 @@ namespace opalx::run {
         }
 
         DataSink* initDataSink(
-                size_t numParticleContainers, const RunContext& context, bool enableHDF5,
-                RunObjects& objects) {
+                size_t numParticleContainers, const RunContext& context,
+                const OptionValues& options, RunObjects& objects) {
             objects.phaseSpaceSinks.clear();
             objects.phaseSpaceSinks.reserve(numParticleContainers);
 
             const bool isRestart        = context.restart;
             const std::string inputBase = context.inputBasename;
 
-            for (size_t i = 0; enableHDF5 && i < numParticleContainers; ++i) {
+            DataSinkOptions sinkOptions;
+            sinkOptions.enableHDF5       = options.enableHDF5;
+            sinkOptions.psDumpFreq       = options.psDumpFreq;
+            sinkOptions.rankDump         = options.rankDump;
+            sinkOptions.ebDump           = options.ebDump;
+            sinkOptions.rhoDump          = options.rhoDump;
+            sinkOptions.beamHaloBoundary = options.beamHaloBoundary;
+
+            for (size_t i = 0; sinkOptions.enableHDF5 && i < numParticleContainers; ++i) {
                 const std::string stem =
                         DataSink::diagnosticStemForContainer(inputBase, numParticleContainers, i);
                 const std::string dest = stem + std::string(".h5");
 
                 if (isRestart && std::filesystem::exists(dest)) {
                     objects.phaseSpaceSinks.push_back(
-                            std::make_unique<H5PartWrapperForPT>(dest, -1, dest, H5_O_RDWR));
+                            std::make_unique<H5PartWrapperForPT>(
+                                    dest, sinkOptions, -1, dest, H5_O_RDWR));
                 } else {
                     objects.phaseSpaceSinks.push_back(
-                            std::make_unique<H5PartWrapperForPT>(dest, H5_O_WRONLY));
+                            std::make_unique<H5PartWrapperForPT>(dest, sinkOptions, H5_O_WRONLY));
                 }
             }
 
@@ -191,8 +200,8 @@ namespace opalx::run {
             // phase-space H5 files are opened for append, absent ones are started. A later RUN
             // of the same input appends to the statistics files of the earlier ones.
             objects.dataSink = std::make_unique<DataSink>(
-                    sinks, false, numParticleContainers, inputBase,
-                    isRestart || context.runIndex > 1);
+                    sinkOptions, sinks, false, numParticleContainers, inputBase,
+                    context.inputFileName, isRestart || context.runIndex > 1);
             return objects.dataSink.get();
         }
 
@@ -666,7 +675,7 @@ namespace opalx::run {
           This will (hopefully) be handled inside the pusher routines!
         */
 
-        DataSink* dataSink = initDataSink(beams.size(), context, options.enableHDF5, objects);
+        DataSink* dataSink = initDataSink(beams.size(), context, options, objects);
 
         // Set total particles per container (beam)
         std::vector<size_t> totalParticlesPerBeam(beams.size());

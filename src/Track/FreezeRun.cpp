@@ -278,6 +278,7 @@ namespace opalx::run {
         RunContext& context     = run.context;
         context.runIndex        = runIndex;
         context.inputBasename   = opal->getInputBasename();
+        context.inputFileName   = opal->getInputFn();
         context.restart         = opal->inRestartRun();
         context.restartFileName = context.restart ? opal->getRestartFileName() : "";
         context.openMode        = openModeName(opal->getOpenMode());

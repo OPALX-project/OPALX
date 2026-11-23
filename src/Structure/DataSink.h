@@ -29,6 +29,7 @@
 #define _OPAL_DATA_SINK_H
 
 #include "Structure/BinConfigWriter.h"
+#include "Structure/DataSinkOptions.h"
 #include "Structure/DirichletPlaneWriter.h"
 #include "Structure/H5Writer.h"
 #include "Structure/SDDSWriter.h"
@@ -53,18 +54,17 @@ private:
     typedef std::unique_ptr<H5Writer> h5Writer_t;
 
 public:
-    /** \brief Default constructor.
-     *
-     * The default constructor is called at the start of a new calculation (as
-     * opposed to a calculation restart).
+    /**
+     * @param h5wrappers One H5 wrapper per particle container if @p options enable HDF5, none
+     *        otherwise.
+     * @param outputBasename Stem of the statistics, load-balance and phase-space files.
+     * @param inputFileName Input file named in the headers of the statistics and load-balance
+     *        files.
      */
-    DataSink();
-    /// One H5 wrapper per particle container (when HDF5 enabled); sizes must match @p
-    /// numParticleContainers.
     DataSink(
-            const std::vector<H5PartWrapper*>& h5wrappers, bool restart,
-            size_t numParticleContainers, const std::string& outputBasename = "",
-            bool appendStatistics = false);
+            const DataSinkOptions& options, const std::vector<H5PartWrapper*>& h5wrappers,
+            bool restart, size_t numParticleContainers, const std::string& outputBasename,
+            const std::string& inputFileName, bool appendStatistics = false);
 
     /** Basename stem for per-container diagnostics: @c basename if @p numContainers<=1 else @c
      * basename_cN. */
@@ -82,6 +82,11 @@ public:
     /// container with or without spin.
     [[nodiscard]] static opalx::moments::Request requiredMoments(
             bool psDump, bool statDump, bool hasSpin);
+
+    /// Moment groups the phase-space (@p psDump) and statistics (@p statDump) outputs of this
+    /// sink read for a container with or without spin; no phase-space groups without HDF5.
+    [[nodiscard]] opalx::moments::Request momentRequest(
+            bool psDump, bool statDump, bool hasSpin) const;
 
     /**
      * @brief Write H5 phase-space data with per-container external fields.
@@ -149,8 +154,10 @@ private:
 
     void init(
             bool restart, const std::vector<H5PartWrapper*>& h5wrappers,
-            size_t numParticleContainers, const std::string& outputBasename = "",
-            bool appendStatistics = false);
+            size_t numParticleContainers, const std::string& outputBasename,
+            const std::string& inputFileName, bool appendStatistics);
+
+    DataSinkOptions options_m;
 
     std::vector<h5Writer_t> h5Writers_m;
     std::vector<statWriter_t> statWriters_m;

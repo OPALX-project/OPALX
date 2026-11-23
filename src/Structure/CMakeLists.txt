@@ -31,6 +31,7 @@ set (HDRS
     BinConfigWriter.h
     DirichletPlaneWriter.h
     DataSink.h
+    DataSinkOptions.h
     FieldSolverCmd.h
     BinningCmd.h
     H5PartWrapperForPT.h

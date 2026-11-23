@@ -341,7 +341,9 @@ namespace opalx::spacecharge {
             values.grid.meshSize                   = domainConfig.meshSize;
             values.grid.decomposition              = domainConfig.decomposition;
             values.grid.boundingBoxIncreasePercent = 10.0;
-            DataSink dataSink;
+            DataSink dataSink(
+                    DataSinkOptions{}, {}, false, 1, OpalData::getInstance()->getInputBasename(),
+                    OpalData::getInstance()->getInputFn());
             CartesianPIC3DAlgorithm algorithm(
                     values, particleContainers, std::move(fieldStorage), &dataSink, bunchState);
 

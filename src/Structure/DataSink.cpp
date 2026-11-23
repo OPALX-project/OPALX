@@ -27,7 +27,6 @@
 //
 #include "Structure/DataSink.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
@@ -47,17 +46,17 @@ std::string DataSink::diagnosticStemForContainer(
     return inputBasename + "_c" + std::to_string(index);
 }
 
-DataSink::DataSink() { this->init(false, {}, 1); }
-
 DataSink::DataSink(
-        const std::vector<H5PartWrapper*>& h5wrappers, bool restart, size_t numParticleContainers,
-        const std::string& outputBasename, bool appendStatistics) {
-    if (restart && !Options::enableHDF5) {
+        const DataSinkOptions& options, const std::vector<H5PartWrapper*>& h5wrappers, bool restart,
+        size_t numParticleContainers, const std::string& outputBasename,
+        const std::string& inputFileName, bool appendStatistics)
+    : options_m(options) {
+    if (restart && !options_m.enableHDF5) {
         throw OpalException("DataSink::DataSink()", "Can not restart when HDF5 is disabled");
     }
 
     this->init(
-            restart, h5wrappers, numParticleContainers, outputBasename,
+            restart, h5wrappers, numParticleContainers, outputBasename, inputFileName,
             restart || appendStatistics);
 
     if (restart) {
@@ -76,10 +75,21 @@ opalx::moments::Request DataSink::requiredMoments(bool psDump, bool statDump, bo
     return request;
 }
 
+opalx::moments::Request DataSink::momentRequest(bool psDump, bool statDump, bool hasSpin) const {
+    opalx::moments::Request request;
+    if (statDump) {
+        request |= StatWriter::requiredMoments(hasSpin);
+    }
+    if (psDump && options_m.enableHDF5) {
+        request |= H5PartWrapperForPT::requiredMoments;
+    }
+    return request;
+}
+
 void DataSink::dumpH5(
         PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
         std::span<const opalx::moments::BeamMoments> moments) const {
-    if (!Options::enableHDF5) {
+    if (!options_m.enableHDF5) {
         return;
     }
 
@@ -127,8 +137,8 @@ void DataSink::dumpSDDS(
         }
 
         size_t npOutside = 0;
-        if (pc->getTotalNum() > 0 && Options::beamHaloBoundary > 0) {
-            npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary * moments[i].rmsR());
+        if (pc->getTotalNum() > 0 && options_m.beamHaloBoundary > 0) {
+            npOutside = beam.calcNumPartsOutside(options_m.beamHaloBoundary * moments[i].rmsR());
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
@@ -216,9 +226,9 @@ void DataSink::rewindToCheckpoint(PartBunch_t& beam) {
 
 void DataSink::init(
         bool restart, const std::vector<H5PartWrapper*>& h5wrappers, size_t numParticleContainers,
-        const std::string& outputBasename, bool appendStatistics) {
-    std::string fn =
-            outputBasename.empty() ? OpalData::getInstance()->getInputBasename() : outputBasename;
+        const std::string& outputBasename, const std::string& inputFileName,
+        bool appendStatistics) {
+    const std::string& fn = outputBasename;
 
     lossWrCounter_m   = 0;
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
@@ -226,16 +236,16 @@ void DataSink::init(
     statWriters_m.clear();
     for (size_t i = 0; i < numParticleContainers; ++i) {
         std::string stem = diagnosticStemForContainer(fn, numParticleContainers, i);
-        statWriters_m.push_back(
-                statWriter_t(new StatWriter(stem + std::string(".stat"), appendStatistics)));
+        statWriters_m.push_back(statWriter_t(
+                new StatWriter(stem + std::string(".stat"), inputFileName, appendStatistics)));
     }
 
     sddsWriter_m.clear();
-    sddsWriter_m.push_back(
-            sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), appendStatistics)));
+    sddsWriter_m.push_back(sddsWriter_t(
+            new LBalWriter(fn + std::string(".lbal"), inputFileName, appendStatistics)));
 
     h5Writers_m.clear();
-    if (Options::enableHDF5) {
+    if (options_m.enableHDF5) {
         if (h5wrappers.size() != numParticleContainers) {
             throw OpalException(
                     "DataSink::init",

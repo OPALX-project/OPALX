@@ -18,13 +18,13 @@
 //
 #include "LBalWriter.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
-LBalWriter::LBalWriter(const std::string& fname, bool restart) : SDDSWriter(fname, restart) {}
+LBalWriter::LBalWriter(const std::string& fname, const std::string& inputFileName, bool restart)
+    : SDDSWriter(fname, restart), inputFileName_m(inputFileName) {}
 
 void LBalWriter::fillHeader() {
     if (this->hasColumns()) {
@@ -51,8 +51,7 @@ void LBalWriter::fillHeader() {
     std::string timeStr(simtimer.time());
 
     std::stringstream ss;
-    ss << "Processor statistics '" << OpalData::getInstance()->getInputFn() << "' " << dateStr << ""
-       << timeStr;
+    ss << "Processor statistics '" << inputFileName_m << "' " << dateStr << "" << timeStr;
 
     this->addDescription(ss.str(), "lbal parameters");
 

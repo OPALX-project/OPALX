@@ -17,7 +17,6 @@
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/MeshGenerator.h"
 #include "Track/FreezeRun.h"
@@ -62,7 +61,6 @@ protected:
 
     void TearDown() override {
         Fieldmap::freeMap(fieldmapFile_.string());
-        dataSink_m.reset();
         fsCmdBase_m.reset();
         OpalData::getInstance()->storeInputFn(oldInputFn_);
         directory_.reset();
@@ -88,7 +86,6 @@ protected:
     };
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
@@ -156,7 +153,6 @@ protected:
     std::string testStem_;
     std::filesystem::path fieldmapFile_;
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
-    std::shared_ptr<DataSink> dataSink_m;
 };
 
 class DummyBeamline final : public Beamline {
