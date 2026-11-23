@@ -2,7 +2,6 @@
 
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <algorithm>
 #include <cmath>
@@ -36,8 +35,8 @@ namespace {
         }
     }
 
-    std::uint64_t deterministicHostSeed() {
-        return Options::seed >= 0 ? static_cast<std::uint64_t>(Options::seed) : 123456789ULL;
+    std::uint64_t deterministicHostSeed(int seed) {
+        return seed >= 0 ? static_cast<std::uint64_t>(seed) : 123456789ULL;
     }
 
     std::uint64_t mixSeed(std::uint64_t seed, std::uint64_t streamIndex) {
@@ -245,8 +244,8 @@ namespace Physics {
             return kernel;
         }
 
-        std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex) {
-            return std::mt19937_64(mixSeed(deterministicHostSeed(), streamIndex));
+        std::mt19937_64 makeHostRandomEngine(int seed, std::uint64_t streamIndex) {
+            return std::mt19937_64(mixSeed(deterministicHostSeed(seed), streamIndex));
         }
 
         SampledEvent sampleEvent(const SamplingKernel& kernel, std::mt19937_64& engine) {

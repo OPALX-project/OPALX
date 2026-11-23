@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
     }
 
     const auto observable = parseObservable(options.observable);
-    auto engine           = Physics::LinearBreitWheeler::makeHostRandomEngine();
+    auto engine           = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed);
 
     std::ofstream output(options.output);
     output << "# value,weight\n";

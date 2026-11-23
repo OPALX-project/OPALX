@@ -19,8 +19,8 @@ namespace Physics {
          * Klein-Nishina kernel.
          *
          * The kernel is designed for deterministic testing and validation:
-         * create it once for a fixed benchmark geometry, seed a host RNG from
-         * `Options::seed`, and then draw sampled events via @ref sampleEvent.
+         * create it once for a fixed benchmark geometry, seed a host RNG with
+         * @ref makeHostRandomEngine, and then draw sampled events via @ref sampleEvent.
          */
         struct SamplingKernel {
             double electronTotalEnergyGeV =
@@ -361,14 +361,14 @@ namespace Physics {
         /**
          * @brief Create a deterministic host-side random engine for Monte Carlo validation.
          *
-         * The engine is seeded from `Options::seed`. For the validation path, a
+         * The engine is seeded from @p seed (OPTION SEED). For the validation path, a
          * negative seed falls back to a fixed constant instead of a time-dependent
          * seed so that unit tests remain reproducible.
          *
          * @param streamIndex Optional stream offset for independent deterministic streams.
          * @return Host-side Mersenne-Twister engine.
          */
-        std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex = 0);
+        std::mt19937_64 makeHostRandomEngine(int seed, std::uint64_t streamIndex = 0);
 
         /**
          * @brief Build a cached sampling kernel for repeated event generation.
@@ -408,7 +408,7 @@ namespace Physics {
          *
          * This is a validation-oriented Monte Carlo path: it is scalar, host-only, and
          * deterministic when the engine is created from @ref makeHostRandomEngine with
-         * a fixed `Options::seed`. It is not yet intended to define production photon
+         * a fixed seed. It is not yet intended to define production photon
          * creation semantics for tracking.
          *
          * @param kernel Cached sampling kernel created by @ref makeSamplingKernel.

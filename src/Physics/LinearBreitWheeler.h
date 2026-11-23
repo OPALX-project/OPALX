@@ -197,11 +197,12 @@ namespace Physics {
                 const Vector_t<double, 3>& laserDirection);
 
         /**
-         * @brief Build a deterministic host RNG from `Options::seed`.
+         * @brief Build a deterministic host RNG from @p seed (OPTION SEED); a negative seed falls
+         *        back to a fixed constant.
          * @param streamIndex Optional stream index for reproducible stream splitting.
          * @return Seeded host-side random engine.
          */
-        std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex = 0);
+        std::mt19937_64 makeHostRandomEngine(int seed, std::uint64_t streamIndex = 0);
 
         /**
          * @brief Sample one unpolarized linear Breit-Wheeler event.

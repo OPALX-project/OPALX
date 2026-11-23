@@ -4,7 +4,6 @@
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
 #include <cstdint>
@@ -13,9 +12,8 @@
 
 namespace {
 
-    uint64_t decayRngSeed(std::size_t containerIndex) {
-        const uint64_t seedBase =
-                static_cast<uint64_t>((Options::seed == -1) ? 1234567 : Options::seed);
+    uint64_t decayRngSeed(int seed, std::size_t containerIndex) {
+        const uint64_t seedBase = static_cast<uint64_t>((seed == -1) ? 1234567 : seed);
         return seedBase + 104729ULL * static_cast<uint64_t>(containerIndex + 1)
                + 8191ULL * static_cast<uint64_t>(ippl::Comm->rank() + 1);
     }
@@ -24,9 +22,9 @@ namespace {
 
 Decay::Decay(
         double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
-        int parentChargeSign)
+        int parentChargeSign, int seed)
     : tau0_m(restLifetimeSeconds),
-      randPool_m(decayRngSeed(containerIndex)),
+      randPool_m(decayRngSeed(seed, containerIndex)),
       parentMassGeV_m(parentMassGeV),
       parentChargeSign_m(parentChargeSign) {}
 

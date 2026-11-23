@@ -3,6 +3,7 @@
 
 #include "Physics/LinearCompton.h"
 #include "Physics/Physics.h"
+#include "Utilities/Options.h"
 
 #include <algorithm>
 #include <cmath>
@@ -125,7 +126,7 @@ namespace LinearComptonBenchmark {
         const auto kernel = Physics::LinearCompton::makeSamplingKernel(
                 config.electronTotalEnergyGeV, laserPhotonEnergyGeV, config.beamDirection,
                 config.laserDirection);
-        auto engine = Physics::LinearCompton::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed, streamIndex);
 
         histogram.totalWeight = static_cast<double>(sampleCount);
         for (std::size_t i = 0; i < sampleCount; ++i) {
@@ -360,7 +361,7 @@ namespace LinearComptonBenchmark {
         const auto kernel = Physics::LinearCompton::makeSamplingKernel(
                 config.electronTotalEnergyGeV, laserPhotonEnergyGeV, config.beamDirection,
                 config.laserDirection);
-        auto engine = Physics::LinearCompton::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed, streamIndex);
 
         histogram.totalWeight = static_cast<double>(sampleCount);
         for (std::size_t i = 0; i < sampleCount; ++i) {
@@ -623,7 +624,7 @@ namespace LinearComptonBenchmark {
         const auto kernel = Physics::LinearCompton::makeSamplingKernel(
                 config.electronTotalEnergyGeV, laserPhotonEnergyGeV, config.beamDirection,
                 config.laserDirection);
-        auto engine = Physics::LinearCompton::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed, streamIndex);
 
         histogram.totalWeight = static_cast<double>(sampleCount);
         for (std::size_t i = 0; i < sampleCount; ++i) {

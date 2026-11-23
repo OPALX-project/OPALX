@@ -107,9 +107,10 @@ namespace opalx::run {
 
         /**
          * @brief Builds a vector of processes for the given beam object
+         * @param seed OPTION SEED, for the random streams of the decays.
          */
         std::vector<std::unique_ptr<GlobalProcess>> makeGlobalProcessesForBeam(
-                const BeamDescription& beam, std::size_t containerIndex) {
+                const BeamDescription& beam, std::size_t containerIndex, int seed) {
             std::vector<std::unique_ptr<GlobalProcess>> processes;
             const std::vector<std::string>& processNames = beam.globalProcesses;
             processes.reserve(processNames.size());
@@ -137,12 +138,12 @@ namespace opalx::run {
                             }
                             processes.push_back(
                                     std::make_unique<MuonDecay>(
-                                            tau, containerIndex, mass, parentSign));
+                                            tau, containerIndex, mass, parentSign, seed));
                             break;
                         case ParticleType::PION:
                             processes.push_back(
                                     std::make_unique<PionDecay>(
-                                            tau, containerIndex, mass, parentSign));
+                                            tau, containerIndex, mass, parentSign, seed));
                             break;
                         default:
                             throw OpalException(
@@ -652,7 +653,7 @@ namespace opalx::run {
                 }
             }
 
-            globalProcessesLists[i] = makeGlobalProcessesForBeam(b, i);
+            globalProcessesLists[i] = makeGlobalProcessesForBeam(b, i, options.seed);
         }
 
         // validate() refused emitting or delayed sources and DECAY for a restart.

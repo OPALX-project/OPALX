@@ -3,6 +3,7 @@
 
 #include "Physics/LinearBreitWheeler.h"
 #include "Physics/Physics.h"
+#include "Utilities/Options.h"
 
 #include <cmath>
 #include <cstdint>
@@ -351,7 +352,7 @@ namespace LinearBreitWheelerBenchmark {
 
         const double laserPhotonEnergyGeV =
                 Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(config.wavelength_m);
-        auto engine           = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed, streamIndex);
         histogram.totalWeight = 0.0;
 
         for (std::size_t i = 0; i < sampleCount; ++i) {
@@ -430,7 +431,7 @@ namespace LinearBreitWheelerBenchmark {
         const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(
                 config.highEnergyPhotonEnergyGeV, laserPhotonEnergyGeV, config.highEnergyDirection,
                 config.laserDirection);
-        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed, streamIndex);
 
         histogram.totalWeight = static_cast<double>(sampleCount);
         for (std::size_t i = 0; i < sampleCount; ++i) {
@@ -502,7 +503,7 @@ namespace LinearBreitWheelerBenchmark {
 
         const double laserPhotonEnergyGeV =
                 Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(config.wavelength_m);
-        auto engine           = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed, streamIndex);
         histogram.totalWeight = 0.0;
 
         for (std::size_t i = 0; i < sampleCount; ++i) {
@@ -594,7 +595,7 @@ namespace LinearBreitWheelerBenchmark {
         const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(
                 config.highEnergyPhotonEnergyGeV, laserPhotonEnergyGeV, config.highEnergyDirection,
                 config.laserDirection);
-        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+        auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed, streamIndex);
 
         histogram.totalWeight = static_cast<double>(sampleCount);
         for (std::size_t i = 0; i < sampleCount; ++i) {

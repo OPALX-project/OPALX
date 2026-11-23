@@ -166,7 +166,7 @@ TEST(TestLinearCompton, SampledEventsRespectKinematicBounds) {
 
     const auto kernel = Physics::LinearCompton::makeSamplingKernel(
             electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection);
-    auto engine      = Physics::LinearCompton::makeHostRandomEngine();
+    auto engine      = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
     const auto event = Physics::LinearCompton::sampleEvent(kernel, engine);
 
     const double minERF = Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(
@@ -204,8 +204,8 @@ TEST(TestLinearCompton, FixedSeedProducesDeterministicSampleSequence) {
 
     const auto kernel = Physics::LinearCompton::makeSamplingKernel(
             electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection);
-    auto engine1 = Physics::LinearCompton::makeHostRandomEngine();
-    auto engine2 = Physics::LinearCompton::makeHostRandomEngine();
+    auto engine1 = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
+    auto engine2 = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
 
     for (int i = 0; i < 8; ++i) {
         const auto event1 = Physics::LinearCompton::sampleEvent(kernel, engine1);

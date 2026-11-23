@@ -27,8 +27,10 @@
  */
 class Decay : public GlobalProcess {
 public:
+    /// @param seed OPTION SEED; the decay random stream of each container and rank derives from
+    ///        it (-1: a fixed base).
     Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
-          int parentChargeSign);
+          int parentChargeSign, int seed);
 
     ~Decay() override = default;
 

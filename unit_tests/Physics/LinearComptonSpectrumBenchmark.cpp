@@ -332,7 +332,7 @@ namespace {
 
         auto rView  = pc->R.getView();
         auto pView  = pc->P.getView();
-        auto engine = Physics::LinearCompton::makeHostRandomEngine();
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
         const double laserPhotonEnergyGeV =
                 Physics::LinearCompton::photonEnergyFromWavelengthGeV(config.wavelength_m);
 
@@ -446,7 +446,7 @@ namespace {
         }
 
         auto pView  = pc->P.getView();
-        auto engine = Physics::LinearCompton::makeHostRandomEngine();
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
         const double laserPhotonEnergyGeV =
                 Physics::LinearCompton::photonEnergyFromWavelengthGeV(config.wavelength_m);
 
@@ -560,7 +560,7 @@ namespace {
         }
 
         auto pView  = pc->P.getView();
-        auto engine = Physics::LinearCompton::makeHostRandomEngine();
+        auto engine = Physics::LinearCompton::makeHostRandomEngine(Options::seed);
         const double laserPhotonEnergyGeV =
                 Physics::LinearCompton::photonEnergyFromWavelengthGeV(config.wavelength_m);
 

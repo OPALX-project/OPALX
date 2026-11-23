@@ -174,7 +174,7 @@ namespace {
             Options::seed = 20260515;
             // Timestep chosen so all muons decay within one step; we test the angular
             // spectrum of the daughters, not the decay time.
-            MuonDecay decay(1.0e-12, 0, Physics::m_mu, parentSign);
+            MuonDecay decay(1.0e-12, 0, Physics::m_mu, parentSign, Options::seed);
             decay.setDaughterContainer(electrons, Physics::m_e);
 
             const std::size_t marked    = decay.apply(*muons, 1.0, 0, 0);

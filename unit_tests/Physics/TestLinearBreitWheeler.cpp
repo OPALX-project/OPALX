@@ -126,7 +126,7 @@ TEST(TestLinearBreitWheeler, SampledEventConservesFourMomentumForHeadOnGeometry)
 
     const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(
             highEnergyPhotonEnergyGeV, laserPhotonEnergyGeV, highEnergyDirection, laserDirection);
-    auto engine      = Physics::LinearBreitWheeler::makeHostRandomEngine();
+    auto engine      = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed);
     const auto event = Physics::LinearBreitWheeler::sampleEvent(kernel, engine);
 
     Vector_t<double, 3> incomingMomentum(0.0);
@@ -163,8 +163,8 @@ TEST(TestLinearBreitWheeler, FixedSeedProducesDeterministicSampleSequence) {
 
     const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(
             highEnergyPhotonEnergyGeV, laserPhotonEnergyGeV, highEnergyDirection, laserDirection);
-    auto engine1 = Physics::LinearBreitWheeler::makeHostRandomEngine();
-    auto engine2 = Physics::LinearBreitWheeler::makeHostRandomEngine();
+    auto engine1 = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed);
+    auto engine2 = Physics::LinearBreitWheeler::makeHostRandomEngine(Options::seed);
 
     for (int i = 0; i < 8; ++i) {
         const auto event1 = Physics::LinearBreitWheeler::sampleEvent(kernel, engine1);
