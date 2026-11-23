@@ -498,7 +498,9 @@ void TrackRun::execute() {
         // diagnostic particle selection must never impose retries of the
         // collective PIC solve. Keep non-NONE backends on the ordinary path.
         // Even NONE may traverse the binning adapter, so exclude stateful
-        // binning/diagnostics and repartitioning from retry eligibility.
+        // binning/diagnostics and repartitioning from retry eligibility; a
+        // PERIODICBOX solve migrates particles in every solve, also with the
+        // NONE backend.
         const auto& bin          = cartesian->binning;
         const bool retrySafeBins = !bin
                                    || (!bin->adaptive && bin->maximumBins == 1
@@ -506,7 +508,7 @@ void TrackRun::execute() {
                                        && bin->tablePrintFrequency == 0);
         retrySafeBareTracking = retrySafeBins && cartesian->repartitionFrequency == 0
                                 && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
-                                && !dirichletPlane.enabled();
+                                && !dirichletPlane.enabled() && cartesian->periodicBox <= 0.0;
 #ifdef OPALX_FIELD_DEBUG
         // Unbinned backend field dumps are numbered by attempted solve.
         if (!bin) retrySafeBareTracking = false;
