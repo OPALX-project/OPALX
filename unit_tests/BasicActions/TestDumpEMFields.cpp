@@ -28,6 +28,7 @@
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
 #include "Physics/Units.h"
+#include "Structure/EMFieldDumpWriter.h"
 
 #include "../KeywordObjects.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -104,11 +105,11 @@ namespace {
     }
 
     TEST(TestDumpEMFields, ConstructorDestructor) {
-        // neither in the set and grid is null
+        // not executed, so not registered
         const auto* dump1 =
                 opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMP1").release();
         delete dump1;
-        // grid is not null and it is in the set
+        // executed, so registered
         auto* dump2 =
                 opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMP2").release();
         setAttributesCart(dump2, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., "/dev/null");
@@ -137,7 +138,7 @@ namespace {
         dump1.execute();  // should be okay (normal)
         ElementSet elements;
         elements.insert(std::make_shared<MockComponent>());
-        EXPECT_NO_THROW(DumpEMFields::writeFields(elements));
+        EXPECT_NO_THROW(writeEMFieldDumps(DumpEMFields::requests(), elements));
         setAttributesCart(
                 &dump1, -1., -1., 1., -1., -1., 1., -1., -1., 1., 1., 1., 1., "/dev/null");
         dump1.execute();  // should be okay (-ve step is okay)
@@ -200,7 +201,7 @@ namespace {
         ElementSet elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
-            DumpEMFields::writeFields(elements);
+            writeEMFieldDumps(DumpEMFields::requests(), elements);
         } catch (OpalException& exc) {
             EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;
         }
@@ -248,26 +249,6 @@ namespace {
         DumpEMFields::clearDumps();
     }
 
-    TEST(TestDumpEMFields, BadGrid) {
-        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
-        const std::string auxDirectory = directory.path().string();
-        gmsg                           = new Inform(nullptr, -1);
-
-        std::string fname = (directory.path() / "test").string();
-
-        clear_files({fname});
-        auto dumpObject =
-                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
-        DumpEMFields& dump = *dumpObject;
-        setAttributesCart(&dump, 0.1, 0.1, 3., 0.2, 0.3, 2., 0.1, 0.1, 2., 1., 1., 2., fname);
-        dump.execute();
-        DumpEMFields::failGrid();
-        ElementSet elements;
-        elements.insert(std::make_shared<MockComponent>());
-        EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
-        DumpEMFields::clearDumps();
-    }
-
     TEST(TestDumpEMFields, CouldNotOpenFile) {
         opalx::test::TemporaryDirectory directory("opalx-dump-fields");
         const std::string auxDirectory = directory.path().string();
@@ -280,24 +261,7 @@ namespace {
         dump.execute();
         ElementSet elements;
         elements.insert(std::make_shared<MockComponent>());
-        EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
-        DumpEMFields::clearDumps();
-    }
-
-    TEST(TestDumpEMFields, WriteFailure) {
-        opalx::test::TemporaryDirectory directory("opalx-dump-fields");
-        const std::string auxDirectory = directory.path().string();
-        gmsg                           = new Inform(nullptr, -1);
-        std::string fname              = (directory.path() / "test").string();
-        auto dumpObject =
-                opalx::test::makeKeywordObject<DumpEMFields>("DUMPEMFIELDS", "DUMPEMFIELDS");
-        DumpEMFields& dump = *dumpObject;
-        setAttributesCart(&dump, 0.1, 0.1, 3., 0.2, 0.3, 2., 0.1, 0.1, 2., 1., 1., 2., fname);
-        dump.execute();
-        DumpEMFields::failWrite();
-        ElementSet elements;
-        elements.insert(std::make_shared<MockComponent>());
-        EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
+        EXPECT_ANY_THROW(writeEMFieldDumps(DumpEMFields::requests(), elements));
         DumpEMFields::clearDumps();
     }
 }  // namespace

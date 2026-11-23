@@ -212,6 +212,7 @@ private:
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
     std::string checkpointPath_m;  ///< File the CHECKPOINTFREQ checkpoints are written to.
+    std::vector<opalx::run::EMFieldDumpDescription> emFieldDumps_m;  ///< DUMPEMFIELDS requests.
 
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;

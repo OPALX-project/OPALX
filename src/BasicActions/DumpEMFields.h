@@ -1,6 +1,6 @@
 //
 // Class DumpEMFields
-//   DumpEMFields dumps the dynamically changing fields of the lattice on a
+//   The DUMPEMFIELDS command: a request to write the fields of the lattice on a
 //   user-defined Cartesian grid.
 //
 // Copyright (c) 2017, Chris Rogers
@@ -19,38 +19,18 @@
 #ifndef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
 #define OPAL_BASICACTIONS_DUMPEMFIELDS_HH
 
-#include <memory>
-#include <set>
 #include <string>
-#include <unordered_set>
-#include "AbsBeamline/ElementBase.h"
+#include <vector>
 #include "AbstractObjects/Action.h"
-#include "Fields/Interpolation/NDGrid.h"
+#include "Track/RunDescription.h"
 
-namespace interpolation {
-    class NDGrid;
-}
-class ElementBase;
-
-/** DumpEMFields dumps the dynamically changing fields of the lattice on a
- *  user-defined Cartesian grid.
+/**
+ * @brief The DUMPEMFIELDS command: a request to write the external fields of the tracked line
+ *        on a 4D Cartesian grid in space and time.
  *
- *  The idea is to print out the field map across a 4D grid in space-time for
- *  debugging purposes. The problem is to manage the DumpEMFields object
- *  through three phases of program execution; initial construction, parsing
- *  and then actual field map writing (where we need to somehow let DumpFields
- *  know what the field maps are). So for each DumpEMFields object created, we
- *  store in a set. When the execute() method is called, DumpEMFields builds a
- *  grid using the parsed information.
- *
- *  When the ParallelTracker is about to start tracking, it calls
- *  writeFields method which loops over the static set of DumpEMFields and
- *  writes each one. It is not the cleanest implementation, but I can't see a
- *  better way.
- *
- *  The DumpEMFields themselves operate by iterating over a NDGrid object
- *  and looking up the field/writing it out on each grid point.
- *
+ * execute() checks the grid and registers the request. freeze() copies the registered requests
+ * into the description of each later RUN, and the tracker writes them with writeEMFieldDumps()
+ * when tracking starts.
  */
 class DumpEMFields : public Action {
 public:
@@ -73,75 +53,33 @@ public:
         SIZE
     };
 
-    /** Constructor */
     DumpEMFields();
 
-    /** Constructor */
-
-    /** Destructor */
     ~DumpEMFields() override = default;
 
-    /** Builds the grid but does not write the field map
-     *
-     *  Builds a grid of points in x-y-z space using the NDGrid algorithm.
-     *  Checks that X_STEPS, Y_STEPS, Z_STEPS are integers or throws
-     *  OpalException.
+    /**
+     * @brief Register the request with the attribute values it has now.
+     * @throws OpalException if X_STEPS, Y_STEPS, Z_STEPS or T_STEPS is not a positive integer.
      */
     void execute() override;
 
-    /** Write the fields for all defined DumpEMFields objects
-     *    @param elements the set of components.
-     *  Iterates over the DumpEMFields in the dumpsSet_m and calls writeFieldThis
-     *  on each DumpEMFields. This writes each field map in turn. Format is:
-     *  <number of rows>
-     *  <column 1> <units>
-     *  <column 2> <units>
-     *  <column 3> <units>
-     *  <column 4> <units>
-     *  <column 5> <units>
-     *  <column 6> <units>
-     *  0
-     *  <field map data>
-     */
-    static void writeFields(const ElementSet& elements);
+    /// The requests of the DUMPEMFIELDS commands executed so far, in input order.
+    static const std::vector<opalx::run::EMFieldDumpDescription>& requests();
 
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const override;
 
-    /* For use only by unit tests, simulate a grid failures */
-    static void failGrid() {
-        for (auto& g : dumpsSet_m) {
-            g->grid_m.reset();
-        }
-    }
-    /* For use only by unit tests, simulate file write failures */
-    static void failWrite() {
-        for (auto& g : dumpsSet_m) {
-            g->failWrite_m = true;
-        }
-    }
-    /* For use only by unit tests, clear the set of dump objects */
-    static void clearDumps() { dumpsSet_m.clear(); }
+    /* For use only by unit tests, clear the registered requests */
+    static void clearDumps() { requests_m.clear(); }
 
 private:
-    virtual void writeFieldThis(const ElementSet& elements);
-    virtual void buildGrid();
+    opalx::run::EMFieldDumpDescription describe() const;
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
-    void writeHeader(std::ofstream& fout) const;
-    void writeFieldLine(
-            const ElementSet& elements, const Vector_t<double, 3>& point, const double& time,
-            std::ofstream& fout) const;
 
-    std::unique_ptr<interpolation::NDGrid> grid_m{};
-    std::string filename_m{};
-
-    static std::unordered_set<std::unique_ptr<DumpEMFields>> dumpsSet_m;
+    static std::vector<opalx::run::EMFieldDumpDescription> requests_m;
 
     DumpEMFields(const DumpEMFields& dump)            = delete;
     DumpEMFields& operator=(const DumpEMFields& dump) = delete;
-
-    // For use only by unit tests
-    bool failWrite_m{false};
 };
 
 inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {

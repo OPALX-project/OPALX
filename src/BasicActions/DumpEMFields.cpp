@@ -1,6 +1,6 @@
 //
 // Class DumpEMFields
-//   DumpEMFields dumps the dynamically changing fields of the lattice on a
+//   The DUMPEMFIELDS command: a request to write the fields of the lattice on a
 //   user-defined Cartesian grid.
 //
 // Copyright (c) 2017, Chris Rogers
@@ -17,17 +17,14 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/DumpEMFields.h"
+#include <cmath>
 #include <filesystem>
-#include <fstream>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
-extern Inform* gmsg;
-
-std::unordered_set<std::unique_ptr<DumpEMFields>> DumpEMFields::dumpsSet_m;
+std::vector<opalx::run::EMFieldDumpDescription> DumpEMFields::requests_m;
 
 DumpEMFields::DumpEMFields()
     : Action(SIZE, "DUMPEMFIELDS",
@@ -70,53 +67,32 @@ DumpEMFields::DumpEMFields()
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-void DumpEMFields::execute() {
-    buildGrid();
-    // The parser deletes this command after execute(), so store a copy that lasts until the
-    // field maps are written, at the start of tracking.
-    auto* copy = static_cast<DumpEMFields*>(OpalData::getInstance()->copyObject(*this, ""));
-    copy->buildGrid();
-    dumpsSet_m.insert(std::unique_ptr<DumpEMFields>(copy));
+void DumpEMFields::execute() { requests_m.push_back(describe()); }
+
+const std::vector<opalx::run::EMFieldDumpDescription>& DumpEMFields::requests() {
+    return requests_m;
 }
 
-void DumpEMFields::buildGrid() {
-    std::vector<double> spacing(4);
-    std::vector<int> gridSize(4);
-    std::vector<double> origin(4);
-    origin[0]       = Attributes::getReal(itsAttr[X_START]);
-    spacing[0]      = Attributes::getReal(itsAttr[DX]);
-    const double nx = Attributes::getReal(itsAttr[X_STEPS]);
-    checkInt(nx, "X_STEPS");
-    gridSize[0] = nx;
-
-    origin[1]       = Attributes::getReal(itsAttr[Y_START]);
-    spacing[1]      = Attributes::getReal(itsAttr[DY]);
-    const double ny = Attributes::getReal(itsAttr[Y_STEPS]);
-    checkInt(ny, "Y_STEPS");
-    gridSize[1] = ny;
-
-    origin[2]       = Attributes::getReal(itsAttr[Z_START]);
-    spacing[2]      = Attributes::getReal(itsAttr[DZ]);
-    const double nz = Attributes::getReal(itsAttr[Z_STEPS]);
-    checkInt(nz, "Z_STEPS");
-    gridSize[2] = nz;
-
-    origin[3]       = Attributes::getReal(itsAttr[T_START]);
-    spacing[3]      = Attributes::getReal(itsAttr[DT]);
-    const double nt = Attributes::getReal(itsAttr[T_STEPS]);
-    checkInt(nt, "T_STEPS");
-    gridSize[3] = nt;
-
-    grid_m = std::make_unique<interpolation::NDGrid>(4, &gridSize[0], &spacing[0], &origin[0]);
-
-    filename_m = Attributes::getString(itsAttr[FILE_NAME]);
-}
-
-void DumpEMFields::writeFields(const ElementSet& elements) {
-    for (auto& item : dumpsSet_m) {
-        item->writeFieldThis(elements);
+opalx::run::EMFieldDumpDescription DumpEMFields::describe() const {
+    opalx::run::EMFieldDumpDescription dump;
+    const int start[]   = {X_START, Y_START, Z_START, T_START};
+    const int spacing[] = {DX, DY, DZ, DT};
+    const int steps[]   = {X_STEPS, Y_STEPS, Z_STEPS, T_STEPS};
+    for (int i = 0; i < 4; ++i) {
+        dump.start[i]       = Attributes::getReal(itsAttr[start[i]]);
+        dump.spacing[i]     = Attributes::getReal(itsAttr[spacing[i]]);
+        const double nSteps = Attributes::getReal(itsAttr[steps[i]]);
+        checkInt(nSteps, itsAttr[steps[i]].getName());
+        dump.steps[i] = static_cast<int>(nSteps);
     }
-    dumpsSet_m.clear();
+
+    const std::string fileName = Attributes::getString(itsAttr[FILE_NAME]);
+    dump.fileName =
+            std::filesystem::path(fileName).is_absolute()
+                    ? fileName
+                    : Util::combineFilePath(
+                              {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fileName});
+    return dump;
 }
 
 void DumpEMFields::checkInt(double value, const std::string& name, const double tolerance) {
@@ -131,96 +107,10 @@ void DumpEMFields::checkInt(double value, const std::string& name, const double 
     }
 }
 
-void DumpEMFields::writeHeader(std::ofstream& fout) const {
-    fout << grid_m->end().toInteger() << "\n";
-    fout << 1 << "  x [m]\n";
-    fout << 2 << "  y [m]\n";
-    fout << 3 << "  z [m]\n";
-    fout << 4 << "  t [ns]\n";
-    fout << 5 << "  Bx [T]\n";
-    fout << 6 << "  By [T]\n";
-    fout << 7 << "  Bz [T]\n";
-    fout << 8 << "  Ex [MV/m]\n";
-    fout << 9 << "  Ey [MV/m]\n";
-    fout << 10 << " Ez [MV/m]\n";
-    fout << 0 << std::endl;
-}
-
-void DumpEMFields::writeFieldLine(
-        const ElementSet& elements, const Vector_t<double, 3>& point, const double& time,
-        std::ofstream& fout) const {
-    Vector_t<double, 3> E{};
-    Vector_t<double, 3> B{};
-    // Collect the fields
-    for (auto& element : elements) {
-        auto transform             = element->getCSTrafoGlobal2Local();
-        Vector_t<double, 3> localR = transform.transformTo(point);
-        Vector_t<double, 3> localB{};
-        Vector_t<double, 3> localE{};
-        element->apply(localR, {}, time, localE, localB);
-        transform.invert();
-        localB = transform.rotateTo(localB);
-        localE = transform.rotateTo(localE);
-        E += localE;
-        B += localB;
-    }
-    fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";
-    fout << B[0] << " " << B[1] << " " << B[2] << " ";
-    fout << E[0] * Units::Vpm2MVpm << " " << E[1] * Units::Vpm2MVpm << " " << E[2] * Units::Vpm2MVpm
-         << "\n";
-}
-
-void DumpEMFields::writeFieldThis(const ElementSet& elements) {
-    if (grid_m == nullptr) {
-        throw OpalException(
-                "DumpEMFields::writeFieldThis",
-                "The grid was nullptr; there was a problem with the "
-                "DumpEMFields initialisation.");
-    }
-
-    *gmsg << level5 << *this << endl;
-
-    std::string fname;
-    if (std::filesystem::path(filename_m).is_absolute() == true) {
-        fname = filename_m;
-    } else {
-        fname = Util::combineFilePath(
-                {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m});
-    }
-
-    std::vector<double> point_std(4);
-    Vector_t<double, 3> point(0., 0., 0.);
-    std::ofstream fout;
-    fout.open(fname.c_str(), std::ofstream::out);
-    if (!fout.good()) {
-        throw OpalException(
-                "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m);
-    }
-    // set precision
-    writeHeader(fout);
-    for (interpolation::Mesh::Iterator it = grid_m->begin(); it < grid_m->end(); ++it) {
-        it.getPosition(&point_std[0]);
-        for (size_t i = 0; i < 3; ++i) {
-            point[i] = point_std[i];
-        }
-        double time = point_std[3];
-        writeFieldLine(elements, point, time, fout);
-    }
-    if (failWrite_m) {  // For unit tests only - force a write failure if required
-        fout.setstate(std::ios::badbit);
-    }
-    if (!fout.good()) {
-        throw OpalException(
-                "DumpEMFields::writeFieldThis",
-                "Something went wrong during writing " + filename_m);
-    }
-    fout.close();
-}
-
 void DumpEMFields::print(std::ostream& os) const {
     os << "* ************* D U M P  E M  F I E L D S ****************************************** "
        << std::endl;
-    os << "* File name: '" << filename_m << "'\n";
+    os << "* File name: '" << Attributes::getString(itsAttr[FILE_NAME]) << "'\n";
     os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
        << "* X_START   = " << Attributes::getReal(itsAttr[X_START]) << " [m]\n"
        << "* DX        = " << Attributes::getReal(itsAttr[DX]) << " [m]\n"

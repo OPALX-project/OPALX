@@ -19,6 +19,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
+#include "BasicActions/DumpEMFields.h"
 #include "Distribution/Distribution.h"
 #include "Lines/EmissionSourceList.h"
 #include "Lines/Line.h"
@@ -321,6 +322,7 @@ namespace opalx::run {
         }
 
         if (const auto* use = findAs<BeamSequence>(track.line)) run.line = describeLine(*use);
+        run.emFieldDumps = DumpEMFields::requests();
         return run;
     }
 

@@ -190,6 +190,17 @@ namespace opalx::run {
             os << "\n[model " << model.name << "]\n";
             writeObject(model, os);
         }
+        for (std::size_t i = 0; i < d.emFieldDumps.size(); ++i) {
+            const EMFieldDumpDescription& dump = d.emFieldDumps[i];
+            os << "\n[emfielddump " << i << "]\n"
+               << "fileName = " << dump.fileName << "\n"
+               << "start = " << list(std::vector<double>(dump.start.begin(), dump.start.end()))
+               << "\n"
+               << "spacing = "
+               << list(std::vector<double>(dump.spacing.begin(), dump.spacing.end())) << "\n"
+               << "steps = " << list(std::vector<int>(dump.steps.begin(), dump.steps.end()))
+               << "\n";
+        }
     }
 
     std::string dumpFileName(const RunDescription& description) {

@@ -83,6 +83,9 @@ struct TrackingSetup {
 
     /// OPTION values of this RUN (output frequencies, checkpoints, particle loss, ...).
     opalx::run::OptionValues options;
+
+    /// DUMPEMFIELDS field maps, written when tracking starts.
+    std::vector<opalx::run::EMFieldDumpDescription> emFieldDumps;
 };
 
 #endif  // OPALX_TRACKING_SETUP_H

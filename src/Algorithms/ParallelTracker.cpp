@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#include "BasicActions/DumpEMFields.h"
+#include "Structure/EMFieldDumpWriter.h"
 
 #include "Physics/Units.h"
 
@@ -70,6 +70,7 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       restartDt_m(setup.restartDt),
       restartPosition_m(setup.restartPosition),
       checkpointPath_m(std::move(setup.checkpointPath)),
+      emFieldDumps_m(std::move(setup.emFieldDumps)),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -137,7 +138,7 @@ bool ParallelTracker::startTracking() {
     printTrackStart(time);
 
     // Handle any dump field requests
-    DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
+    writeEMFieldDumps(emFieldDumps_m, itsOpalBeamline_m.getElements());
 
     // Only crossings in the step loop write MONITOR output.
     itsOpalBeamline_m.setMonitorsRecordReference(true);

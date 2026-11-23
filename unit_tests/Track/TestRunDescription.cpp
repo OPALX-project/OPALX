@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "AbstractObjects/OpalData.h"
+#include "BasicActions/DumpEMFields.h"
 #include "Ippl.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
@@ -63,6 +64,7 @@ namespace {
         }
 
         void TearDown() override {
+            DumpEMFields::clearDumps();
             OpalData::deleteInstance();
             delete gmsg;
             gmsg = nullptr;
@@ -157,6 +159,20 @@ TEST_F(RunDescriptionTest, OptionsTrackAndBeam) {
     const std::string beam = section(text, "beam B1");
     EXPECT_NE(beam.find("keyword = BEAM"), std::string::npos) << beam;
     EXPECT_NE(beam.find("reference.momentum = 99999999.99999998"), std::string::npos) << beam;
+}
+
+TEST_F(RunDescriptionTest, FieldDumpsExecutedBeforeTheRun) {
+    const std::string fieldDump = R"(
+        DUMPEMFIELDS, FILE_NAME = "fields.dat", X_START = 0, DX = 0.1, X_STEPS = 2, Y_START = 0,
+                      DY = 0.1, Y_STEPS = 1, Z_START = -0.5, DZ = 0.25, Z_STEPS = 5, T_START = 0,
+                      DT = 1, T_STEPS = 1;
+    )";
+    run(common + trackAndRun + fieldDump + trackAndRun);
+    EXPECT_EQ(dump(1).find("[emfielddump"), std::string::npos);
+    const std::string text = section(dump(2), "emfielddump 0");
+    EXPECT_NE(text.find("fileName = data/fields.dat"), std::string::npos) << text;
+    EXPECT_NE(text.find("start = 0, 0, -0.5, 0"), std::string::npos) << text;
+    EXPECT_NE(text.find("steps = 2, 1, 5, 1"), std::string::npos) << text;
 }
 
 int main(int argc, char** argv) {

@@ -150,6 +150,18 @@ namespace opalx::run {
     };
 
     /**
+     * @brief One DUMPEMFIELDS command: the file and the Cartesian space-time grid on which the
+     *        external fields of the tracked line are written.
+     */
+    struct EMFieldDumpDescription {
+        /// FILE_NAME; a relative name is placed in the auxiliary output directory.
+        std::string fileName;
+        std::array<double, 4> start{};    ///< X_START, Y_START, Z_START (m) and T_START (ns).
+        std::array<double, 4> spacing{};  ///< DX, DY, DZ (m) and DT (ns).
+        std::array<int, 4> steps{};       ///< X_STEPS, Y_STEPS, Z_STEPS, T_STEPS: grid points.
+    };
+
+    /**
      * @brief Values of the run that do not belong to one input object.
      */
     struct RunContext {
@@ -177,6 +189,8 @@ namespace opalx::run {
         std::vector<ObjectDescription> distributions;
         std::optional<ObjectDescription> fieldSolver;
         std::optional<ObjectDescription> binning;
+        /// The DUMPEMFIELDS commands executed before the RUN, in input order.
+        std::vector<EMFieldDumpDescription> emFieldDumps;
     };
 
 }  // namespace opalx::run

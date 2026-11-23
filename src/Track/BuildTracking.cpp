@@ -787,6 +787,7 @@ namespace opalx::run {
         setup.cavityPhases   = restartMetadata.cavityPhases;
         setup.checkpointPath = CheckpointFile::defaultPath(context.inputBasename);
         setup.options        = description.options;
+        setup.emFieldDumps   = description.emFieldDumps;
 
         // The tracker steps with a positive time step; elements read it in initialise().
         bunch.setdT(std::abs(bunch.getdT()));
