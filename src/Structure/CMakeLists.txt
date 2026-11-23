@@ -12,7 +12,6 @@ set (_SRCS
   H5FileSpace.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
-  IpplInfoWrapper.cpp
   H5Writer.cpp
   MeshGenerator.cpp       
   LossDataSink.cpp        
@@ -37,7 +36,6 @@ set (HDRS
     BinningCmd.h
     H5PartWrapperForPT.h
     H5PartWrapper.h
-    IpplInfoWrapper.h
     H5Writer.h
     MeshGenerator.h
     LossDataSink.h

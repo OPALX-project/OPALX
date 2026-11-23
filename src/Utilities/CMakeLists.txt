@@ -2,9 +2,6 @@ set (_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
     ExpressionRandom.cpp
-    ComplexErrorFun.cpp
-    ConvergenceError.cpp
-    DivideError.cpp
     DomainError.cpp
     FormatError.cpp
     GeneralOpalException.cpp
@@ -12,10 +9,8 @@ set (_SRCS
     Options.cpp
     OverflowError.cpp
     ParseError.cpp
-    PortableGraymapReader.cpp
     Util.cpp
     OpalException.cpp
-    RegularExpression.cpp
     Timer.cpp
     AbstractSpline.cpp
     LinearSpline.cpp
@@ -27,9 +22,6 @@ set (HDRS
     CLRangeError.h
     ElementList.h
     ExpressionRandom.h
-    ComplexErrorFun.h
-    ConvergenceError.h
-    DivideError.h
     DomainError.h
     FormatError.h
     GeneralOpalException.h
@@ -37,10 +29,8 @@ set (HDRS
     Options.h
     OverflowError.h
     ParseError.h
-    PortableGraymapReader.h
     Util.h
     OpalException.h
-    RegularExpression.h
     Timer.h
     AbstractSpline.h
     LinearSpline.h
