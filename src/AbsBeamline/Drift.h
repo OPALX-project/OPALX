@@ -28,7 +28,7 @@
 /// Interface for drift space.
 //  Class Drift defines the abstract interface for a drift space.
 
-class Drift : public ElementBase {
+class Drift : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Drift(const std::string& name);
@@ -45,9 +45,6 @@ public:
     virtual void finalise() override;
 
     virtual ElementType getType() const override;
-
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

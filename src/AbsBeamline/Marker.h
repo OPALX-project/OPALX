@@ -28,7 +28,7 @@
 /// Interface for a marker.
 //  Class Marker defines the abstract interface for a marker element.
 
-class Marker : public ElementBase {
+class Marker : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Marker(const std::string& name);
@@ -45,9 +45,6 @@ public:
     virtual void finalise() override;
 
     virtual ElementType getType() const override;
-
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

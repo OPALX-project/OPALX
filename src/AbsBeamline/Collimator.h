@@ -35,7 +35,7 @@
  *       ElementBase. OpalCollimator requires both APERTURE and L > 0 to be
  *       written in the inputfile, since a collimator without either does nothing.
  */
-class Collimator : public ElementBase {
+class Collimator : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Collimator(const std::string& name);
@@ -52,9 +52,6 @@ public:
     virtual void finalise() override;
 
     virtual ElementType getType() const override;
-
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

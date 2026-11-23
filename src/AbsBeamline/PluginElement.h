@@ -30,7 +30,7 @@ struct Point {
     double y;
 };
 
-class PluginElement : public ElementBase {
+class PluginElement : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit PluginElement(const std::string& name);
@@ -50,10 +50,7 @@ public:
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
     ///@}
     ///@{ Virtual implementation of Component
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
-
-    using ElementBase::apply;
+    using FramelessElement::apply;
 
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,

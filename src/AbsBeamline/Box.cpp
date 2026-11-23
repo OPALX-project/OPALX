@@ -23,9 +23,9 @@
 Box::Box() : Box("") {}
 
 Box::Box(const Box& right)
-    : ElementBase(right), halfWidth_m(right.halfWidth_m), halfHeight_m(right.halfHeight_m) {}
+    : FramelessElement(right), halfWidth_m(right.halfWidth_m), halfHeight_m(right.halfHeight_m) {}
 
-Box::Box(const std::string& name) : ElementBase(name), halfWidth_m(0.0), halfHeight_m(0.0) {}
+Box::Box(const std::string& name) : FramelessElement(name), halfWidth_m(0.0), halfHeight_m(0.0) {}
 
 Box::~Box() {}
 

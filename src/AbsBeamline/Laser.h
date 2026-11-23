@@ -22,7 +22,7 @@
  * The Compton helpers operate on electron total energy in GeV and return photon
  * energies in GeV.
  */
-class Laser : public ElementBase {
+class Laser : public FramelessElement {
 public:
     /** @brief Construct an unnamed laser element. */
     Laser();
@@ -57,9 +57,6 @@ public:
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
-
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     /** @brief Return the minimum number of time steps required by this passive element. */
     int getRequiredNumberOfTimeSteps() const override;

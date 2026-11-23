@@ -36,7 +36,7 @@
  *       sits beside the reference path must still be registered. So the
  *       aperture stays at the wide-open default.
  */
-class Box : public ElementBase {
+class Box : public FramelessElement {
 public:
     /// Constructor with given name.
     explicit Box(const std::string& name);
@@ -53,9 +53,6 @@ public:
     virtual void finalise() override;
 
     virtual ElementType getType() const override;
-
-    /// apply(pc) is the no-op base; the tracker skips it and its transform.
-    ElementFrame fieldFrame() const override { return ElementFrame::None; }
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

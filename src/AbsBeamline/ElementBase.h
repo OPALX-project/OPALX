@@ -401,9 +401,8 @@ public:
     /**
      * @brief Frame that apply(pc) needs; the tracker moves the particles there before the call.
      *
-     * Return ElementFrame::None only while apply(pc) is the no-op of this base class: the tracker
-     * then skips both the call and the transform. The default keeps a new element correct; a
-     * subclass of a None element that overrides apply(pc) must return Local again.
+     * Only FramelessElement returns ElementFrame::None; the tracker then skips both the call and
+     * the transform. The default keeps a new element correct.
      */
     virtual ElementFrame fieldFrame() const { return ElementFrame::Local; }
 
@@ -587,6 +586,16 @@ private:
     // --- Miscellaneous ---
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
+};
+
+/// Element without a bunch field: apply(pc) stays the no-op, so the tracker skips the call
+/// and the transform.
+class FramelessElement : public ElementBase {
+public:
+    using ElementBase::apply;
+    using ElementBase::ElementBase;
+    ElementFrame fieldFrame() const final { return ElementFrame::None; }
+    void apply(const std::shared_ptr<ParticleContainer_t>&) final {}
 };
 
 // Inline functions.

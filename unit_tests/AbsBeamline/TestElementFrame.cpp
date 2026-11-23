@@ -4,9 +4,7 @@
  * checks that read local positions through a RigidTransform.
  *
  * Covers:
- * - Elements that declare ElementFrame::None leave R, P, E and B unchanged in apply(pc), so the
- *   tracker may skip the call and its transform.
- * - Elements with fields keep the default ElementFrame::Local.
+ * - Elements with fields keep the default ElementFrame::Local; a FramelessElement returns None.
  * - markOutsideAperture with a transform marks the same particles as on a bunch moved into the
  *   element frame, and does not move the particles.
  */
@@ -20,14 +18,9 @@
 
 #include "Ippl.h"
 
-#include "BeamlineCore/BoxRep.h"
-#include "BeamlineCore/CollimatorRep.h"
 #include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/LaserRep.h"
-#include "BeamlineCore/MarkerRep.h"
 #include "BeamlineCore/MonitorRep.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineCore/ProbeRep.h"
 #include "PartBunch/ParticleContainer.hpp"
 
 namespace {
@@ -95,52 +88,18 @@ namespace {
             return out;
         }
 
-        /// apply(pc) of a frameless element must leave every particle attribute unchanged.
-        static void expectNoOp(ElementBase& element, const std::shared_ptr<PC_t>& pc) {
-            SCOPED_TRACE(element.getName());
-            const size_t n = pc->getLocalNum();
-            const auto R0  = host(pc->R, n);
-            const auto P0  = host(pc->P, n);
-            const auto E0  = host(pc->E, n);
-            const auto B0  = host(pc->B, n);
-            element.getGeometry().setElementLength(1.0);
-            EXPECT_EQ(element.fieldFrame(), ElementFrame::None);
-            element.apply(pc);
-            const auto R = host(pc->R, n), P = host(pc->P, n);
-            const auto E = host(pc->E, n), B = host(pc->B, n);
-            for (size_t i = 0; i < n; ++i)
-                for (unsigned d = 0; d < 3; ++d) {
-                    EXPECT_EQ(R[i][d], R0[i][d]);
-                    EXPECT_EQ(P[i][d], P0[i][d]);
-                    EXPECT_EQ(E[i][d], E0[i][d]);
-                    EXPECT_EQ(B[i][d], B0[i][d]);
-                }
-        }
-
         /// Positions inside a 1 m body, inside and outside a 1 cm aperture.
         const std::vector<Vec> r_ = {
                 Vec(0.0, 0.0, 0.5), Vec(0.02, 0.0, 0.5), Vec(0.0, -0.03, 0.2),
                 Vec(0.004, 0.003, 0.9), Vec(0.5, 0.5, 1.5)};
     };
 
-    TEST_F(ElementFrameTest, FramelessElementsDoNotTouchParticles) {
-        auto pc = makeContainer(r_);
-        DriftRep drift("drift");
-        MarkerRep marker("marker");
-        CollimatorRep collimator("collimator");
-        BoxRep box("box");
-        LaserRep laser("laser");
-        ProbeRep probe("probe");
-        for (ElementBase* element :
-             std::vector<ElementBase*>{&drift, &marker, &collimator, &box, &laser, &probe})
-            expectNoOp(*element, pc);
-    }
-
     TEST_F(ElementFrameTest, FieldElementsKeepLocalFrame) {
         MultipoleRep multipole("multipole");
         MonitorRep monitor("monitor");
         EXPECT_EQ(multipole.fieldFrame(), ElementFrame::Local);
         EXPECT_EQ(monitor.fieldFrame(), ElementFrame::Local);
+        EXPECT_EQ(DriftRep("drift").fieldFrame(), ElementFrame::None);
     }
 
     TEST_F(ElementFrameTest, ApertureThroughTransformMatchesMovedBunch) {
