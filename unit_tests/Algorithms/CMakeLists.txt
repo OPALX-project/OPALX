@@ -12,4 +12,4 @@ add_opalx_test(TestReferenceTracer USE_GTEST_MAIN)
 add_opalx_test(TestBeamStop USE_GTEST_MAIN)
 add_opalx_test(TestTrackReferenceStep USE_GTEST_MAIN)
 add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN)
-
+add_opalx_test(TestBunchReference USE_GTEST_MAIN)
