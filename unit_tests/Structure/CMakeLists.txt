@@ -12,3 +12,4 @@ add_opalx_test(TestLossDataSinkMPI
               ARGS --gtest_filter=LossDataSinkTest.EmptySinkDestructionIsRankLocal:LossDataSinkTest.EmptySinkUnwindingIsRankLocal:LossDataSinkTest.AsciiCreationDecisionIsCollectiveAcrossFileViews:LossDataSinkTest.OutputInspectionFailureIsCollective)
 add_opalx_test(TestCheckpointFile USE_GTEST_MAIN)
 add_opalx_test(TestMeshGenerator USE_GTEST_MAIN)
+add_opalx_test(TestDataSinkStepOutput USE_GTEST_MAIN)
