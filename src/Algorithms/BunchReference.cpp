@@ -22,7 +22,7 @@
 #include "Algorithms/ReferenceTracer.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/TrackReferenceStep.h"
-#include "Distribution/SamplingBase.hpp"
+#include "Distribution/EmittingSamplers.h"
 #include "Elements/OpalBeamline.h"
 #include "Moments/BeamMoments.h"
 #include "PartBunch/PartBunch.h"
@@ -48,8 +48,7 @@ BunchReference::BunchReference(
       cavityPhases_m(std::move(cavityPhases)),
       referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {}
 
-void BunchReference::setInitialPoses(
-        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers) {
+void BunchReference::setInitialPoses(const EmittingSamplers& emittingSamplers) {
     Inform m("BunchReference::setInitialPoses");
     const auto& particleContainers      = bunch_m.getParticleContainers();
     CoordinateSystemTrafo beamlineToLab = beamline_m.getCSTrafoLab2Local().inverted();
@@ -79,37 +78,19 @@ void BunchReference::setInitialPoses(
         } else {
             // Empty container (e.g. an emitted distribution before its first emission):
             // the bunch mean is undefined, so take the emission offsets from the sampler.
-            bool useSamplerPosition         = false;
-            bool useSamplerMomentum         = false;
-            Vector_t<double, 3> samplerRefR = 0.0;
-            Vector_t<double, 3> samplerRefP = 0.0;
-            if (ci < emittingSamplers.size()) {
-                for (const auto& sampler : emittingSamplers[ci]) {
-                    if (!sampler) {
-                        continue;
-                    }
-                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP        = sampler->getInitialReferenceMomentum();
-                        useSamplerMomentum = true;
-                    }
-                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
-                        samplerRefR        = sampler->getInitialReferencePosition();
-                        useSamplerPosition = true;
-                    }
-                }
-            }
+            const auto offsets = emittingSamplers.initialReference(ci);
 
             // Position: emission offset R0, else the lattice origin.
-            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
+            refR = offsets.position ? *offsets.position : Vector_t<double, 3>(0.0);
 
             // Momentum: emission offset P0, else the design beta*gamma along +z.
-            if (useSamplerMomentum) {
-                if (dot(samplerRefP, samplerRefP) <= 0.0) {
+            if (offsets.momentum) {
+                if (dot(*offsets.momentum, *offsets.momentum) <= 0.0) {
                     throw OpalException(
                             "BunchReference::setInitialPoses",
                             "Sampler-provided initial reference momentum is zero.");
                 }
-                refP = samplerRefP;
+                refP = *offsets.momentum;
             } else {
                 const PartData& pref = *pc->getReference();
                 const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc

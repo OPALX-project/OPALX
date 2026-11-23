@@ -33,7 +33,6 @@
 #include "Algorithms/BeamStop.h"
 
 #include "AbsBeamline/ElementBase.h"
-#include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
 #include <functional>
@@ -147,9 +146,6 @@ private:
     /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
     void changeDT();
 
-    /// @brief Force-activate containers whose emitting samplers have not yet finished.
-    void activateEmittingContainers(double t);
-
     // --- Particle push and fields ---
 
     /// @brief First half of the leapfrog step: push all active containers.
@@ -171,15 +167,8 @@ private:
     /// @throws OpalException if the run has no space-charge solver.
     void computeSpaceChargeFields();
 
-    [[nodiscard]] opalx::spacecharge::EmissionProgress spaceChargeEmissionProgress() const;
-
     /// @brief Apply external fields from elements intersecting each active container.
     void computeExternalFields();
-
-    /// @brief Emit macroparticles from configured samplers per container.
-    /// @param t  Bunch time (s).
-    /// @param dt Global time step (s).
-    void emitFromEmissionSources(double t, double dt);
 
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
@@ -253,10 +242,9 @@ private:
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>>
-            emittingSamplers_m;  ///< Per-container emitters.
-    bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
+    double dtCurrentTrack_m;              ///< Global @f$\Delta t@f$ for the current track segment.
+    EmittingSamplers emittingSamplers_m;  ///< Per container, the samplers that emit.
+    bool restarting_m;                    ///< Preserve state loaded from a checkpoint at startup.
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.

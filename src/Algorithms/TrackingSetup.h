@@ -15,7 +15,7 @@
 #include "Algorithms/BeamStop.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/StepSizeConfig.h"
-#include "Distribution/SamplingBase.hpp"
+#include "Distribution/EmittingSamplers.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALTypes.h"
 #include "PartBunch/PartBunchFwd.h"
@@ -61,7 +61,7 @@ struct TrackingSetup {
     double globalPhaseShift = 0;
 
     /// Per container, the samplers that emit particles during tracking.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers;
+    EmittingSamplers emittingSamplers;
     /// Per container, the reference momentum [beta*gamma] set on BEAM for a file
     /// distribution; an empty entry uses the bunch mean.
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta;

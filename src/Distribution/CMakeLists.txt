@@ -2,6 +2,7 @@ set (_SRCS
     Distribution.cpp
     DistributionSettings.cpp
     EmittedFromFile.cpp
+    EmittingSamplers.cpp
     FlatTop.cpp
     FromFile.cpp
     Gaussian.cpp
@@ -15,6 +16,7 @@ set (HDRS
     Distribution.h
     DistributionSettings.h
     EmittedFromFile.h
+    EmittingSamplers.h
     FlatTop.h
     FromFile.h
     Gaussian.h

@@ -24,13 +24,12 @@
 #include "Utility/IpplTimings.h"
 
 #include <functional>
-#include <memory>
 #include <optional>
 #include <vector>
 
+class EmittingSamplers;
 class Inform;
 class OpalBeamline;
-class SamplingBase;
 class StepSizeConfig;
 
 /**
@@ -64,10 +63,9 @@ public:
      *
      * Position and momentum come from the bunch mean, else from the emission offsets (R0, P0)
      * of the sampler, else from the design pose; PC, ENERGY or GAMMA on BEAM sets the momentum.
-     * @param emittingSamplers Per container, the samplers that emit during tracking.
+     * @param emittingSamplers The samplers that emit during tracking, for the emission offsets.
      */
-    void setInitialPoses(
-            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers);
+    void setInitialPoses(const EmittingSamplers& emittingSamplers);
 
     /**
      * @brief Integrate the references in time from t = 0 until the primary reaches path length

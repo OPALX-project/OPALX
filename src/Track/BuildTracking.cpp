@@ -768,7 +768,7 @@ namespace opalx::run {
         setup.maxSteps             = maxSteps;
         setup.sStart               = sStart;
         setup.globalPhaseShift     = globalPhaseShift;
-        setup.emittingSamplers     = emittingSamplersList;
+        setup.emittingSamplers     = EmittingSamplers(std::move(emittingSamplersList));
         setup.beamReferenceMomenta = std::move(beamReferenceMomenta);
         setup.restarting           = isRestart;
         setup.restartGlobalStep = static_cast<unsigned long long>(restartMetadata.globalTrackStep);

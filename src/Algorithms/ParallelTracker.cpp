@@ -110,7 +110,7 @@ bool ParallelTracker::startTracking() {
     if (!restarting_m || restartPosition_m.stepsCompletedInSegment == 0) {
         itsBunch_m->resetPcActive();
     }
-    activateEmittingContainers(itsBunch_m->getT());
+    emittingSamplers_m.activateEmittingContainers(*itsBunch_m, itsBunch_m->getT());
 
     // Ensure the time step is positive for the setup phase (buildTracking() did so as well,
     // before the elements were initialised).
@@ -282,7 +282,7 @@ void ParallelTracker::startSegment(unsigned long long stepsCompletedInSegment) {
     if (stepsCompletedInSegment == 0) {
         itsBunch_m->resetPcActive();
     }
-    activateEmittingContainers(itsBunch_m->getT());
+    emittingSamplers_m.activateEmittingContainers(*itsBunch_m, itsBunch_m->getT());
     // Beams that passed their ZSTOP plane stay stopped.
     for (size_t i = 0; i < beamStops_m.size(); ++i) {
         if (beamStops_m[i].done) itsBunch_m->setPcAtSStop(i);
@@ -315,7 +315,8 @@ void ParallelTracker::advanceParticles() {
 
     // Emit particles in the reference frame with their own fractional timesteps.
     // They experience external fields in their creation step, but no space charge.
-    emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
+    emittingSamplers_m.emit(
+            *itsBunch_m, itsOpalBeamline_m, itsBunch_m->getT(), itsBunch_m->getdT());
 
     computeExternalFields();
 
@@ -544,45 +545,6 @@ void ParallelTracker::timeIntegration2() {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
-opalx::spacecharge::EmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
-    opalx::spacecharge::EmissionProgress progress;
-    const double currentTime = itsBunch_m->getT();
-
-    // While emission is active, CartesianPIC3D stretches its beam-frame mesh over the full source
-    // pulse length, matching old OPAL. For example, 5 percent emission produces approximately a
-    // factor-20 longitudinal stretch. Without it, early charge is compressed onto an artificially
-    // short mesh and can receive excessive self-field kicks, including kicks back into the source.
-    // The least-complete active source determines the required stretch.
-    for (const auto& samplers : emittingSamplers_m) {
-        for (const auto& sampler : samplers) {
-            if (!sampler || sampler->isEmissionDone(currentTime)) {
-                continue;
-            }
-            const double samplerFraction = sampler->getEmittedFraction();
-            if (samplerFraction < 1.0) {
-                progress.active   = true;
-                progress.fraction = std::min(progress.fraction, samplerFraction);
-            }
-        }
-    }
-
-    if (options_m.aggressiveStateSync) {
-        // Preserve legacy state convergence across ranks: any active source keeps stretching
-        // enabled, and the minimum emitted fraction supplies the most conservative domain length.
-        bool globallyActive = progress.active;
-        ippl::Comm->allreduce(progress.active, globallyActive, 1, std::logical_or<bool>());
-        const double localFraction =
-                progress.active ? std::clamp(progress.fraction, 0.0, 1.0) : 1.0;
-        double globalFraction = localFraction;
-        ippl::Comm->allreduce(localFraction, globalFraction, 1, std::less<double>());
-        progress.active   = globallyActive;
-        progress.fraction = globallyActive ? globalFraction : 1.0;
-    } else {
-        progress.fraction = progress.active ? std::clamp(progress.fraction, 0.0, 1.0) : 1.0;
-    }
-    return progress;
-}
-
 void ParallelTracker::computeSpaceChargeFields() {
     if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
@@ -591,7 +553,8 @@ void ParallelTracker::computeSpaceChargeFields() {
                 "solver.");
     }
     spaceChargeSolver_m->solveStep(*itsBunch_m, options_m.minBinEmitted, [this] {
-        return spaceChargeEmissionProgress();
+        return emittingSamplers_m.spaceChargeEmissionProgress(
+                itsBunch_m->getT(), options_m.aggressiveStateSync);
     });
 }
 
@@ -616,57 +579,6 @@ void ParallelTracker::computeExternalFields() {
     itsOpalBeamline_m.applyExternalFields(*itsBunch_m);
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
-}
-
-void ParallelTracker::emitFromEmissionSources(double t, double dt) {
-    const auto& containers = itsBunch_m->getParticleContainers();
-    for (size_t ci = 0; ci < containers.size(); ++ci) {
-        const auto& pc = containers[ci];
-        if (!pc) {
-            continue;
-        }
-        if (itsBunch_m->pcAtSStop(ci)) {
-            continue;
-        }
-
-        // Record the extent of the position array before emission. If an internal resize
-        // (Kokkos::realloc) happens during emission, the extent of R will change and we can
-        // flag this as an error.
-        const size_t extentBeforeEmission = pc->R.size();
-
-        // Samplers append new particles in the beamline frame and do not touch the others, so
-        // only the new particles change frame.
-        const size_t nBefore = pc->getLocalNum();
-        if (ci < emittingSamplers_m.size()) {
-            for (const auto& sampler : emittingSamplers_m[ci]) {
-                if (sampler) {
-                    sampler->emitParticles(t, dt);
-                }
-            }
-        }
-        pc->adoptParticles(itsOpalBeamline_m.beamlineFrame(*pc), nBefore);
-
-        pc->setM(pc->getMassPerParticle());
-        pc->setQ(pc->getChargePerParticle());
-
-        // Sanity guard: the total number of macroparticles in the bunch must
-        // never exceed the globally configured BEAM::NALLOC value. Overshooting
-        // this limit would trigger internal reallocations in the particle
-        // container and silently drop already-tracked particles/delete their data in the particle
-        // attributes. This is only a check for the number of local particles.
-        const size_t extentAfterEmission = pc->R.size();
-        if (extentAfterEmission != extentBeforeEmission) {
-            throw OpalException(
-                    "ParallelTracker::emitFromEmissionSources",
-                    "Local particle storage was resized during emission (likely due to "
-                    "over-emission causing a Kokkos::realloc). This leads to loss of "
-                    "previously tracked particles. Please increase the total number of "
-                    "macroparticles or adjust NPARTDIST / the emission profile. If you are "
-                    "using emission sources, please check the emission profile and adjust "
-                    "the number of particles emitted.");
-        }
-    }
-    itsBunch_m->refreshPcActiveAfterEmit();
 }
 
 size_t ParallelTracker::applyGlobalProcesses(double dt) {
@@ -817,28 +729,8 @@ void ParallelTracker::evolveSpinTBMT() {
 // --- Helpers (beamline, dt, bounds, I/O) ---
 
 void ParallelTracker::selectDT() {
-    double selectedDt        = dtCurrentTrack_m;
-    double emissionDt        = std::numeric_limits<double>::max();
-    bool hasEmissionDt       = false;
-    const double currentTime = itsBunch_m->getT();
-
-    for (const auto& samplers : emittingSamplers_m) {
-        for (const auto& sampler : samplers) {
-            if (!sampler || sampler->isEmissionDone(currentTime)) {
-                continue;
-            }
-            const double samplerDt = sampler->getEmissionTimeStep();
-            if (samplerDt > 0.0) {
-                emissionDt    = std::min(emissionDt, samplerDt);
-                hasEmissionDt = true;
-            }
-        }
-    }
-
-    if (hasEmissionDt) {
-        selectedDt = emissionDt;
-    }
-    itsBunch_m->setdT(selectedDt);
+    itsBunch_m->setdT(
+            emittingSamplers_m.emissionTimeStep(itsBunch_m->getT()).value_or(dtCurrentTrack_m));
 }
 
 void ParallelTracker::changeDT() {
@@ -851,17 +743,6 @@ void ParallelTracker::changeDT() {
         }
     }
     m << level5 << "Changed particle container time step to " << newdT << "." << endl;
-}
-
-void ParallelTracker::activateEmittingContainers(double t) {
-    for (size_t i = 0; i < emittingSamplers_m.size(); ++i) {
-        for (const auto& sampler : emittingSamplers_m[i]) {
-            if (sampler && !sampler->isEmissionDone(t)) {
-                itsBunch_m->setPcActive(i);
-                break;
-            }
-        }
-    }
 }
 
 bool ParallelTracker::stepLogDue() const {
