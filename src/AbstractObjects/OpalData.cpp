@@ -72,8 +72,6 @@ struct OpalDataImpl {
     // Input file name
     std::string inputFn_m;
 
-    std::set<std::string> outFiles_m;
-
     /// Mode for writing files
     OpalData::OpenMode openMode_m = OpalData::OpenMode::WRITE;
 
@@ -247,16 +245,6 @@ std::string OpalData::getInputBasename() {
     std::string& fn = p->inputFn_m;
     int const pdot  = fn.rfind(".");
     return fn.substr(0, pdot);
-}
-
-void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
-    if (p->outFiles_m.count(outfn) == 0) {
-        p->outFiles_m.insert(outfn);
-    } else {
-        throw OpalException(
-                "OpalData::checkAndAddOutputFileName",
-                "Duplicate file name for output, '" + outfn + "', detected");
-    }
 }
 
 void OpalData::update() {

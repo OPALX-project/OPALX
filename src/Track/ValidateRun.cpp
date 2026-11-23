@@ -10,10 +10,12 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
+#include "AbsBeamline/ElementBase.h"
 #include "BuildInfo.h"
 #include "Physics/Physics.h"
 #include "Track/DecayChain.h"
@@ -85,6 +87,22 @@ namespace opalx::run {
             errors.push_back(
                     "BOUNDARYGEOMETRY \"" + geometry
                     + "\" is not supported; OPALX has no boundary geometries. Use NONE.");
+        }
+
+        // Every MONITOR of the line writes its own loss file, as HDF5 or as ASCII.
+        std::map<std::string, int> monitorFiles;
+        for (const ElementDescription& element : run.line.elements) {
+            if (element.elementType != ElementBase::getTypeString(ElementType::MONITOR)) continue;
+            if (monitorFiles.empty() && !run.options.asciidump && !run.options.enableHDF5) {
+                errors.push_back(
+                        "You must select an OPTION to save Loss data files\n"
+                        "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
+            }
+            const std::string file =
+                    ElementBase::outputFileName(element.object.name, text(element.object, "OUTFN"));
+            if (++monitorFiles[file] == 2) {
+                errors.push_back("Duplicate file name for output, '" + file + "', detected");
+            }
         }
 
         // Beams, in TRACK BEAMS order.

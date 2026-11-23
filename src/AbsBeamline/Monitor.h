@@ -66,6 +66,11 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /// Takes ASCIIDUMP, COMPUTEPERCENTILES, the restart flag and the open mode of the loss file.
+    void setRunValues(
+            const opalx::run::OptionValues& options,
+            const opalx::run::RunContext& context) override;
+
     virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
@@ -102,6 +107,12 @@ private:
     CollectionType type_m;
     unsigned int numPassages_m;
     bool recordReference_m = true;  ///< See setRecordReference().
+
+    // Run values, see setRunValues(); the defaults are those of a fresh run without OPTION.
+    bool asciiDump_m          = false;
+    bool computePercentiles_m = false;
+    bool restart_m            = false;
+    bool appendOutput_m       = false;  ///< Append to an existing loss file (restart).
 
     std::unique_ptr<LossDataSink> lossDs_m;
 

@@ -18,13 +18,12 @@
 #include "AbsBeamline/Monitor.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
-#include "Utilities/Options.h"
+#include "Track/RunDescription.h"
 #include "Utilities/Util.h"
 
 #include <cmath>
@@ -41,7 +40,11 @@ Monitor::Monitor(const Monitor& right)
       filename_m(right.filename_m),
       plane_m(right.plane_m),
       type_m(right.type_m),
-      numPassages_m(0) {}
+      numPassages_m(0),
+      asciiDump_m(right.asciiDump_m),
+      computePercentiles_m(right.computePercentiles_m),
+      restart_m(right.restart_m),
+      appendOutput_m(right.appendOutput_m) {}
 
 Monitor::Monitor(const std::string& name)
     : ElementBase(name),
@@ -280,11 +283,7 @@ bool Monitor::applyToReferenceParticle(
 
             auto stats = lossDs_m->computeStatistics(1);
             if (!stats.empty()) {
-                OpalData::OpenMode openMode = (numPassages_m > 0)
-                                                      ? OpalData::OpenMode::APPEND
-                                                      : OpalData::getInstance()->getOpenMode();
-
-                lossDs_m->save(1, openMode);
+                lossDs_m->save(1, numPassages_m > 0 || appendOutput_m);
             }
         }
 
@@ -292,6 +291,14 @@ bool Monitor::applyToReferenceParticle(
     }
 
     return false;
+}
+
+void Monitor::setRunValues(
+        const opalx::run::OptionValues& options, const opalx::run::RunContext& context) {
+    asciiDump_m          = options.asciidump;
+    computePercentiles_m = options.computePercentiles;
+    restart_m            = context.restart;
+    appendOutput_m       = context.openMode == "APPEND";
 }
 
 void Monitor::initialise(PartBunch_t* bunch) {
@@ -314,15 +321,12 @@ void Monitor::initialise(PartBunch_t* bunch) {
 
     namespace fs = std::filesystem;
     const fs::path lossFileName(filename_m + ".h5");
-    auto* opalData = OpalData::getInstance();
-    if (opalData->inRestartRun()) {
-        if (!Options::asciidump && bunch != nullptr) {
+    if (restart_m) {
+        if (!asciiDump_m && bunch != nullptr) {
             LossDataSink::rewindH5ToGlobalTrackStep(
                     lossFileName.string(), bunch->getGlobalTrackStep());
         }
-    } else if (
-            opalData->getOpenMode() == OpalData::OpenMode::WRITE
-            || currentPosition < monitorStart) {
+    } else if (!appendOutput_m || currentPosition < monitorStart) {
         if (fs::exists(lossFileName)) {
             ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
@@ -332,7 +336,8 @@ void Monitor::initialise(PartBunch_t* bunch) {
         }
     }
 
-    lossDs_m = std::make_unique<LossDataSink>(filename_m, !Options::asciidump, type_m);
+    lossDs_m =
+            std::make_unique<LossDataSink>(filename_m, !asciiDump_m, type_m, computePercentiles_m);
     online_m = true;
 }
 
@@ -344,7 +349,7 @@ void Monitor::goOffline() {
     }
 
     if (type_m != CollectionType::TEMPORAL) {
-        lossDs_m->save(numPassages_m);
+        lossDs_m->save(numPassages_m, appendOutput_m);
     }
 }
 

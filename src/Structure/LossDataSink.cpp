@@ -19,11 +19,9 @@
 
 #include "Structure/H5FileSpace.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
 #include "Utilities/GSLHistogram.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
@@ -404,7 +402,7 @@ namespace {
     void computeSetPercentiles(
             const std::vector<OpalParticle>& particles, size_t startIdx, size_t nLoc,
             SetStatistics& stat) {
-        if (!Options::computePercentiles || stat.nTotal_m < 100) {
+        if (stat.nTotal_m < 100) {
             return;
         }
 
@@ -562,22 +560,15 @@ SetStatistics::SetStatistics()
       normalizedEps99Percentile_m(0.0),
       normalizedEps99_99Percentile_m(0.0) {}
 
-LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType)
+LossDataSink::LossDataSink(
+        std::string outfn, bool hdf5Save, CollectionType collectionType, bool computePercentiles)
     : h5hut_mode_m(hdf5Save),
       H5file_m(0),
       outputName_m(outfn),
       H5call_m(0),
-      collectionType_m(collectionType) {
+      collectionType_m(collectionType),
+      computePercentiles_m(computePercentiles) {
     particles_m.clear();
-
-    if (h5hut_mode_m && !Options::enableHDF5) {
-        throw GeneralOpalException(
-                "LossDataSink::LossDataSink",
-                "You must select an OPTION to save Loss data files\n"
-                "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
-    }
-
-    OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
 }
 
 LossDataSink::LossDataSink(const LossDataSink& rhs)
@@ -590,7 +581,8 @@ LossDataSink::LossDataSink(const LossDataSink& rhs)
       globalTrackStep_m(rhs.globalTrackStep_m),
       refTime_m(rhs.refTime_m),
       spos_m(rhs.spos_m),
-      collectionType_m(rhs.collectionType_m) {
+      collectionType_m(rhs.collectionType_m),
+      computePercentiles_m(rhs.computePercentiles_m) {
     particles_m.clear();
 }
 
@@ -652,7 +644,7 @@ void LossDataSink::writeHeaderH5() {
     writeFileAttribString("meanTimeUnit", "s");
     writeFileAttribString("rmsTimeUnit", "s");
 
-    if (Options::computePercentiles) {
+    if (computePercentiles_m) {
         writeFileAttribString("68-percentileUnit", "m");
         writeFileAttribString("95-percentileUnit", "m");
         writeFileAttribString("99-percentileUnit", "m");
@@ -698,13 +690,9 @@ void LossDataSink::addParticle(const OpalParticle& particle) {
     }
 }
 
-void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
+void LossDataSink::save(unsigned int numSets, bool append) {
     if (outputName_m.empty()) return;
     if (hasNoParticlesToDump()) return;
-
-    if (openMode == OpalData::OpenMode::UNDEFINED) {
-        openMode = OpalData::getInstance()->getOpenMode();
-    }
 
     // hasPolData_m is set per-rank by addParticle(). A rank with no Pol-carrying
     // particles in this batch must still emit the Pol columns if any other rank
@@ -723,7 +711,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     // decide before any file is opened, for both ASCII and parallel HDF5.
     int createOutput = 0;
     if (ippl::Comm->rank() == 0) {
-        if (openMode == OpalData::OpenMode::WRITE) {
+        if (!append) {
             createOutput = 1;
         } else {
             std::error_code error;
@@ -871,7 +859,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     tmpDouble = stat.trms_m;
     writeStepAttribFloat64("rmsTime", &tmpDouble, 1);
 
-    if (Options::computePercentiles) {
+    if (computePercentiles_m) {
         tmpVector = stat.sixtyEightPercentile_m;
         writeStepAttribFloat64("68-percentile", &tmpVector[0], 3);
 
@@ -1384,7 +1372,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     stat.rprms_m = stat.rpsum_m * stat.fac_m;
 
-    computeSetPercentiles(particles_m, startIdx, nLoc, stat);
+    if (computePercentiles_m) computeSetPercentiles(particles_m, startIdx, nLoc, stat);
 
     return stat;
 }

@@ -57,8 +57,8 @@
  * Notes
  * ---------------------------------------------------------------------------
  *
- * - Options::computePercentiles is disabled in the fixture so these tests focus
- *   on the core LossDataSink statistics and do not depend on percentile
+ * - The sinks compute no percentiles (the constructor default), so these tests
+ *   focus on the core LossDataSink statistics and do not depend on percentile
  *   histogram behavior.
  *
  * - The tests initialize IPPL in SetUpTestSuite(), because LossDataSink uses
@@ -88,7 +88,6 @@
 #undef private
 
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Options.h"
 
 extern Inform* gmsg;
 
@@ -255,14 +254,7 @@ namespace {
             return path;
         }
 
-        void SetUp() override {
-            oldComputePercentiles_m     = Options::computePercentiles;
-            Options::computePercentiles = false;
-        }
-
         void TearDown() override {
-            Options::computePercentiles = oldComputePercentiles_m;
-
             ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
                 // CTest runs this fixture's single- and two-rank executables concurrently.
@@ -279,7 +271,6 @@ namespace {
         inline static std::unique_ptr<Inform> message_m;
         inline static Inform* savedMessage_m = nullptr;
         std::vector<std::string> temporaryDirectories_m;
-        bool oldComputePercentiles_m = false;
     };
 
     TEST_F(LossDataSinkTest, EmptySinkDestructionIsRankLocal) {
@@ -353,7 +344,7 @@ namespace {
                     sink.addParticle(
                             makeParticle(batch + 1, makeVector(batch, 0, 0), makeVector(0, 0, 1)));
                 }
-                sink.save(1, OpalData::OpenMode::APPEND);
+                sink.save(1, true);
             }
 
             if (rank == 0) {
@@ -404,7 +395,7 @@ namespace {
             }
             // Even ranks whose local metadata inspection would succeed must
             // receive rank 0's failure before opening a file or entering I/O.
-            EXPECT_THROW(sink.save(1, OpalData::OpenMode::APPEND), GeneralOpalException);
+            EXPECT_THROW(sink.save(1, true), GeneralOpalException);
         }
         if (rank == 0) {
             EXPECT_FALSE(std::filesystem::exists(directory + "/peer-view-ascii.loss"));

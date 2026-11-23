@@ -353,7 +353,8 @@ namespace opalx::run {
          *        calls initialise()), place them, write the 3D lattice files and build the
          *        element mapping.
          *
-         * An element without REACH gets OPTION ELEMENTMAPPINGREACH before it is added.
+         * Every element gets the OPTION values and the run context first (setRunValues()); an
+         * element without REACH gets OPTION ELEMENTMAPPINGREACH before it is added.
          * @param cavityPhases The cavity phases a checkpoint stored; empty for a fresh run.
          */
         OpalBeamline buildBeamline(
@@ -367,6 +368,7 @@ namespace opalx::run {
                             line.direction[0], line.direction[1], line.direction[2],
                             line.direction[3]));
             for (const auto& built : elements) {
+                built->setRunValues(options, context);
                 switch (built->trackedAs()) {
                     case TrackedAs::FieldElement:
                         if (!built->getReach()) built->setReach(options.elementMappingReach);

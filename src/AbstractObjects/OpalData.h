@@ -159,9 +159,6 @@ public:
     /// store opals input filename
     void storeInputFn(const std::string& fn);
 
-    /// checks the output file names of all items to avoid duplicates
-    void checkAndAddOutputFileName(const std::string& outfn);
-
     /// get opals restart h5 format filename
     std::string getRestartFileName();
 

@@ -138,6 +138,18 @@ TEST(ValidateRun, ReferenceDirectionNeedsFileDistribution) {
     EXPECT_TRUE(validate(run).empty());
 }
 
+TEST(ValidateRun, MonitorsNeedLossOutputAndTheirOwnFileNames) {
+    RunDescription run     = validRun();
+    run.options.enableHDF5 = true;
+    run.line.elements.push_back(element("M1", "Monitor", "MONITOR"));
+    run.line.elements.push_back(element("M2", "Monitor", "MONITOR"));
+    EXPECT_TRUE(validate(run).empty());
+    run.line.elements.back().object.attributes.push_back(entry("OUTFN", std::string("M1.h5")));
+    EXPECT_TRUE(contains(validate(run), "Duplicate file name for output, 'M1', detected"));
+    run.options.enableHDF5 = false;
+    EXPECT_TRUE(contains(validate(run), "You must select an OPTION to save Loss data files"));
+}
+
 TEST(ValidateRun, OlderVersionListsLaterChanges) {
     RunDescription run  = validRun();
     run.options.version = 10000;

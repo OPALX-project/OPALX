@@ -19,7 +19,6 @@
 #define LOSSDATASINK_H_
 
 #include "AbsBeamline/ElementBase.h"
-#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
 
 #include "H5hut.h"
@@ -101,15 +100,21 @@ class LossDataSink {
 public:
     LossDataSink() = default;
 
-    LossDataSink(std::string outfn, bool hdf5Save, CollectionType = CollectionType::TEMPORAL);
+    /**
+     * @param hdf5Save Write <outfn>.h5 with H5hut; otherwise the ASCII file <outfn>.loss.
+     * @param computePercentiles Compute and write the percentile statistics of each set.
+     */
+    LossDataSink(
+            std::string outfn, bool hdf5Save, CollectionType = CollectionType::TEMPORAL,
+            bool computePercentiles = false);
 
     LossDataSink(const LossDataSink& rsh);
     ~LossDataSink() noexcept(false);
 
     bool inH5Mode() const { return h5hut_mode_m; }
 
-    void save(
-            unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
+    /// @param append Append to an existing output file; false replaces it.
+    void save(unsigned int numSets, bool append);
 
     void addReferenceParticle(
             const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
@@ -203,6 +208,7 @@ private:
     std::vector<unsigned long> startSet_m;
 
     CollectionType collectionType_m = CollectionType::SPATIAL;
+    bool computePercentiles_m       = false;
 };
 
 inline size_t LossDataSink::size() const { return particles_m.size(); }

@@ -39,6 +39,11 @@ class BeamlineVisitor;
 class Channel;
 class ConstChannel;
 
+namespace opalx::run {
+    struct OptionValues;
+    struct RunContext;
+}  // namespace opalx::run
+
 enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
@@ -416,6 +421,15 @@ public:
     virtual double getDesignEnergy() const;
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
+    /**
+     * @brief Take the OPTION values and the run context of the RUN that tracks this element.
+     * @note buildBeamline() calls it for every element before initialise(). Elements that read
+     *       run values in initialise() or later override it; the default ignores them.
+     */
+    virtual void setRunValues(
+            const opalx::run::OptionValues& /*options*/,
+            const opalx::run::RunContext& /*context*/) {}
+
     // Setup
     virtual void initialise(PartBunch_t* bunch) = 0;
 
@@ -479,6 +493,8 @@ public:
     void setOutputFN(std::string fn);
     /// Get output filename
     std::string getOutputFN() const;
+    /// The output file name, without extension, of element @p name with OUTFN @p outputFN.
+    static std::string outputFileName(const std::string& name, const std::string& outputFN);
 
     void setFlagDeleteOnTransverseExit(bool = true);
     bool getFlagDeleteOnTransverseExit() const;

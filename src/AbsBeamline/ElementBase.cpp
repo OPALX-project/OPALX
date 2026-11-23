@@ -96,11 +96,13 @@ void ElementBase::setName(const std::string& name) { elementID = name; }
 
 void ElementBase::setOutputFN(const std::string fn) { outputfn_m = fn; }
 
-std::string ElementBase::getOutputFN() const {
-    if (outputfn_m.empty()) {
-        return getName();
+std::string ElementBase::getOutputFN() const { return outputFileName(getName(), outputfn_m); }
+
+std::string ElementBase::outputFileName(const std::string& name, const std::string& outputFN) {
+    if (outputFN.empty()) {
+        return name;
     } else {
-        std::filesystem::path filePath(outputfn_m);
+        std::filesystem::path filePath(outputFN);
         return filePath.replace_extension().native();
     }
 }
