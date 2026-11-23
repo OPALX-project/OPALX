@@ -87,15 +87,20 @@ private:
     /**
      * @brief Start a DT segment: its time step, the container activity, the emitting containers
      *        and the beams already stopped.
-     * @param resumesInSegment A restart resumes inside this segment; the container activity of
-     *        the checkpoint is kept.
+     * @param stepsCompletedInSegment Nonzero only where a restart resumes inside this segment;
+     *        the container activity of the checkpoint is then kept.
      */
-    void startSegment(bool resumesInSegment, unsigned long long stepsCompletedInSegment);
+    void startSegment(unsigned long long stepsCompletedInSegment);
 
     /**
      * @brief The particle part of one step: space charge (PRESTEP or MIDPOINT), the
      *        drift-kick-drift push, emission, external fields, spin, and the global processes
      *        with their deletions.
+     *
+     * @par Frame of reference
+     * Particle R and mesh are in the reference frame for the whole step except inside
+     * computeSpaceChargeFields() (the solve frame) and computeExternalFields() (each element's
+     * local frame, through a FrameScope).
      */
     void advanceParticles();
 
@@ -202,8 +207,15 @@ private:
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
 
-    /** @brief Build the current tracker-frame context and dispatch the configured space-charge
-     * solve. */
+    /**
+     * @brief Build the current tracker-frame context and dispatch the configured space-charge
+     *        solve.
+     *
+     * @par Frame of reference
+     * The algorithm requests its solve frame (SpaceChargeAlgorithm::solveFrame), which is built
+     * from the primary container's moments. The particles are in their reference frame on entry
+     * and again on return; the algorithm enters the solve frame and leaves it.
+     */
     void computeSpaceChargeFields();
 
     struct SpaceChargeEmissionProgress {

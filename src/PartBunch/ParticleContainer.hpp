@@ -254,8 +254,7 @@ public:
      */
     void enterFrame(const ParticleFrame& target, bool clearFields = false) {
         if (clearFields) {
-            this->E = Vector_t<T, Dim>(0.0);
-            this->B = Vector_t<T, Dim>(0.0);
+            zeroFields();
         }
         if (frame() == target) return;
         transformBunch(frame().to(target), clearFields);
@@ -591,13 +590,10 @@ public:
      *        and the mass and charge of the reference particle.
      */
     void kickParticles() {
-        Inform m("ParticleContainer::kickParticles");
-
         auto Pview  = P.getView();
         auto dtview = dt.getView();
         auto Efview = E.getView();
         auto Bfview = B.getView();
-        m << level5 << "Got particle views for kick operation." << endl;
         // Mass (eV) and charge (proton charges) from this container's reference particle,
         // passed explicitly into BorisPusher::kick for GPU-safe kernels.
 
@@ -616,8 +612,6 @@ public:
                     Pview(i) = p;
                 });
         Kokkos::fence();
-
-        m << level5 << "Completed parallel kick operation." << endl;
     }
 
     /**

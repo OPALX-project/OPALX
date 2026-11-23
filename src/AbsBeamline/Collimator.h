@@ -28,7 +28,7 @@
  * calls ElementBase::markOutsideAperture() once per time step for every element
  * near the bunch, which marks particles inside the body window [0, L) but
  * outside the aperture in the container's InvalidMask. Those marks are flushed
- * by the single end-of-step deletion in ParallelTracker::execute(), so absorbed
+ * by the tracker's single deletion at the end of the step, so absorbed
  * particles never appear in any output.
  *
  * @note The aperture shape comes from the common APERTURE attribute stored in

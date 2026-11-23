@@ -108,18 +108,10 @@ public:
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
             std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount) const;
 
-    /** @brief As above, with losses. */
-    void dumpSDDS(
-            PartBunch_t& beam,
-            const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
-            const losses_t& losses) const;
-
     /**
      * Write impact number and outgoing secondaries in each time step
      *
-     * @param fn specifies the name of vtk file contains the geometry
-     *
+     * @param fn File name stem; rank 0 appends one line to `<fn>.dat`.
      */
     void writeImpactStatistics(
             const PartBunch_t& beam, long long int& step, size_t& impact, double& sey_num,

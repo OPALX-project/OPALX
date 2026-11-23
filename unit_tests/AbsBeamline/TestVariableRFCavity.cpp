@@ -614,8 +614,8 @@ TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
     cavity.setHeight(0.2);
     const auto bunch = makeBunch(1);
     const auto pc    = bunch->getParticleContainer();
-    // ParallelTracker copies every element whose trackedAs() is FieldElement into its
-    // OpalBeamline with addElement().
+    // buildTracking() adds every element whose trackedAs() is FieldElement to the tracked
+    // OpalBeamline with addElement(); the overload taking a reference, used here, clones it.
     ASSERT_EQ(cavity.trackedAs(), TrackedAs::FieldElement);
     OpalBeamline lattice;
     lattice.addElement(cavity, *bunch);

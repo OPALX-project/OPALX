@@ -113,9 +113,6 @@ void ParallelTracker::initializeSpaceChargeContainerActivity() {
 }
 // --- execute() ---
 
-/**
- * @copybrief ParallelTracker::execute
- */
 void ParallelTracker::execute() {
     if (startTracking()) trackSteps();
 }
@@ -358,8 +355,7 @@ void ParallelTracker::trackSteps() {
     bool stopRun = false;
     while (!stepSizes_m.reachedEnd()) {
         const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
-        // Only the first segment of a restart can start with completed steps.
-        startSegment(stepsCompletedInSegment > 0, stepsCompletedInSegment);
+        startSegment(stepsCompletedInSegment);
 
         while (stepsCompletedInSegment < stepsInSegment) {
             // Resolve emission-dependent dt before the step so the reference, particle
@@ -410,8 +406,7 @@ void ParallelTracker::trackSteps() {
     finishTracking();
 }
 
-void ParallelTracker::startSegment(
-        bool resumesInSegment, unsigned long long stepsCompletedInSegment) {
+void ParallelTracker::startSegment(unsigned long long stepsCompletedInSegment) {
     Inform m("ParallelTracker::startSegment");
     const unsigned long long step = itsBunch_m->getGlobalTrackStep();
     const unsigned long long trackSteps =
@@ -420,7 +415,7 @@ void ParallelTracker::startSegment(
 
     // Select global dt from dtCurrentTrack_m and copy to all container dt views.
     changeDT();
-    if (!resumesInSegment) {
+    if (stepsCompletedInSegment == 0) {
         itsBunch_m->resetPcActive();
     }
     activateEmittingContainers(itsBunch_m->getT());
@@ -433,14 +428,6 @@ void ParallelTracker::startSegment(
       << ", track steps = " << step << " to " << trackSteps << "." << endl;
 }
 
-/**
- * @copybrief ParallelTracker::advanceParticles
- *
- * @par Frame of reference
- * Particle R and mesh are in the reference frame for the whole step except inside
- * computeSpaceChargeFields() (the solve frame) and computeExternalFields() (each element's local
- * frame, through a FrameScope).
- */
 void ParallelTracker::advanceParticles() {
     Inform m("ParallelTracker::advanceParticles");
     const long long step = itsBunch_m->getGlobalTrackStep();
@@ -661,9 +648,6 @@ void ParallelTracker::finishTracking() {
 
 // --- PIC integration and fields ---
 
-/**
- * @copybrief ParallelTracker::timeIntegration1
- */
 void ParallelTracker::timeIntegration1() {
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
@@ -682,9 +666,6 @@ void ParallelTracker::timeIntegration1() {
     m << level4 << "Push particles done for all containers." << endl;
 }
 
-/**
- * @copybrief ParallelTracker::timeIntegration2
- */
 void ParallelTracker::timeIntegration2() {
     Inform m("ParallelTracker::timeIntegration2");
 
@@ -763,14 +744,6 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
     return progress;
 }
 
-/**
- * @copybrief ParallelTracker::computeSpaceChargeFields
- *
- * @par Frame of reference
- * The algorithm requests its solve frame (SpaceChargeAlgorithm::solveFrame), which is built here
- * from the primary container's moments. The particles are in their reference frame on entry and
- * again on return; the algorithm enters the solve frame and leaves it.
- */
 void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     if (spaceChargeSolver_m == nullptr) {
@@ -814,9 +787,6 @@ void ParallelTracker::computeSpaceChargeFields() {
     m << level3 << "Compute space-charge fields done." << endl;
 }
 
-/**
- * @copybrief ParallelTracker::computeExternalFields
- */
 void ParallelTracker::computeExternalFields() {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
@@ -847,9 +817,6 @@ void ParallelTracker::computeExternalFields() {
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
 
-/**
- * @copybrief ParallelTracker::forEachElementInBunchFrame
- */
 void ParallelTracker::forEachElementInBunchFrame(
         const std::function<bool(const ElementBase&)>& selects,
         const std::function<void(
@@ -867,9 +834,6 @@ void ParallelTracker::forEachElementInBunchFrame(
     }
 }
 
-/**
- * @copybrief ParallelTracker::candidateElements
- */
 std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(size_t ci) {
     const auto pc = itsBunch_m->getParticleContainer(ci);
     if (!itsBunch_m->isPcActive(ci) || !pc) {
@@ -915,9 +879,6 @@ ParticleFrame ParallelTracker::elementFrame(
             element.get());
 }
 
-/**
- * @copybrief ParallelTracker::applyElementApertures
- */
 size_t ParallelTracker::applyElementApertures() {
     size_t localMarked = 0;
     for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
@@ -935,9 +896,6 @@ size_t ParallelTracker::applyElementApertures() {
     return globalMarked;
 }
 
-/**
- * @copybrief ParallelTracker::emitFromEmissionSources
- */
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     const auto& containers = itsBunch_m->getParticleContainers();
     for (size_t ci = 0; ci < containers.size(); ++ci) {
@@ -1106,9 +1064,6 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     return static_cast<size_t>(globalTotalMarked);
 }
 
-/**
- * @copybrief ParallelTracker::resetFields
- */
 void ParallelTracker::resetFields() {
     const size_t n = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
@@ -1139,9 +1094,6 @@ void ParallelTracker::evolveSpinTBMT() {
 
 // --- Helpers (beamline, dt, bounds, I/O) ---
 
-/**
- * @copybrief ParallelTracker::selectDT
- */
 void ParallelTracker::selectDT() {
     double selectedDt        = dtCurrentTrack_m;
     double emissionDt        = std::numeric_limits<double>::max();
@@ -1167,9 +1119,6 @@ void ParallelTracker::selectDT() {
     itsBunch_m->setdT(selectedDt);
 }
 
-/**
- * @copybrief ParallelTracker::changeDT
- */
 void ParallelTracker::changeDT() {
     Inform m("ParallelTracker::changeDT");
     selectDT();
@@ -1182,9 +1131,6 @@ void ParallelTracker::changeDT() {
     m << level5 << "Changed particle container time step to " << newdT << "." << endl;
 }
 
-/**
- * @copybrief ParallelTracker::activateEmittingContainers
- */
 void ParallelTracker::activateEmittingContainers(double t) {
     for (size_t i = 0; i < emittingSamplers_m.size(); ++i) {
         for (const auto& sampler : emittingSamplers_m[i]) {
@@ -1196,9 +1142,6 @@ void ParallelTracker::activateEmittingContainers(double t) {
     }
 }
 
-/**
- * @copybrief ParallelTracker::computeInitialBounds
- */
 void ParallelTracker::computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax) {
     std::vector<const ParticleContainer_t*> containers;
     for (const auto& pc : itsBunch_m->getParticleContainers()) {
@@ -1212,9 +1155,6 @@ void ParallelTracker::computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<d
     rmax              = bounds.maxR();
 }
 
-/**
- * @copybrief ParallelTracker::printInitialContainerRefs
- */
 void ParallelTracker::printInitialContainerRefs(Inform& m) const {
     const auto& particleContainers = itsBunch_m->getParticleContainers();
     for (size_t i = 0; i < particleContainers.size(); ++i) {
@@ -1238,9 +1178,6 @@ void ParallelTracker::printInitialContainerRefs(Inform& m) const {
     }
 }
 
-/**
- * @copybrief ParallelTracker::updateReferenceParticles
- */
 void ParallelTracker::updateReferenceParticles() {
     const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
 
@@ -1270,9 +1207,6 @@ void ParallelTracker::updateReferenceParticles() {
     }
 }
 
-/**
- * @copybrief ParallelTracker::updateRefToLabCSTrafo
- */
 void ParallelTracker::updateRefToLabCSTrafo() {
     // Map the lab-frame reference position and momentum into the current bunch frame, then
     // move and turn the bunch frame onto them. Momentum is only rotated, not translated.
@@ -1303,9 +1237,6 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     }
 }
 
-/**
- * @copybrief ParallelTracker::copyFollowerReferences
- */
 void ParallelTracker::copyFollowerReferences() {
     const size_t n = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
@@ -1320,9 +1251,6 @@ void ParallelTracker::copyFollowerReferences() {
     }
 }
 
-/**
- * @copybrief ParallelTracker::findStartPositions
- */
 void ParallelTracker::findStartPositions() {
     // Primary container (index 0) drives segment advances.
     auto primary = itsBunch_m->getParticleContainer(0);
@@ -1440,9 +1368,6 @@ std::vector<opalx::moments::BeamMoments> ParallelTracker::momentsOfContainers(
     return moments;
 }
 
-/**
- * @copybrief ParallelTracker::dumpStats
- */
 void ParallelTracker::dumpStats(
         bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed) {
     OPALTimer::Timer myt2;
@@ -1499,9 +1424,6 @@ void ParallelTracker::dumpStats(
     }
 }
 
-/**
- * @copybrief ParallelTracker::writePhaseSpace
- */
 void ParallelTracker::writePhaseSpace(
         bool psDump, bool statDump, std::span<const opalx::moments::BeamMoments> computed) {
     Inform m("ParallelTracker::writePhaseSpace");
@@ -1546,9 +1468,6 @@ void ParallelTracker::writePhaseSpace(
 
 // --- Autophasing (RF and traveling-wave cavities) ---
 
-/**
- * @copybrief ParallelTracker::autophaseCavities
- */
 void ParallelTracker::autophaseCavities() {
     const BorisPusher pusher;
     const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
