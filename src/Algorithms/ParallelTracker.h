@@ -32,7 +32,6 @@
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "Structure/DataSink.h"
 
-#include <span>
 #include <string>
 #include <vector>
 
@@ -141,7 +140,6 @@ private:
     void timeIntegration2();
 
     /// @brief The space-charge solve of this step (SpaceChargeSolver::solveStep()).
-    /// @throws OpalException if the run has no space-charge solver.
     void computeSpaceChargeFields();
 
     /// @brief Source-plane loss, then the external fields of the elements near each container.
@@ -162,7 +160,7 @@ private:
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
-            spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
+            spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver; never null.
     /// Source plane of the source-plane loss (OpalBeamline::markBackwardParticlesAtSourcePlane()).
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     OpalBeamline itsOpalBeamline_m;       ///< Tracked field elements and coordinate transforms.

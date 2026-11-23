@@ -83,8 +83,8 @@ public:
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
     /// @brief Append the particles born in this step in the beamline frame. Existing particles are
-    /// in the reference frame and must stay untouched and in place, because the tracker transforms
-    /// only the appended range (ParallelTracker::emitFromEmissionSources, adoptParticles).
+    /// in the reference frame and must stay untouched and in place, because EmittingSamplers::emit
+    /// transforms only the appended range (adoptParticles).
     virtual void emitParticles(double /*t*/, double /*dt*/) {}
 
     /// @brief Whether this sampler has finished all emission (no more particles will be created).

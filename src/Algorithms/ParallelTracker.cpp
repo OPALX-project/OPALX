@@ -19,27 +19,20 @@
  */
 #include "Algorithms/ParallelTracker.h"
 
-#include <array>
 #include <cmath>
-#include <iomanip>
 #include <string>
 #include <vector>
 
 #include "Structure/EMFieldDumpWriter.h"
 
-#include "Physics/Units.h"
-
 #include "SpaceCharge/SpaceChargeSolver.h"
 
 #include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
-#include "Utilities/OpalException.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
-
-using opalx::moments::Moment;
 
 // --- Constructors ---
 
@@ -410,12 +403,6 @@ void ParallelTracker::timeIntegration2() {
 }
 
 void ParallelTracker::computeSpaceChargeFields() {
-    if (spaceChargeSolver_m == nullptr) {
-        throw OpalException(
-                "ParallelTracker::computeSpaceChargeFields",
-                "No space-charge solver is available. Use TYPE=NONE for a configured no-op "
-                "solver.");
-    }
     spaceChargeSolver_m->solveStep(*itsBunch_m, options_m.minBinEmitted, [this] {
         return emittingSamplers_m.spaceChargeEmissionProgress(
                 itsBunch_m->getT(), options_m.aggressiveStateSync);
