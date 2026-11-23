@@ -41,8 +41,6 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
-#include "Steppers/SpinTBMTPusher.h"
-
 #include "SpaceCharge/SpaceChargeSolver.h"
 
 #include "Structure/CheckpointFile.h"
@@ -678,7 +676,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        pushParticles(pusher, *pc);
+        pc->pushParticles(pusher);
     }
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
@@ -700,11 +698,11 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        kickParticles(pusher, *pc);
+        pc->kickParticles(pusher);
         if (pc->hasSpin()) {
-            evolveSpinHalfStep(*pc);  // second half of the spin rotation, momentum after the kick
+            pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
         }
-        pushParticles(pusher, *pc);
+        pc->pushParticles(pusher);
         pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
@@ -1100,27 +1098,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
 
         // Read source-frame coordinates in the kernel; the particles stay where they are.
         const auto toSource = pc->frame().to(beamlineFrame(*pc)).rigid();
-
-        auto Rview   = pc->R.getView();
-        auto Pview   = pc->P.getView();
-        auto invalid = pc->InvalidMask.getView();
-
-        size_type localMarked  = 0;
-        const size_type nLocal = static_cast<size_type>(pc->getLocalNum());
-        Kokkos::parallel_reduce(
-                "ParallelTracker::markBackwardParticlesAtSourcePlane", nLocal,
-                KOKKOS_LAMBDA(const size_type i, size_type& count) {
-                    const Vector_t<double, 3> localR = toSource.pointTo(Rview(i));
-                    const Vector_t<double, 3> localP = toSource.vectorTo(Pview(i));
-                    const bool backwards   = localR[2] <= sourceLossPlaneZ && localP[2] < 0.0;
-                    const bool newlyMarked = backwards && !invalid(i);
-                    invalid(i)             = invalid(i) || backwards;
-                    count += newlyMarked ? 1 : 0;
-                },
-                localMarked);
-        Kokkos::fence();
-
-        localTotalMarked += localMarked;
+        localTotalMarked += pc->markBackwardParticles(toSource, sourceLossPlaneZ);
     }
 
     size_type globalTotalMarked = 0;
@@ -1141,79 +1119,8 @@ void ParallelTracker::resetFields() {
         if (!pc) {
             continue;
         }
-        pc->E = 0;
-        pc->B = 0;
+        pc->zeroFields();
     }
-}
-
-/**
- * @brief Boris position push in unitless coordinates (per-particle dt via pusher internals).
- * @param pusher Boris pusher.
- * @param pc     Non-null target particle container.
- */
-void ParallelTracker::pushParticles(
-        const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc) {
-    // Per-particle dt is used so that newly emitted particles with fractional dt
-    // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
-    pc.switchToUnitlessPositions();
-
-    auto Rview = pc.R.getView();
-    auto Pview = pc.P.getView();
-
-    Kokkos::parallel_for(
-            "pushParticles", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
-                // Half drift: x_{n+1/2} = x_n + (dt/2) * v; unitless form via pusher.push(..., 0).
-                // TODO: verify sign convention for half-step push.
-                Vector_t<double, 3> x = Rview(i);
-                pusher.push(
-                        x, Pview(i),
-                        0);  // this 0 is "dt" that is not used with unitless positions!
-                Rview(i) = x;
-            });
-
-    pc.switchOffUnitlessPositions();
-    Kokkos::fence();
-    ippl::Comm->barrier();
-}
-
-/**
- * @brief Boris velocity kick from E and B using per-particle dt.
- * @param pusher Boris pusher.
- * @param pc     Non-null target particle container.
- */
-void ParallelTracker::kickParticles(
-        const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc) {
-    Inform m("ParallelTracker::kickParticles");
-
-    auto Pview  = pc.P.getView();
-    auto dtview = pc.dt.getView();
-    auto Efview = pc.E.getView();
-    auto Bfview = pc.B.getView();
-    m << level5 << "Got particle views for kick operation." << endl;
-    // Mass (eV) and charge (proton charges) from this container's reference particle,
-    // passed explicitly into BorisPusher::kick for GPU-safe kernels.
-
-    const PartData& ref = *pc.getReference();
-    const double mass   = ref.getM();
-    const double charge = ref.getQ();
-    Kokkos::parallel_for(
-            "kickParticles", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
-                // Boris kick: Birdsall & Langdon (1985), ch. 4-4 (non-relativistic) and ch. 15-4
-                // (relativistic); scaled P = (v/c)*gamma, mass in rest energy units.
-                Vector_t<double, 3> p = Pview(i);
-                // TODO: consider dropping unused R/dt arguments from kick when API allows.
-                pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge);
-                Pview(i) = p;
-            });
-    /*
-    Wait until everyone completed the kick operation before proceeding. For now,
-    this is just a precaution and could be removed for a small performance gain
-    (technically, these shouldn't be necessary!).
-    */
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-    m << level5 << "Completed parallel kick operation." << endl;
 }
 
 void ParallelTracker::evolveSpinTBMT() {
@@ -1226,30 +1133,8 @@ void ParallelTracker::evolveSpinTBMT() {
         if (!pc || !pc->hasSpin()) {
             continue;
         }
-        evolveSpinHalfStep(*pc);
+        pc->evolveSpinHalfStep();
     }
-}
-
-void ParallelTracker::evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc) {
-    const PartData& ref = *pc.getReference();
-    const double mass   = ref.getM();
-    const double charge = ref.getQ();
-    const double anom   = ref.getAnomaly();
-
-    auto Polview = pc.Pol.getView();
-    auto Pview   = pc.P.getView();
-    auto Efview  = pc.E.getView();
-    auto Bfview  = pc.B.getView();
-    auto dtview  = pc.dt.getView();
-
-    SpinTBMTPusher spinPusher;
-    Kokkos::parallel_for(
-            "evolveSpinHalfStep", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
-                spinPusher.evolve(
-                        Polview(j), Pview(j), Efview(j), Bfview(j), 0.5 * dtview(j), mass, charge,
-                        anom);
-            });
-    Kokkos::fence();
 }
 
 // --- Helpers (beamline, dt, bounds, I/O) ---

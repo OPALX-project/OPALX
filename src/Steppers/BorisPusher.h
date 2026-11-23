@@ -19,6 +19,7 @@
 #define OPALX_PartPusher_H
 
 #include "Physics/Physics.h"
+#include "VectorMath.h"
 
 #include "Expression/IpplExpressions.h"
 

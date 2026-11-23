@@ -40,6 +40,9 @@
 #undef OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
 #endif
 
+#include "Steppers/BorisPusher.h"
+#include "Steppers/SpinTBMTPusher.h"
+
 // #include <Kokkos_Core.hpp>
 
 template <typename T>
@@ -548,6 +551,107 @@ public:
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
+    /// @brief Zero E and B of the local particles.
+    void zeroFields() {
+        E = 0;
+        B = 0;
+    }
+
+    /**
+     * @brief Drift every local particle over half its own dt, R += (dt / 2) v, on unitless
+     *        positions R / (c dt).
+     */
+    void pushParticles(const BorisPusher& pusher) {
+        // Per-particle dt is used so that newly emitted particles with fractional dt
+        // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
+        switchToUnitlessPositions();
+
+        auto Rview             = this->R.getView();
+        auto Pview             = P.getView();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+                "ParticleContainer::pushParticles", nLocal, KOKKOS_LAMBDA(const size_type i) {
+                    // Half drift: x_{n+1/2} = x_n + (dt/2) * v; unitless form via
+                    // pusher.push(..., 0).
+                    // TODO: verify sign convention for half-step push.
+                    Vector_t<double, 3> x = Rview(i);
+                    pusher.push(
+                            x, Pview(i),
+                            0);  // this 0 is "dt" that is not used with unitless positions!
+                    Rview(i) = x;
+                });
+
+        switchOffUnitlessPositions();
+        Kokkos::fence();
+        ippl::Comm->barrier();
+    }
+
+    /**
+     * @brief Boris kick of every local particle over its own dt, with E and B at the particle
+     *        and the mass and charge of the reference particle.
+     */
+    void kickParticles(const BorisPusher& pusher) {
+        Inform m("ParticleContainer::kickParticles");
+
+        auto Pview  = P.getView();
+        auto dtview = dt.getView();
+        auto Efview = E.getView();
+        auto Bfview = B.getView();
+        m << level5 << "Got particle views for kick operation." << endl;
+        // Mass (eV) and charge (proton charges) from this container's reference particle,
+        // passed explicitly into BorisPusher::kick for GPU-safe kernels.
+
+        const PartData& ref    = *getReference();
+        const double mass      = ref.getM();
+        const double charge    = ref.getQ();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+                "ParticleContainer::kickParticles", nLocal, KOKKOS_LAMBDA(const size_type i) {
+                    // Boris kick: Birdsall & Langdon (1985), ch. 4-4 (non-relativistic) and ch.
+                    // 15-4 (relativistic); scaled P = (v/c)*gamma, mass in rest energy units.
+                    Vector_t<double, 3> p = Pview(i);
+                    // TODO: consider dropping unused R/dt arguments from kick when API allows.
+                    pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge);
+                    Pview(i) = p;
+                });
+        /*
+        Wait until everyone completed the kick operation before proceeding. For now,
+        this is just a precaution and could be removed for a small performance gain
+        (technically, these shouldn't be necessary!).
+        */
+        Kokkos::fence();
+        ippl::Comm->barrier();
+
+        m << level5 << "Completed parallel kick operation." << endl;
+    }
+
+    /**
+     * @brief Rotate Pol of every local particle by half its own dt (Thomas-BMT), with the
+     *        current P, E and B. P, E, B and Pol are all along the bunch-frame axes.
+     */
+    void evolveSpinHalfStep() {
+        const PartData& ref = *getReference();
+        const double mass   = ref.getM();
+        const double charge = ref.getQ();
+        const double anom   = ref.getAnomaly();
+
+        auto Polview           = Pol.getView();
+        auto Pview             = P.getView();
+        auto Efview            = E.getView();
+        auto Bfview            = B.getView();
+        auto dtview            = dt.getView();
+        const size_type nLocal = this->getLocalNum();
+
+        SpinTBMTPusher spinPusher;
+        Kokkos::parallel_for(
+                "ParticleContainer::evolveSpinHalfStep", nLocal, KOKKOS_LAMBDA(const size_type j) {
+                    spinPusher.evolve(
+                            Polview(j), Pview(j), Efview(j), Bfview(j), 0.5 * dtview(j), mass,
+                            charge, anom);
+                });
+        Kokkos::fence();
+    }
+
     /**
      * @brief Scale particle time-step weights by charge before scatter.
      *
@@ -694,6 +798,37 @@ public:
         size_type globalMarkedNum = 0;
         ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
         return globalMarkedNum;
+    }
+
+    /**
+     * @brief Mark particles at or behind the plane z = @p planeZ that move backwards (P_z < 0),
+     *        with z and P_z read in the frame @p toPlaneFrame maps into.
+     *
+     * ORs into InvalidMask; the particles stay where they are.
+     *
+     * @param toPlaneFrame Transform from the particles' current frame into the plane's frame.
+     * @return Local number of newly marked particles (not reduced over MPI ranks).
+     */
+    size_type markBackwardParticles(const RigidTransform& toPlaneFrame, double planeZ) {
+        auto Rview   = this->R.getView();
+        auto Pview   = P.getView();
+        auto invalid = InvalidMask.getView();
+
+        size_type localMarked  = 0;
+        const size_type nLocal = static_cast<size_type>(this->getLocalNum());
+        Kokkos::parallel_reduce(
+                "ParticleContainer::markBackwardParticles", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    const Vector_t<double, 3> localR = toPlaneFrame.pointTo(Rview(i));
+                    const Vector_t<double, 3> localP = toPlaneFrame.vectorTo(Pview(i));
+                    const bool backwards             = localR[2] <= planeZ && localP[2] < 0.0;
+                    const bool newlyMarked           = backwards && !invalid(i);
+                    invalid(i)                       = invalid(i) || backwards;
+                    count += newlyMarked ? 1 : 0;
+                },
+                localMarked);
+        Kokkos::fence();
+        return localMarked;
     }
 
     /**
