@@ -464,6 +464,9 @@ public:
     /// @brief Set the global time step.
     void setdT(double dt) { dt_m = dt; }
 
+    /// @brief Set the global time step [s] and the particle dt of every container to @p dt.
+    void setTimeStep(double dt);
+
     /// @brief Get the global time step.
     double getdT() const { return dt_m; }
 

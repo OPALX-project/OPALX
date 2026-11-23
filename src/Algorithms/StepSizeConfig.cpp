@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
 #include <numeric>
 
 void StepSizeConfig::sortAscendingSStop() {
@@ -76,6 +77,28 @@ StepSizeConfig& StepSizeConfig::advanceToResumePosition(const ResumePosition& po
     }
 
     return *this;
+}
+
+void StepSizeConfig::resumeFromCheckpoint(
+        const ResumePosition& position, double checkpointDt, unsigned long long globalStep) {
+    Inform m("StepSizeConfig::resumeFromCheckpoint");
+    advanceToResumePosition(position);
+    if (!reachedEnd()) {
+        const double configuredDt = getdT();
+        const double tolerance    = 100.0 * std::numeric_limits<double>::epsilon()
+                                 * std::max(
+                                         {std::abs(configuredDt), std::abs(checkpointDt),
+                                          std::numeric_limits<double>::min()});
+        if (std::abs(configuredDt - checkpointDt) > tolerance) {
+            throw OpalException(
+                    "StepSizeConfig::resumeFromCheckpoint",
+                    "restart input changes the time-step schedule at the checkpointed global "
+                    "step");
+        }
+    }
+    m << level2 << "Restart global step " << globalStep << " resumes step-size "
+      << "segment " << position.segment << " with " << position.stepsCompletedInSegment
+      << " completed steps in that segment." << endl;
 }
 
 bool StepSizeConfig::isLastSegment() const {

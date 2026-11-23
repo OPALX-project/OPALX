@@ -101,7 +101,7 @@ bool ParallelTracker::startTracking() {
     // The reference start and pass may cross a MONITOR; only the step loop records.
     itsOpalBeamline_m.setMonitorsRecordReference(false);
     if (restarting_m) {
-        resumeRestartSchedule();
+        stepSizes_m.resumeFromCheckpoint(restartPosition_m, restartDt_m, restartGlobalStep_m);
     }
 
     // PartBunch::resetPcActive() ran in the constructor while containers were still empty
@@ -127,7 +127,7 @@ bool ParallelTracker::startTracking() {
         // Integrate reference orbits forward until all container path lengths reach sStart_m.
         const auto selectTimeStep = [this](double dt) {
             dtCurrentTrack_m = dt;
-            selectDT();
+            itsBunch_m->setdT(selectDT());
         };
         if (references_m.findStartPositions(sStart_m, stepSizes_m, selectTimeStep)) changeDT();
         stepSizes_m.advanceToPos(sStart_m);
@@ -177,27 +177,6 @@ bool ParallelTracker::startTracking() {
     // Only crossings in the step loop write MONITOR output.
     itsOpalBeamline_m.setMonitorsRecordReference(true);
     return true;
-}
-
-void ParallelTracker::resumeRestartSchedule() {
-    Inform m("ParallelTracker::resumeRestartSchedule");
-    stepSizes_m.advanceToResumePosition(restartPosition_m);
-    if (!stepSizes_m.reachedEnd()) {
-        const double configuredDt = stepSizes_m.getdT();
-        const double tolerance    = 100.0 * std::numeric_limits<double>::epsilon()
-                                 * std::max(
-                                         {std::abs(configuredDt), std::abs(restartDt_m),
-                                          std::numeric_limits<double>::min()});
-        if (std::abs(configuredDt - restartDt_m) > tolerance) {
-            throw OpalException(
-                    "ParallelTracker::resumeRestartSchedule",
-                    "restart input changes the time-step schedule at the checkpointed global "
-                    "step");
-        }
-    }
-    m << level2 << "Restart global step " << restartGlobalStep_m << " resumes step-size "
-      << "segment " << restartPosition_m.segment << " with "
-      << restartPosition_m.stepsCompletedInSegment << " completed steps in that segment." << endl;
 }
 
 void ParallelTracker::trackSteps() {
@@ -481,21 +460,14 @@ void ParallelTracker::computeExternalFields() {
 
 // --- Helpers (beamline, dt, bounds, I/O) ---
 
-void ParallelTracker::selectDT() {
-    itsBunch_m->setdT(
-            emittingSamplers_m.emissionTimeStep(itsBunch_m->getT()).value_or(dtCurrentTrack_m));
+double ParallelTracker::selectDT() const {
+    return emittingSamplers_m.emissionTimeStep(itsBunch_m->getT()).value_or(dtCurrentTrack_m);
 }
 
 void ParallelTracker::changeDT() {
     Inform m("ParallelTracker::changeDT");
-    selectDT();
-    double newdT = itsBunch_m->getdT();
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
-        if (pc) {
-            pc->dt = newdT;
-        }
-    }
-    m << level5 << "Changed particle container time step to " << newdT << "." << endl;
+    itsBunch_m->setTimeStep(selectDT());
+    m << level5 << "Changed particle container time step to " << itsBunch_m->getdT() << "." << endl;
 }
 
 bool ParallelTracker::stepLogDue() const {

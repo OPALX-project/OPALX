@@ -64,6 +64,15 @@ public:
     /// Select and validate the segment position stored in a checkpoint.
     StepSizeConfig& advanceToResumePosition(const ResumePosition& position);
 
+    /**
+     * @brief Resume a restart at the schedule position of its checkpoint and log it.
+     * @param checkpointDt Time step [s] stored in the checkpoint.
+     * @param globalStep Completed global steps of the checkpoint, for the log.
+     * @throws OpalException if the input changes the time step at that position.
+     */
+    void resumeFromCheckpoint(
+            const ResumePosition& position, double checkpointDt, unsigned long long globalStep);
+
     /// Return the zero-based current index; the size denotes the end iterator.
     std::size_t getCurrentIndex();
 

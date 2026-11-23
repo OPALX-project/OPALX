@@ -195,6 +195,16 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setTimeStep(double dt) {
+    this->setdT(dt);
+    for (const auto& pc : this->getParticleContainers()) {
+        if (pc) {
+            pc->dt = dt;
+        }
+    }
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pushParticles() {
     const size_t n = this->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {

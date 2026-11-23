@@ -120,18 +120,13 @@ private:
     /// @brief The last output, elements off, the solver counters and the final banner.
     void finishTracking();
 
-    // --- Start of tracking ---
-
-    /// @brief Advance the step-size schedule to the checkpointed position.
-    /// @throws OpalException if the input changes the time step there.
-    void resumeRestartSchedule();
-
     // --- Time step ---
 
-    /// @brief Set global bunch dt to dtCurrentTrack_m.
-    void selectDT();
+    /// @brief The time step for the DT of the current segment, dtCurrentTrack_m: the smallest
+    ///        emission time step while a source still emits.
+    [[nodiscard]] double selectDT() const;
 
-    /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
+    /// @brief Set the time step of the bunch and of all its containers to selectDT().
     void changeDT();
 
     // --- Particle push and fields ---
