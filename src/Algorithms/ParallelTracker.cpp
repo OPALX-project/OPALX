@@ -21,41 +21,34 @@
 
 #include <algorithm>
 #include <array>
-#include <cfloat>
 #include <cmath>
-#include <cstdlib>
-#include <fstream>
 #include <functional>
 #include <iomanip>
-#include <iostream>
 #include <limits>
-#include <sstream>
 #include <string>
 #include <vector>
 
-#include "Algorithms/Matrix.h"
 #include "Algorithms/TrackReferenceStep.h"
 #include "BasicActions/DumpEMFields.h"
 
+#include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ReferenceTracer.h"
-#include "BasicActions/Option.h"
 
-#include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedBeamline.h"
-#include "Distribution/Distribution.h"
+#include "Physics/Physics.h"
 #include "Physics/Units.h"
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
+#include "Steppers/SpinTBMTPusher.h"
+
 #include "SpaceCharge/SpaceChargeSolver.h"
 
-#include "Structure/BoundingBox.h"
 #include "Structure/CheckpointFile.h"
-#include "Utilities/LogicalError.h"
+#include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
@@ -102,11 +95,6 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
     initializeSpaceChargeContainerActivity();
 }
 
-/**
- * @copybrief ParallelTracker::~ParallelTracker
- */
-ParallelTracker::~ParallelTracker() {}
-
 void ParallelTracker::initializeSpaceChargeContainerActivity() {
     const auto& particleContainers = itsBunch_m->getParticleContainers();
     spaceChargeContainerActivity_m.assign(particleContainers.size(), 0);
@@ -128,7 +116,7 @@ void ParallelTracker::execute() {
 }
 
 bool ParallelTracker::startTracking() {
-    Inform m("ParallelTracker::execute");
+    Inform m("ParallelTracker::startTracking");
     // The reference start and pass may cross a MONITOR; only the step loop records.
     itsOpalBeamline_m.setMonitorsRecordReference(false);
     StepSizeConfig::ResumePosition restartPosition{0, 0};
@@ -143,7 +131,7 @@ bool ParallelTracker::startTracking() {
                                               std::numeric_limits<double>::min()});
             if (std::abs(configuredDt - restartDt_m) > tolerance) {
                 throw OpalException(
-                        "ParallelTracker::execute",
+                        "ParallelTracker::startTracking",
                         "restart input changes the time-step schedule at the checkpointed global "
                         "step");
             }
@@ -185,7 +173,7 @@ bool ParallelTracker::startTracking() {
             }
             if (!pc->getReference()) {
                 throw OpalException(
-                        "ParallelTracker::execute",
+                        "ParallelTracker::startTracking",
                         "Particle container has null PartData reference during lab-frame init.");
             }
             pc->setToLabTrafo(beamlineToLab);
@@ -231,7 +219,7 @@ bool ParallelTracker::startTracking() {
                 if (useSamplerMomentum) {
                     if (dot(samplerRefP, samplerRefP) <= 0.0) {
                         throw OpalException(
-                                "ParallelTracker::execute",
+                                "ParallelTracker::startTracking",
                                 "Sampler-provided initial reference momentum is zero.");
                     }
                     refP = samplerRefP;
@@ -350,7 +338,6 @@ bool ParallelTracker::startTracking() {
             *gmsg << level1 << "* Beam " << i << " is tracked until MAXSTEPS." << endl;
         }
     }
-    // wakeStatus_m       = false;
 
     stepSizes_m.printDirect(*gmsg);
 
@@ -366,7 +353,6 @@ void ParallelTracker::trackSteps() {
     Inform m("ParallelTracker::execute");
     BorisPusher pusher;
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    const size_t nContainers       = itsBunch_m->getNumParticleContainers();
 
     // The current global tracking step and the position within the step-size schedule.
     unsigned long long step  = itsBunch_m->getGlobalTrackStep();
@@ -409,8 +395,9 @@ void ParallelTracker::trackSteps() {
                 break;
             }
 
-            // Particle R and mesh are in the reference frame for the whole step except during
-            // solver-owned frame transformations inside computeSpaceChargeFields().
+            // Particle R and mesh are in the reference frame for the whole step except inside
+            // computeSpaceChargeFields() (the solve frame) and computeExternalFields() (each
+            // element's local frame, through a FrameScope).
 
             // Historical OPAL evaluated the self-field at R_n and carried the gathered
             // per-particle field through the first half drift. Keep this as an explicit
@@ -437,7 +424,7 @@ void ParallelTracker::trackSteps() {
             }
 
             // Emit particles in the reference frame with their own fractional timesteps.
-            // They experience external fields in their creation step.
+            // They experience external fields in their creation step, but no space charge.
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
@@ -483,9 +470,8 @@ void ParallelTracker::trackSteps() {
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
-            const auto& particleContainersStep = itsBunch_m->getParticleContainers();
-            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
-                const auto& pc = particleContainersStep[i];
+            for (size_t i = 0; i < particleContainers.size(); ++i) {
+                const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
@@ -495,7 +481,7 @@ void ParallelTracker::trackSteps() {
 
             // Every frame change of this step is closed: moments, output and the next step read
             // reference-frame data.
-            for (const auto& pc : particleContainersStep)
+            for (const auto& pc : particleContainers)
                 if (pc) pc->requireReferenceFrame("ParallelTracker::execute");
 
             // Enforce the transverse aperture of every nearby element (collective call).
@@ -516,9 +502,9 @@ void ParallelTracker::trackSteps() {
             // The outlier box and the outputs of this step read one computation per container,
             // unless particles are deleted in between.
             const double sigmas = options_m.boundpDestroy;
-            std::vector<opalx::moments::BeamMoments> stepMoments(particleContainersStep.size());
-            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
-                const auto& pc = particleContainersStep[i];
+            std::vector<opalx::moments::BeamMoments> stepMoments(particleContainers.size());
+            for (size_t i = 0; i < particleContainers.size(); ++i) {
+                const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
                     continue;
                 }
@@ -540,7 +526,7 @@ void ParallelTracker::trackSteps() {
                 deleteInvalidParticles(
                         true, m,
                         "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
-                stepMoments.assign(particleContainersStep.size(), {});
+                stepMoments.assign(particleContainers.size(), {});
             }
 
             // Dump phase space and statistics at configured intervals
@@ -549,9 +535,8 @@ void ParallelTracker::trackSteps() {
             if (options_m.printRankDistrFreq > 0
                 && (itsBunch_m->getGlobalTrackStep() % options_m.printRankDistrFreq) + 1
                            == options_m.printRankDistrFreq) {
-                const auto& containers = itsBunch_m->getParticleContainers();
-                for (size_t i = 0; i < containers.size(); ++i) {
-                    const auto& pc = containers[i];
+                for (size_t i = 0; i < particleContainers.size(); ++i) {
+                    const auto& pc = particleContainers[i];
                     if (!pc || !itsBunch_m->isPcActive(i)) {
                         continue;
                     }
@@ -704,9 +689,6 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
  * @copybrief ParallelTracker::timeIntegration2
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
-    // Legacy note: cathode transport/emission was sequenced after space charge so that
-    // the first step of newborn particles omits space-charges; multi-container emission
-    // is handled separately in execute().
     Inform m("ParallelTracker::timeIntegration2");
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
@@ -727,11 +709,6 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
-
-    // Put the update directly into pushParticles instead!...
-    // double newdT = itsBunch_m->getdT();
-    // itsBunch_m->getParticleContainer()->dt = newdT;
-    // m << "Update particle time step done." << endl;
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -950,7 +927,7 @@ size_t ParallelTracker::applyElementApertures() {
         const auto pc = itsBunch_m->getParticleContainer(ci);
         for (const auto& element : candidateElements(ci)) {
             // The check reads local positions in its kernel; the particles stay where they are.
-            // Marks are flushed by the single end-of-step deletion in execute().
+            // Marks are flushed by the single deletion at the end of the step.
             const auto toLocal = pc->frame().to(elementFrame(element, *pc)).rigid();
             localMarked += element->markOutsideAperture(pc, toLocal);
         }
@@ -994,7 +971,6 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());
-        // itsBunch_m->updateNumTotal(); // handled internally by ippl
 
         // Sanity guard: the total number of macroparticles in the bunch must
         // never exceed the globally configured BEAM::NALLOC value. Overshooting
@@ -1188,7 +1164,6 @@ void ParallelTracker::pushParticles(
 
     auto Rview = pc.R.getView();
     auto Pview = pc.P.getView();
-    // auto dtview = pc.dt.getView();
 
     Kokkos::parallel_for(
             "pushParticles", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
@@ -1202,8 +1177,6 @@ void ParallelTracker::pushParticles(
             });
 
     pc.switchOffUnitlessPositions();
-    // TODO: pc->update() changes results on single rank; keep disabled until investigated.
-    // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
 }
@@ -1217,7 +1190,6 @@ void ParallelTracker::kickParticles(
         const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc) {
     Inform m("ParallelTracker::kickParticles");
 
-    // auto Rview  = pc.R.getView();
     auto Pview  = pc.P.getView();
     auto dtview = pc.dt.getView();
     auto Efview = pc.E.getView();

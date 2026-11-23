@@ -21,7 +21,6 @@
 
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/ParallelTracker.h"
 
 #include "AbstractObjects/BeamSequence.h"
 

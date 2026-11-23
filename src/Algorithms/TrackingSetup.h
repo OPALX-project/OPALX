@@ -13,7 +13,6 @@
 
 #include "Algorithms/BeamStop.h"
 #include "Algorithms/CavityAutophaser.h"
-#include "Algorithms/Quaternion.hpp"
 #include "Algorithms/StepSizeConfig.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -23,7 +22,6 @@
 #include "Track/RunDescription.h"
 
 class DataSink;
-class ElementBase;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;

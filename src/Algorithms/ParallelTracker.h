@@ -1,6 +1,6 @@
 /**
  * @file ParallelTracker.h
- * @brief Visitor-based parallel tracker with time as the independent variable.
+ * @brief Parallel tracker with time as the independent variable.
  *
  * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI,
  * Switzerland
@@ -26,49 +26,23 @@
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/TrackingSetup.h"
 #include "Steppers/BorisPusher.h"
-#include "Steppers/SpinTBMTPusher.h"
-#include "Structure/DataSink.h"
 
 #include "Moments/BeamMoments.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
-#include "BasicActions/Option.h"
-#include "Utilities/Options.h"
-
-#include "Physics/Physics.h"
-
 #include "Algorithms/BeamStop.h"
-#include "Algorithms/GeneralElementMapping.h"
 
-#include "AbsBeamline/Box.h"
-#include "AbsBeamline/Collimator.h"
-#include "AbsBeamline/ConstantEFieldCavity.h"
-#include "AbsBeamline/ConstantFocusing.h"
-#include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FieldmapElement.h"
-#include "AbsBeamline/Laser.h"
-#include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Monitor.h"
-#include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/VariableRFCavity.h"
-#include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
 #include <functional>
-#include <list>
 #include <memory>
-#include <set>
-#include <tuple>
+#include <span>
 #include <vector>
+
+class DataSink;
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -77,8 +51,7 @@ namespace opalx::spacecharge {
 /**
  * @brief Implements the main time-based simulation loop for parallel tracking.
  *
- * @note TRACK and RUN in the input file construct a ParallelTracker and run
- *       ParallelTracker::execute().
+ * @note RUN in the input file constructs a ParallelTracker and runs ParallelTracker::execute().
  */
 class ParallelTracker {
 private:
@@ -108,7 +81,7 @@ private:
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
-    OpalBeamline itsOpalBeamline_m;     ///< Cloned field elements and coordinate transforms.
+    OpalBeamline itsOpalBeamline_m;     ///< Tracked field elements and coordinate transforms.
     bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
     std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     double sStart_m;                    ///< Path-length start position for the track (m).
@@ -138,9 +111,6 @@ public:
      * @param setup Everything buildTracking() built for this RUN; setup.bunch must be set.
      */
     explicit ParallelTracker(TrackingSetup setup);
-
-    /// @brief Destructor; releases tracker resources.
-    virtual ~ParallelTracker();
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     void execute();
@@ -236,7 +206,8 @@ private:
         double fraction = 1.0;
     };
 
-    /// @brief Build stable native particle and field identities once.
+    /// @brief Size the per-container space-charge activity flags.
+    /// @throws OpalException if a particle container is null.
     void initializeSpaceChargeContainerActivity();
 
     /// @brief The requested solve frame, from the primary container's moments. Collective

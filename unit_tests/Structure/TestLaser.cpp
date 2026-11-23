@@ -1,5 +1,4 @@
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/ParallelTracker.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/LaserRep.h"
 #include "BeamlineCore/RBendRep.h"
