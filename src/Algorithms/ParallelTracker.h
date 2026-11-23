@@ -77,14 +77,6 @@ private:
     /// The step loop and the final output; startTracking() must have returned true.
     void trackSteps();
 
-    /// What applyStopRules() decided after a step.
-    struct StopRules {
-        /// The primary reference reached the sStop of its DT segment.
-        bool switchSegment = false;
-        /// Every beam with a ZSTOP is done, or a reference particle hit an element.
-        bool runFinished = false;
-    };
-
     /**
      * @brief Start a DT segment: its time step, the container activity, the emitting containers
      *        and the beams already stopped.
@@ -116,10 +108,6 @@ private:
      *         (@p psDump, @p statDump) read; all empty if particles were deleted.
      */
     std::vector<opalx::moments::BeamMoments> removeLostParticles(bool psDump, bool statDump);
-
-    /// @brief DT segment switch, ZSTOP planes, finished beams and a reference that hit an element;
-    ///        prints why the run ends. Collective.
-    StopRules applyStopRules();
 
     /**
      * @brief Write a checkpoint every CHECKPOINTFREQ global steps, with the schedule position the
@@ -160,11 +148,6 @@ private:
 
     /// @brief Apply external fields from elements intersecting each active container.
     void computeExternalFields();
-
-    // --- Particle loss and beam stops ---
-
-    /// @brief Mark a beam done once every particle has passed its stop plane (collective call).
-    void updateBeamStops();
 
     // --- Output ---
 
@@ -216,10 +199,10 @@ private:
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
-    OpalBeamline itsOpalBeamline_m;     ///< Tracked field elements and coordinate transforms.
-    std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
-    double sStart_m;                    ///< Path-length start position for the track (m).
-    double globalPhaseShift_m;          ///< A fresh run starts this long before t = 0 (s).
+    OpalBeamline itsOpalBeamline_m;  ///< Tracked field elements and coordinate transforms.
+    BeamStops beamStops_m;           ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
+    double sStart_m;                 ///< Path-length start position for the track (m).
+    double globalPhaseShift_m;       ///< A fresh run starts this long before t = 0 (s).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;

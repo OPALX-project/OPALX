@@ -1,5 +1,6 @@
 set (_SRCS
     AbstractTimeDependence.cpp
+    BeamStop.cpp
     BunchReference.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp

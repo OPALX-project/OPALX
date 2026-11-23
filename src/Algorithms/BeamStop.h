@@ -1,6 +1,7 @@
 //
 // Header BeamStop
-//   When a beam stops being tracked: its ZSTOP plane and its UNTILMAXSTEPS flag.
+//   When a beam stops being tracked: its ZSTOP plane and its UNTILMAXSTEPS flag, and the stop
+//   rules of a run.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -23,9 +24,13 @@
 #include <Kokkos_Core.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <optional>
+#include <utility>
 #include <vector>
+
+class StepSizeConfig;
 
 /**
  * @brief Stopping state of one beam (one particle container) on a LINE.
@@ -110,5 +115,50 @@ namespace beam_stop {
     }
 
 }  // namespace beam_stop
+
+/**
+ * @brief The stop rules of a run: the DT segment switch of the primary reference, the ZSTOP
+ *        plane of each beam, the beams that are done and the end of the run.
+ *
+ * Owns one BeamStop per container (from the input, with the planes and done flags of a
+ * checkpoint); reads the bunch and the step-size schedule the tracker passes in.
+ */
+class BeamStops {
+public:
+    /// What applyStopRules() decided after a step.
+    struct StopRules {
+        /// The primary reference reached the sStop of its DT segment.
+        bool switchSegment = false;
+        /// Every beam with a ZSTOP is done, or a reference particle hit an element.
+        bool runFinished = false;
+    };
+
+    explicit BeamStops(std::vector<BeamStop> stops) : stops_m(std::move(stops)) {}
+
+    /// Keep one stop per container and print when each beam stops.
+    void announce(std::size_t nContainers);
+
+    /// Keep the containers of the beams that are done stopped, e.g. in a new DT segment.
+    void keepDoneBeamsStopped(PartBunch_t& bunch) const;
+
+    /**
+     * @brief After a step: the DT segment switch of the primary reference, the ZSTOP planes the
+     *        references reached, the beams whose last particle passed their plane, and whether
+     *        the run ends, with the messages that say why. Collective.
+     * @param referenceHit Whether a reference particle hit an element on this rank; reduced over
+     *        the ranks here.
+     */
+    StopRules applyStopRules(
+            PartBunch_t& bunch, const StepSizeConfig& stepSizes, bool referenceHit);
+
+    /// Per container, for the checkpoint.
+    [[nodiscard]] const std::vector<BeamStop>& stops() const { return stops_m; }
+
+private:
+    /// Mark a beam done once every particle has passed its stop plane. Collective.
+    void updateBeamStops(PartBunch_t& bunch);
+
+    std::vector<BeamStop> stops_m;
+};
 
 #endif  // OPALX_BEAM_STOP_H
