@@ -22,8 +22,6 @@ add_opalx_test(TestBorisMidpoint USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitInitialState USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitSolver USE_GTEST_MAIN)
 add_opalx_test(TestLinearMapEigenAnalysis USE_GTEST_MAIN)
-add_opalx_test(TestDistributionMoments USE_GTEST_MAIN)
-add_opalx_test(TestFFT2D5NoOpTransforms USE_GTEST_MAIN)
 add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN)
 
 add_opalx_test(TestCyclotronProbe USE_GTEST_MAIN)

@@ -369,7 +369,6 @@ void OpalFlatTop::generateLocalParticles(
                 Rview(j)[2] += p[2] * drift;
             });
     Kokkos::fence();
-    pc_m->markMomentsDirty();
 }
 
 void OpalFlatTop::setBirthTimesForTest(std::vector<double> birthTimes) {

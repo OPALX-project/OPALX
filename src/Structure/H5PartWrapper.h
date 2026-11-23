@@ -9,6 +9,7 @@
   H5PartWrapper: a class that manages calls to H5Part
 */
 
+#include "Moments/BeamMoments.h"
 #include "OPALTypes.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
@@ -51,9 +52,10 @@ public:
     virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
     virtual void writeHeader() = 0;
+    /// @param moments Snapshot of the container written, holding the groups the format reads.
     virtual void writeStep(
-            PartBunch_t*, const std::map<std::string, double>&,
-            size_t particleContainerIndex = 0) = 0;
+            PartBunch_t*, const opalx::moments::BeamMoments& moments,
+            const std::map<std::string, double>&, size_t particleContainerIndex = 0) = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
 

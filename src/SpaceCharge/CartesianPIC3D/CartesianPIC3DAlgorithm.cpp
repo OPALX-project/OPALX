@@ -184,11 +184,7 @@ namespace opalx::spacecharge {
 
             leaveSolveFrame(context.stepState().frames, *primary_m);
         }
-        if (fixedDomain) {
-            // Retain the beam-frame layout for reuse and refresh the restored primary moments.
-            primary_m->markMomentsDirty();
-            primary_m->updateMoments();
-        } else {
+        if (!fixedDomain) {
             result.redistributions += domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Reference, context, plan.activeDirichletPlane, nullptr,
                     *fieldStorage_m, *poissonSolver_m);

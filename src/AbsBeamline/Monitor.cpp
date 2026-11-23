@@ -22,6 +22,7 @@
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
 #include "Structure/MonitorStatisticsWriter.h"
 #include "Utilities/Options.h"

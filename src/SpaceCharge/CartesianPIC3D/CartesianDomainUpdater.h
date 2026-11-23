@@ -69,7 +69,6 @@ namespace opalx::spacecharge {
          * CartesianDomain::largestFittingOverlapCutoff().
          */
         void updateLayoutsAndMigrate(FieldStorage& fieldStorage, DomainCoordinateFrame frame);
-        void updateMoments(bool primaryOnly);
         [[nodiscard]] bool isRedistributionBlocked(
                 std::span<const std::uint8_t> trackingActive) const;
         [[nodiscard]] bool loadIsImbalanced(double threshold);

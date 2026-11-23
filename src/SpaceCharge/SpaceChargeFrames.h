@@ -29,7 +29,6 @@ namespace opalx::spacecharge {
         if (particles.hasSpin()) {
             frames.trackerToSolve.rotateBunchTo(particles.Pol.getView(), particles.getLocalNum());
         }
-        particles.markMomentsDirty();
     }
 
     /** @brief Restore R/P and rotate computed E/B to tracker axes; this is not a Lorentz boost. */

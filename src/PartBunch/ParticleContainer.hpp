@@ -18,7 +18,6 @@
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/CyclotronProbe.h"
-#include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
@@ -278,7 +277,6 @@ public:
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
                                            : QMStorageMode::SingleValue),
-          distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1),
           spinEnabled_m(spinEnabled) {
@@ -332,7 +330,6 @@ public:
         if (spinEnabled_m) {
             trafo.rotateBunchTo(this->Pol.getView(), nLoc);
         }
-        markMomentsDirty();
     }
     SpatialLayout_t& getPL() {
         return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
@@ -393,138 +390,9 @@ public:
         // no back-reference to the handler is needed. The handler itself
         // manages bunch-wide state, which ParticleContainer never touches.
         containerState_m = handler->registerContainer();
-        distMoments_m.setContainerState(containerState_m);
     }
-
-    // -- per-container state pass-throughs --------------------------------
-    // Thin wrappers around the slot's own API so callers don't need to reach
-    // into `containerState_m` directly.
 
     bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
-
-    bool isMomentsDirty() const { return containerState_m->momentsDirty; }
-    void markMomentsDirty() { containerState_m->markMomentsDirty(); }
-    void markMomentsClean() { containerState_m->markMomentsClean(); }
-
-    /// FFT2D5-only reduction policy; other solver selections restore the default dense path.
-    void setCompactSymmetricMoments(bool enabled) {
-        distMoments_m.setCompactSymmetricReduction(enabled);
-    }
-    bool usesCompactSymmetricMoments() const {
-        return distMoments_m.usesCompactSymmetricReduction();
-    }
-
-    void updateMoments() {
-        /*
-        Quick check that this container was registered with a BunchStateHandler. If not, throw an
-        error. This seems to be an easy to make error when interacting (e.g. through unit tests)
-        with the ParticleContainer.
-        */
-        if (!containerState_m) {
-            throw OpalException(
-                    "ParticleContainer::updateMoments",
-                    "BunchStateHandler not set in ParticleContainer (containerState is null).");
-        }
-
-        size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
-                                  // division by zero
-
-        size_t Nlocal = this->getLocalNum();
-
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
-
-        if (spinEnabled_m) {
-            distMoments_m.computePolarizationMoments(Pol.getView(), Np, Nlocal);
-        }
-    }
-
-    void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
-        distMoments_m.setEnergyReferenceMass(referenceMassGeV, rescaleToReference);
-    }
-
-    Vector_t<double, 3> getMeanP() const { return distMoments_m.getMeanMomentum(); }
-
-    Vector_t<double, 3> getRmsP() const { return distMoments_m.getStandardDeviationMomentum(); }
-
-    Vector_t<double, 3> getRestFrameTemperature() const {
-        return distMoments_m.getRestFrameTemperature();
-    }
-
-    Vector_t<double, 3> getMeanR() const { return distMoments_m.getMeanPosition(); }
-
-    Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
-
-    Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
-
-    /// Mean polarization vector across the bunch: $\langle \vec P \rangle$.
-    /// Returns the zero vector when the container does not track spin (the
-    /// moments are then never computed and stay zeroed by reset()).
-    Vector_t<double, 3> getMeanPol() const { return distMoments_m.getMeanPolarization(); }
-
-    /// Per-component RMS of the polarization vector across the bunch.
-    /// Defined as $\sqrt{\langle P_i^2\rangle - \langle P_i\rangle^2}$. Returns
-    /// the zero vector when the container does not track spin.
-    Vector_t<double, 3> getRmsPol() const {
-        return distMoments_m.getStandardDeviationPolarization();
-    }
-
-    /// Magnitude of the mean polarization vector, $|\langle \vec P \rangle|$.
-    /// This is the standard depolarization observable — distinct from
-    /// $\langle |\vec P|\rangle$.
-    double getMeanPolMagnitude() const {
-        const Vector_t<double, 3> mean = getMeanPol();
-        return Kokkos::sqrt(mean[0] * mean[0] + mean[1] * mean[1] + mean[2] * mean[2]);
-    }
-
-    void computeMinMaxR() {
-        size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeMinMaxPosition(this->R.getView(), Nlocal);
-    }
-
-    Vector_t<double, 3> getMinR() const { return distMoments_m.getMinPosition(); }
-
-    Vector_t<double, 3> getMaxR() const { return distMoments_m.getMaxPosition(); }
-
-    matrix6x6_t getCovMatrix() const { return distMoments_m.getMoments6x6(); }
-
-    double getMeanKineticEnergy() const { return distMoments_m.getMeanKineticEnergy(); }
-
-    double getStdKineticEnergy() const { return distMoments_m.getStdKineticEnergy(); }
-
-    Vector_t<double, 6> getMeans() const { return distMoments_m.getMeans(); }
-
-    Vector_t<double, 6> getCentroid() const { return distMoments_m.getCentroid(); }
-
-    Vector_t<double, 3> getNormEmit() const { return distMoments_m.getNormalizedEmittance(); }
-
-    Vector_t<double, 3> getGeometricEmit() const { return distMoments_m.getGeometricEmittance(); }
-
-    double getDx() const { return distMoments_m.getDx(); }
-
-    double getDDx() const { return distMoments_m.getDDx(); }
-
-    double getDy() const { return distMoments_m.getDy(); }
-
-    double getDDy() const { return distMoments_m.getDDy(); }
-
-    double getDebyeLength() const { return distMoments_m.getDebyeLength(); }
-
-    double getMeanGammaZ() const { return distMoments_m.getMeanGammaZ(); }
-
-    double getTemperature() const { return distMoments_m.getTemperature(); }
-
-    double getPlasmaParameter() const { return distMoments_m.getPlasmaParameter(); }
-
-    double computeDebyeLength(double density) {
-        size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
-                                  // division by zero
-
-        size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeDebyeLength(this->P.getView(), Np, Nlocal, density);
-        return distMoments_m.getDebyeLength();
-    }
 
     /**
      * @brief Set particle charge for the active Q storage mode.
@@ -627,13 +495,7 @@ public:
     void setRefPartP(const Vector_t<double, Dim>& refPartP) { refPartP_m = refPartP; }
 
     /// @brief Set reference particle data.
-    void setReference(const PartData* ref) {
-        reference_m = ref;
-        if (reference_m) {
-            // PartData mass is stored in eV; DistributionMoments expects GeV.
-            setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
-        }
-    }
+    void setReference(const PartData* ref) { reference_m = ref; }
 
     /// @brief Get reference particle data.
     const PartData* getReference() const { return reference_m; }
@@ -840,36 +702,18 @@ public:
     }
 
     /**
-     * @brief Mark particles whose position is more than sigmasAway standard deviations
-     *        from the bunch mean in any spatial dimension.
+     * @brief Mark particles whose position lies outside the box [@p lower, @p upper].
      *
-     * Recomputes distribution moments, then ORs the outlier decision into
-     * InvalidMask. Deletion is intentionally deferred to deleteInvalidParticles().
+     * ORs the outside decision into InvalidMask; deletion is deferred to deleteInvalidParticles().
+     * Collective.
      *
-     * @param sigmasAway Number of standard deviations defining the boundary.
      * @return Global number of newly marked particles (across all MPI ranks).
      */
-    size_type markParticlesOutside(double sigmasAway) {
-        size_type nLocal = this->getLocalNum();
-
-        if (nLocal == 0 && this->getTotalNum() == 0) return 0;
-        if (sigmasAway <= 0.0) return 0;
-
-        // Force fresh moments: cached values may not reflect the exact particle state at this
-        // point because emission or migration can shift R between statistics updates.
-        // Safety-critical deletion always recomputes.
-        markMomentsDirty();
-        updateMoments();
-
-        Vector_t<double, Dim> meanR = getMeanR();
-        Vector_t<double, Dim> rmsR  = getRmsR();
-
-        double lb0 = meanR[0] - sigmasAway * rmsR[0];
-        double lb1 = meanR[1] - sigmasAway * rmsR[1];
-        double lb2 = meanR[2] - sigmasAway * rmsR[2];
-        double ub0 = meanR[0] + sigmasAway * rmsR[0];
-        double ub1 = meanR[1] + sigmasAway * rmsR[1];
-        double ub2 = meanR[2] + sigmasAway * rmsR[2];
+    size_type markParticlesOutside(
+            const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper) {
+        const size_type nLocal = this->getLocalNum();
+        const double lb0 = lower[0], lb1 = lower[1], lb2 = lower[2];
+        const double ub0 = upper[0], ub1 = upper[1], ub2 = upper[2];
 
         auto invalid = InvalidMask.getView();
         auto Rview   = this->R.getView();
@@ -1099,11 +943,6 @@ public:
         // destroy edits the InvalidMask while using it is not a problem.
         Base::destroy(invalid, localDestroyNum);
 
-        // Mark moments dirty only if there were changes globally.
-        if (globalDestroyNum > 0) {
-            markMomentsDirty();
-        }
-
         // Reset particle mask after deletion.
         InvalidMask = false;
         Kokkos::fence();
@@ -1123,8 +962,6 @@ private:
     std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
-
-    DistributionMoments distMoments_m;
 
     /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
     /// Owned here as the only strong reference; the handler keeps a weak_ptr, so

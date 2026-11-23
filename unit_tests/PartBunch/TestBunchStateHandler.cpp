@@ -29,7 +29,6 @@ TEST_F(BunchStateHandlerTest, RegisterContainerReturnsFreshSlot) {
     auto s = h.registerContainer();
     ASSERT_TRUE(s);
     EXPECT_FALSE(s->unitlessPositions);
-    EXPECT_TRUE(s->momentsDirty);  // default is dirty so first compute runs
 }
 
 TEST_F(BunchStateHandlerTest, UnitlessPositionsToggle) {
@@ -42,47 +41,22 @@ TEST_F(BunchStateHandlerTest, UnitlessPositionsToggle) {
     EXPECT_FALSE(s->unitlessPositions);
 }
 
-TEST_F(BunchStateHandlerTest, MomentsDirtyLifecycle) {
-    BunchStateHandler h;
-    auto s = h.registerContainer();
-
-    // Starts dirty
-    EXPECT_TRUE(s->momentsDirty);
-
-    s->markMomentsClean();
-    EXPECT_FALSE(s->momentsDirty);
-
-    s->markMomentsDirty();
-    EXPECT_TRUE(s->momentsDirty);
-
-    s->markMomentsClean();
-    EXPECT_FALSE(s->momentsDirty);
-
-    // Multiple marks are idempotent
-    s->markMomentsDirty();
-    s->markMomentsDirty();
-    EXPECT_TRUE(s->momentsDirty);
-}
-
 TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
     BunchStateHandler h;
     auto a = h.registerContainer();
     auto b = h.registerContainer();
     ASSERT_NE(a.get(), b.get());
 
-    a->markMomentsClean();
-    b->markMomentsClean();
-
-    // Marking only `a` dirty must not affect `b`.
-    a->markMomentsDirty();
-    EXPECT_TRUE(a->momentsDirty);
-    EXPECT_FALSE(b->momentsDirty);
+    // Switching only `a` must not affect `b`.
+    a->setUnitlessPositions(true);
+    EXPECT_TRUE(a->unitlessPositions);
+    EXPECT_FALSE(b->unitlessPositions);
 
     // And vice-versa.
-    a->markMomentsClean();
-    b->markMomentsDirty();
-    EXPECT_FALSE(a->momentsDirty);
-    EXPECT_TRUE(b->momentsDirty);
+    a->setUnitlessPositions(false);
+    b->setUnitlessPositions(true);
+    EXPECT_FALSE(a->unitlessPositions);
+    EXPECT_TRUE(b->unitlessPositions);
 }
 
 TEST_F(BunchStateHandlerTest, SlotLifetimeFollowsCallerOwnership) {
@@ -145,17 +119,14 @@ TEST_F(BunchStateHandlerTest, FixedCartesianDomainIsIndependentOfContainerFlags)
     BunchStateHandler h;
     auto first  = h.registerContainer();
     auto second = h.registerContainer();
-    first->markMomentsClean();
     second->setUnitlessPositions(true);
 
     h.setFixedCartesianDomain({-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0});
-    EXPECT_FALSE(first->momentsDirty);
     EXPECT_FALSE(first->unitlessPositions);
-    EXPECT_TRUE(second->momentsDirty);
     EXPECT_TRUE(second->unitlessPositions);
 
     h.clearFixedCartesianDomain();
-    EXPECT_FALSE(first->momentsDirty);
+    EXPECT_FALSE(first->unitlessPositions);
     EXPECT_TRUE(second->unitlessPositions);
 }
 
@@ -163,50 +134,6 @@ TEST_F(BunchStateHandlerTest, FixedCartesianDomainIsIndependentOfContainerFlags)
 // Aggressive-sync tests: require >1 MPI rank to actually exercise divergence.
 // With a single rank the allreduce is a no-op and proves nothing, so skip.
 // -----------------------------------------------------------------------------
-
-TEST_F(BunchStateHandlerTest, AggressiveSync_MomentsDirty_OrAcrossRanks) {
-    if (ippl::Comm->size() < 2) {
-        GTEST_SKIP() << "Requires at least 2 MPI ranks to exercise divergent setter calls.";
-    }
-
-    Options::aggressiveStateSync = true;
-    BunchStateHandler h;
-    auto s = h.registerContainer();
-    s->markMomentsClean();  // sync'd clear: all ranks agree false -> false
-    ASSERT_FALSE(s->momentsDirty);
-
-    // Only rank 0 marks dirty; logical_or should propagate to every rank.
-    if (ippl::Comm->rank() == 0) {
-        s->markMomentsDirty();
-    } else {
-        // Non-zero ranks must also call a setter so they participate in the
-        // collective. Clearing locally; the OR with rank 0's "true" wins.
-        s->markMomentsClean();
-    }
-    EXPECT_TRUE(s->momentsDirty);
-}
-
-TEST_F(BunchStateHandlerTest, AggressiveSync_ClearOnlyWhenAllAgree) {
-    if (ippl::Comm->size() < 2) {
-        GTEST_SKIP() << "Requires at least 2 MPI ranks to exercise divergent setter calls.";
-    }
-
-    Options::aggressiveStateSync = true;
-    BunchStateHandler h;
-    auto s = h.registerContainer();
-    s->markMomentsDirty();
-    ASSERT_TRUE(s->momentsDirty);
-
-    // rank 0 -> markMomentsClean passes `false`
-    // rank i -> markMomentsDirty  passes `true`
-    // => OR == true => every rank stays dirty, including rank 0.
-    if (ippl::Comm->rank() == 0) {
-        s->markMomentsClean();
-    } else {
-        s->markMomentsDirty();
-    }
-    EXPECT_TRUE(s->momentsDirty);
-}
 
 TEST_F(BunchStateHandlerTest, AggressiveSync_UnitlessPositionsConverge) {
     if (ippl::Comm->size() < 2) {
@@ -232,14 +159,9 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {
     Options::aggressiveStateSync = false;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    s->markMomentsClean();
-    ASSERT_FALSE(s->momentsDirty);
 
-    // Only rank 0 marks dirty; with sync off, other ranks must stay clean.
-    if (ippl::Comm->rank() == 0) {
-        s->markMomentsDirty();
-        EXPECT_TRUE(s->momentsDirty);
-    } else {
-        EXPECT_FALSE(s->momentsDirty);
-    }
+    // Only rank 0 switches; with sync off, other ranks keep physical positions.
+    const bool isFirst = ippl::Comm->rank() == 0;
+    s->setUnitlessPositions(isFirst);
+    EXPECT_EQ(s->unitlessPositions, isFirst);
 }

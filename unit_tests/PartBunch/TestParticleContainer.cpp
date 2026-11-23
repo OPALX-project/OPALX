@@ -5,8 +5,6 @@
  * Covers:
  * - Charge / mass storage in both `SingleValue` and `Attributes` QM modes.
  * - Round-trip `scaleDtByCharge` / `unscaleDtByCharge` in both QM modes.
- * - Moment computation stability (empty and known-data cases).
- * - Min / max position computation.
  * - `markParticlesOutside` and `deleteInvalidParticles` mask-driven deletion.
  * - Propagation of periodic and open boundary conditions to the P3M overlap layout.
  * - Rotation of `Pol` together with `P` in every frame change (`transformBunch`,
@@ -27,6 +25,7 @@
 #include <vector>
 
 #include "Ippl.h"
+#include "Moments/BeamMoments.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/SpaceChargeFrames.h"
 #include "Utilities/Options.h"
@@ -238,117 +237,18 @@ namespace {
     }
 
     // ================================================================
-    // Moments & MinMax – empty container (no NaN / crash)
+    // markParticlesOutside - box edge cases
     // ================================================================
 
-    TEST_F(ParticleContainerTest, MomentsAndMinMax_EmptyContainer_NoNaN) {
+    TEST_F(ParticleContainerTest, MarkParticlesOutside_BoxContainingAll_MarksNone) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
-        ASSERT_EQ(pc->getLocalNum(), 0u);
-
-        pc->updateMoments();
-        pc->computeMinMaxR();
-
-        auto meanR = pc->getMeanR();
-        auto rmsR  = pc->getRmsR();
-        auto minR  = pc->getMinR();
-        auto maxR  = pc->getMaxR();
-
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_TRUE(std::isfinite(meanR[d])) << "meanR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(rmsR[d])) << "rmsR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(minR[d])) << "minR[" << d << "]";
-            EXPECT_TRUE(std::isfinite(maxR[d])) << "maxR[" << d << "]";
-            EXPECT_LE(minR[d], maxR[d]) << "min > max at dim " << d;
-        }
-    }
-
-    // ================================================================
-    // Moments – known symmetric data → mean ≈ 0, rms ≈ 1
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, Moments_KnownSymmetricData) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions;
-        if (ippl::Comm->rank() == 0) {
-            positions = {{1.0, 1.0, 1.0}, {-1.0, -1.0, -1.0}, {1.0, -1.0, 1.0}, {-1.0, 1.0, -1.0}};
-        }
+        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}, {{1.0, -1.0, 2.0}}};
         createParticlesAt(pc, positions);
-        pc->setM(1.0);
-
-        pc->updateMoments();
-
-        auto meanR = pc->getMeanR();
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_NEAR(meanR[d], 0.0, 1e-14) << "meanR[" << d << "]";
-        }
-
-        auto rmsR = pc->getRmsR();
-        for (unsigned d = 0; d < 3; ++d) {
-            EXPECT_NEAR(rmsR[d], 1.0, 1e-14) << "rmsR[" << d << "]";
-        }
-    }
-
-    // ================================================================
-    // MinMax R – known particle positions
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, MinMaxR_KnownPositions) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions;
-        if (ippl::Comm->rank() == 0) {
-            positions = {{1.0, 2.0, 3.0}, {-0.5, -1.5, 0.0}, {0.0, 0.0, -2.0}};
-        }
-        createParticlesAt(pc, positions);
-
-        pc->computeMinMaxR();
-
-        auto minR = pc->getMinR();
-        auto maxR = pc->getMaxR();
-
-        EXPECT_NEAR(minR[0], -0.5, 1e-14);
-        EXPECT_NEAR(minR[1], -1.5, 1e-14);
-        EXPECT_NEAR(minR[2], -2.0, 1e-14);
-
-        EXPECT_NEAR(maxR[0], 1.0, 1e-14);
-        EXPECT_NEAR(maxR[1], 2.0, 1e-14);
-        EXPECT_NEAR(maxR[2], 3.0, 1e-14);
-    }
-
-    // ================================================================
-    // markParticlesOutside – edge cases
-    // ================================================================
-
-    TEST_F(ParticleContainerTest, MarkParticlesOutside_NegativeSigma_ReturnsZero) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
-        createParticlesAt(pc, positions);
-        pc->setM(1.0);
 
         size_t localBefore = pc->getLocalNum();
-        auto marked        = pc->markParticlesOutside(-1.0);
-
-        EXPECT_EQ(marked, 0u);
-        EXPECT_EQ(pc->getLocalNum(), localBefore);
-    }
-
-    TEST_F(ParticleContainerTest, MarkParticlesOutside_ZeroSigma_ReturnsZero) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
-        createParticlesAt(pc, positions);
-        pc->setM(1.0);
-
-        size_t localBefore = pc->getLocalNum();
-        auto marked        = pc->markParticlesOutside(0.0);
+        auto marked = pc->markParticlesOutside(Vector_t<double, 3>(-3.0), Vector_t<double, 3>(3.0));
 
         EXPECT_EQ(marked, 0u);
         EXPECT_EQ(pc->getLocalNum(), localBefore);
@@ -359,7 +259,7 @@ namespace {
         auto pc                  = makeContainer();
 
         ASSERT_EQ(pc->getLocalNum(), 0u);
-        auto marked = pc->markParticlesOutside(3.0);
+        auto marked = pc->markParticlesOutside(Vector_t<double, 3>(-1.0), Vector_t<double, 3>(1.0));
         EXPECT_EQ(marked, 0u);
     }
 
@@ -388,8 +288,13 @@ namespace {
         createParticlesAt(pc, positions);
         pc->setM(1.0);
 
-        size_t totalBefore = pc->getTotalNum();
-        auto marked        = pc->markParticlesOutside(2.0);
+        // The 2-sigma box the tracker builds for BOUNDPDESTROY.
+        const auto moments = opalx::moments::compute(
+                *pc, opalx::moments::Moment::MeanPosition | opalx::moments::Moment::Spread);
+        const Vector_t<double, 3> halfWidth = 2.0 * moments.rmsR();
+        size_t totalBefore                  = pc->getTotalNum();
+        auto marked =
+                pc->markParticlesOutside(moments.meanR() - halfWidth, moments.meanR() + halfWidth);
 
         EXPECT_EQ(marked, 1u);
 
@@ -398,63 +303,6 @@ namespace {
 
         size_t totalAfter = pc->getTotalNum();
         EXPECT_EQ(totalAfter + destroyed, totalBefore);
-    }
-
-    TEST_F(ParticleContainerTest, DeferredMomentsPreserveNearThresholdLossesAndSurvivorStatistics) {
-        Options::useQMAttributes = false;
-        for (double offset : {-1.e-10, 1.e-10}) {
-            auto eager    = makeContainer();
-            auto deferred = makeContainer();
-            // Compare dense/eager with FFT2D5 compact/deferred, including an empty MPI rank.
-            deferred->setCompactSymmetricMoments(true);
-            const std::vector<std::array<double, 3>> positions =
-                    ippl::Comm->rank() == 0
-                            ? std::vector<std::array<double, 3>>{{-0.1, 0., 0.},  {0.1, 0., 0.},
-                                                                 {-0.05, 0., 0.}, {0.05, 0., 0.},
-                                                                 {0., 0., 0.},    {1.5, 0., 0.}}
-                            : std::vector<std::array<double, 3>>{};
-            for (auto pc : {eager, deferred}) {
-                pc->createParticles(positions.size());
-                auto initialR = pc->R.getHostMirror();
-                for (size_t i = 0; i < positions.size(); ++i)
-                    initialR(i) =
-                            Vector_t<double, 3>(positions[i][0], positions[i][1], positions[i][2]);
-                Kokkos::deep_copy(pc->R.getView(), initialR);
-                Kokkos::deep_copy(pc->P.getView(), Vector_t<double, 3>(0., 0., 0.1));
-                Kokkos::deep_copy(pc->dt.getView(), 1.e-12);
-                pc->setM(1.0);
-                pc->markMomentsDirty();
-                pc->updateMoments();
-                auto r = pc->R.getHostMirror();
-                Kokkos::deep_copy(r, pc->R.getView());
-                if (pc->getLocalNum() > 0) r(pc->getLocalNum() - 1)[0] = 3.5;
-                Kokkos::deep_copy(pc->R.getView(), r);
-                pc->markMomentsDirty();
-            }
-            eager->updateMoments();
-            const double sigma = (3.5 - eager->getMeanR()[0]) / eager->getRmsR()[0] * (1. + offset);
-            EXPECT_TRUE(deferred->isMomentsDirty());
-            const auto expected = eager->markParticlesOutside(sigma);
-            EXPECT_EQ(expected, offset < 0 ? 1u : 0u);
-            EXPECT_EQ(deferred->markParticlesOutside(sigma), expected);
-            EXPECT_FALSE(deferred->isMomentsDirty());
-            auto expectedMask = Kokkos::create_mirror_view_and_copy(
-                    Kokkos::HostSpace(), eager->InvalidMask.getView());
-            auto actualMask = Kokkos::create_mirror_view_and_copy(
-                    Kokkos::HostSpace(), deferred->InvalidMask.getView());
-            for (size_t i = 0; i < eager->getLocalNum(); ++i)
-                EXPECT_EQ(actualMask(i), expectedMask(i));
-            EXPECT_EQ(eager->deleteInvalidParticles(), expected);
-            EXPECT_EQ(deferred->deleteInvalidParticles(), expected);
-            eager->updateMoments();
-            deferred->updateMoments();
-            EXPECT_EQ(eager->getTotalNum(), deferred->getTotalNum());
-            for (size_t i = 0; i < 6; ++i) {
-                EXPECT_EQ(eager->getMeans()[i], deferred->getMeans()[i]);
-                for (size_t j = 0; j < 6; ++j)
-                    EXPECT_EQ(eager->getCovMatrix()(i, j), deferred->getCovMatrix()(i, j));
-            }
-        }
     }
 
     // ================================================================

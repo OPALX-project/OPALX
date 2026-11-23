@@ -303,50 +303,51 @@ void H5PartWrapperForPT::writeHeader() {
 }
 
 void H5PartWrapperForPT::writeStep(
-        PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+        PartBunch_t* bunch, const opalx::moments::BeamMoments& moments,
+        const std::map<std::string, double>& additionalStepAttributes,
         size_t particleContainerIndex) {
     auto pc = bunch->getParticleContainer(particleContainerIndex);
     if (!pc || pc->getTotalNum() == 0) return;
 
     IpplTimings::startTimer(h5TotalStepTimer_m);
     open(H5_O_APPENDONLY);
-    pc->updateMoments();
-    writeStepHeader(bunch, additionalStepAttributes, particleContainerIndex);
+    writeStepHeader(bunch, moments, additionalStepAttributes, particleContainerIndex);
     writeStepData(bunch, particleContainerIndex);
     close();
     IpplTimings::stopTimer(h5TotalStepTimer_m);
 }
 
 void H5PartWrapperForPT::writeStepHeader(
-        PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+        PartBunch_t* bunch, const opalx::moments::BeamMoments& moments,
+        const std::map<std::string, double>& additionalStepAttributes,
         size_t particleContainerIndex) {
     IpplTimings::startTimer(h5StepHeaderTimer_m);
     auto pc                      = bunch->getParticleContainer(particleContainerIndex);
     double actPos                = pc->get_sPos();
     double t                     = bunch->getT();
-    Vector_t<double, 3> rmin     = bunch->get_origin();
-    Vector_t<double, 3> rmax     = bunch->get_maxExtent();
-    Vector_t<double, 3> centroid = pc->getCentroid();
+    Vector_t<double, 3> rmin     = moments.minR();
+    Vector_t<double, 3> rmax     = moments.maxR();
+    Vector_t<double, 3> centroid = moments.meanR();
 
     Vector_t<double, 3> maxP(0.0);
     Vector_t<double, 3> minP(0.0);
 
-    Vector_t<double, 3> xsigma     = pc->getRmsR();
-    Vector_t<double, 3> psigma     = pc->getRmsP();
-    Vector_t<double, 3> vareps     = pc->getNormEmit();
-    Vector_t<double, 3> geomvareps = pc->getGeometricEmit();
+    Vector_t<double, 3> xsigma     = moments.rmsR();
+    Vector_t<double, 3> psigma     = moments.rmsP();
+    Vector_t<double, 3> vareps     = moments.normalizedEmittance();
+    Vector_t<double, 3> geomvareps = moments.geometricEmittance();
     Vector_t<double, 3> RefPartR   = pc->getRefPartR();
     Vector_t<double, 3> RefPartP   = pc->getRefPartP();
     Vector_t<double, 3>
             TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
-    Vector_t<double, 3> pmean = pc->getMeanP();
+    Vector_t<double, 3> pmean = moments.meanP();
 
-    double meanEnergy   = pc->getMeanKineticEnergy();
-    double energySpread = pc->getStdKineticEnergy();
+    double meanEnergy   = moments.meanKineticEnergy();
+    double energySpread = moments.stdKineticEnergy();
     double I_0          = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * pc->getTotalMass()
                  / pc->getTotalCharge();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1]))
-                   / (2.0 * pc->getMeanGammaZ() * I_0
+                   / (2.0 * moments.meanGammaZ() * I_0
                       * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
 
     // h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();

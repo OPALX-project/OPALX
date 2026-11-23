@@ -37,6 +37,7 @@
 #include <array>
 #include <iomanip>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -80,48 +81,41 @@ public:
      */
     void rewindToCheckpoint(PartBunch_t& beam);
 
-    /**
-     * @brief Write H5 phase-space data for all particle containers.
-     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     * @param FDext External magnetic/electric field values reused for each container.
-     */
-    void dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const;
+    /// Moment groups the phase-space (@p psDump) and statistics (@p statDump) outputs read for a
+    /// container with or without spin.
+    [[nodiscard]] static opalx::moments::Request requiredMoments(
+            bool psDump, bool statDump, bool hasSpin);
 
     /**
      * @brief Write H5 phase-space data with per-container external fields.
      * @param beam Borrowed particle bunch; DataSink does not own or retain it.
      * @param fdextPerContainer External field values indexed by particle container.
+     * @param moments One snapshot per container holding H5PartWrapperForPT::requiredMoments;
+     *        empty containers are skipped.
      */
     void dumpH5(
             PartBunch_t& beam,
-            const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const;
-
-    /**
-     * @brief Write single-container H5 phase-space data with reference quantities.
-     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     */
-    int dumpH5(
-            PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
-            double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-            double elevation, bool local) const;
+            const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
+            std::span<const opalx::moments::BeamMoments> moments) const;
 
     /**
      * @brief Write SDDS statistics with per-container external fields.
      * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     * @param moments One snapshot per container holding StatWriter::requiredMoments; not read
+     *        for empty containers.
      */
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            int reportedBinCount, const double& azimuth) const;
+            std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
+            const double& azimuth) const;
 
-    /**
-     * @brief Write SDDS statistics and losses with per-container external fields.
-     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
-     */
+    /** @brief As above, with losses. */
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            int reportedBinCount, const losses_t& losses, const double& azimuth) const;
+            std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
+            const losses_t& losses, const double& azimuth) const;
 
     /** \brief Write cavity information from  H5 file
      */

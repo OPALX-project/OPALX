@@ -33,6 +33,7 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
+#include "Moments/BeamMoments.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
@@ -77,9 +78,6 @@
 #include <vector>
 
 class PluginElement;
-namespace opalx::spacecharge::fft2d5_detail {
-    enum class FrameOperation;
-}
 
 namespace opalx::spacecharge {
     class SpaceChargeSolver;
@@ -204,8 +202,6 @@ private:
     bool spatialRing_m =
             false;  ///< Select analytic ring fields by physical position, independent of retries.
     bool boundaryControlled_m = false;
-    /// Set once per step from the MPI-agreed FFT2D5 coasting guard; never a rank-local decision.
-    bool skipNoOpTransforms_m = false;
     /// Internal subset experiment; one selects every particle (ordinary default).
     unsigned long long boundaryControlStride_m = 1;
     double boundaryStepDt_m                    = 0;  ///< Accepted/trial collective substep cap [s].
@@ -385,9 +381,7 @@ public:
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */
-    void computeSpaceChargeFields(bool deferTrackerMoments = false);
-    /// Collective eligibility for the coasting FFT2D5 6-to-3 full-moment schedule.
-    [[nodiscard]] bool deferFFT2D5Moments() const;
+    void computeSpaceChargeFields();
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
@@ -429,13 +423,6 @@ public:
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
-    /// FFT2D5-only callback filter; existing callers use FrameOperation::All.
-    void forEachElementInBunchFrame(
-            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-            const std::function<
-                    void(const std::shared_ptr<ElementBase>&,
-                         const std::shared_ptr<ParticleContainer_t>&)>& func,
-            bool spatialCandidates, opalx::spacecharge::fft2d5_detail::FrameOperation operation);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
@@ -471,6 +458,7 @@ private:
     /// @brief Build stable native particle and field identities once.
     void initializeSpaceChargeContainerActivity();
 
+    /// @brief Solve-frame transforms from the primary container's mean momentum. Collective.
     [[nodiscard]] opalx::spacecharge::CoordinateFrameTransforms makeSpaceChargeFrameTransforms()
             const;
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
@@ -497,16 +485,39 @@ private:
      * @param step     Step index (reserved for diagnostics; may be unused in body).
      * @param psDump   If true, write phase-space snapshot when applicable.
      * @param statDump If true, write statistics (e.g. SDDS).
+     * @param computed Moments already computed at this particle state, reused where they hold
+     *        the groups the outputs read.
      */
-    void writePhaseSpace(const long long step, bool psDump, bool statDump);
+    void writePhaseSpace(
+            const long long step, bool psDump, bool statDump,
+            std::span<const opalx::moments::BeamMoments> computed = {});
 
     /**
      * @brief Log per-container stats and trigger dumps according to dump flags.
      * @param step     Current integration step index.
      * @param psDump   Forwarded to writePhaseSpace when logging occurs.
      * @param statDump Forwarded to writePhaseSpace when logging occurs.
+     * @param computed See writePhaseSpace().
      */
-    void dumpStats(long long step, bool psDump, bool statDump);
+    void dumpStats(
+            long long step, bool psDump, bool statDump,
+            std::span<const opalx::moments::BeamMoments> computed = {});
+
+    /// @brief Whether this step prints the per-container step line (STEPINFOFREQ).
+    [[nodiscard]] bool stepLogDue() const;
+
+    /// @brief Moment groups the outputs due now (and the step line if @p stepLog) read for @p pc.
+    [[nodiscard]] opalx::moments::Request outputMomentsDue(
+            const ParticleContainer_t& pc, bool psDump, bool statDump, bool stepLog) const;
+
+    /**
+     * @brief Moments of every non-empty container holding what outputMomentsDue() lists; empty
+     *        containers get an empty value. Entries of @p computed that already hold it are
+     *        reused. Collective.
+     */
+    [[nodiscard]] std::vector<opalx::moments::BeamMoments> momentsOfContainers(
+            bool psDump, bool statDump, bool stepLog,
+            std::span<const opalx::moments::BeamMoments> computed) const;
 
     /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
     void prepareSections();

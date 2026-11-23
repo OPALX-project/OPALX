@@ -8,13 +8,14 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/Matrix.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
+#include "Moments/BeamMoments.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/CartesianDomainConfig.h"
@@ -56,11 +57,7 @@ public:
     std::string integration_method_m;  ///< Integrator name (e.g. leapfrog).
     Vector_t<int, Dim> nr_m;           ///< Mesh cell count per dimension.
     Vector_t<double, Dim> origin_m;    ///< Mesh origin (lab coordinates).
-    Vector_t<double, Dim> rmin_m;  ///< Current bunch spatial minimum (from primary container stats;
-                                   ///< see calcBeamParameters).
-    Vector_t<double, Dim>
-            rmax_m;              ///< Current bunch spatial maximum (from primary container stats).
-    Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
+    Vector_t<double, Dim> hr_m;        ///< Mesh spacing (m).
 
     double lbt_m;                    ///< Load-balancer timescale parameter.
     ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
@@ -80,7 +77,7 @@ private:
     const PartData* reference_m = nullptr;  ///< Reference particle data (set by TrackRun::execute).
 
     std::shared_ptr<BunchStateHandler>
-            bunchState_m;  ///< Shared per-container coordinate and moment state.
+            bunchState_m;  ///< Shared per-container coordinate state and fixed bounds.
 
     std::unique_ptr<CartesianDomain_t>
             cartesianDomain_m;  ///< Outlives every particle layout that borrows it.
@@ -115,15 +112,6 @@ public:
             std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
             opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig);
-
-    /**
-     * @brief Recompute moments for every particle container without changing the PIC domain.
-     *
-     * Mesh geometry, field layout, particle migration, and backend refresh belong exclusively to
-     * the concrete space-charge algorithm. Tracking calls this after particle mutations when only
-     * current statistics are required.
-     */
-    void updateAllParticleMoments();
 
     /**
      * @brief Sum of @c getTotalNum() over all particle containers.
@@ -227,16 +215,6 @@ public:
     }
 
     [[nodiscard]] size_t getNumParticleContainers() const { return pcontainers_m.size(); }
-
-    void updateMoments() { this->pcontainer_m->updateMoments(); }
-
-    /**
-     * @brief Update moments and set @c rmin_m / @c rmax_m from the primary (first) container.
-     * @note Space-charge and mesh updates currently use container 0 only.
-     * @param fft2d5 Skip unused legacy centroid/matrix reductions for FFT2D5 only.
-     * Full cached moments and the original bounds reductions are retained.
-     */
-    void calcBeamParameters(bool fft2d5 = false);
 
     /**
      * @brief Set the per-particle charge for each particle container.
@@ -382,22 +360,10 @@ public:
         return mass;
     }
 
-    double getdE() {
-        return this->pcontainer_m->getStdKineticEnergy();  // Unit: MeV
-    }
-
     const PartData* getReference() const { return reference_m; }
 
     /// Set inside TrackRun::execute
-    void setReference(const PartData* ref) {
-        reference_m = ref;
-        if (reference_m && this->pcontainer_m) {
-            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference
-            // mass. PartData mass is stored in eV; DistributionMoments expects GeV for its energy
-            // computation.
-            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
-        }
-    }
+    void setReference(const PartData* ref) { reference_m = ref; }
 
     void gatherLoadBalanceStatistics();
 
@@ -425,10 +391,16 @@ public:
         return Vector_t<double, Dim>(0);
     }
 
-    /// @brief Human-readable dump of each container to @p os.
-    /// @param os Output stream wrapper.
-    /// @return Reference to @p os.
-    Inform& print(Inform& os);
+    /**
+     * @brief Human-readable dump of each container to @p os.
+     * @param moments One snapshot per container holding at least printedMoments.
+     */
+    Inform& print(Inform& os, std::span<const opalx::moments::BeamMoments> moments);
+
+    /// Moment groups print() reads.
+    static constexpr opalx::moments::Request printedMoments =
+            opalx::moments::Moment::Bounds | opalx::moments::Moment::MeanPosition
+            | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
 
     /// @brief Compatibility stub; logs and returns 0.
     double calcMeanPhi() {
@@ -463,16 +435,6 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    /**
-     * @brief Copy cached bunch extent (@c rmin_m, @c rmax_m) from calcBeamParameters.
-     * @param[out] rmin Lower corner.
-     * @param[out] rmax Upper corner.
-     */
-    void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
-        rmin = rmin_m;
-        rmax = rmax_m;
-    }
-
     /// @brief Set the global time step.
     void setdT(double dt) { dt_m = dt; }
 
@@ -487,19 +449,6 @@ public:
 
     /// @brief Get the current simulation time.
     double getT() const { return t_m; }
-
-    /// @brief Cached minimum extent (@c rmin_m); prefer per-container min/max for multi-beam
-    /// detail.
-    Vector_t<double, Dim> get_origin() const { return rmin_m; }
-    /// @brief Cached maximum extent (@c rmax_m).
-    Vector_t<double, Dim> get_maxExtent() const { return rmax_m; }
-
-    /// @brief Stub; logs and returns zero vector.
-    Vector_t<double, Dim> get_halo() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
 
     /// @brief Get mesh spacing
     Vector_t<double, Dim> get_hr() const { return hr_m; }

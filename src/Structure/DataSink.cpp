@@ -32,6 +32,7 @@
 #include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
+#include "Structure/H5PartWrapperForPT.h"
 #include "Structure/LBalWriter.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
@@ -71,25 +72,26 @@ DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart)
 
 DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {}
 
-void DataSink::dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const {
-    const size_t n = beam.getNumParticleContainers();
-    std::vector<std::array<Vector_t<double, 3>, 2>> v(n);
-    for (size_t i = 0; i < n; ++i) {
-        v[i][0] = FDext[0];
-        v[i][1] = FDext[1];
+opalx::moments::Request DataSink::requiredMoments(bool psDump, bool statDump, bool hasSpin) {
+    opalx::moments::Request request;
+    if (statDump) {
+        request |= StatWriter::requiredMoments(hasSpin);
     }
-    dumpH5(beam, v);
+    if (psDump && Options::enableHDF5) {
+        request |= H5PartWrapperForPT::requiredMoments;
+    }
+    return request;
 }
 
 void DataSink::dumpH5(
-        PartBunch_t& beam,
-        const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const {
+        PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
+        std::span<const opalx::moments::BeamMoments> moments) const {
     if (!Options::enableHDF5) {
         return;
     }
 
     const size_t n = beam.getNumParticleContainers();
-    if (fdextPerContainer.size() < n) {
+    if (fdextPerContainer.size() < n || moments.size() < n) {
         throw OpalException(
                 "DataSink::dumpH5", "fdextPerContainer size ("
                                             + std::to_string(fdextPerContainer.size())
@@ -105,34 +107,23 @@ void DataSink::dumpH5(
             continue;
         }
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        h5Writers_m[i]->writePhaseSpace(beam, fd, i);
+        h5Writers_m[i]->writePhaseSpace(beam, moments[i], fd, i);
     }
-}
-
-int DataSink::dumpH5(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
-        double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-        double elevation, bool local) const {
-    if (!Options::enableHDF5 || h5Writers_m.empty()) {
-        return -1;
-    }
-
-    return h5Writers_m[0]->writePhaseSpace(
-            beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
-            local, 0);
 }
 
 void DataSink::dumpSDDS(
         PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-        int reportedBinCount, const double& azimuth) const {
-    dumpSDDS(beam, fdextPerContainer, reportedBinCount, losses_t(), azimuth);
+        std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
+        const double& azimuth) const {
+    dumpSDDS(beam, fdextPerContainer, moments, reportedBinCount, losses_t(), azimuth);
 }
 
 void DataSink::dumpSDDS(
         PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-        int reportedBinCount, const losses_t& losses, const double& azimuth) const {
+        std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount,
+        const losses_t& losses, const double& azimuth) const {
     const size_t n = beam.getNumParticleContainers();
-    if (fdextPerContainer.size() < n) {
+    if (fdextPerContainer.size() < n || moments.size() < n) {
         throw OpalException(
                 "DataSink::dumpSDDS", "fdextPerContainer size ("
                                               + std::to_string(fdextPerContainer.size())
@@ -151,23 +142,16 @@ void DataSink::dumpSDDS(
         }
 
         size_t npOutside = 0;
-        if (pc->getTotalNum() > 0) {
-            pc->updateMoments();
-
-            if (Options::beamHaloBoundary > 0) {
-                npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary * pc->getRmsR());
-            }
+        if (pc->getTotalNum() > 0 && Options::beamHaloBoundary > 0) {
+            npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary * moments[i].rmsR());
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(beam, fd, reportedBinCount, losses, azimuth, npOutside, i);
+        statWriters_m[i]->write(
+                beam, moments[i], fd, reportedBinCount, losses, azimuth, npOutside, i);
     }
 
     beam.gatherLoadBalanceStatistics();
-    auto primary = beam.getParticleContainer(0);
-    if (primary && primary->getTotalNum() > 0) {
-        beam.calcBeamParameters();
-    }
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }

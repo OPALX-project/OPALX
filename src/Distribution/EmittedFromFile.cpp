@@ -516,6 +516,4 @@ void EmittedFromFile::generateLocalParticles(
                 Rview(j)[2] += p[2] * drift;
             });
     Kokkos::fence();
-
-    pc_m->markMomentsDirty();
 }
