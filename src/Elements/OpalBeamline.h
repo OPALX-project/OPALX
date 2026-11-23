@@ -19,6 +19,7 @@
 #define OPAL_BEAMLINE_H
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -99,6 +100,26 @@ public:
     /// Turn reference recording of every MONITOR on or off (Monitor::setRecordReference()).
     void setMonitorsRecordReference(bool record);
 
+    /**
+     * @brief Apply the field of every element near each active container whose fieldFrame() is
+     *        ElementFrame::Local, with the container in that element's local frame. Collective.
+     *
+     * Elements get the bunch time, time step and step number (ElementBase::apply()). Each
+     * container goes from one element's frame directly to the next and returns to its reference
+     * frame after its last element, also when an element throws.
+     */
+    void applyExternalFields(PartBunch_t& bunch);
+
+    /**
+     * @brief Mark the particles outside the transverse aperture of each element near their
+     *        container. The particles stay in their frame; the marks wait for the next deletion.
+     * @return Global number of newly marked particles. Collective.
+     */
+    size_t applyElementApertures(PartBunch_t& bunch);
+
+    /// Beamline (emission source) frame for the particles of @p pc.
+    ParticleFrame beamlineFrame(const ParticleContainer_t& pc) const;
+
     unsigned long getFieldAt(
             const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,
             Vector_t<double, 3>&, Vector_t<double, 3>&);
@@ -147,6 +168,31 @@ private:
      * PHI, PSI) are skipped.
      */
     void placeElementsAlongReferencePath();
+
+    /**
+     * @brief Call @p func for each selected element intersecting each active container, with
+     * the container in that element's local frame.
+     *
+     * The container goes from one selected element's frame directly to the next and returns to
+     * its reference frame after its last element, so no frame outlives the call. Unselected
+     * elements cost no transform.
+     *
+     * @param selects Whether @p func runs for an element.
+     */
+    void forEachElementInBunchFrame(
+            PartBunch_t& bunch, const std::function<bool(const ElementBase&)>& selects,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func);
+
+    /// Elements near container @p ci in the order of the element grid; empty for an inactive
+    /// container or one without its own or its root's reference particle. Collective.
+    std::vector<std::shared_ptr<ElementBase>> candidateElements(
+            const PartBunch_t& bunch, size_t ci) const;
+
+    /// Local frame of @p element, misalignment included, for the particles of @p pc.
+    ParticleFrame elementFrame(
+            const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const;
 
     ElementList elements_m;
     bool prepared_m;

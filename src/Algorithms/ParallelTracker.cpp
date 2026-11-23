@@ -376,7 +376,7 @@ std::vector<opalx::moments::BeamMoments> ParallelTracker::removeLostParticles(
         if (pc) pc->requireReferenceFrame("ParallelTracker::removeLostParticles");
 
     // Enforce the transverse aperture of every nearby element (collective call).
-    size_t nStepMarked = applyElementApertures();
+    size_t nStepMarked = itsOpalBeamline_m.applyElementApertures(*itsBunch_m);
     if (nStepMarked > 0) {
         m << level2 << "Marked " << nStepMarked
           << " particles outside a transverse aperture for deletion." << endl;
@@ -671,95 +671,9 @@ void ParallelTracker::computeExternalFields() {
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
-    forEachElementInBunchFrame(
-            [](const ElementBase& element) {
-                return element.fieldFrame() == ElementFrame::Local;
-            },
-            [this](const std::shared_ptr<ElementBase>& element,
-                   const std::shared_ptr<ParticleContainer_t>& pc) {
-                element->apply(pc, stepTime());
-            });
+    itsOpalBeamline_m.applyExternalFields(*itsBunch_m);
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
-}
-
-void ParallelTracker::forEachElementInBunchFrame(
-        const std::function<bool(const ElementBase&)>& selects,
-        const std::function<void(
-                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
-                func) {
-    for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
-        const auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc) continue;
-        const ParticleContainer_t::FrameScope scope(*pc, pc->frame());
-        for (const auto& element : candidateElements(ci)) {
-            if (!selects(*element)) continue;
-            pc->enterFrame(elementFrame(element, *pc));
-            func(element, pc);
-        }
-    }
-}
-
-std::vector<std::shared_ptr<ElementBase>> ParallelTracker::candidateElements(size_t ci) {
-    const auto pc = itsBunch_m->getParticleContainer(ci);
-    if (!itsBunch_m->isPcActive(ci) || !pc) {
-        return {};
-    }
-    // A container without its own or its root's reference particle has no bunch frame.
-    const auto root = itsBunch_m->getParticleContainer(
-            itsBunch_m->isFollower(ci) ? itsBunch_m->getPcRoot(ci) : ci);
-    if (!root || !root->getReference()) {
-        return {};
-    }
-    pc->requireReferenceFrame("ParallelTracker::candidateElements");
-
-    // Bunch bounds for this container; an empty container queries the point at the reference
-    // particle.
-    Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    if (pc->getTotalNum() > 0) {
-        const auto bounds = opalx::moments::compute(*pc, Moment::Bounds);
-        rmin              = bounds.minR();
-        rmax              = bounds.maxR();
-    }
-
-    // The bunch box, extended forward by the distance one step can cover, c dt: a MONITOR
-    // records particles that cross its plane during the next step. Elements come in lattice
-    // order.
-    Vector_t<double, 3> upper = rmax;
-    upper(2) += Physics::c * itsBunch_m->getdT();
-    return itsOpalBeamline_m.getElementMapping().query(rmin, upper, pc->getToLabTrafo());
-}
-
-ParticleFrame ParallelTracker::beamlineFrame(const ParticleContainer_t& pc) const {
-    return ParticleFrame(
-            ParticleFrame::Kind::Beamline,
-            itsOpalBeamline_m.getCSTrafoLab2Local() * pc.getToLabTrafo());
-}
-
-ParticleFrame ParallelTracker::elementFrame(
-        const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const {
-    return ParticleFrame(
-            ParticleFrame::Kind::Element,
-            itsOpalBeamline_m.getMisalignment(element)
-                    * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc.getToLabTrafo()),
-            element.get());
-}
-
-size_t ParallelTracker::applyElementApertures() {
-    size_t localMarked = 0;
-    for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
-        const auto pc = itsBunch_m->getParticleContainer(ci);
-        for (const auto& element : candidateElements(ci)) {
-            // The check reads local positions in its kernel; the particles stay where they are.
-            // Marks are flushed by the single deletion at the end of the step.
-            const auto toLocal = pc->frame().to(elementFrame(element, *pc)).rigid();
-            localMarked += element->markOutsideAperture(pc, toLocal);
-        }
-    }
-
-    size_t globalMarked = 0;
-    ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
-    return globalMarked;
 }
 
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {
@@ -788,7 +702,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 }
             }
         }
-        pc->adoptParticles(beamlineFrame(*pc), nBefore);
+        pc->adoptParticles(itsOpalBeamline_m.beamlineFrame(*pc), nBefore);
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());
@@ -921,7 +835,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
         }
 
         // Read source-frame coordinates in the kernel; the particles stay where they are.
-        const auto toSource = pc->frame().to(beamlineFrame(*pc)).rigid();
+        const auto toSource = pc->frame().to(itsOpalBeamline_m.beamlineFrame(*pc)).rigid();
         localTotalMarked += pc->markBackwardParticles(toSource, sourceLossPlaneZ);
     }
 

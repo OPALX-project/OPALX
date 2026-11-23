@@ -21,6 +21,8 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Moments/BeamMoments.h"
+#include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
 #include "Utilities/LogicalError.h"
@@ -143,6 +145,96 @@ void OpalBeamline::switchElementsOff() {
 void OpalBeamline::setMonitorsRecordReference(bool record) {
     for (const auto& element : getElementByType(ElementType::MONITOR))
         static_cast<Monitor*>(element.get())->setRecordReference(record);
+}
+
+void OpalBeamline::applyExternalFields(PartBunch_t& bunch) {
+    const StepTime time{
+            bunch.getT(), bunch.getdT(), static_cast<long long>(bunch.getGlobalTrackStep())};
+    forEachElementInBunchFrame(
+            bunch,
+            [](const ElementBase& element) {
+                return element.fieldFrame() == ElementFrame::Local;
+            },
+            [&time](const std::shared_ptr<ElementBase>& element,
+                    const std::shared_ptr<ParticleContainer_t>& pc) {
+                element->apply(pc, time);
+            });
+}
+
+void OpalBeamline::forEachElementInBunchFrame(
+        PartBunch_t& bunch, const std::function<bool(const ElementBase&)>& selects,
+        const std::function<void(
+                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
+                func) {
+    for (size_t ci = 0; ci < bunch.getNumParticleContainers(); ++ci) {
+        const auto pc = bunch.getParticleContainer(ci);
+        if (!pc) continue;
+        const ParticleContainer_t::FrameScope scope(*pc, pc->frame());
+        for (const auto& element : candidateElements(bunch, ci)) {
+            if (!selects(*element)) continue;
+            pc->enterFrame(elementFrame(element, *pc));
+            func(element, pc);
+        }
+    }
+}
+
+std::vector<std::shared_ptr<ElementBase>> OpalBeamline::candidateElements(
+        const PartBunch_t& bunch, size_t ci) const {
+    const auto pc = bunch.getParticleContainer(ci);
+    if (!bunch.isPcActive(ci) || !pc) {
+        return {};
+    }
+    // A container without its own or its root's reference particle has no bunch frame.
+    const auto root = bunch.getParticleContainer(bunch.isFollower(ci) ? bunch.getPcRoot(ci) : ci);
+    if (!root || !root->getReference()) {
+        return {};
+    }
+    pc->requireReferenceFrame("OpalBeamline::candidateElements");
+
+    // Bunch bounds for this container; an empty container queries the point at the reference
+    // particle.
+    Vector_t<double, 3> rmin(0.0), rmax(0.0);
+    if (pc->getTotalNum() > 0) {
+        const auto bounds = opalx::moments::compute(*pc, opalx::moments::Moment::Bounds);
+        rmin              = bounds.minR();
+        rmax              = bounds.maxR();
+    }
+
+    // The bunch box, extended forward by the distance one step can cover, c dt: a MONITOR
+    // records particles that cross its plane during the next step. Elements come in lattice
+    // order.
+    Vector_t<double, 3> upper = rmax;
+    upper(2) += Physics::c * bunch.getdT();
+    return getElementMapping().query(rmin, upper, pc->getToLabTrafo());
+}
+
+ParticleFrame OpalBeamline::beamlineFrame(const ParticleContainer_t& pc) const {
+    return ParticleFrame(ParticleFrame::Kind::Beamline, getCSTrafoLab2Local() * pc.getToLabTrafo());
+}
+
+ParticleFrame OpalBeamline::elementFrame(
+        const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const {
+    return ParticleFrame(
+            ParticleFrame::Kind::Element,
+            getMisalignment(element) * (getCSTrafoLab2Local(element) * pc.getToLabTrafo()),
+            element.get());
+}
+
+size_t OpalBeamline::applyElementApertures(PartBunch_t& bunch) {
+    size_t localMarked = 0;
+    for (size_t ci = 0; ci < bunch.getNumParticleContainers(); ++ci) {
+        const auto pc = bunch.getParticleContainer(ci);
+        for (const auto& element : candidateElements(bunch, ci)) {
+            // The check reads local positions in its kernel; the particles stay where they are.
+            // Marks are flushed by the single deletion at the end of the step.
+            const auto toLocal = pc->frame().to(elementFrame(element, *pc)).rigid();
+            localMarked += element->markOutsideAperture(pc, toLocal);
+        }
+    }
+
+    size_t globalMarked = 0;
+    ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
+    return globalMarked;
 }
 
 void OpalBeamline::prepareSections() {

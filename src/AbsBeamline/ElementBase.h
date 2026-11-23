@@ -346,7 +346,7 @@ public:
     /* ===================== Field application & physics ======================= */
     /**
      * Apply functions apply the element's electromagnetic field to the
-     * particles. They are called inside ParallelTracker::computeExternalFields().
+     * particles. They are called inside OpalBeamline::applyExternalFields().
      */
 
     /**
@@ -399,7 +399,7 @@ public:
      * @brief Mark local particles inside the element's longitudinal window but
      * outside its transverse aperture in pc->InvalidMask.
      *
-     * Called by ParallelTracker::applyElementApertures. The kernel reads the element-local
+     * Called by OpalBeamline::applyElementApertures. The kernel reads the element-local
      * position through @p toLocal; the stored particles do not change frame. ORs into
      * InvalidMask and never clears existing marks; the tracker's end-of-step deletion flushes
      * all marks. A particle is marked where getRegions().inLossRegion() holds: inside the body

@@ -150,12 +150,6 @@ private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
-    /// Bunch time, time step and step number of the current step, passed to element apply().
-    StepTime stepTime() const {
-        return {itsBunch_m->getT(), itsBunch_m->getdT(),
-                static_cast<long long>(itsBunch_m->getGlobalTrackStep())};
-    }
-
     // --- Particle push and fields ---
 
     /// @brief First half of the leapfrog step: push all active containers.
@@ -201,33 +195,6 @@ private:
     /// @brief Apply external fields from elements intersecting each active container.
     void computeExternalFields();
 
-    /**
-     * @brief Call @p func for each selected element intersecting each active container, with
-     * the container in that element's local frame.
-     *
-     * The container goes from one selected element's frame directly to the next and returns to
-     * its reference frame after its last element, so no frame outlives the call. Unselected
-     * elements cost no transform.
-     *
-     * @param selects Whether @p func runs for an element.
-     */
-    void forEachElementInBunchFrame(
-            const std::function<bool(const ElementBase&)>& selects,
-            const std::function<
-                    void(const std::shared_ptr<ElementBase>&,
-                         const std::shared_ptr<ParticleContainer_t>&)>& func);
-
-    /// Elements near container @p ci in the order of the element grid; empty for an inactive
-    /// container or one without its own or its root's reference particle.
-    std::vector<std::shared_ptr<ElementBase>> candidateElements(size_t ci);
-
-    /// Beamline (emission source) frame for the particles of @p pc.
-    ParticleFrame beamlineFrame(const ParticleContainer_t& pc) const;
-
-    /// Local frame of @p element, misalignment included, for the particles of @p pc.
-    ParticleFrame elementFrame(
-            const std::shared_ptr<ElementBase>& element, const ParticleContainer_t& pc) const;
-
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
     /// @param dt Global time step (s).
@@ -237,10 +204,6 @@ private:
     size_t applyGlobalProcesses(double dt);
 
     // --- Particle loss and beam stops ---
-
-    /// @brief Mark particles outside the transverse aperture of each nearby element.
-    /// @return global number of newly marked particles (allreduced) - collective call.
-    size_t applyElementApertures();
 
     /// @brief Mark particles moving backward behind an active source/cathode plane.
     size_t markBackwardParticlesAtSourcePlane();
