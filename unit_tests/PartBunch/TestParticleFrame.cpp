@@ -7,6 +7,7 @@
  * - A change from or to the reference frame applies the stored transform itself.
  * - A direct change between two element frames equals the path through the reference frame.
  * - `clearFields` zeroes E and B instead of rotating them.
+ * - A FrameScope returns the container to its reference frame when an exception unwinds it.
  * - `adoptParticles` moves only the appended particles.
  * - The reference update refuses data outside the reference frame.
  */
@@ -16,6 +17,7 @@
 
 #include <array>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include "Ippl.h"
@@ -188,6 +190,23 @@ namespace {
         pc->B = Vec(-1.0, 0.5, 2.0);
         pc->enterFrame(pc->frame(), true);
         expectZeroFields();
+    }
+
+    TEST_F(ParticleFrameTest, FrameScopeReturnsToReferenceFrameOnException) {
+        auto pc = makeContainer();
+        append(*pc, r_);
+        try {
+            const PC_t::FrameScope scope(
+                    *pc, elementFrame(Vec(0.2, -0.1, 1.5), Vec(0.1, 0.05, 1.0), 0.3));
+            EXPECT_FALSE(pc->frame().isReference());
+            throw std::runtime_error("unwind");
+        } catch (const std::runtime_error&) {
+        }
+        EXPECT_TRUE(pc->frame().isReference());
+        const auto R = host(pc->R, r_.size());
+        for (size_t i = 0; i < r_.size(); ++i)
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_NEAR(R[i][d], r_[i][d], 1e-14);
     }
 
     TEST_F(ParticleFrameTest, AdoptMovesOnlyAppendedParticles) {

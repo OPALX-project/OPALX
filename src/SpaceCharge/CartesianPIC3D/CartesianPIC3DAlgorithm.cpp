@@ -187,15 +187,15 @@ namespace opalx::spacecharge {
         // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
         // Fixed bounds remain valid and must still be applied.
         const bool solves = fixedDomain || primary_m->getTotalNum() > 1;
-        primary_m->enterFrame(solves ? context.stepState().solveFrame : ParticleFrame(), true);
-        if (solves) {
-            result.redistributions += domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
-                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
-
-            solveInBeamFrame(context, plan, result);
-
-            primary_m->enterReferenceFrame();
+        {
+            const ParticleContainer::FrameScope scope(
+                    *primary_m, solves ? context.stepState().solveFrame : ParticleFrame(), true);
+            if (solves) {
+                result.redistributions += domainUpdater_m.updateForSolve(
+                        DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
+                        fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
+                solveInBeamFrame(context, plan, result);
+            }
         }
         if (!fixedDomain) {
             result.redistributions += domainUpdater_m.updateForSolve(

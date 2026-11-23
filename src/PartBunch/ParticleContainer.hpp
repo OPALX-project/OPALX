@@ -345,6 +345,22 @@ public:
 
     void enterReferenceFrame() { enterFrame(ParticleFrame()); }
 
+    /// Holds the container in @p frame and returns it to its reference frame when the scope
+    /// ends, also when an exception unwinds it.
+    class FrameScope {
+    public:
+        FrameScope(
+                ParticleContainer& container, const ParticleFrame& frame, bool clearFields = false)
+            : container_m(container) {
+            container_m.enterFrame(frame, clearFields);
+        }
+        FrameScope(const FrameScope&) = delete;
+        ~FrameScope() { container_m.enterReferenceFrame(); }
+
+    private:
+        ParticleContainer& container_m;
+    };
+
     /// @throws OpalException from @p where if the particle data is not in the reference frame.
     void requireReferenceFrame(const std::string& where) const {
         if (!frame().isReference())

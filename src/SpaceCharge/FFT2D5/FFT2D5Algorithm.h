@@ -753,15 +753,6 @@ namespace opalx::spacecharge {
                 const SegmentGeometryView_t& bounds, const VectorView_t& projected,
                 const SegmentIndexView_t& indices, size_t leaves, T periodicLength);
 
-        /** @internal @brief Clear self fields and enter the common solve frame for active
-         * containers.
-         * @param context Activity flags. @param labToSolve Current laboratory-to-solve transform.
-         */
-        void enterParticleSolveFrames(
-                const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve);
-        /** @internal @brief Return every container to its reference frame, also after solver
-         * exceptions. */
-        void restoreParticleSolveFrames();
         /** @internal @brief Reject transverse ownership outside the fixed open FFT domain.
          * @param container Active container index. All ranks participate in the error reduction. */
         void checkMigrationDomain(size_t container);

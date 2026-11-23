@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <functional>
 #include <limits>
 #include <numeric>
@@ -73,14 +74,18 @@ namespace opalx::spacecharge {
             Kokkos::deep_copy(solveReferencePath_m, referencePath_m->deviceView());
             labToSolve.transformBunchTo(solveReferencePath_m, solveReferencePath_m.extent(0));
 
-            enterParticleSolveFrames(context, labToSolve);
-            try {
-                doRunSolver(context);
-            } catch (...) {
-                restoreParticleSolveFrames();
-                throw;
+            std::deque<ParticleContainer::FrameScope> solveFrames;
+            for (std::size_t index = 0; index < particles_m.size(); ++index) {
+                if (context.trackingActive()[index] == 0) continue;
+                auto& particles = *particles_m[index];
+                solveFrames.emplace_back(
+                        particles,
+                        ParticleFrame(
+                                ParticleFrame::Kind::SpaceChargeSolve,
+                                labToSolve * particles.getToLabTrafo()),
+                        true);
             }
-            restoreParticleSolveFrames();
+            doRunSolver(context);
             result.backendSolves = fieldStorage_m->backendSolves();
             if (ippl::Comm->size() > 1) {
                 const auto local = result.backendSolves;
@@ -89,23 +94,6 @@ namespace opalx::spacecharge {
         });
         firstPhysicalSolve_m = false;
         return result;
-    }
-
-    void FFT2D5Algorithm::enterParticleSolveFrames(
-            const SpaceChargeSolveContext& context, const CoordinateSystemTrafo& labToSolve) {
-        for (std::size_t index = 0; index < particles_m.size(); ++index) {
-            if (context.trackingActive()[index] != 0) {
-                auto& particles           = *particles_m[index];
-                const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
-                particles.enterFrame(
-                        ParticleFrame(ParticleFrame::Kind::SpaceChargeSolve, trackerToSolve), true);
-            }
-        }
-    }
-
-    void FFT2D5Algorithm::restoreParticleSolveFrames() {
-        for (auto* particles : particles_m)
-            particles->enterReferenceFrame();
     }
 
     void FFT2D5Algorithm::migrateToSlabs(const SpaceChargeSolveContext& context) {

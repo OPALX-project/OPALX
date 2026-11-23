@@ -1622,12 +1622,13 @@ void ParallelTracker::forEachElementInBunchFrame(
         bool spatialCandidates) {
     for (size_t ci = 0; ci < itsBunch_m->getNumParticleContainers(); ++ci) {
         const auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) continue;
+        const ParticleContainer_t::FrameScope scope(*pc, pc->frame());
         for (const auto& element : candidateElements(oths, ci, spatialCandidates)) {
             if (!selects(*element)) continue;
             pc->enterFrame(elementFrame(element, *pc));
             func(element, pc);
         }
-        if (pc) pc->enterReferenceFrame();
     }
 }
 
