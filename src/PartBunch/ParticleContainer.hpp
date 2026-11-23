@@ -583,7 +583,6 @@ public:
 
         switchOffUnitlessPositions();
         Kokkos::fence();
-        ippl::Comm->barrier();
     }
 
     /**
@@ -614,13 +613,7 @@ public:
                     pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge);
                     Pview(i) = p;
                 });
-        /*
-        Wait until everyone completed the kick operation before proceeding. For now,
-        this is just a precaution and could be removed for a small performance gain
-        (technically, these shouldn't be necessary!).
-        */
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         m << level5 << "Completed parallel kick operation." << endl;
     }
