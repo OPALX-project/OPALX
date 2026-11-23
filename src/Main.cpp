@@ -41,13 +41,10 @@ extern "C" {
 #include "BuildInfo.h"
 
 // IPPL
-#include "GSLErrorHandling.h"
 #include "Utility/Inform.h"
 #include "Utility/IpplException.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
-
-#include "Utilities/GSLCompat.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -202,8 +199,6 @@ int main(int argc, char* argv[]) {
         namespace fs = std::filesystem;
 
         H5SetVerbosityLevel(1);  // 65535);
-
-        gsl_set_error_handler(&handleGSLErrors);
 
         static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
         IpplTimings::startTimer(mainTimer);
