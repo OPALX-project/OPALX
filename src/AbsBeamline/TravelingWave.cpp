@@ -255,8 +255,6 @@ void TravelingWave::initialise(PartBunch_t* bunch) {
             - Physics::two_pi * ((numCells_m - 1) * mode_m - std::floor((numCells_m - 1) * mode_m));
 }
 
-void TravelingWave::finalise() {}
-
 void TravelingWave::goOffline() {
     // freeMap() deletes the map when no element uses it any more: do not keep the pointer.
     Fieldmap::freeMap(filename_m);

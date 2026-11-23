@@ -356,9 +356,6 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Kokkos::deep_copy(hostR0, pc->R.getView());
     EXPECT_FALSE(applyToReferenceParticle(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
-    // Done
-    finalise();
-    EXPECT_EQ(RefPartBunch_m, nullptr);
 }
 
 TEST_F(TestVariableRFCavity, ReferenceParticle) {
@@ -477,7 +474,6 @@ TEST_F(TestVariableRFCavity, DeviceSamplesAllTimeModelsAtBorisMidpoint) {
         EXPECT_DOUBLE_EQ(e(0)[0], initialE[0]);
         EXPECT_DOUBLE_EQ(e(0)[1], initialE[1]);
     }
-    finalise();
 }
 
 TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
@@ -541,7 +537,6 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
             EXPECT_DOUBLE_EQ(refB[d], initialB[d]);
         }
     }
-    finalise();
 }
 
 TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {

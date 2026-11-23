@@ -30,8 +30,6 @@ Box::~Box() {}
 
 void Box::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
-void Box::finalise() {}
-
 void Box::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart support interval (field-free; report the body span).
     zBegin = 0.0;

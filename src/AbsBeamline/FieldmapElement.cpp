@@ -208,8 +208,6 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
     Fieldmap::readMap(filename_m);
 }
 
-void FieldmapElement::finalise() { online_m = false; }
-
 void FieldmapElement::goOffline() {
     // freeMap() drops the reference count and deletes the map when it reaches zero, so the
     // pointer must not be kept. Every use of fieldmap_m guards against null for this reason.

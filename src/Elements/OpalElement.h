@@ -26,7 +26,6 @@
 #include <utility>
 #include <vector>
 
-class Attribute;
 class Statement;
 
 class OpalElement : public Element {
@@ -62,9 +61,6 @@ public:
     /// Return element length.
     virtual double getLength() const;
 
-    /// Return the element's type name.
-    const std::string getTypeName() const;
-
     /// The aperture the APERTURE string of @p values gives (half widths), or the 1e6 default.
     static std::pair<ApertureType, std::vector<double>> getApert(const ObjectValues& values);
 
@@ -74,19 +70,6 @@ public:
      * @note Final placement is resolved by PlacementResolver, not here.
      */
     static void setCommonFields(ElementBase& element, const ObjectValues& values);
-
-    /// Return the element's type name.
-    const std::string getWakeF() const;
-
-    const std::string getParticleMatterInteraction() const;
-
-    const std::string getWMaterial() const;
-
-    const std::string getWakeGeom() const;
-
-    std::vector<double> getWakeParam() const;
-
-    const std::string getWakeConductivity() const;
 
     /// Parse the element.
     //  This special version for elements handles unknown attributes by
@@ -100,21 +83,6 @@ public:
 protected:
     /// Exemplar constructor.
     OpalElement(int size, const char* name, const char* help);
-
-    /// Print multipole components in OPAL-8 format.
-    //  This function is accessible to all multipole-like elements
-    //  (RBend, SBend, Quadrupole, Sextupole, Octupole, Multipole).
-    static void printMultipoleStrength(
-            std::ostream& os, int order, int& len, const std::string& sName,
-            const std::string& tName, const Attribute& length, const Attribute& vNorm,
-            const Attribute& vSkew);
-
-    /// Print an attribute with a OPAL-8 name (as an expression).
-    static void printAttribute(
-            std::ostream& os, const std::string& name, const std::string& image, int& len);
-
-    /// Print an attribute with a OPAL-8 name (as a constant).
-    static void printAttribute(std::ostream& os, const std::string& name, double value, int& len);
 
     void registerOwnership() const;
 

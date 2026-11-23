@@ -103,8 +103,6 @@ public:
      */
     virtual void initialise(PartBunch_t* bunch) override;
 
-    virtual void finalise() override;
-
     /// @brief Release the map data and go offline.
     virtual void goOffline() override;
 

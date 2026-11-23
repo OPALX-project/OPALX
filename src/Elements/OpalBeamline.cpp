@@ -95,14 +95,6 @@ ElementSet OpalBeamline::getElements() {
 }
 
 unsigned long OpalBeamline::getFieldAt(
-        const unsigned int& /*index*/, const Vector_t<double, 3>& /*pos*/, const long& /*sindex*/,
-        const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    unsigned long rtv = 0x00;
-
-    return rtv;
-}
-
-unsigned long OpalBeamline::getFieldAt(
         const Vector_t<double, 3>& position, const Vector_t<double, 3>& momentum, const double& t,
         Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
@@ -305,23 +297,6 @@ void OpalBeamline::prepareSections() {
     placeElementsAlongReferencePath();
     elementMapping_m.reset();
     prepared_m = true;
-}
-
-void OpalBeamline::print(Inform& /*msg*/) const {}
-
-void OpalBeamline::swap(OpalBeamline& rhs) {
-    std::swap(elements_m, rhs.elements_m);
-    std::swap(prepared_m, rhs.prepared_m);
-    std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
-    std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
-    std::swap(elementMapping_m, rhs.elementMapping_m);
-}
-
-void OpalBeamline::merge(OpalBeamline& rhs) {
-    elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
-    prepared_m                       = false;
-    referencePathPlacementCompiled_m = false;
-    elementMapping_m.reset();
 }
 
 ElementList OpalBeamline::getElementByType(ElementType type) {

@@ -38,25 +38,11 @@
 
 class Element : public Object {
 public:
-    /// Reference for element positioning.
-    //  Used in the SEQUENCE command.
-    enum ReferenceType {
-        IS_ENTRY,   // Reference point is at element entrance.
-        IS_CENTRE,  // Reference point is at element centre
-        IS_EXIT     // Reference point is at element exit.
-    };
-
     virtual ~Element();
 
     /// Test if replacement is allowed.
     //  Return true, if the replacement is also an Element.
     virtual bool canReplaceBy(Object* object);
-
-    /// Find named Element.
-    //  If an element with the name [b]name[/b] exists,
-    //  return a pointer to that element.
-    //  If no such element exists, throw [b]OpalException[/b].
-    static Element* find(const std::string& name);
 
     /// Return the object category as a string.
     //  Return the string "ELEMENT".
@@ -74,12 +60,6 @@ public:
 
     /// Return element length.
     virtual double getLength() const = 0;
-
-    /// Return arc length from origin to entrance (negative !).
-    virtual double getEntrance(ReferenceType) const;
-
-    /// Return arc length from origin to exit (positive !).
-    virtual double getExit(ReferenceType) const;
 
 protected:
     /// Constructor for exemplars.

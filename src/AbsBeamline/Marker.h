@@ -39,8 +39,6 @@ public:
 
     virtual void initialise(PartBunch_t* bunch) override;
 
-    virtual void finalise() override;
-
     virtual ElementType getType() const override;
     TrackedAs trackedAs() const override { return TrackedAs::Ignored; }
 

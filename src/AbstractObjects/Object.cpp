@@ -244,43 +244,30 @@ void Object::setDirty(bool dirty) {
     modified = dirty;
 }
 
-bool Object::isDirty() const { return modified; }
-
-void Object::setFlag(bool flag) { flagged = flag; }
-
-bool Object::isFlagged() const { return flagged; }
-
 const std::string& Object::getOpalName() const { return itsName; }
 
 const std::string& Object::getKeyword() const { return keyword_m; }
 
 void Object::setOpalName(const std::string& name) { itsName = name; }
 
-void Object::clear() { occurrence = 0; }
-
-int Object::increment() { return ++occurrence; }
-
-int Object::occurrenceCount() { return occurrence; }
-
 Object::Object(int size, const char* name, const char* help)
-    : itsAttr(size), itsName(name), keyword_m(name), itsHelp(help), occurrence(0) {
+    : itsAttr(size), itsName(name), keyword_m(name), itsHelp(help) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
     // Only the predefined objects (constants, #S/#E, UNNAMED_BEAM) set builtin.
-    builtin = false;
-    flagged = modified = false;
+    builtin  = false;
+    modified = false;
 }
 
 Object::Object(const std::string& name, Object* parent)
     : itsAttr(parent->itsAttr),
       itsName(name),
       keyword_m(parent->keyword_m),
-      itsHelp(parent->itsHelp),
-      occurrence(0) {
+      itsHelp(parent->itsHelp) {
     // The object is now different from the data base.
-    builtin = flagged = false;
-    modified          = true;
+    builtin  = false;
+    modified = true;
 }
 
 std::ostream& operator<<(std::ostream& os, const Object& object) {

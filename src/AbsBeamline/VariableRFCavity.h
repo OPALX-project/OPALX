@@ -93,12 +93,6 @@ public:
      */
     void initialise(PartBunch_t* bunch) override;
 
-    /** Finalise following tracking
-     *
-     *  Just sets RefPartBunch_m to nullptr
-     */
-    void finalise() override;
-
     /** @returns false (cavity does not bend the trajectory) */
 
     /** Return the longitudinal field-support extent.

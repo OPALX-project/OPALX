@@ -13,8 +13,6 @@ ConstantEFieldCavity::~ConstantEFieldCavity() {}
 
 void ConstantEFieldCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
-void ConstantEFieldCavity::finalise() {}
-
 ElementType ConstantEFieldCavity::getType() const { return ElementType::CONSTANTEFIELDCAVITY; }
 
 void ConstantEFieldCavity::getFieldExtent(double& zBegin, double& zEnd) const {

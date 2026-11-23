@@ -111,8 +111,6 @@ public:
      *  \param endField -> Not used
      */
     void initialise(PartBunch_t* bunch) override;
-    /** Finalise the MultipoleT - sets bunch to nullptr */
-    void finalise() override;
     /** Return true if dipole component not zero */
     /** Get the number of terms used in calculation of field components */
     size_t getMaxFOrder() const { return config_m.maxFOrder_m; }

@@ -161,8 +161,6 @@ void Solenoid::initialise(PartBunch_t* bunch) {
     }
 }
 
-void Solenoid::finalise() {}
-
 /// @brief Free field map and go offline
 void Solenoid::goOffline() {
     // freeMap() deletes the map when no element uses it any more: do not keep the pointer.

@@ -58,10 +58,7 @@ enum class ElementType : unsigned short {
     TRAVELINGWAVE,
     SBEND,
     RBEND,
-    RBEND3D,
-    VACUUM,
     SOLENOID,
-    SOURCE,
     CONSTANTEFIELDCAVITY,
     CONSTANTFOCUSING
 };
@@ -268,15 +265,9 @@ public:
     /// @param cst The misalignment.
     void setMisalignment(const CoordinateSystemTrafo& cst);
 
-    /// Not implemented.
-    void getMisalignment(double& x, double& y, double& s) const;
-
     /// @brief Get the misalignment.
     /// @return The misalignment.
     CoordinateSystemTrafo getMisalignment() const;
-
-    /// @brief Unlock the position so the global -> local transform can change.
-    void releasePosition();
 
     /// @brief Lock the position so the global -> local transform cannot change.
     void fixPosition();
@@ -403,9 +394,6 @@ public:
 
     // Setup
     virtual void initialise(PartBunch_t* bunch) = 0;
-
-    // Clean-up
-    virtual void finalise() = 0;
 
     /// Release runtime resources / flush element output (e.g. loss data); clears online_m.
     /// initialise() prepares them (field maps, output files) and sets online_m where it is read.
@@ -611,8 +599,6 @@ inline CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const {
 inline void ElementBase::setMisalignment(const CoordinateSystemTrafo& cst) { misalignment_m = cst; }
 
 inline CoordinateSystemTrafo ElementBase::getMisalignment() const { return misalignment_m; }
-
-inline void ElementBase::releasePosition() { positionIsFixed = false; }
 
 inline void ElementBase::fixPosition() { positionIsFixed = true; }
 

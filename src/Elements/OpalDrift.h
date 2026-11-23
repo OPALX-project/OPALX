@@ -36,10 +36,6 @@ public:
 
     virtual ~OpalDrift();
 
-    /// Test for drift.
-    //  Return true.
-    virtual bool isDrift() const;
-
     /// Build the runtime element of one occurrence from its attribute values.
     static std::shared_ptr<ElementBase> build(const ObjectValues& values, double p0);
 

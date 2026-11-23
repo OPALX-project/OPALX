@@ -44,9 +44,6 @@ public:
      */
     void initialise(PartBunch_t* bunch) override;
 
-    /** @brief Finalize the element after a tracking pass. */
-    void finalise() override;
-
     /** @brief Return false because the element has straight reference geometry. */
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */

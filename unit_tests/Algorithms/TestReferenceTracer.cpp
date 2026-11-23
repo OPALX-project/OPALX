@@ -39,7 +39,6 @@ namespace {
             return false;
         }
         void initialise(PartBunch_t*) override {}
-        void finalise() override {}
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = 0.0;
             zEnd   = fieldLength_m;

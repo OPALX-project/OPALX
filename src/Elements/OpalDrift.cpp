@@ -33,8 +33,6 @@ OpalDrift::OpalDrift()
 
 OpalDrift::~OpalDrift() {}
 
-bool OpalDrift::isDrift() const { return true; }
-
 std::shared_ptr<ElementBase> OpalDrift::build(const ObjectValues& values, double /*p0*/) {
     auto element = std::make_shared<DriftRep>(values.getName());
     fill(*element, values);

@@ -44,10 +44,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::TRAVELINGWAVE, "TravelingWave"},
         {ElementType::SBEND, "SBEND"},
         {ElementType::RBEND, "RBEND"},
-        {ElementType::RBEND3D, "RBEND3D"},
-        {ElementType::SOURCE, "SOURCE"},
         {ElementType::SOLENOID, "SOLENOID"},
-        {ElementType::VACUUM, "Vacuum"},
         {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"},
         {ElementType::CONSTANTFOCUSING, "ConstantFocusing"}};
 

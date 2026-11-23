@@ -42,9 +42,6 @@ public:
     /// @param bunch The reference particle bunch.
     void initialise(PartBunch_t* bunch) override;
 
-    /// @brief Clean up after tracking.
-    void finalise() override;
-
     /// @brief Apply the field to all particles.
     /// @param pc The particle container.
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;

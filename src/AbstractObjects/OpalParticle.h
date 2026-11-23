@@ -48,33 +48,6 @@ public:
 
     OpalParticle();
 
-    /// Set the horizontal position in m.
-    void setX(double);
-
-    /// Set the horizontal momentum.
-    void setPx(double);
-
-    /// Set the vertical displacement in m.
-    void setY(double);
-
-    /// Set the vertical momentum.
-    void setPy(double);
-
-    /// Set longitudinal position in m.
-    void setZ(double);
-
-    /// Set the longitudinal momentum
-    void setPz(double);
-
-    /// Set position in m
-    void setR(Vector_t<double, 3> const&);
-
-    /// Set momentum
-    void setP(Vector_t<double, 3> const&);
-
-    /// Set the time
-    void setTime(double t);
-
     /// Get the id of the particle
     int64_t getId() const;
 
@@ -100,9 +73,6 @@ public:
     /// Get relative momentum error (no dimension).
     double getPz() const;
 
-    /// Get position in m
-    const Vector_t<double, 3>& getR() const;
-
     /// Get momentum
     const Vector_t<double, 3>& getP() const;
 
@@ -122,9 +92,6 @@ public:
     /// Only meaningful when hasPol() is true.
     const Vector_t<double, 3>& getPol() const;
 
-    /// Attach a polarization vector to this particle.
-    void setPol(Vector_t<double, 3> const&);
-
 private:
     int64_t id_m;
     Vector_t<double, 3> R_m;
@@ -135,24 +102,6 @@ private:
     Vector_t<double, 3> Pol_m{0.0, 0.0, 0.0};
     bool hasPol_m = false;
 };
-
-inline void OpalParticle::setX(double val) { R_m[X] = val; }
-
-inline void OpalParticle::setY(double val) { R_m[Y] = val; }
-
-inline void OpalParticle::setZ(double val) { R_m[L] = val; }
-
-inline void OpalParticle::setPx(double val) { P_m[X] = val; }
-
-inline void OpalParticle::setPy(double val) { P_m[Y] = val; }
-
-inline void OpalParticle::setPz(double val) { P_m[L] = val; }
-
-inline void OpalParticle::setR(Vector_t<double, 3> const& R) { R_m = R; }
-
-inline void OpalParticle::setP(Vector_t<double, 3> const& P) { P_m = P; }
-
-inline void OpalParticle::setTime(double t) { time_m = t; }
 
 inline int64_t OpalParticle::getId() const { return id_m; }
 
@@ -173,8 +122,6 @@ inline double OpalParticle::getPy() const { return P_m[Y]; }
 
 inline double OpalParticle::getPz() const { return P_m[L]; }
 
-inline const Vector_t<double, 3>& OpalParticle::getR() const { return R_m; }
-
 inline const Vector_t<double, 3>& OpalParticle::getP() const { return P_m; }
 
 inline double OpalParticle::getTime() const { return time_m; }
@@ -186,10 +133,5 @@ inline double OpalParticle::getMass() const { return mass_m; }
 inline bool OpalParticle::hasPol() const { return hasPol_m; }
 
 inline const Vector_t<double, 3>& OpalParticle::getPol() const { return Pol_m; }
-
-inline void OpalParticle::setPol(Vector_t<double, 3> const& Pol) {
-    Pol_m    = Pol;
-    hasPol_m = true;
-}
 
 #endif  // OPALX_OpalParticle_HH

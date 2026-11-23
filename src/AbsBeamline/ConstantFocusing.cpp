@@ -39,8 +39,6 @@ void ConstantFocusing::initialise(PartBunch_t* bunch) {
     gradientInitialized_m = false;
 }
 
-void ConstantFocusing::finalise() {}
-
 ElementType ConstantFocusing::getType() const { return ElementType::CONSTANTFOCUSING; }
 
 void ConstantFocusing::getFieldExtent(double& zBegin, double& zEnd) const {

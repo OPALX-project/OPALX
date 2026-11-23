@@ -146,7 +146,6 @@ namespace {
         }
 
         void initialise(PartBunch_t*) override {}
-        void finalise() override {}
 
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = fieldBegin_m;

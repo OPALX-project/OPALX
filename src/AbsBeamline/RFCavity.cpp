@@ -245,8 +245,6 @@ void RFCavity::initialise(PartBunch_t* bunch) {
     Fieldmap::readMap(filename_m);
 }
 
-void RFCavity::finalise() {}
-
 void RFCavity::goOffline() {
     if (isIdeal()) {
         online_m = false;

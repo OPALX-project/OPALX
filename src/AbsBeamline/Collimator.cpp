@@ -29,8 +29,6 @@ Collimator::~Collimator() {}
 
 void Collimator::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
-void Collimator::finalise() {}
-
 void Collimator::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart support interval (field-free; report the body span).
     zBegin = 0.0;

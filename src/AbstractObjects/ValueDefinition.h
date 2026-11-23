@@ -49,10 +49,6 @@ public:
     //  The default version throws OpalException.
     virtual bool getBool() const;
 
-    /// Return indexed logical value.
-    //  The default version throws OpalException.
-    virtual bool getBoolComponent(int) const;
-
     /// Return real value.
     //  The default version throws OpalException.
     virtual double getReal() const;
@@ -64,10 +60,6 @@ public:
     /// Return string value.
     //  The default version throws OpalException.
     virtual std::string getString() const;
-
-    /// Return indexed string value.
-    //  The default version throws OpalException.
-    virtual std::string getStringComponent(int) const;
 
     /// Return the attribute representing the value of the definition.
     //  Version for non-constant object.

@@ -21,14 +21,12 @@
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/Statement.h"
-#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
 
 #include <cmath>
 #include <exception>
 #include <regex>
-#include <sstream>
 #include <vector>
 
 OpalElement::OpalElement(int size, const char* name, const char* help)
@@ -212,24 +210,6 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert(const ObjectV
 
 double OpalElement::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }
 
-const std::string OpalElement::getTypeName() const {
-    const Attribute* attr = findAttribute("TYPE");
-    return attr ? Attributes::getString(*attr) : std::string();
-}
-
-/**
-   Functions to get the wake field parametes
-*/
-const std::string OpalElement::getWakeF() const {
-    const Attribute* attr = findAttribute("WAKEF");
-    return attr ? Attributes::getString(*attr) : std::string();
-}
-
-const std::string OpalElement::getParticleMatterInteraction() const {
-    const Attribute* attr = findAttribute("PARTICLEMATTERINTERACTION");
-    return attr ? Attributes::getString(*attr) : std::string();
-}
-
 void OpalElement::parse(Statement& stat) {
     while (stat.delimiter(',')) {
         std::string name = Expressions::parseString(stat, "Attribute name expected.");
@@ -272,108 +252,6 @@ void OpalElement::print(std::ostream& os) const {
     os << head;
     os << ';';
     os << std::endl;
-}
-
-void OpalElement::printMultipoleStrength(
-        std::ostream& os, int order, int& len, const std::string& sName, const std::string& tName,
-        const Attribute& length, const Attribute& sNorm, const Attribute& sSkew) {
-    // Find out which type of output is required.
-    int flag = 0;
-    if (sNorm) {
-        if (sNorm.getBase().isExpression()) {
-            flag += 2;
-        } else if (Attributes::getReal(sNorm) != 0.0) {
-            flag += 1;
-        }
-    }
-
-    if (sSkew) {
-        if (sSkew.getBase().isExpression()) {
-            flag += 6;
-        } else if (Attributes::getReal(sSkew) != 0.0) {
-            flag += 3;
-        }
-    }
-    // Now do the output.
-    int div = 2 * (order + 1);
-
-    switch (flag) {
-        case 0:
-            // No component at all.
-            break;
-
-        case 1:
-        case 2:
-            // Pure normal component.
-            {
-                std::string normImage = sNorm.getImage();
-                if (length) {
-                    normImage = "(" + normImage + ")*(" + length.getImage() + ")";
-                }
-                printAttribute(os, sName, normImage, len);
-            }
-            break;
-
-        case 3:
-        case 6:
-            // Pure skew component.
-            {
-                std::string skewImage = sSkew.getImage();
-                if (length) {
-                    skewImage = "(" + skewImage + ")*(" + length.getImage() + ")";
-                }
-                printAttribute(os, sName, skewImage, len);
-                double tilt = Physics::pi / double(div);
-                printAttribute(os, tName, tilt, len);
-            }
-            break;
-
-        case 4:
-            // Both components are non-zero constants.
-            {
-                double sn       = Attributes::getReal(sNorm);
-                double ss       = Attributes::getReal(sSkew);
-                double strength = std::sqrt(sn * sn + ss * ss);
-                if (strength) {
-                    std::ostringstream ts;
-                    ts << strength;
-                    std::string image = ts.str();
-                    if (length) {
-                        image = "(" + image + ")*(" + length.getImage() + ")";
-                    }
-                    printAttribute(os, sName, image, len);
-                    double tilt = -std::atan2(ss, sn) / double(div);
-                    if (tilt) printAttribute(os, tName, tilt, len);
-                }
-            }
-            break;
-
-        case 5:
-        case 7:
-        case 8:
-            // One or both components is/are expressions.
-            {
-                std::string normImage = sNorm.getImage();
-                std::string skewImage = sSkew.getImage();
-                std::string image     = "SQRT((" + normImage + ")^2+(" + skewImage + ")^2)";
-                printAttribute(os, sName, image, len);
-                if (length) {
-                    image = "(" + image + ")*(" + length.getImage() + ")";
-                }
-                std::string divisor;
-                if (div < 9) {
-                    divisor = "0";
-                    divisor[0] += div;
-                } else {
-                    divisor = "00";
-                    divisor[0] += div / 10;
-                    divisor[1] += div % 10;
-                }
-                image = "-ATAN2(" + skewImage + ',' + normImage + ")/" + divisor;
-                printAttribute(os, tName, image, len);
-                break;
-            }
-    }
 }
 
 void OpalElement::validatePlacement(const std::string& name, bool hasElemEdge, bool has6DPose) {
@@ -468,25 +346,6 @@ void OpalElement::setCommonFields(ElementBase& element, const ObjectValues& valu
         }
         base->setReach(reach);
     }
-}
-
-void OpalElement::printAttribute(
-        std::ostream& os, const std::string& name, const std::string& image, int& len) {
-    len += name.length() + image.length() + 2;
-    if (len > 74) {
-        os << ",&\n  ";
-        len = name.length() + image.length() + 3;
-    } else {
-        os << ',';
-    }
-    os << name << '=' << image;
-}
-
-void OpalElement::printAttribute(
-        std::ostream& os, const std::string& name, double value, int& len) {
-    std::ostringstream ss;
-    ss << value << std::ends;
-    printAttribute(os, name, ss.str(), len);
 }
 
 void OpalElement::registerOwnership() const {

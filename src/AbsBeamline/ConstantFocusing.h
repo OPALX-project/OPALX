@@ -20,7 +20,6 @@ public:
     ~ConstantFocusing() override;
 
     void initialise(PartBunch_t* bunch) override;
-    void finalise() override;
     ElementType getType() const override;
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 

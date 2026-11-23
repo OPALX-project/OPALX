@@ -104,9 +104,6 @@ public:
      */
     virtual void initialise(PartBunch_t* bunch) override;
 
-    /// @note not implemented
-    virtual void finalise() override;
-
     /// @brief Free field map and go offline
     virtual void goOffline() override;
 

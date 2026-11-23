@@ -75,8 +75,6 @@ std::tuple<double, double, double> MultipoleT::getFringeField() const {
     return {config_m.fringeS0_m, config_m.fringeLambdaLeft_m, config_m.fringeLambdaRight_m};
 }
 
-void MultipoleT::finalise() { RefPartBunch_m = nullptr; }
-
 void MultipoleT::setElementLength(const double length) {
     // Only the config is authoritative; initialise() pushes it into the geometry.
     config_m.length_m = length;

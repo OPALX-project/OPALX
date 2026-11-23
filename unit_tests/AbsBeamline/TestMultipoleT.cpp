@@ -206,7 +206,6 @@ TEST_F(TestMultipoleT, FieldExtentIncludesAsymmetricFringes) {
 // Tests for the few remaining API functions are collected here
 TEST_F(TestMultipoleT, OddApis) {
     // The field-support interval follows the body length.
-    EXPECT_NO_THROW(finalise());
     setElementLength(4.0);
     double a = -1.0, b = -1.0;
     EXPECT_NO_THROW(getFieldExtent(a, b));

@@ -128,16 +128,6 @@ public:
     //  reset it when the object is saved in the DOOM data base.
     void setDirty(bool);
 
-    /// True, if the [b]modified[/b] flag is set.
-    bool isDirty() const;
-
-    /// Flag/unflag this object, e. g. to control output of objects for
-    //  flagged objects only.
-    void setFlag(bool);
-
-    /// True, if [b]this[/b] is flagged by setFlag(true).
-    bool isFlagged() const;
-
     /// Return object name.
     const std::string& getOpalName() const;
 
@@ -146,15 +136,6 @@ public:
 
     /// Set object name.
     void setOpalName(const std::string& name);
-
-    /// Clear the occurrence counter.
-    void clear();
-
-    /// Increment and return the occurrence counter.
-    int increment();
-
-    /// Return the occurrence counter.
-    int occurrenceCount();
 
     /// Register a reference to this object.
     //  Place [b]a[/b] in the list of references.  Whenever [b]this[/b]
@@ -191,10 +172,6 @@ protected:
     //  DOOM data base.
     bool modified;
 
-    /// Object flag.
-    //  This flag can be freely set and reset during the execution of a command.
-    bool flagged;
-
 private:
     // Not implemented.
     Object();
@@ -209,9 +186,6 @@ private:
 
     // The help text.
     std::string itsHelp;
-
-    // The occurrence counter.
-    int occurrence;
 
     // The DOOM data base time stamp.
     double timeStamp;

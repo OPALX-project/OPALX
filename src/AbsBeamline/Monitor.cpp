@@ -338,8 +338,6 @@ void Monitor::initialise(PartBunch_t* bunch) {
     online_m = true;
 }
 
-void Monitor::finalise() {}
-
 void Monitor::goOffline() {
     if (!lossDs_m) {
         return;

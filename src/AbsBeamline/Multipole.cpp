@@ -359,8 +359,6 @@ void Multipole::initialise(PartBunch_t* bunch) {
     online_m       = true;
 }
 
-void Multipole::finalise() { online_m = false; }
-
 void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getGeometry().getElementLength();

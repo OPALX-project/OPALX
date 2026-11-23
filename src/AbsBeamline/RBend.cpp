@@ -48,8 +48,6 @@ void RBend::initialise(PartBunch_t* bunch) {
     online_m = true;
 }
 
-void RBend::finalise() { online_m = false; }
-
 void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();

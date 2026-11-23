@@ -139,7 +139,7 @@ namespace {
                 //  design-orbit
                 //    entrance tangent (identity rotation relative to the incoming orbit here).
                 //    SBend::apply measures arc length from it directly, no pole-face de-tilt.
-                //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame —
+                //  - RBEND: a straight box, so its entrance face frame is the box frame —
                 //  +z
                 //    along the chord, half the bend angle off the incoming orbit tangent. It does
                 //    NOT coincide with the orbit tangent. RBend::apply gates on the box z, uniform

@@ -72,11 +72,6 @@ public:
      */
     ElementSet getElements();
 
-    Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> rotateTo(const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
-
     /// Lab <-> element frame of the nominal placement, without misalignment: the frame in which
     /// the reference particle sees the element. The bunch sees the misaligned element in
     /// elementFrame().
@@ -134,9 +129,6 @@ public:
             PartBunch_t& bunch, const opalx::spacecharge::DirichletPlaneConfig& plane) const;
 
     unsigned long getFieldAt(
-            const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,
-            Vector_t<double, 3>&, Vector_t<double, 3>&);
-    unsigned long getFieldAt(
             const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
             Vector_t<double, 3>&, Vector_t<double, 3>&);
 
@@ -163,15 +155,8 @@ public:
     /// Write data/<inputBasename>_3D.opal: the input file @p inputFileName with every element
     /// placed by absolute coordinates (rank 0 only).
     void save3DInput(const std::string& inputFileName, const std::string& inputBasename);
-    void print(Inform&) const;
-    void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     ElementList getElementByType(ElementType);
-
-    void swap(OpalBeamline& rhs);
-    void merge(OpalBeamline& rhs);
 
 private:
     /**
@@ -230,22 +215,6 @@ inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBun
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
     elementMapping_m.reset();
-}
-
-inline Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3>& r) const {
-    return coordTransformationTo_m.transformTo(r);
-}
-
-inline Vector_t<double, 3> OpalBeamline::transformFrom(const Vector_t<double, 3>& r) const {
-    return coordTransformationTo_m.transformFrom(r);
-}
-
-inline Vector_t<double, 3> OpalBeamline::rotateTo(const Vector_t<double, 3>& r) const {
-    return coordTransformationTo_m.rotateTo(r);
-}
-
-inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r) const {
-    return coordTransformationTo_m.rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(

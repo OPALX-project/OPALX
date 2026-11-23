@@ -42,8 +42,6 @@ void Drift::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
 // get the number of slices for map tracking
 std::size_t Drift::getNSlices() const { return nSlices_m; }
 
-void Drift::finalise() {}
-
 void Drift::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart field-support interval (a drift carries no field; report the body span).
     zBegin = 0.0;

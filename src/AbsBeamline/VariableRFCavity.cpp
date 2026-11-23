@@ -167,8 +167,6 @@ void VariableRFCavity::initialise(PartBunch_t* bunch) {
         initialiseTimeDependencies();
 }
 
-void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
-
 ElementBase* VariableRFCavity::clone() const { return new VariableRFCavity(*this); }
 
 void VariableRFCavity::initialiseTimeDependencies() const {

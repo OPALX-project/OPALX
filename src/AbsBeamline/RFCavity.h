@@ -111,8 +111,6 @@ public:
 
     virtual void initialise(PartBunch_t* bunch) override;
 
-    virtual void finalise() override;
-
     virtual void goOffline() override;
 
     virtual void setDesignEnergy(const double& ekin, bool changeable = true) override;
