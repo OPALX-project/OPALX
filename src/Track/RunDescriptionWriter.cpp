@@ -129,6 +129,7 @@ namespace opalx::run {
 
         os << "\n[context]\n"
            << "inputBasename = " << d.context.inputBasename << "\n"
+           << "inputFileName = " << d.context.inputFileName << "\n"
            << "restart = " << flag(d.context.restart) << "\n"
            << "restartFileName = " << d.context.restartFileName << "\n"
            << "openMode = " << d.context.openMode << "\n"

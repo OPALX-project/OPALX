@@ -162,8 +162,15 @@ public:
 
     void prepareSections();
     void compute3DLattice();
-    void save3DLattice();
-    void save3DInput();
+    /**
+     * @brief Write the element positions to data/<inputBasename>_ElementPositions.txt and the
+     *        element meshes to data/<inputBasename>_ElementPositions.py (rank 0 only).
+     * @param append Append to an existing positions file instead of replacing it.
+     */
+    void save3DLattice(const std::string& inputBasename, bool append);
+    /// Write data/<inputBasename>_3D.opal: the input file @p inputFileName with every element
+    /// placed by absolute coordinates (rank 0 only).
+    void save3DInput(const std::string& inputFileName, const std::string& inputBasename);
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,

@@ -20,7 +20,6 @@
 #include "AbsBeamline/Monitor.h"
 #include "Elements/PlacementResolver.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "Moments/BeamMoments.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -351,7 +350,7 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 
 void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
-void OpalBeamline::save3DLattice() {
+void OpalBeamline::save3DLattice(const std::string& inputBasename, const bool append) {
     if (ippl::Comm->rank() != 0) return;
 
     // Write elements in s-sorted order (the order prepareSections established). This is stable
@@ -363,10 +362,8 @@ void OpalBeamline::save3DLattice() {
 
     std::ofstream pos;
     std::string fileName = Util::combineFilePath(
-            {Util::auxiliaryOutputDirectory,
-             OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"});
-    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::APPEND
-        && std::filesystem::exists(fileName)) {
+            {Util::auxiliaryOutputDirectory, inputBasename + "_ElementPositions.txt"});
+    if (append && std::filesystem::exists(fileName)) {
         pos.open(fileName, std::ios_base::app);
     } else {
         pos.open(fileName);
@@ -457,12 +454,12 @@ void OpalBeamline::save3DLattice() {
         }
     }
     elements_m.sort(byFieldStart);
-    mesh.write(OpalData::getInstance()->getInputBasename());
+    mesh.write(inputBasename);
 }
 
 namespace {
-    std::string parseInput() {
-        std::ifstream in(OpalData::getInstance()->getInputFn());
+    std::string parseInput(const std::string& inputFileName) {
+        std::ifstream in(inputFileName);
         std::string source("");
         std::string str;
         char testBit;
@@ -538,16 +535,15 @@ namespace {
     }
 }  // namespace
 
-void OpalBeamline::save3DInput() {
+void OpalBeamline::save3DInput(const std::string& inputFileName, const std::string& inputBasename) {
     if (ippl::Comm->rank() != 0) return;
 
     ElementList::iterator it  = elements_m.begin();
     ElementList::iterator end = elements_m.end();
 
-    std::string input = parseInput();
-    std::string fname = Util::combineFilePath(
-            {Util::auxiliaryOutputDirectory,
-             OpalData::getInstance()->getInputBasename() + "_3D.opal"});
+    std::string input = parseInput(inputFileName);
+    std::string fname =
+            Util::combineFilePath({Util::auxiliaryOutputDirectory, inputBasename + "_3D.opal"});
     std::ofstream pos(fname);
 
     for (; it != end; ++it) {

@@ -244,7 +244,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     EXPECT_EQ(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.10)).size(), 1u);
     EXPECT_TRUE(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.30)).empty());
 
-    ASSERT_NO_THROW(beamline.save3DLattice());
+    ASSERT_NO_THROW(beamline.save3DLattice(testStem_, false));
 
     std::ifstream txt(outputPath("_ElementPositions.txt"));
     ASSERT_TRUE(txt.is_open());
@@ -359,7 +359,7 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
     beamline.visit(drift, visitor, *bunch);
     beamline.visit(solenoid, visitor, *bunch);
     beamline.compute3DLattice();
-    beamline.save3DLattice();
+    beamline.save3DLattice(testStem_, false);
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
@@ -382,7 +382,7 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
     OpalBeamline beamline;
     beamline.visit(quadrupole, visitor, *bunch);
     beamline.compute3DLattice();
-    beamline.save3DLattice();
+    beamline.save3DLattice(testStem_, false);
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());

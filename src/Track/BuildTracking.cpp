@@ -359,7 +359,8 @@ namespace opalx::run {
         OpalBeamline buildBeamline(
                 const LineDescription& line,
                 const std::vector<std::shared_ptr<ElementBase>>& elements, PartBunch_t& bunch,
-                const CavityPhases& cavityPhases, const OptionValues& options) {
+                const CavityPhases& cavityPhases, const OptionValues& options,
+                const RunContext& context) {
             OpalBeamline beamline(
                     Vector_t<double, 3>(line.origin[0], line.origin[1], line.origin[2]),
                     Quaternion(
@@ -385,8 +386,8 @@ namespace opalx::run {
             beamline.prepareSections();
             beamline.compute3DLattice();
 
-            beamline.save3DLattice();
-            beamline.save3DInput();
+            beamline.save3DLattice(context.inputBasename, context.openMode == "APPEND");
+            beamline.save3DInput(context.inputFileName, context.inputBasename);
 
             restoreCavityPhases(beamline, cavityPhases);
 
@@ -795,7 +796,7 @@ namespace opalx::run {
         // The tracker steps with a positive time step; elements read it in initialise().
         bunch.setdT(std::abs(bunch.getdT()));
         setup.beamline = buildBeamline(
-                description.line, elements, bunch, restartMetadata.cavityPhases, options);
+                description.line, elements, bunch, restartMetadata.cavityPhases, options, context);
         setup.spaceChargeFieldUpdate = run.getString("SCFIELDUPDATE") == "PRESTEP"
                                                ? SpaceChargeFieldUpdate::PRESTEP
                                                : SpaceChargeFieldUpdate::MIDPOINT;
