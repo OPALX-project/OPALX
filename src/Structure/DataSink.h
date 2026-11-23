@@ -65,8 +65,6 @@ public:
             const std::vector<H5PartWrapper*>& h5wrappers, bool restart,
             size_t numParticleContainers, const std::string& outputBasename = "",
             bool appendStatistics = false);
-    DataSink(H5PartWrapper* h5wrapper, bool restart);
-    DataSink(H5PartWrapper* h5wrapper);
 
     /** Basename stem for per-container diagnostics: @c basename if @p numContainers<=1 else @c
      * basename_cN. */
@@ -107,15 +105,6 @@ public:
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
             std::span<const opalx::moments::BeamMoments> moments, int reportedBinCount) const;
-
-    /**
-     * Write impact number and outgoing secondaries in each time step
-     *
-     * @param fn File name stem; rank 0 appends one line to `<fn>.dat`.
-     */
-    void writeImpactStatistics(
-            const PartBunch_t& beam, long long int& step, size_t& impact, double& sey_num,
-            size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
 
     /**
      * @brief Append a binning configuration snapshot to a JSON file.

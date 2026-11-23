@@ -11,7 +11,6 @@ set (_SRCS
   H5FileSpace.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
-  MonitorStatisticsWriter.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
   MeshGenerator.cpp       
@@ -37,7 +36,6 @@ set (HDRS
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
-    MonitorStatisticsWriter.h
     H5Writer.h
     MeshGenerator.h
     LBalWriter.h

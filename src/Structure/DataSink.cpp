@@ -29,7 +29,6 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
-#include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Structure/LBalWriter.h"
@@ -65,11 +64,6 @@ DataSink::DataSink(
         rewindLines();
     }
 }
-
-DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart)
-    : DataSink(std::vector<H5PartWrapper*>{h5wrapper}, restart, 1) {}
-
-DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {}
 
 opalx::moments::Request DataSink::requiredMoments(bool psDump, bool statDump, bool hasSpin) {
     opalx::moments::Request request;
@@ -144,49 +138,6 @@ void DataSink::dumpSDDS(
     beam.gatherLoadBalanceStatistics();
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
-}
-
-void DataSink::writeImpactStatistics(
-        const PartBunch_t& beam, long long& step, size_t& impact, double& sey_num,
-        size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
-    double charge  = 0.0;
-    size_t Npart   = 0;
-    double Npart_d = 0.0;
-    if (!nEmissionMode) {
-        const auto pc = beam.getParticleContainers()[0];
-        charge        = -1.0 * pc->getTotalCharge();
-        // reduce(charge, charge, OpAddAssign());
-        Npart_d = -1.0 * charge / pc->getChargePerParticle();
-    } else {
-        Npart = beam.getParticleContainers()[0]->getTotalNum();
-    }
-    if (ippl::Comm->rank() == 0) {
-        std::string ffn = fn + std::string(".dat");
-
-        std::unique_ptr<Inform> ofp(new Inform(nullptr, ffn.c_str(), Inform::APPEND, 0));
-        Inform& fid = *ofp;
-        fid.precision(6);
-        fid << std::setiosflags(std::ios::scientific);
-        double t = beam.getT() * Units::s2ns;
-        if (!nEmissionMode) {
-            if (step == 0) {
-                fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
-                    << "tot_sey" << std::setw(18) << "TotalCharge" << std::setw(18) << "PartNum"
-                    << " numberOfFieldEmittedParticles " << endl;
-            }
-            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18)
-                << charge << std::setw(18) << Npart_d << std::setw(18)
-                << numberOfFieldEmittedParticles << endl;
-        } else {
-            if (step == 0) {
-                fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
-                    << "tot_sey" << std::setw(18) << "ParticleNumber"
-                    << " numberOfFieldEmittedParticles " << endl;
-            }
-            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18)
-                << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl;
-        }
-    }
 }
 
 void DataSink::dumpBinConfig(
