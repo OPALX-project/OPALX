@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "Algorithms/BeamStop.h"
@@ -73,6 +74,8 @@ struct TrackingSetup {
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     /// Cavity phases the checkpoint stored; autophase adds to them and checkpoints save them.
     CavityPhases cavityPhases;
+    /// File the CHECKPOINTFREQ checkpoints of this RUN are written to.
+    std::string checkpointPath;
 
     std::vector<BeamStop> beamStops;  ///< Per container: ZSTOP plane, UNTILMAXSTEPS.
 

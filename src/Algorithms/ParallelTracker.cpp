@@ -32,7 +32,6 @@
 #include "BasicActions/DumpEMFields.h"
 
 #include "AbsBeamline/RFCavity.h"
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/ReferenceTracer.h"
 
@@ -85,6 +84,7 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       restartDt_m(setup.restartDt),
       restartPosition_m(setup.restartPosition),
       cavityPhases_m(std::move(setup.cavityPhases)),
+      checkpointPath_m(std::move(setup.checkpointPath)),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -189,7 +189,8 @@ bool ParallelTracker::startTracking() {
             continue;  // a decay daughter container follows its root's reference
         }
         ReferenceTracer tracer(
-                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, &cavityPhases_m);
+                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep,
+                options_m.autoPhase, &cavityPhases_m);
         ReferenceTracer::RayState start;
         start.position   = pc->getRefPartR();
         start.momentum   = pc->getRefPartP();
@@ -618,12 +619,10 @@ void ParallelTracker::writeCheckpointIfDue(
         Inform m("ParallelTracker::writeCheckpointIfDue");
         const std::size_t nextSegment = segmentComplete ? segmentIndex + 1 : segmentIndex;
         const unsigned long long nextSegmentSteps = segmentComplete ? 0 : stepsCompletedInSegment;
-        const std::string checkpointPath =
-                CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
         CheckpointFile::write(
-                checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m,
+                checkpointPath_m, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m,
                 cavityPhases_m);
-        m << level2 << "Wrote checkpoint '" << checkpointPath << "' after global step "
+        m << level2 << "Wrote checkpoint '" << checkpointPath_m << "' after global step "
           << itsBunch_m->getGlobalTrackStep() << "." << endl;
     }
 }
@@ -1569,7 +1568,7 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         }
         const RFCavity* cavity = static_cast<const RFCavity*>(element.get());
         if (!cavity->getAutophaseVeto()) {
-            CavityAutophaser ap(ref, element, &cavityPhases_m);
+            CavityAutophaser ap(ref, element, options_m.autoPhase, &cavityPhases_m);
             ap.getPhaseAtMaxEnergy(
                     itsOpalBeamline_m.transformToLocalCS(
                             element, itsBunch_m->getParticleContainer()->getRefPartR()),

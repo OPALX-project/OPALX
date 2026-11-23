@@ -35,11 +35,13 @@ using CavityPhases = std::vector<std::pair<std::string, double>>;
 class CavityAutophaser {
 public:
     /**
+     * @param numRefinements Halvings of the phase step after the coarse search, the value of
+     *        OPTION AUTOPHASE.
      * @param phases If given, getPhaseAtMaxEnergy() adds the phase it sets on the cavity; a
      *        checkpoint stores this list so that a restart keeps the phases.
      */
     CavityAutophaser(
-            const PartData& ref, std::shared_ptr<ElementBase> cavity,
+            const PartData& ref, std::shared_ptr<ElementBase> cavity, int numRefinements,
             CavityPhases* phases = nullptr);
 
     ~CavityAutophaser();
@@ -55,6 +57,7 @@ private:
 
     const PartData& itsReference_m;
     std::shared_ptr<ElementBase> itsCavity_m;
+    int numRefinements_m;
     CavityPhases* phases_m;
 
     Vector_t<double, 3> initialR_m;

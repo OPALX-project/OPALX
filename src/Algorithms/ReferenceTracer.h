@@ -37,7 +37,8 @@ class PartData;
  * The pass takes Boris steps of the smallest DT. At each step it applies the elements that
  * OpalBeamline::getElements() selects at the step midpoint. It first steps backwards over the
  * bunch tail, then forwards. On the way it
- * - autophases each RFCAVITY and TRAVELINGWAVE when the reference first reaches it,
+ * - autophases each RFCAVITY and TRAVELINGWAVE when the reference first reaches it, unless
+ *   AUTOPHASE is 0,
  * - checks that the DT of the current segment resolves each element it reaches
  *   (ElementBase::getRequiredNumberOfTimeSteps()),
  * - checks that no element would delete the reference
@@ -56,11 +57,13 @@ public:
      * @param beamline Placed lattice whose element grid is built.
      * @param stepSizes Tracking schedule: DT, ZSTOP and MAXSTEPS per segment.
      * @param dt Time step of the pass [s], normally the smallest DT of the schedule.
+     * @param autoPhase Value of OPTION AUTOPHASE: 0 leaves the cavity phases alone, else the
+     *        number of refinements of the phase search.
      * @param cavityPhases If given, autophase adds the phase it sets on each cavity.
      */
     ReferenceTracer(
             const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-            double dt, CavityPhases* cavityPhases = nullptr);
+            double dt, int autoPhase, CavityPhases* cavityPhases = nullptr);
 
     /**
      * @brief Trace the reference particle.
@@ -91,6 +94,7 @@ private:
     /// Advanced along the pass to find the DT of the current segment.
     StepSizeConfig stepSizes_m;
     double dt_m;
+    int autoPhase_m;
     ExternalFieldRayTracker rayTracker_m;
 
     RayState ray_m;

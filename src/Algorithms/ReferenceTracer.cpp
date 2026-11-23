@@ -24,7 +24,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include <algorithm>
@@ -36,11 +35,12 @@ extern Inform* gmsg;
 
 ReferenceTracer::ReferenceTracer(
         const PartData& reference, OpalBeamline& beamline, const StepSizeConfig& stepSizes,
-        const double dt, CavityPhases* cavityPhases)
+        const double dt, int autoPhase, CavityPhases* cavityPhases)
     : reference_m(reference),
       beamline_m(beamline),
       stepSizes_m(stepSizes),
       dt_m(dt),
+      autoPhase_m(autoPhase),
       rayTracker_m(beamline, reference),
       cavityPhases_m(cavityPhases) {
     if (!(std::isfinite(dt_m) && dt_m > 0.0))
@@ -150,14 +150,14 @@ void ReferenceTracer::checkElementLengths(const ElementSet& fields) {
 }
 
 void ReferenceTracer::autophaseCavities(const ElementSet& fields) {
-    if (Options::autoPhase == 0) return;
+    if (autoPhase_m == 0) return;
     for (const auto& element : fields) {
         if ((element->getType() == ElementType::TRAVELINGWAVE
              || element->getType() == ElementType::RFCAVITY)
             && visitedElements_m.find(element->getName()) == visitedElements_m.end()) {
             const auto initialR = beamline_m.transformToLocalCS(element, ray_m.position);
             const auto initialP = beamline_m.rotateToLocalCS(element, ray_m.momentum);
-            CavityAutophaser autophaser(reference_m, element, cavityPhases_m);
+            CavityAutophaser autophaser(reference_m, element, autoPhase_m, cavityPhases_m);
             autophaser.getPhaseAtMaxEnergy(initialR, initialP, ray_m.time, dt_m);
         }
     }

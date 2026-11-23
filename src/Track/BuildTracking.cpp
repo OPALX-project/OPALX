@@ -861,8 +861,9 @@ namespace opalx::run {
         setup.restartDt         = restartMetadata.dt;
         setup.restartPosition   = StepSizeConfig::ResumePosition{
                 restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
-        setup.cavityPhases = restartMetadata.cavityPhases;
-        setup.options      = description.options;
+        setup.cavityPhases   = restartMetadata.cavityPhases;
+        setup.checkpointPath = CheckpointFile::defaultPath(context.inputBasename);
+        setup.options        = description.options;
 
         // The tracker steps with a positive time step; elements read it in initialise().
         bunch.setdT(std::abs(bunch.getdT()));

@@ -180,11 +180,13 @@ TEST_F(ReferenceTracerTest, LengthCheckUsesTheFieldExtent) {
     beamline.prepareSections();
 
     // About 0.2 mm per step at beta gamma = 1: ten steps fit into the 0.1 m field extent.
-    ReferenceTracer fine(reference_m, beamline, schedule(1.0e-12, 0.2, 1000), 1.0e-12);
+    ReferenceTracer fine(
+            reference_m, beamline, schedule(1.0e-12, 0.2, 1000), 1.0e-12, /*autoPhase=*/0);
     EXPECT_NO_THROW(fine.execute(launch(), 0.0));
 
     // About 2.1 cm per step: ten steps do not fit.
-    ReferenceTracer coarse(reference_m, beamline, schedule(1.0e-10, 0.2, 10), 1.0e-10);
+    ReferenceTracer coarse(
+            reference_m, beamline, schedule(1.0e-10, 0.2, 10), 1.0e-10, /*autoPhase=*/0);
     EXPECT_THROW(coarse.execute(launch(), 0.0), OpalException);
 }
 
@@ -197,7 +199,8 @@ TEST_F(ReferenceTracerTest, ReachCheckStopsWhenAParallelBranchWouldDeleteTheRefe
         if (branchReach > 0.0) branch->setReach(branchReach);
         add(beamline, *branch);
         beamline.prepareSections();
-        ReferenceTracer tracer(reference_m, beamline, schedule(1.0e-11, 0.7, 512), 1.0e-11);
+        ReferenceTracer tracer(
+                reference_m, beamline, schedule(1.0e-11, 0.7, 512), 1.0e-11, /*autoPhase=*/0);
         tracer.execute(launch(), 0.0);
     };
 
@@ -211,7 +214,8 @@ TEST_F(ReferenceTracerTest, EndsWhenTheReferenceLeavesTheLattice) {
     beamline.prepareSections();
 
     // Without ZSTOP and with a large step budget the pass still ends just after the element.
-    ReferenceTracer tracer(reference_m, beamline, schedule(1.0e-11, 1.0e6, 1000000), 1.0e-11);
+    ReferenceTracer tracer(
+            reference_m, beamline, schedule(1.0e-11, 1.0e6, 1000000), 1.0e-11, /*autoPhase=*/0);
     const auto end = tracer.execute(launch(), 0.0);
     EXPECT_GT(end.pathLength, 0.5);
     EXPECT_LT(end.pathLength, 0.52);

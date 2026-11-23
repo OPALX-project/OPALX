@@ -29,7 +29,6 @@
 //
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include <fstream>
@@ -39,8 +38,9 @@
 extern Inform* gmsg;
 
 CavityAutophaser::CavityAutophaser(
-        const PartData& ref, std::shared_ptr<ElementBase> cavity, CavityPhases* phases)
-    : itsReference_m(ref), itsCavity_m(cavity), phases_m(phases) {
+        const PartData& ref, std::shared_ptr<ElementBase> cavity, int numRefinements,
+        CavityPhases* phases)
+    : itsReference_m(ref), itsCavity_m(cavity), numRefinements_m(numRefinements), phases_m(phases) {
     double zbegin = 0.0, zend = 0.0;
     cavity->getFieldExtent(zbegin, zend);
     initialR_m = Vector_t<double, 3>(0, 0, zbegin);
@@ -240,7 +240,7 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(
     double Phimax            = initialPhase;
     double phi               = initialPhase;
     double dphi              = Physics::pi / 360.0;
-    const int numRefinements = Options::autoPhase;
+    const int numRefinements = numRefinements_m;
     int j                    = -1;
 
     double E    = track(t, dt, phi);

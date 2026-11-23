@@ -691,6 +691,9 @@ TEST_F(IdealRFCavityTest, EllipticalApertureAndFiniteParameters) {
     EXPECT_ANY_THROW(cavity.validateIdeal());
 }
 
+// Phase-search refinements of the autophaser: the OPTION AUTOPHASE default.
+constexpr int autophaseRefinements = 6;
+
 TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
     const auto bunch = makeBunch(1);
     auto rf          = std::make_shared<RFCavityRep>(cavity);
@@ -704,12 +707,12 @@ TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
     const Vector_t<double, 3> momentum{0., 0., p0};
     rf->setPhasem(0.37);
     rf->setAutophaseVeto(true);
-    CavityAutophaser fixed(*ref, rf);
+    CavityAutophaser fixed(*ref, rf, autophaseRefinements);
     EXPECT_DOUBLE_EQ(fixed.getPhaseAtMaxEnergy({0., 0., 0.}, momentum, 0., 1.e-13), 0.37);
     EXPECT_DOUBLE_EQ(rf->getPhasem(), 0.37);
     rf->setPhasem(0.);
     rf->setAutophaseVeto(false);
-    CavityAutophaser automatic(*ref, rf);
+    CavityAutophaser automatic(*ref, rf, autophaseRefinements);
     const double phase = automatic.getPhaseAtMaxEnergy({0., 0., 0.}, momentum, 0., 1.e-13);
     EXPECT_TRUE(std::isfinite(phase));
     EXPECT_TRUE(rf->getAutophaseVeto());
@@ -737,7 +740,7 @@ TEST_F(IdealRFCavityTest, FullAutophaserAdjustsGradientToDesignEnergy) {
     const auto ref    = bunch->getParticleContainer()->getReference();
     const double mass = ref->getM() * Units::eV2MeV;
     const double p0   = std::sqrt(10. * (10. + 2. * mass)) / mass;
-    CavityAutophaser automatic(*ref, rf);
+    CavityAutophaser automatic(*ref, rf, autophaseRefinements);
     const double phase = automatic.getPhaseAtMaxEnergy({0., 0., 0.}, {0., 0., p0}, 0., 1.e-13);
     EXPECT_TRUE(std::isfinite(phase));
     EXPECT_GT(rf->getAmplitudem(), 50.0);
