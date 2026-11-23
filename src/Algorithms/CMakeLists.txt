@@ -1,5 +1,6 @@
 set (_SRCS
     AbstractTimeDependence.cpp
+    BunchReference.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     GeneralElementMapping.cpp
@@ -19,6 +20,7 @@ set (_SRCS
 set (HDRS
     AbstractTimeDependence.h
     BeamStop.h
+    BunchReference.h
     CavityAutophaser.h
     CompensatedSum.h
     RungeKuttaTableau.h

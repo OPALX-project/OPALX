@@ -28,19 +28,12 @@
 #include <string>
 #include <vector>
 
-#include "Algorithms/TrackReferenceStep.h"
 #include "BasicActions/DumpEMFields.h"
-
-#include "AbsBeamline/RFCavity.h"
-#include "Algorithms/CavityAutophaser.h"
-#include "Algorithms/ReferenceTracer.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
-
-#include "Steppers/BorisPusher.h"
 
 #include "SpaceCharge/SpaceChargeSolver.h"
 
@@ -68,14 +61,12 @@ namespace {
 ParallelTracker::ParallelTracker(TrackingSetup setup)
     : itsBunch_m(setup.bunch),
       options_m(std::move(setup.options)),
-      beamReferenceMomenta_m(std::move(setup.beamReferenceMomenta)),
       spaceChargeFieldUpdate_m(setup.spaceChargeFieldUpdate),
       itsDataSink_m(setup.dataSink),
       spaceChargeSolver_m(setup.spaceChargeSolver),
       dirichletPlane_m(std::move(setup.dirichletPlane)),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(std::move(setup.beamline)),
-      referenceHitMaterial_m(false),
       beamStops_m(std::move(setup.beamStops)),
       sStart_m(setup.sStart),
       globalPhaseShift_m(setup.globalPhaseShift),
@@ -85,12 +76,13 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       restartGlobalStep_m(setup.restartGlobalStep),
       restartDt_m(setup.restartDt),
       restartPosition_m(setup.restartPosition),
-      cavityPhases_m(std::move(setup.cavityPhases)),
       checkpointPath_m(std::move(setup.checkpointPath)),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {
+      references_m(
+              *setup.bunch, itsOpalBeamline_m, std::move(setup.beamReferenceMomenta),
+              options_m.autoPhase, std::move(setup.cavityPhases)) {
     for (unsigned int i = 0; i < setup.sStop.size(); ++i) {
         stepSizes_m.push_back(setup.dt[i], setup.sStop[i], setup.maxSteps[i]);
     }
@@ -143,17 +135,21 @@ bool ParallelTracker::startTracking() {
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     if (!restarting_m) {
-        setInitialReferencePoses();
+        references_m.setInitialPoses(emittingSamplers_m);
 
         // Integrate reference orbits forward until all container path lengths reach sStart_m.
-        findStartPositions();
+        const auto selectTimeStep = [this](double dt) {
+            dtCurrentTrack_m = dt;
+            selectDT();
+        };
+        if (references_m.findStartPositions(sStart_m, stepSizes_m, selectTimeStep)) changeDT();
         stepSizes_m.advanceToPos(sStart_m);
     } else {
         stepSizes_m.advanceToIndex(restartPosition_m.segment);
     }
     // Decay daughter containers use their root's reference particle, frame and path length.
     // Copy them after the start search, and after a restart in case the checkpoint differs.
-    copyFollowerReferences();
+    references_m.copyFollowers();
 
     if (stepSizes_m.reachedEnd()) {
         *gmsg << level1 << "* Checkpoint is already at the end of the configured tracking "
@@ -163,40 +159,7 @@ bool ParallelTracker::startTracking() {
         return false;
     }
 
-    // Global spatial bounds: union over all containers
-    Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    if (itsBunch_m->getTotalNumAllContainers() > 0) {
-        computeInitialBounds(rmin, rmax);
-        m << level4 << "Initial bunch bounds:\n"
-          << "  rmin = " << rmin << "\n"
-          << "  rmax = " << rmax << endl;
-    }
-
-    printInitialContainerRefs(m);
-
-    IpplTimings::startTimer(referencePassTimer_m);
-
-    // The primary beam (the first container with a reference) traces its reference particle once
-    // through the lattice: autophasing, element-length and reach checks.
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        const auto& pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
-            continue;  // a decay daughter container follows its root's reference
-        }
-        ReferenceTracer tracer(
-                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep,
-                options_m.autoPhase, &cavityPhases_m);
-        ReferenceTracer::RayState start;
-        start.position   = pc->getRefPartR();
-        start.momentum   = pc->getRefPartP();
-        start.time       = itsBunch_m->getT();
-        start.pathLength = pc->get_sPos();
-        tracer.execute(start, -rmin(2));
-        break;  // only the primary beam
-    }
-    m << level4 << "Reference pass done." << endl;
-    IpplTimings::stopTimer(referencePassTimer_m);
+    references_m.tracePrimary(stepSizes_m, minTimeStep);
 
     // Legacy OPAL emission starts a fresh tracker before the RF reference time for centered
     // flat-top pulses. Checkpoint time already contains this shift and must not be shifted again.
@@ -217,7 +180,6 @@ bool ParallelTracker::startTracking() {
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
           << endl;
 
-    referenceHitMaterial_m = false;
     beamStops_m.resize(itsBunch_m->getNumParticleContainers());
     for (size_t i = 0; i < beamStops_m.size(); ++i) {
         const BeamStop& stop = beamStops_m[i];
@@ -258,90 +220,6 @@ void ParallelTracker::resumeRestartSchedule() {
     m << level2 << "Restart global step " << restartGlobalStep_m << " resumes step-size "
       << "segment " << restartPosition_m.segment << " with "
       << restartPosition_m.stepsCompletedInSegment << " completed steps in that segment." << endl;
-}
-
-void ParallelTracker::setInitialReferencePoses() {
-    Inform m("ParallelTracker::setInitialReferencePoses");
-    const auto& particleContainers      = itsBunch_m->getParticleContainers();
-    CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
-    for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
-        const auto& pc = particleContainers[ci];
-        if (!pc || itsBunch_m->isFollower(ci)) {
-            continue;  // a decay daughter container takes its root's reference below
-        }
-        if (!pc->getReference()) {
-            throw OpalException(
-                    "ParallelTracker::setInitialReferencePoses",
-                    "Particle container has null PartData reference during lab-frame init.");
-        }
-        pc->setToLabTrafo(beamlineToLab);
-
-        // Resolve the reference particle's pose in the beamline frame. Position and
-        // momentum follow the same 3-tier rule: the bunch mean when particles already
-        // exist; otherwise the input-specified emission offsets (R0, P0) reported by
-        // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
-        Vector_t<double, 3> refR = 0.0;
-        Vector_t<double, 3> refP = 0.0;
-        if (pc->getTotalNum() > 0) {
-            const auto moments =
-                    opalx::moments::compute(*pc, Moment::MeanPosition | Moment::MeanMomentum);
-            refR = moments.meanR();
-            refP = moments.meanP();
-        } else {
-            // Empty container (e.g. an emitted distribution before its first emission):
-            // the bunch mean is undefined, so take the emission offsets from the sampler.
-            bool useSamplerPosition         = false;
-            bool useSamplerMomentum         = false;
-            Vector_t<double, 3> samplerRefR = 0.0;
-            Vector_t<double, 3> samplerRefP = 0.0;
-            if (ci < emittingSamplers_m.size()) {
-                for (const auto& sampler : emittingSamplers_m[ci]) {
-                    if (!sampler) {
-                        continue;
-                    }
-                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP        = sampler->getInitialReferenceMomentum();
-                        useSamplerMomentum = true;
-                    }
-                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
-                        samplerRefR        = sampler->getInitialReferencePosition();
-                        useSamplerPosition = true;
-                    }
-                }
-            }
-
-            // Position: emission offset R0, else the lattice origin.
-            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
-
-            // Momentum: emission offset P0, else the design beta*gamma along +z.
-            if (useSamplerMomentum) {
-                if (dot(samplerRefP, samplerRefP) <= 0.0) {
-                    throw OpalException(
-                            "ParallelTracker::setInitialReferencePoses",
-                            "Sampler-provided initial reference momentum is zero.");
-                }
-                refP = samplerRefP;
-            } else {
-                const PartData& pref = *pc->getReference();
-                const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-                refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
-            }
-        }
-
-        // A file distribution with PC, ENERGY or GAMMA on BEAM takes that momentum along
-        // REFDIRECTION. The mean of a wide angular spread is much shorter than the particle
-        // momenta.
-        if (ci < beamReferenceMomenta_m.size() && beamReferenceMomenta_m[ci]) {
-            refP = *beamReferenceMomenta_m[ci];
-        }
-
-        pc->getRefPartR() = beamlineToLab.transformTo(refR);
-        pc->getRefPartP() = beamlineToLab.rotateTo(refP);
-    }
-
-    m << level4
-      << "Transformed reference particle position and momentum to lab frame (all containers)."
-      << endl;
 }
 
 void ParallelTracker::trackSteps() {
@@ -484,20 +362,7 @@ void ParallelTracker::advanceReference() {
     m << level5 << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT()) << "."
       << endl;
 
-    if (itsBunch_m->getT() > 0.0) {
-        updateReferenceParticles();
-        updateRefToLabCSTrafo();
-    }
-
-    const auto& particleContainers = itsBunch_m->getParticleContainers();
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        const auto& pc = particleContainers[i];
-        if (!pc || !itsBunch_m->isPcActive(i)) {
-            continue;
-        }
-        m << level4 << "Current path length (container " << i << ") is " << pc->get_sPos() << "."
-          << endl;
-    }
+    references_m.advance();
 }
 
 std::vector<opalx::moments::BeamMoments> ParallelTracker::removeLostParticles(
@@ -587,15 +452,16 @@ ParallelTracker::StopRules ParallelTracker::applyStopRules() {
     }
     updateBeamStops();
 
-    ippl::Comm->allreduce(referenceHitMaterial_m, 1, std::logical_or<bool>());
-    if (referenceHitMaterial_m) {
+    bool referenceHit = references_m.hitElement();
+    ippl::Comm->allreduce(referenceHit, 1, std::logical_or<bool>());
+    if (referenceHit) {
         *gmsg << level1 << "* A reference particle hit an element; the run ends." << endl;
     }
     const bool beamsDone = beam_stop::runFinished(beamStops_m);
     if (beamsDone) {
         *gmsg << level1 << "* Every beam with a ZSTOP is done; the run ends." << endl;
     }
-    stop.runFinished = referenceHitMaterial_m || beamsDone;
+    stop.runFinished = referenceHit || beamsDone;
     return stop;
 }
 
@@ -609,7 +475,7 @@ void ParallelTracker::writeCheckpointIfDue(
         const unsigned long long nextSegmentSteps = segmentComplete ? 0 : stepsCompletedInSegment;
         CheckpointFile::write(
                 checkpointPath_m, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m,
-                cavityPhases_m);
+                references_m.cavityPhases());
         m << level2 << "Wrote checkpoint '" << checkpointPath_m << "' after global step "
           << itsBunch_m->getGlobalTrackStep() << "." << endl;
     }
@@ -1142,200 +1008,6 @@ void ParallelTracker::activateEmittingContainers(double t) {
     }
 }
 
-void ParallelTracker::computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax) {
-    std::vector<const ParticleContainer_t*> containers;
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
-        if (pc) {
-            containers.push_back(pc.get());
-        }
-    }
-    // Empty containers contribute nothing; without any particle the box is a point at the origin.
-    const auto bounds = opalx::moments::compute(containers, Moment::Bounds);
-    rmin              = bounds.minR();
-    rmax              = bounds.maxR();
-}
-
-void ParallelTracker::printInitialContainerRefs(Inform& m) const {
-    const auto& particleContainers = itsBunch_m->getParticleContainers();
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        const auto& pc = particleContainers[i];
-        if (!pc) {
-            m << level3 << "ParallelTrack: container " << i << " is null." << endl;
-            continue;
-        }
-        if (pc->getTotalNum() > 0) {
-            // Collective; evaluated on every rank before the rank-filtered log line.
-            const double meanPz = opalx::moments::compute(*pc, Moment::MeanMomentum).meanP()(2);
-            m << level3 << "ParallelTrack (container " << i << "): momentum z = " << meanPz << "\n"
-              << "RefPartR (container " << i << ") = " << pc->getRefPartR() << "\n"
-              << "RefPartP (container " << i << ") = " << pc->getRefPartP() << endl;
-        } else {
-            m << level3 << "ParallelTrack: container " << i
-              << " empty; total particles = " << itsBunch_m->getTotalNumAllContainers() << "\n"
-              << "RefPartR (container " << i << ") = " << pc->getRefPartR() << "\n"
-              << "RefPartP (container " << i << ") = " << pc->getRefPartP() << endl;
-        }
-    }
-}
-
-void ParallelTracker::updateReferenceParticles() {
-    const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
-
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        // A decay daughter container has no reference particle of its own. Its root keeps
-        // moving while any of its daughter containers is tracked, even when the root is empty.
-        if (itsBunch_m->isFollower(i) || !itsBunch_m->referenceMoves(i)) {
-            continue;
-        }
-        auto pcPtr = itsBunch_m->getParticleContainer(i);
-        if (!pcPtr) {
-            continue;
-        }
-        auto& pc                = *pcPtr;
-        const PartData& refKick = *pc.getReference();
-        const auto advance      = track_reference::advanceInBeamline;
-        const auto end =
-                advance(itsOpalBeamline_m, refKick, {pc.getRefPartR(), pc.getRefPartP()}, dt,
-                        itsBunch_m->getT(), true);
-        pc.getRefPartR() = end.position;
-        pc.getRefPartP() = end.momentum;
-        if (end.hitMaterial) {
-            *gmsg << level1 << "The reference particle hit an element" << endl;
-            referenceHitMaterial_m = true;
-        }
-    }
-}
-
-void ParallelTracker::updateRefToLabCSTrafo() {
-    // Map the lab-frame reference position and momentum into the current bunch frame, then
-    // move and turn the bunch frame onto them. Momentum is only rotated, not translated.
-    const double bunchDT = itsBunch_m->getdT();
-    const size_t n       = itsBunch_m->getNumParticleContainers();
-    std::vector<CoordinateSystemTrafo> updates(n);  // identity unless the container moved
-    for (size_t i = 0; i < n; ++i) {
-        if (itsBunch_m->isFollower(i) || !itsBunch_m->referenceMoves(i)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(i);
-        if (pc) {
-            updates[i] = pc->updateRefToLabCSTrafo(bunchDT);
-        }
-    }
-    // Decay daughter containers take the same frame change as their root, active or not, so
-    // daughters created in this step end up in the root's new frame too.
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isFollower(i)) {
-            continue;
-        }
-        const size_t root = itsBunch_m->getPcRoot(i);
-        auto pc           = itsBunch_m->getParticleContainer(i);
-        auto rootPc       = itsBunch_m->getParticleContainer(root);
-        if (pc && rootPc) {
-            pc->followFrameOf(*rootPc, updates[root]);
-        }
-    }
-}
-
-void ParallelTracker::copyFollowerReferences() {
-    const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isFollower(i)) {
-            continue;
-        }
-        auto pc     = itsBunch_m->getParticleContainer(i);
-        auto rootPc = itsBunch_m->getParticleContainer(itsBunch_m->getPcRoot(i));
-        if (pc && rootPc) {
-            pc->copyReferenceOf(*rootPc);
-        }
-    }
-}
-
-void ParallelTracker::findStartPositions() {
-    // Primary container (index 0) drives segment advances.
-    auto primary = itsBunch_m->getParticleContainer(0);
-
-    if (sStart_m <= primary->get_sPos()) {
-        return;
-    }
-
-    StepSizeConfig stepSizesCopy(stepSizes_m);
-
-    double t = 0.0;
-    itsBunch_m->setT(t);
-
-    dtCurrentTrack_m = stepSizesCopy.getdT();
-    selectDT();
-
-    const auto& containers = itsBunch_m->getParticleContainers();
-
-    // The last, fractional step takes every reference to sTarget; the bunch time advances by the
-    // primary's share.
-    const auto applyLastStep = [&](double sTarget, double speed) {
-        const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
-        itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
-        for (size_t i = 0; i < containers.size(); ++i) {
-            const auto& pc = containers[i];
-            if (!pc || itsBunch_m->isFollower(i)) {
-                continue;
-            }
-            Vector_t<double, 3> pv =
-                    pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
-            double speed_i = euclidean_norm(pv);
-            double tau_i   = (sTarget - pc->get_sPos()) / speed_i;
-            pc->applyFractionalStep(tau_i, sStart_m);
-        }
-    };
-
-    while (true) {
-        autophaseCavities();
-
-        t += itsBunch_m->getdT();
-        itsBunch_m->setT(t);
-
-        std::vector<Vector_t<double, 3>> oldRs(containers.size());
-        for (size_t i = 0; i < containers.size(); ++i) {
-            if (containers[i]) {
-                oldRs[i] = containers[i]->getRefPartR();
-            }
-        }
-
-        updateReferenceParticles();
-
-        for (size_t i = 0; i < containers.size(); ++i) {
-            if (!containers[i] || itsBunch_m->isFollower(i)) {
-                continue;
-            }
-            Vector_t<double, 3> dR = containers[i]->getRefPartR() - oldRs[i];
-            containers[i]->set_sPos(containers[i]->get_sPos() + euclidean_norm(dR));
-        }
-
-        Vector_t<double, 3> tmp =
-                primary->getRefPartP() * Physics::c / Util::getGamma(primary->getRefPartP());
-        double speed = euclidean_norm(tmp);
-
-        if (primary->get_sPos() > stepSizesCopy.getSStop()) {
-            ++stepSizesCopy;
-
-            if (stepSizesCopy.reachedEnd()) {
-                --stepSizesCopy;
-                applyLastStep(stepSizesCopy.getSStop(), speed);
-                break;
-            }
-
-            dtCurrentTrack_m = stepSizesCopy.getdT();
-            selectDT();
-        }
-
-        if (std::abs(primary->get_sPos() - sStart_m) <= 0.5 * itsBunch_m->getdT() * speed) {
-            applyLastStep(sStart_m, speed);
-            break;
-        }
-    }
-
-    changeDT();
-}
-
 bool ParallelTracker::stepLogDue() const {
     return options_m.stepInfoFreq > 0
            && itsBunch_m->getGlobalTrackStep() % options_m.stepInfoFreq == 0;
@@ -1463,36 +1135,5 @@ void ParallelTracker::writePhaseSpace(
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
         itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer, moments);
         *gmsg << level3 << "* Wrote beam phase space." << endl;
-    }
-}
-
-// --- Autophasing (RF and traveling-wave cavities) ---
-
-void ParallelTracker::autophaseCavities() {
-    const BorisPusher pusher;
-    const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
-    double t            = itsBunch_m->getT();
-    Vector_t<double, 3> nextR =
-            itsBunch_m->getParticleContainer()->getRefPartR() / (Physics::c * itsBunch_m->getdT());
-    pusher.push(nextR, itsBunch_m->getParticleContainer()->getRefPartP(), itsBunch_m->getdT());
-    nextR *= Physics::c * itsBunch_m->getdT();
-
-    auto elementSet = itsOpalBeamline_m.getElements(nextR);
-    for (auto element : elementSet) {
-        // A TravelingWave is an RFCavity.
-        if (element->getType() != ElementType::TRAVELINGWAVE
-            && element->getType() != ElementType::RFCAVITY) {
-            continue;
-        }
-        const RFCavity* cavity = static_cast<const RFCavity*>(element.get());
-        if (!cavity->getAutophaseVeto()) {
-            CavityAutophaser ap(ref, element, options_m.autoPhase, &cavityPhases_m);
-            ap.getPhaseAtMaxEnergy(
-                    itsOpalBeamline_m.transformToLocalCS(
-                            element, itsBunch_m->getParticleContainer()->getRefPartR()),
-                    itsOpalBeamline_m.rotateToLocalCS(
-                            element, itsBunch_m->getParticleContainer()->getRefPartP()),
-                    t, itsBunch_m->getdT());
-        }
     }
 }

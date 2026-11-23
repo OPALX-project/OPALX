@@ -22,7 +22,7 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
-#include <optional>
+#include "Algorithms/BunchReference.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/TrackingSetup.h"
 
@@ -59,6 +59,8 @@ public:
      * @param setup Everything buildTracking() built for this RUN; setup.bunch must be set.
      */
     explicit ParallelTracker(TrackingSetup setup);
+    ParallelTracker(const ParallelTracker&)            = delete;
+    ParallelTracker& operator=(const ParallelTracker&) = delete;
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     void execute();
@@ -136,42 +138,6 @@ private:
     /// @brief Advance the step-size schedule to the checkpointed position.
     /// @throws OpalException if the input changes the time step there.
     void resumeRestartSchedule();
-
-    /**
-     * @brief Set the lab-frame pose of each beam's reference particle and its reference-to-lab
-     *        transform for a fresh run; decay daughter containers are skipped.
-     *
-     * Position and momentum come from the bunch mean, else from the emission offsets (R0, P0)
-     * of the sampler, else from the design pose; PC, ENERGY or GAMMA on BEAM sets the momentum.
-     */
-    void setInitialReferencePoses();
-
-    /// @brief Integrate references in time until path length reaches sStart_m.
-    void findStartPositions();
-
-    /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
-    void autophaseCavities();
-
-    /**
-     * @brief Copy each decay daughter container's root reference particle, frame and path
-     *   length into it, without moving particles.
-     * @note Used after the reference particles are set up; during tracking the daughter
-     *   containers follow their root in updateRefToLabCSTrafo().
-     */
-    void copyFollowerReferences();
-
-    /**
-     * @brief Union of per-container spatial bounds over MPI.
-     * @param[out] rmin Corner of the axis-aligned bounding box (min).
-     * @param[out] rmax Corner of the axis-aligned bounding box (max).
-     */
-    void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
-
-    /**
-     * @brief Log reference state for each container at track start.
-     * @param m Inform stream for log output.
-     */
-    void printInitialContainerRefs(Inform& m) const;
 
     // --- Time step ---
 
@@ -270,14 +236,6 @@ private:
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
 
-    // --- Reference particles ---
-
-    /// @brief Advance reference positions/momenta through the beamline for one step.
-    void updateReferenceParticles();
-
-    /// @brief Refresh each container's reference-to-lab transform from current state.
-    void updateRefToLabCSTrafo();
-
     // --- Particle loss and beam stops ---
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
@@ -337,8 +295,6 @@ private:
     PartBunch_t* itsBunch_m;
     /// OPTION values of this RUN; the tracker reads no Options:: globals.
     opalx::run::OptionValues options_m;
-    /// Per-container reference momentum [beta*gamma] set on BEAM; empty uses the bunch mean.
-    std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
@@ -347,7 +303,6 @@ private:
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
     OpalBeamline itsOpalBeamline_m;     ///< Tracked field elements and coordinate transforms.
-    bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
     std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     double sStart_m;                    ///< Path-length start position for the track (m).
     double globalPhaseShift_m;          ///< A fresh run starts this long before t = 0 (s).
@@ -362,14 +317,16 @@ private:
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
-    CavityPhases cavityPhases_m;   ///< Phases autophase set (and a restart restored).
     std::string checkpointPath_m;  ///< File the CHECKPOINTFREQ checkpoints are written to.
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef referencePassTimer_m;
+
+    /// Reference particles; borrows the bunch and the beamline. Constructed after the timers
+    /// above, so the timing report lists its ReferencePass timer after them.
+    BunchReference references_m;
 };
 
 #endif  // OPALX_ParallelTracker_HH
