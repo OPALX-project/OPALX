@@ -16,20 +16,6 @@
 // along with OPALX. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/FieldmapElementRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (FieldmapElementRep::*get)() const;
-        void (FieldmapElementRep::*set)(double);
-    };
-
-    const Entry entries[] = {
-            {"BSCALE", &FieldmapElementRep::getBScale, &FieldmapElementRep::setBScale},
-            {"ESCALE", &FieldmapElementRep::getEScale, &FieldmapElementRep::setEScale},
-            {0, 0, 0}};
-}  // namespace
 
 FieldmapElementRep::FieldmapElementRep() : FieldmapElement(), geometry() {}
 
@@ -42,16 +28,6 @@ FieldmapElementRep::FieldmapElementRep(const std::string& name)
 FieldmapElementRep::~FieldmapElementRep() {}
 
 ElementBase* FieldmapElementRep::clone() const { return new FieldmapElementRep(*this); }
-
-Channel* FieldmapElementRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<FieldmapElementRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& FieldmapElementRep::getGeometry() { return geometry; }
 

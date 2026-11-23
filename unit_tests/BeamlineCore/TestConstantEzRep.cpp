@@ -2,13 +2,12 @@
  * \file TestConstantEFieldCavityRep.cpp
  * \brief Unit tests for ConstantEFieldCavityRep (BeamlineCore layer).
  *
- * Tests: geometry, field, setElementLength/setEz, clone, getChannel("L")/"EZ").
+ * Tests: geometry, field, setElementLength/setEz, clone.
  */
 
 #include <gtest/gtest.h>
 
 #include "BeamlineCore/ConstantEFieldCavityRep.h"
-#include "Channels/IndirectChannel.h"
 
 #include <cmath>
 #include <memory>
@@ -68,34 +67,6 @@ namespace {
         ASSERT_NE(repCopy, nullptr);
         EXPECT_DOUBLE_EQ(repCopy->getGeometry().getElementLength(), 2.0);
         EXPECT_DOUBLE_EQ(repCopy->getEz(), 5.0);
-    }
-
-    // ---------------------------------------------------------------------------
-    // Channels L and EZ
-    // ---------------------------------------------------------------------------
-    TEST_F(ConstantEFieldCavityRepTest, ChannelL) {
-        // The element length is geometry state, set through getGeometry() only; the
-        // legacy "L" channel was removed with the element-level length accessors.
-        Channel* ch = rep_->getChannel("L", false);
-        EXPECT_EQ(ch, nullptr);
-        rep_->getGeometry().setElementLength(1.5);
-        EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 1.5);
-    }
-
-    TEST_F(ConstantEFieldCavityRepTest, ChannelEZ) {
-        Channel* ch = rep_->getChannel("EZ", false);
-        ASSERT_NE(ch, nullptr);
-        EXPECT_TRUE(ch->set(7.0));
-        EXPECT_DOUBLE_EQ(rep_->getEz(), 7.0);
-        double val = 0.0;
-        EXPECT_TRUE(ch->get(val));
-        EXPECT_DOUBLE_EQ(val, 7.0);
-        delete ch;
-    }
-
-    TEST_F(ConstantEFieldCavityRepTest, ChannelUnknownReturnsNull) {
-        Channel* ch = rep_->getChannel("UNKNOWN", false);
-        EXPECT_EQ(ch, nullptr);
     }
 
 }  // namespace

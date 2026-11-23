@@ -16,17 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/DriftRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (DriftRep::*get)() const;
-        void (DriftRep::*set)(double);
-    };
-
-    const Entry entries[] = {{0, 0, 0}};
-}  // namespace
 
 DriftRep::DriftRep() : Drift(), geometry() {}
 
@@ -37,16 +26,6 @@ DriftRep::DriftRep(const std::string& name) : Drift(name), geometry() {}
 DriftRep::~DriftRep() {}
 
 ElementBase* DriftRep::clone() const { return new DriftRep(*this); }
-
-Channel* DriftRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<DriftRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& DriftRep::getGeometry() { return geometry; }
 

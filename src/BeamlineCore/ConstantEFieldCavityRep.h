@@ -13,8 +13,6 @@ public:
 
     ElementBase* clone() const override;
 
-    Channel* getChannel(const std::string& aKey, bool = false) override;
-
     Geometry& getGeometry() override;
     const Geometry& getGeometry() const override;
 

@@ -16,17 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/CollimatorRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (CollimatorRep::*get)() const;
-        void (CollimatorRep::*set)(double);
-    };
-
-    const Entry entries[] = {{0, 0, 0}};
-}  // namespace
 
 CollimatorRep::CollimatorRep() : Collimator(), geometry() {}
 
@@ -38,16 +27,6 @@ CollimatorRep::CollimatorRep(const std::string& name) : Collimator(name), geomet
 CollimatorRep::~CollimatorRep() {}
 
 ElementBase* CollimatorRep::clone() const { return new CollimatorRep(*this); }
-
-Channel* CollimatorRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<CollimatorRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& CollimatorRep::getGeometry() { return geometry; }
 

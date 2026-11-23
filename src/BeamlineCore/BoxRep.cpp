@@ -16,17 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/BoxRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (BoxRep::*get)() const;
-        void (BoxRep::*set)(double);
-    };
-
-    const Entry entries[] = {{0, 0, 0}};
-}  // namespace
 
 BoxRep::BoxRep() : Box(), geometry() {}
 
@@ -37,16 +26,6 @@ BoxRep::BoxRep(const std::string& name) : Box(name), geometry() {}
 BoxRep::~BoxRep() {}
 
 ElementBase* BoxRep::clone() const { return new BoxRep(*this); }
-
-Channel* BoxRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<BoxRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& BoxRep::getGeometry() { return geometry; }
 

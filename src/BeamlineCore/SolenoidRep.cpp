@@ -16,17 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/SolenoidRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (SolenoidRep::*get)() const;
-        void (SolenoidRep::*set)(double);
-    };
-
-    const Entry entries[] = {{"BZ", &SolenoidRep::getBz, &SolenoidRep::setBz}, {0, 0, 0}};
-}  // namespace
 
 SolenoidRep::SolenoidRep() : Solenoid(), geometry() {}
 
@@ -38,16 +27,6 @@ SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry() {
 SolenoidRep::~SolenoidRep() {}
 
 ElementBase* SolenoidRep::clone() const { return new SolenoidRep(*this); }
-
-Channel* SolenoidRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<SolenoidRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& SolenoidRep::getGeometry() { return geometry; }
 

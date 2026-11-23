@@ -33,9 +33,6 @@ public:
     /// Return an identical deep copy of the element.
     virtual ElementBase* clone() const override;
 
-    /// Construct a read/write channel for the attribute [b]aKey[/b], or nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool create = false) override;
-
     /// Get geometry. Version for non-constant object.
     virtual Geometry& getGeometry() override;
 

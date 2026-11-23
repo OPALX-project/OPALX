@@ -16,23 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/RFCavityRep.h"
-#include "Channels/IndirectChannel.h"
 
 bool RFCavityRep::ignoreCavities = false;
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (RFCavityRep::*get)() const;
-        void (RFCavityRep::*set)(double);
-    };
-
-    static const Entry entries[] = {
-            {"AMPLITUDE", &RFCavityRep::getAmplitude, &RFCavityRep::setAmplitude},
-            {"FREQUENCY", &RFCavityRep::getFrequency, &RFCavityRep::setFrequency},
-            {"PHASE", &RFCavityRep::getPhase, &RFCavityRep::setPhase},
-            {0, 0, 0}};
-}  // namespace
 
 RFCavityRep::RFCavityRep() : RFCavity() {}
 
@@ -43,16 +28,6 @@ RFCavityRep::RFCavityRep(const std::string& name) : RFCavity(name) {}
 RFCavityRep::~RFCavityRep() {}
 
 ElementBase* RFCavityRep::clone() const { return new RFCavityRep(*this); }
-
-Channel* RFCavityRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<RFCavityRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& RFCavityRep::getGeometry() { return geometry; }
 

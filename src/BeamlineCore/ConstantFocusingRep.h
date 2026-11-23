@@ -12,7 +12,6 @@ public:
     ~ConstantFocusingRep() override;
 
     ElementBase* clone() const override;
-    Channel* getChannel(const std::string& key, bool create = false) override;
 
     Geometry& getGeometry() override;
     const Geometry& getGeometry() const override;

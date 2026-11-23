@@ -15,7 +15,6 @@
 #ifndef OPALX_ElementBase_HH
 #define OPALX_ElementBase_HH
 
-#include "AbsBeamline/AttributeSet.h"
 #include "AbsBeamline/ElementRegions.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
@@ -34,9 +33,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-class Channel;
-class ConstChannel;
 
 namespace opalx::run {
     struct OptionValues;
@@ -413,39 +409,6 @@ public:
 
     virtual int getRequiredNumberOfTimeSteps() const;
 
-    /* ========================= User-defined attributes ======================= */
-
-    /// Get attribute value.
-    //  If the attribute does not exist, return zero.
-    virtual double getAttribute(const std::string& aKey) const;
-
-    /// Test for existence of an attribute.
-    //  If the attribute exists, return true, otherwise false.
-    virtual bool hasAttribute(const std::string& aKey) const;
-
-    /// Remove an existing attribute.
-    virtual void removeAttribute(const std::string& aKey);
-
-    /// Set value of an attribute.
-    virtual void setAttribute(const std::string& aKey, double val);
-
-    /// Construct a read/write channel.
-    //  This method constructs a Channel permitting read/write access to
-    //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool create = false);
-
-    /// Construct a read-only channel.
-    //  This method constructs a Channel permitting read-only access to
-    //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns nullptr.
-    virtual const ConstChannel* getConstChannel(const std::string& aKey) const;
-
-    /// Update element.
-    //  This method stores all attributes contained in the AttributeSet to
-    //  "*this".  The return value [b]true[/b] indicates success.
-    bool update(const AttributeSet&);
-
     /* ============================= Miscellaneous ============================= */
 
     /// Set output filename
@@ -517,9 +480,6 @@ private:
     // The element's name
     std::string elementID;
     static const std::map<ElementType, std::string> elementTypeToString_s;
-
-    // --- User-defined attributes ---
-    AttributeSet userAttribs;
 
     // --- Placement ---
     bool positionIsFixed;

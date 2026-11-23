@@ -12,7 +12,6 @@ public:
     ~LaserRep() override;
 
     ElementBase* clone() const override;
-    Channel* getChannel(const std::string& aKey, bool create = false) override;
 
     Geometry& getGeometry() override;
     const Geometry& getGeometry() const override;

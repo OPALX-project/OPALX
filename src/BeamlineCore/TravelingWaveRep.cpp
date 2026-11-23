@@ -16,23 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "Channels/IndirectChannel.h"
 
 bool TravelingWaveRep::ignoreCavities = false;
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (TravelingWaveRep::*get)() const;
-        void (TravelingWaveRep::*set)(double);
-    };
-
-    static const Entry entries[] = {
-            {"AMPLITUDE", &TravelingWaveRep::getAmplitude, &TravelingWaveRep::setAmplitude},
-            {"FREQUENCY", &TravelingWaveRep::getFrequency, &TravelingWaveRep::setFrequency},
-            {"PHASE", &TravelingWaveRep::getPhase, &TravelingWaveRep::setPhase},
-            {0, 0, 0}};
-}  // namespace
 
 TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}
 
@@ -43,16 +28,6 @@ TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name
 TravelingWaveRep::~TravelingWaveRep() {}
 
 ElementBase* TravelingWaveRep::clone() const { return new TravelingWaveRep(*this); }
-
-Channel* TravelingWaveRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<TravelingWaveRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& TravelingWaveRep::getGeometry() { return geometry; }
 

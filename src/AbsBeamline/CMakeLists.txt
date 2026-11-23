@@ -4,7 +4,6 @@
 
 # List local source and header files
 set(_SRCS
-    AttributeSet.cpp
     Box.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
@@ -29,7 +28,6 @@ set(_SRCS
 )
 
 set(_HDRS
-    AttributeSet.h
     Box.h
     Collimator.h
     ConstantEFieldCavity.h

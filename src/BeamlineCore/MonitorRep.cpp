@@ -17,17 +17,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/MonitorRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (MonitorRep::*get)() const;
-        void (MonitorRep::*set)(double);
-    };
-
-    const Entry entries[] = {{0, 0, 0}};
-}  // namespace
 
 MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}
 
@@ -39,16 +28,6 @@ MonitorRep::MonitorRep(const std::string& name) : Monitor(name), geometry(), act
 MonitorRep::~MonitorRep() {}
 
 ElementBase* MonitorRep::clone() const { return new MonitorRep(*this); }
-
-Channel* MonitorRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<MonitorRep>(*this, entry->get, entry->set);
-        }
-    }
-
-    return ElementBase::getChannel(aKey, create);
-}
 
 Geometry& MonitorRep::getGeometry() { return geometry; }
 
