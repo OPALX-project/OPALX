@@ -3,6 +3,7 @@ set (_SRCS
     SpaceChargeConfigBuilder.cpp
     SpaceChargeFactory.cpp
     SpaceChargeSolveContext.cpp
+    SpaceChargeSolver.cpp
     )
 
 set (HDRS

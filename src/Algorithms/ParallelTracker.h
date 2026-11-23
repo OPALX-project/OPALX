@@ -167,30 +167,11 @@ private:
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
 
-    /**
-     * @brief Build the current tracker-frame context and dispatch the configured space-charge
-     *        solve.
-     *
-     * @par Frame of reference
-     * The algorithm requests its solve frame (SpaceChargeAlgorithm::solveFrame), which is built
-     * from the primary container's moments. The particles are in their reference frame on entry
-     * and again on return; the algorithm enters the solve frame and leaves it.
-     */
+    /// @brief The space-charge solve of this step (SpaceChargeSolver::solveStep()).
+    /// @throws OpalException if the run has no space-charge solver.
     void computeSpaceChargeFields();
 
-    struct SpaceChargeEmissionProgress {
-        bool active     = false;
-        double fraction = 1.0;
-    };
-
-    /// @brief Size the per-container space-charge activity flags.
-    /// @throws OpalException if a particle container is null.
-    void initializeSpaceChargeContainerActivity();
-
-    /// @brief The requested solve frame, from the primary container's moments. Collective
-    /// unless @p request is the reference frame.
-    [[nodiscard]] ParticleFrame makeSpaceChargeFrame(opalx::spacecharge::SolveFrame request) const;
-    [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
+    [[nodiscard]] opalx::spacecharge::EmissionProgress spaceChargeEmissionProgress() const;
 
     /// @brief Apply external fields from elements intersecting each active container.
     void computeExternalFields();
@@ -264,7 +245,6 @@ private:
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
-    std::vector<std::uint8_t> spaceChargeContainerActivity_m;
     OpalBeamline itsOpalBeamline_m;     ///< Tracked field elements and coordinate transforms.
     std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     double sStart_m;                    ///< Path-length start position for the track (m).

@@ -38,7 +38,8 @@ namespace opalx::spacecharge {
                 const SpaceChargeSolveContext& context) = 0;
 
         /**
-         * @brief Frame the next solve() needs; the tracker builds it into the step state.
+         * @brief Frame the next solve() needs; SpaceChargeSolver::solveStep() builds it into the
+         *        step state.
          *
          * solve() enters it and returns every container to its reference frame.
          */

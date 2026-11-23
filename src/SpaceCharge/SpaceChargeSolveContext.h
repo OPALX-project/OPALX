@@ -37,6 +37,12 @@ namespace opalx::spacecharge {
             SolveFrame request, const ippl::Vector<double, 3>& meanR, ippl::Vector<double, 3> meanP,
             const ippl::Vector<double, 3>& fallbackP, double pathOrigin);
 
+    /// Emission state of a step: whether a source still emits and the least emitted fraction.
+    struct EmissionProgress {
+        bool active     = false;
+        double fraction = 1.0;  ///< Least-complete active source fraction in [0, 1].
+    };
+
     /** @brief Tracker state captured for one space-charge solve. */
     struct SpaceChargeStepState {
         std::size_t step       = 0;    ///< Global tracker step.
@@ -45,9 +51,9 @@ namespace opalx::spacecharge {
         bool emissionActive    = false;
         double emittedFraction = 1.0;  ///< Least-complete active source fraction in [0, 1].
         int mpiSize            = 1;    ///< Active communicator size.
-        /// Frame solve() enters; fixed bounds and planeZ are read in it. The tracker passes
-        /// makeSolveFrame() of the algorithm's solveFrame() request; unit tests may pass any
-        /// rigid frame.
+        /// Frame solve() enters; fixed bounds and planeZ are read in it.
+        /// SpaceChargeSolver::solveStep() passes makeSolveFrame() of the algorithm's solveFrame()
+        /// request; unit tests may pass any rigid frame.
         ParticleFrame solveFrame;
     };
 

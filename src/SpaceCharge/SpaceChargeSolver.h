@@ -6,11 +6,15 @@
 #ifndef OPALX_SPACE_CHARGE_SOLVER_H
 #define OPALX_SPACE_CHARGE_SOLVER_H
 
+#include "PartBunch/PartBunchFwd.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "Utilities/OpalException.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <vector>
 
 namespace opalx::spacecharge {
 
@@ -19,7 +23,9 @@ namespace opalx::spacecharge {
     public:
         SpaceChargeSolver(
                 std::unique_ptr<SpaceChargeAlgorithm> algorithm, std::size_t particleContainerCount)
-            : algorithm_m(std::move(algorithm)), particleContainerCount_m(particleContainerCount) {
+            : algorithm_m(std::move(algorithm)),
+              particleContainerCount_m(particleContainerCount),
+              containerActivity_m(particleContainerCount, 0) {
             if (algorithm_m == nullptr) {
                 throw OpalException(
                         "SpaceChargeSolver::SpaceChargeSolver",
@@ -51,6 +57,21 @@ namespace opalx::spacecharge {
             reportedBinCount_m = result.reportedBins;
         }
 
+        /**
+         * @brief The space-charge solve of one tracker step for @p bunch, the bunch whose
+         *        containers the algorithm borrows. Collective.
+         *
+         * Skips the step while the bunch holds at most @p minBinEmitted particles. Otherwise it
+         * builds the solve frame the algorithm requests from the primary container's moments
+         * (makeSolveFrame()), the container activity and the step state, and calls solve().
+         * The particles are in their reference frame on entry and again on return.
+         * @param emissionProgress Called once per solve, after the solve frame is built; it may
+         *        reduce over the ranks.
+         */
+        void solveStep(
+                const PartBunch_t& bunch, int minBinEmitted,
+                const std::function<EmissionProgress()>& emissionProgress);
+
         [[nodiscard]] SolveFrame solveFrame() const { return algorithm_m->solveFrame(); }
 
         [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
@@ -58,11 +79,18 @@ namespace opalx::spacecharge {
         [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
 
     private:
+        /// The solve frame @p request from the primary container's moments. Collective unless
+        /// @p request is the reference frame.
+        [[nodiscard]] ParticleFrame stepSolveFrame(
+                const PartBunch_t& bunch, SolveFrame request) const;
+
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;
         std::size_t particleContainerCount_m = 0;
-        std::size_t backendSolveCount_m      = 0;
-        std::size_t redistributionCount_m    = 0;
-        int reportedBinCount_m               = 1;
+        /// Per container: 1 if it takes part in the solve of the current step.
+        std::vector<std::uint8_t> containerActivity_m;
+        std::size_t backendSolveCount_m   = 0;
+        std::size_t redistributionCount_m = 0;
+        int reportedBinCount_m            = 1;
     };
 
 }  // namespace opalx::spacecharge

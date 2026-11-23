@@ -65,7 +65,6 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       itsDataSink_m(setup.dataSink),
       spaceChargeSolver_m(setup.spaceChargeSolver),
       dirichletPlane_m(std::move(setup.dirichletPlane)),
-      spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(std::move(setup.beamline)),
       beamStops_m(std::move(setup.beamStops)),
       sStart_m(setup.sStart),
@@ -89,20 +88,8 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
 
     stepSizes_m.sortAscendingSStop();
     stepSizes_m.resetIterator();
-    initializeSpaceChargeContainerActivity();
 }
 
-void ParallelTracker::initializeSpaceChargeContainerActivity() {
-    const auto& particleContainers = itsBunch_m->getParticleContainers();
-    spaceChargeContainerActivity_m.assign(particleContainers.size(), 0);
-    for (const auto& container : particleContainers) {
-        if (!container) {
-            throw OpalException(
-                    "ParallelTracker::initializeSpaceChargeContainerActivity",
-                    "Cannot track space charge for a null particle container.");
-        }
-    }
-}
 // --- execute() ---
 
 void ParallelTracker::execute() {
@@ -557,22 +544,8 @@ void ParallelTracker::timeIntegration2() {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
-ParticleFrame ParallelTracker::makeSpaceChargeFrame(opalx::spacecharge::SolveFrame request) const {
-    using opalx::spacecharge::SolveFrame;
-    if (request == SolveFrame::Reference) return ParticleFrame();
-    const auto primary = itsBunch_m->getParticleContainer();
-    primary->requireReferenceFrame("ParallelTracker::makeSpaceChargeFrame");
-    const bool centroid = request == SolveFrame::Centroid;
-    const auto moments  = opalx::moments::compute(
-            *primary, centroid ? Moment::MeanPosition | Moment::MeanMomentum
-                                : opalx::moments::Request(Moment::MeanMomentum));
-    return opalx::spacecharge::makeSolveFrame(
-            request, centroid ? moments.meanR() : Vector_t<double, 3>(0.0), moments.meanP(),
-            primary->getRefPartP(), primary->get_sPos());
-}
-
-ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
-    SpaceChargeEmissionProgress progress;
+opalx::spacecharge::EmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
+    opalx::spacecharge::EmissionProgress progress;
     const double currentTime = itsBunch_m->getT();
 
     // While emission is active, CartesianPIC3D stretches its beam-frame mesh over the full source
@@ -611,46 +584,15 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
 }
 
 void ParallelTracker::computeSpaceChargeFields() {
-    Inform m("ParallelTracker::computeSpaceChargeFields");
     if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
                 "No space-charge solver is available. Use TYPE=NONE for a configured no-op "
                 "solver.");
     }
-
-    const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
-    if (totalParticles <= static_cast<size_t>(options_m.minBinEmitted)) {
-        m << level4
-          << "Skipping space charge until more than MINBINEMITTED=" << options_m.minBinEmitted
-          << " particles are present (total=" << totalParticles << ")." << endl;
-        return;
-    }
-
-    const auto frame    = makeSpaceChargeFrame(spaceChargeSolver_m->solveFrame());
-    const auto emission = spaceChargeEmissionProgress();
-
-    for (std::size_t index = 0; index < spaceChargeContainerActivity_m.size(); ++index) {
-        spaceChargeContainerActivity_m[index] = itsBunch_m->isPcActive(index) ? 1 : 0;
-    }
-
-    using namespace opalx::spacecharge;
-    const std::size_t step = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
-
-    // Algorithms borrow the stable containers at construction; this context supplies step state.
-    SpaceChargeStepState stepState{
-            step,
-            itsBunch_m->getT(),
-            itsBunch_m->getdT(),
-            emission.active,
-            emission.fraction,
-            ippl::Comm->size(),
-            frame};
-    SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
-    spaceChargeSolver_m->solve(context);
-    for (const auto& pc : itsBunch_m->getParticleContainers())
-        if (pc) pc->requireReferenceFrame("ParallelTracker::computeSpaceChargeFields");
-    m << level3 << "Compute space-charge fields done." << endl;
+    spaceChargeSolver_m->solveStep(*itsBunch_m, options_m.minBinEmitted, [this] {
+        return spaceChargeEmissionProgress();
+    });
 }
 
 void ParallelTracker::computeExternalFields() {
