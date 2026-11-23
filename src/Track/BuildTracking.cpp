@@ -24,8 +24,6 @@
 
 #include "Beamlines/TBeamline.h"
 
-#include "BasicActions/Option.h"
-
 #include "Distribution/DistributionSettings.h"
 
 #include "Distribution/EmittedFromFile.h"
@@ -69,9 +67,7 @@
 
 #include "Track/ObjectValues.h"
 
-#include "BuildInfo.h"
 #include "Utility/Inform.h"
-#include "changes.h"
 
 #include "Utilities/BiMap.h"
 #include "Utilities/Util.h"
@@ -557,41 +553,6 @@ namespace opalx::run {
             const RunDescription& description, std::vector<std::shared_ptr<ElementBase>> elements,
             RunObjects& objects) {
         const ObjectValues run(description.track.run);
-        const int currentVersion =
-                ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
-
-        if (Options::version < currentVersion) {
-            unsigned int fileVersion = Options::version / 100;
-            bool newerChanges        = false;
-            for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
-                if (it->first > fileVersion) {
-                    newerChanges = true;
-                    break;
-                }
-            }
-            if (newerChanges) {
-                Inform errorMsg("Error");
-                errorMsg << "\n******************** V E R S I O N   M I S M A T C H "
-                            "***********************\n"
-                         << endl;
-                for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
-                    if (it->first > fileVersion) {
-                        errorMsg << it->second << endl;
-                    }
-                }
-                errorMsg << "\n"
-                         << "* Make sure you do understand these changes and adjust your input "
-                            "file \n"
-                         << "* accordingly. Then add\n"
-                         << "* OPTION, VERSION = " << currentVersion << ";\n"
-                         << "* to your input file. " << endl;
-                errorMsg << "\n********************************************************************"
-                            "****"
-                            "****\n"
-                         << endl;
-                throw OpalException("TrackRun::execute", "Version mismatch");
-            }
-        }
 
         // validate() checked that the RUN names a FIELDSOLVER.
         const ObjectValues fieldSolver(*description.fieldSolver);

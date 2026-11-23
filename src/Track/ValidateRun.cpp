@@ -14,9 +14,11 @@
 #include <string>
 #include <vector>
 
+#include "BuildInfo.h"
 #include "Physics/Physics.h"
 #include "Track/DecayChain.h"
 #include "Utilities/OpalException.h"
+#include "changes.h"
 
 namespace opalx::run {
 
@@ -44,6 +46,27 @@ namespace opalx::run {
         const TrackDescription& track = run.track;
         const ObjectDescription& cmd  = track.run;
         const bool restart            = run.context.restart;
+
+        // An input stating an older OPTION, VERSION is refused while a later release changed the
+        // meaning of some input; without OPTION, VERSION it states this release.
+        const int currentVersion =
+                (buildinfo::version_major * 100 + buildinfo::version_minor) * 100;
+        if (run.options.version < currentVersion) {
+            const unsigned int fileVersion = run.options.version / 100;
+            std::string changes;
+            for (const auto& [version, change] : Versions::changes) {
+                if (version > fileVersion) changes += change + "\n";
+            }
+            if (!changes.empty()) {
+                errors.push_back(
+                        "Version mismatch: the input states OPTION, VERSION = "
+                        + std::to_string(run.options.version)
+                        + ", and later releases changed the meaning of the input:\n" + changes
+                        + "Make sure you understand these changes and adjust the input file "
+                          "accordingly. Then add\nOPTION, VERSION = "
+                        + std::to_string(currentVersion) + ";\nto the input file.");
+            }
+        }
 
         if (text(cmd, "METHOD").empty()) {
             errors.push_back("The attribute \"METHOD\" isn't set for the \"RUN\" command");

@@ -12,6 +12,7 @@
 
 #include "Physics/Physics.h"
 #include "Track/ValidateRun.h"
+#include "changes.h"
 
 using namespace opalx::run;
 
@@ -135,6 +136,19 @@ TEST(ValidateRun, ReferenceDirectionNeedsFileDistribution) {
     EXPECT_TRUE(contains(validate(run), "\"REFDIRECTION\" on beam \"B1\" needs a FROMFILE"));
     run.beams[0].sources[0].distributionType = "EMITTEDFROMFILE";
     EXPECT_TRUE(validate(run).empty());
+}
+
+TEST(ValidateRun, OlderVersionListsLaterChanges) {
+    RunDescription run  = validRun();
+    run.options.version = 10000;
+    Versions::changes.emplace(100, "1.0: unchanged.");
+    Versions::changes.emplace(9999, "99.99: SIGMAX means something else.");
+    const auto errors = validate(run);
+    Versions::changes.clear();
+    ASSERT_EQ(errors.size(), 1u) << joinErrors(errors);
+    EXPECT_TRUE(contains(errors, "99.99: SIGMAX means something else."));
+    EXPECT_FALSE(contains(errors, "1.0: unchanged."));
+    EXPECT_TRUE(contains(errors, "\nOPTION, VERSION = "));
 }
 
 TEST(ValidateRun, DecayDaughterBeams) {
