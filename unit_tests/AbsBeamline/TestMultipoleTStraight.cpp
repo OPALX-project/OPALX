@@ -422,7 +422,8 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
     grabLongitudinalDivCurlLine(fieldLine, divLine, curlLine, 0, length * 1.5, {}, length, dr);
     // Analyse the results
     for (size_t i = 0; i < divLine.size(); ++i) {
-        // Past the field window (6 fringe lengths beyond the body) the element applies no field.
+        // Past the field window (FringeReach fringe lengths beyond the body) the element
+        // applies no field.
         if (fieldLine[i] == 0.0) continue;
         const double divError = std::abs(divLine[i]) * dr / fieldLine[i];
         const double curlError =
@@ -679,9 +680,9 @@ TEST_F(TestMultipoleTStraight, AnalyticFringeFieldsAgreeForParticlesAndReference
             EXPECT_DOUBLE_EQ(referenceE(d), 0.);
         }
     }
-    // Reference support is half-open and extends six fringe lengths past each
-    // pole face: [-0.3,0.8) m for these settings. Outside it the element is passive.
-    for (double outside : {-.31, .81}) {
+    // Reference support is half-open and extends FringeReach = 10 fringe lengths past each
+    // pole face: [-0.5,1.0) m for these settings. Outside it the element is passive.
+    for (double outside : {-.51, 1.01}) {
         Vector_t<double, 3> e(0.), b(0.);
         const Vector_t<double, 3> position(x, 0., outside);
         EXPECT_FALSE(isInside(position));

@@ -211,14 +211,14 @@ TEST_F(TestMultipoleT, FieldExtentIncludesAsymmetricFringes) {
     setFringeField(2.0, 0.2, 0.3);
     double begin = 0.0, end = 0.0;
     getFieldExtent(begin, end);
-    EXPECT_DOUBLE_EQ(begin, -1.2);
-    EXPECT_DOUBLE_EQ(end, 5.8);
+    EXPECT_DOUBLE_EQ(begin, -2.0);
+    EXPECT_DOUBLE_EQ(end, 7.0);
 
     // Geometry and fringe contributions remain independent when L changes.
     setElementLength(5.0);
     getFieldExtent(begin, end);
-    EXPECT_DOUBLE_EQ(begin, -1.2);
-    EXPECT_DOUBLE_EQ(end, 6.8);
+    EXPECT_DOUBLE_EQ(begin, -2.0);
+    EXPECT_DOUBLE_EQ(end, 8.0);
 
     setFringeField(2.5, 0.0, 0.0);
     getFieldExtent(begin, end);

@@ -103,8 +103,14 @@ public:
     static constexpr size_t MaxFactorial         = 20;
     static constexpr size_t MaxPowerInteger      = 20;
     static constexpr unsigned int MaxDerivatives = 20;
-    /// How many fringe lengths past each pole face the tanh fringe is still counted as field.
-    static constexpr double FringeReach = 6.0;
+    /**
+     * Fringe lengths past each pole face up to which the tanh fringe counts as field
+     * (MultipoleT::getFieldExtent()); beyond them the element applies no field. n fringe
+     * lengths past a face the fringe is (1 - tanh n) / 2, about exp(-2n) of its peak: 2e-9 at
+     * n = 10, and the two cut tails together miss about 2e-9 fringe lengths of the field
+     * integral.
+     */
+    static constexpr double FringeReach = 10.0;
 
     /** Helper function that returns factorial of n for n<=20 on both host and GPU */
     KOKKOS_INLINE_FUNCTION static double factorial(unsigned int n);

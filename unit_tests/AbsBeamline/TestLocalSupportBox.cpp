@@ -232,8 +232,8 @@ TEST_F(LocalSupportBoxTest, StraightMultipoleTUsesItsHalfApertures) {
     EXPECT_NEAR(upper[0], 1.0, 1e-12);
     EXPECT_NEAR(lower[0], -1.0, 1e-12);
     EXPECT_NEAR(upper[1], 0.6, 1e-12);
-    EXPECT_NEAR(lower[2], -0.3, 1e-12);
-    EXPECT_NEAR(upper[2], 0.8, 1e-12);
+    EXPECT_NEAR(lower[2], -0.5, 1e-12);
+    EXPECT_NEAR(upper[2], 1.0, 1e-12);
 }
 
 TEST_F(LocalSupportBoxTest, RotatedMultipoleTCoversItsRotatedAperture) {
