@@ -2,7 +2,7 @@
  * @class TravelingWave
  * @brief Interface for traveling wave cavities.
  *
- * Class TravelingWave defines the abstract interface for Traveling Wave RF cavities.
+ * Class TravelingWave defines a traveling-wave RF structure.
  *   - TW: Traveling Wave Cavity
  */
 #include "AbsBeamline/TravelingWave.h"

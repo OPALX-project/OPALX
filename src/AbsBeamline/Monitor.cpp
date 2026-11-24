@@ -1,6 +1,6 @@
 //
 // Class Monitor
-//   Defines the abstract interface for a beam position monitor.
+//   Defines a beam position monitor.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.

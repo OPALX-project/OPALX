@@ -99,11 +99,6 @@ public:
     /// @param skew The skew multipole coefficients.
     void setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew);
 
-    /// @brief Get the dipole normal component.
-    /// @note Backed by the coefficient views.
-    /// @return The dipole normal component.
-    double getB() const;
-
     /// @brief Set the dipole normal component.
     /// @param B The dipole normal component.
     void setB(double B);

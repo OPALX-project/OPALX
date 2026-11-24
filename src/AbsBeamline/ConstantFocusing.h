@@ -31,8 +31,6 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    double getStrength() const;
-    double getRadius() const;
     double getGradient() const;
 
     void setStrength(double strength);

@@ -1,6 +1,6 @@
 //
 // Class VariableRFCavity
-//   Defines the abstract interface for a RF Cavity
+//   Defines an RF cavity
 //   with Time Dependent Parameters.
 //
 // Copyright (c) 2014 - 2023, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK

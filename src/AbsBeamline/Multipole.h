@@ -10,7 +10,7 @@ constexpr int MAX_MP_ORDER = 5;
  * @class Multipole
  * @brief Interface for general multipole.
  *
- * Class Multipole defines the abstract interface for magnetic multipoles.
+ * Class Multipole defines a straight magnetic multipole.
  * With normal(n) and skew(n) the stored components, the field is
  * By + i Bx = sum over n of (normal(n) - i skew(n)) (x + i y)^n:
  *
@@ -47,9 +47,6 @@ public:
 
     // @brief Sets the n-th normal component with an error
     void setNormalComponent(int n, double, double);
-
-    // @returns n-th skew component of the multipole expansion
-    double getSkewComponent(int n) const;
 
     // @brief Sets the n-th skew component
     void setSkewComponent(int n, double);

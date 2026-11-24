@@ -277,11 +277,7 @@ const std::string& FieldmapElement::getFieldMapFN() const { return filename_m; }
 
 void FieldmapElement::setBScale(double bscale) { bscale_m = bscale; }
 
-double FieldmapElement::getBScale() const { return bscale_m; }
-
 void FieldmapElement::setEScale(double escale) { escale_m = escale; }
-
-double FieldmapElement::getEScale() const { return escale_m; }
 
 void FieldmapElement::setIsZReversed(bool zReverse) { isZReversed_m = zReverse; }
 

@@ -46,10 +46,6 @@ void ConstantFocusing::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = getGeometry().getElementLength();
 }
 
-double ConstantFocusing::getStrength() const { return strength_m; }
-
-double ConstantFocusing::getRadius() const { return radius_m; }
-
 double ConstantFocusing::getGradient() const { return gradient_m; }
 
 void ConstantFocusing::setStrength(double strength) {

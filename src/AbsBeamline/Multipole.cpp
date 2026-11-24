@@ -2,7 +2,7 @@
  * @class Multipole
  * @brief Interface for general multipole.
  *
- * Class Multipole defines the abstract interface for magnetic multipoles.
+ * Class Multipole defines a straight magnetic multipole.
  * With normal(n) and skew(n) the stored components, the field is
  * By + i Bx = sum over n of (normal(n) - i skew(n)) (x + i y)^n:
  *
@@ -110,30 +110,6 @@ double Multipole::getNormalComponent(int n) const {
     } else if (n < max_NormalComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(NormalComponents, n));
-        return val;
-    } else {
-        return 0.0;
-    }
-}
-
-/**
- * @brief Gets the n-th skew component of the multipole expansion
- *
- * Copies the device view SkewComponents n-th entry to a host
- * variable and returns it. For host-only execution the deepcopy is ignored
- * and the n-th entry is returned directly.
- *
- * @param n Component
- * @returns n-th skew component of the multipole expansion
- */
-double Multipole::getSkewComponent(int n) const {
-    if (n < 0) {
-        throw GeneralOpalException(
-                "Multipole::getSkewComponent",
-                "component index " + std::to_string(n) + " out of bounds");
-    } else if (n < max_SkewComponent_m) {
-        double val;
-        Kokkos::deep_copy(val, Kokkos::subview(SkewComponents, n));
         return val;
     } else {
         return 0.0;

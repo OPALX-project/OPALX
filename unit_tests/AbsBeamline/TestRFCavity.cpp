@@ -1,9 +1,9 @@
 /**
  * \file TestRFCavity.cpp
- * \brief Unit tests for RFCavity component (base layer).
+ * \brief Unit tests for the RFCavity element.
  *
  * This test suite validates the core behavior of RFCavity using:
- *  - a minimal concrete implementation (TestRFCavity)
+ *  - a subclass with test access to protected state (TestRFCavity)
  *  - a controlled fake fieldmap (FakeFieldmap)
  *
  * ---------------------------------------------------------------------------
@@ -130,7 +130,7 @@ private:
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// Minimal concrete RFCavity
+// RFCavity with test access to protected state
 // ---------------------------------------------------------------------------
 class TestRFCavity : public RFCavity {
 public:
@@ -586,20 +586,20 @@ TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
     OpalCavity& input = *inputObject;
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
-    auto* rep = dynamic_cast<RFCavity*>(built.get());
-    ASSERT_NE(rep, nullptr);
-    EXPECT_FALSE(rep->isIdeal());
-    EXPECT_EQ(rep->getCavityType(), CavityType::SW);
+    auto* element = dynamic_cast<RFCavity*>(built.get());
+    ASSERT_NE(element, nullptr);
+    EXPECT_FALSE(element->isIdeal());
+    EXPECT_EQ(element->getCavityType(), CavityType::SW);
     Attributes::setPredefinedString(input.itsAttr[OpalCavity::TYPE], "IDEAL");
     EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setReal(input.itsAttr[OpalCavity::LENGTH], 0.2);
     Attributes::setReal(input.itsAttr[OpalCavity::VOLT], 1.);
     Attributes::setReal(input.itsAttr[OpalCavity::FREQ], 100.);
     EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
-    rep = dynamic_cast<RFCavity*>(built.get());
-    ASSERT_NE(rep, nullptr);
-    EXPECT_TRUE(rep->isIdeal());
-    EXPECT_DOUBLE_EQ(rep->getFrequencym(), Physics::two_pi * 100.e6);
+    element = dynamic_cast<RFCavity*>(built.get());
+    ASSERT_NE(element, nullptr);
+    EXPECT_TRUE(element->isIdeal());
+    EXPECT_DOUBLE_EQ(element->getFrequencym(), Physics::two_pi * 100.e6);
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "unused.map");
     EXPECT_ANY_THROW(opalx::test::buildFrom(input));
     Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "");

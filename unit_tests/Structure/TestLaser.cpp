@@ -31,18 +31,18 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<Laser*>(built.get());
-    ASSERT_NE(rep, nullptr);
-    EXPECT_DOUBLE_EQ(rep->getGeometry().getElementLength(), 0.01);
-    EXPECT_DOUBLE_EQ(rep->getWavelength(), 1.03e-6);
-    EXPECT_DOUBLE_EQ(rep->getPulseEnergy(), 1.0);
-    EXPECT_DOUBLE_EQ(rep->getPulseLength(), 2.0e-12);
-    EXPECT_DOUBLE_EQ(rep->getWaistX(), 5.0e-6);
-    EXPECT_DOUBLE_EQ(rep->getWaistY(), 6.0e-6);
-    EXPECT_NEAR(rep->getDirection()(0), 0.0, 1.0e-12);
-    EXPECT_NEAR(rep->getDirection()(1), 0.0, 1.0e-12);
-    EXPECT_NEAR(rep->getDirection()(2), -1.0, 1.0e-12);
-    EXPECT_DOUBLE_EQ(rep->getStokes()(2), 1.0);
+    auto* element = dynamic_cast<Laser*>(built.get());
+    ASSERT_NE(element, nullptr);
+    EXPECT_DOUBLE_EQ(element->getGeometry().getElementLength(), 0.01);
+    EXPECT_DOUBLE_EQ(element->getWavelength(), 1.03e-6);
+    EXPECT_DOUBLE_EQ(element->getPulseEnergy(), 1.0);
+    EXPECT_DOUBLE_EQ(element->getPulseLength(), 2.0e-12);
+    EXPECT_DOUBLE_EQ(element->getWaistX(), 5.0e-6);
+    EXPECT_DOUBLE_EQ(element->getWaistY(), 6.0e-6);
+    EXPECT_NEAR(element->getDirection()(0), 0.0, 1.0e-12);
+    EXPECT_NEAR(element->getDirection()(1), 0.0, 1.0e-12);
+    EXPECT_NEAR(element->getDirection()(2), -1.0, 1.0e-12);
+    EXPECT_DOUBLE_EQ(element->getStokes()(2), 1.0);
 }
 
 TEST(TestLaser, UpdateDefaultsStokesToZero) {
@@ -53,11 +53,11 @@ TEST(TestLaser, UpdateDefaultsStokesToZero) {
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<Laser*>(built.get());
-    ASSERT_NE(rep, nullptr);
-    EXPECT_DOUBLE_EQ(rep->getStokes()(0), 0.0);
-    EXPECT_DOUBLE_EQ(rep->getStokes()(1), 0.0);
-    EXPECT_DOUBLE_EQ(rep->getStokes()(2), 0.0);
+    auto* element = dynamic_cast<Laser*>(built.get());
+    ASSERT_NE(element, nullptr);
+    EXPECT_DOUBLE_EQ(element->getStokes()(0), 0.0);
+    EXPECT_DOUBLE_EQ(element->getStokes()(1), 0.0);
+    EXPECT_DOUBLE_EQ(element->getStokes()(2), 0.0);
 }
 
 TEST(TestLaser, UpdateRequiresWavelength) {
@@ -163,14 +163,14 @@ TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinemati
     std::shared_ptr<ElementBase> built;
     ASSERT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<Laser*>(built.get());
-    ASSERT_NE(rep, nullptr);
+    auto* element = dynamic_cast<Laser*>(built.get());
+    ASSERT_NE(element, nullptr);
 
     Vector_t<double, 3> beamDirection(0.0);
     beamDirection(2) = 1.0;
 
     const double electronTotalEnergyGeV = 1.0;
-    const double laserPhotonEnergyGeV   = rep->getPhotonEnergyGeV();
+    const double laserPhotonEnergyGeV   = element->getPhotonEnergyGeV();
     const double electronMomentumGeV    = std::sqrt(
             electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
     const double expectedInvariantX =
@@ -182,9 +182,9 @@ TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinemati
             / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
 
     EXPECT_NEAR(
-            rep->getLinearComptonInvariantX(electronTotalEnergyGeV, beamDirection),
+            element->getLinearComptonInvariantX(electronTotalEnergyGeV, beamDirection),
             expectedInvariantX, expectedInvariantX * 1.0e-12);
     EXPECT_NEAR(
-            rep->getLinearComptonForwardPhotonEnergyGeV(electronTotalEnergyGeV, beamDirection),
+            element->getLinearComptonForwardPhotonEnergyGeV(electronTotalEnergyGeV, beamDirection),
             expectedForwardPhotonEnergyGeV, expectedForwardPhotonEnergyGeV * 1.0e-12);
 }

@@ -205,13 +205,6 @@ void RBend::setFieldComponents(const std::vector<double>& normal, const std::vec
     Kokkos::deep_copy(skewComponents_m, skewComponentsHost_m);
 }
 
-double RBend::getB() const {
-    if (maxNormal_m < 1) {
-        return 0.0;
-    }
-    return normalComponentsHost_m(0);
-}
-
 void RBend::setB(double B) {
     if (maxNormal_m < 1) {
         maxNormal_m            = 1;

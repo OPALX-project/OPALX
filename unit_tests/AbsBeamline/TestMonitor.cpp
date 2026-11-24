@@ -3,7 +3,7 @@
  * \brief Unit tests for lightweight Monitor behavior.
  *
  * This test suite validates basic Monitor behavior using:
- *  - a minimal concrete Monitor implementation
+ *  - a Monitor subclass with test access to protected state
  *  - direct access to internal state where needed
  *  - a single-rank initialized IPPL/MPI environment
  *
@@ -33,9 +33,6 @@
  * Notes
  * ---------------------------------------------------------------------------
  *
- * - Monitor is field-free. The dummy field exists only to satisfy the abstract
- *   Component interface in the concrete test class.
- *
  * - These tests intentionally avoid file-output checks. They focus on behavior
  *   that can be verified without constructing a full PartBunch/ParticleContainer
  *   tracking setup.
@@ -53,7 +50,7 @@
 #include <memory>
 
 // ---------------------------------------------------------------------------
-// Minimal concrete Monitor
+// Monitor with test access to protected state
 // ---------------------------------------------------------------------------
 class TestMonitor : public Monitor {
 public:

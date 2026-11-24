@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: Solenoid
-//   Defines the abstract interface for a solenoid magnet.
+//   Defines a solenoid magnet.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline

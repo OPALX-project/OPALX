@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: Drift
-//   Defines the abstract interface for a drift space.
+//   Defines a drift space.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline

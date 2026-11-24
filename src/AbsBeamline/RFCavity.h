@@ -1,6 +1,6 @@
 //
 // Class RFCavity
-//   Defines the abstract interface for for RF cavities.
+//   Defines an RF cavity.
 //
 // Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -31,7 +31,7 @@ class Fieldmap;
 
 enum class CavityType : unsigned short { SW, IDEAL };
 
-/** @brief RF physics shared by RFCavityRep.
+/** @brief RF cavity with a standing-wave field map (STANDING) or a uniform field (IDEAL).
  * IDEAL uses Ez [MV/m]=VOLT*cos(omega*t+LAG) on [0,L), with VOLT in MV/m,
  * L in m and LAG in radians. It has no magnetic or fringe field.
  * STANDING uses the field-map apply() path.
@@ -47,8 +47,6 @@ public:
     RFCavity();
     RFCavity(const RFCavity&);
     virtual ~RFCavity();
-
-    void setFrequency(double freq);
 
     void dropFieldmaps();
 
@@ -261,8 +259,6 @@ inline void RFCavity::setAmplitudem(double vPeak) { scale_m = vPeak; }
 inline double RFCavity::getAmplitudem() const { return scale_m; }
 
 inline void RFCavity::setAmplitudeError(double vPeakError) { scaleError_m = vPeakError; }
-
-inline void RFCavity::setFrequency(double freq) { frequency_m = freq; }
 
 inline void RFCavity::setFrequencym(double freq) { frequency_m = freq; }
 

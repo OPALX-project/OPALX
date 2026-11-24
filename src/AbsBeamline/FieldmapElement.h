@@ -149,8 +149,6 @@ public:
      */
     void setBScale(double bscale);
 
-    double getBScale() const;
-
     /**
      * @brief Set the plain multiplier applied to the tabulated electric field.
      *
@@ -160,8 +158,6 @@ public:
      * has no effect on a map that carries no electric field.
      */
     void setEScale(double escale);
-
-    double getEScale() const;
 
     /**
      * @brief Read the map back to front: mirror it in z and negate the longitudinal

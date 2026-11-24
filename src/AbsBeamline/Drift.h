@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: Drift
-//   Defines the abstract interface for a drift space.
+//   Defines a drift space.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
@@ -26,7 +26,7 @@
 // Class Drift
 // ------------------------------------------------------------------------
 /// Interface for drift space.
-//  Class Drift defines the abstract interface for a drift space.
+//  Class Drift defines a drift space.
 
 class Drift : public FramelessElement {
 public:

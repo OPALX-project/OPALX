@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: Marker
-//   Defines the abstract interface for a marker element.
+//   Defines a marker element.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline

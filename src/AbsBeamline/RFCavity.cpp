@@ -2,7 +2,7 @@
  * @class RFCavity
  * @brief Interface for standing wave cavities.
  *
- * Class RFCavity defines the abstract interface for Standing Wave RF cavities.
+ * Class RFCavity defines a standing-wave RF cavity.
  *   - SW: Standing Wave Cavity
  */
 #include "AbsBeamline/RFCavity.h"

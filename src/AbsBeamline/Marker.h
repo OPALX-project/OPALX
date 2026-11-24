@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: Marker
-//   Defines the abstract interface for a marker element.
+//   Defines a marker element.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
@@ -26,7 +26,7 @@
 // Class Marker
 // ------------------------------------------------------------------------
 /// Interface for a marker.
-//  Class Marker defines the abstract interface for a marker element.
+//  Class Marker defines a marker element.
 
 class Marker : public FramelessElement {
 public:

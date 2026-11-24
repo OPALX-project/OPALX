@@ -1,6 +1,6 @@
 //
 // Class TravelingWave
-//   Defines the abstract interface for Traveling Wave.
+//   Defines a traveling-wave structure.
 //
 // Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved

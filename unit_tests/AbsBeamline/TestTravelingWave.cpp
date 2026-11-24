@@ -3,7 +3,7 @@
  * \brief Unit tests for TravelingWave component.
  *
  * This test suite validates the core behavior of TravelingWave using:
- *  - a minimal concrete implementation (TestTravelingWave)
+ *  - a subclass with test access to protected state (TestTravelingWave)
  *  - a controlled fake fieldmap (FakeTWFieldmap)
  *
  * ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ private:
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// Minimal concrete TravelingWave
+// TravelingWave with test access to protected state
 // ---------------------------------------------------------------------------
 class TestTravelingWave : public TravelingWave {
 public:
