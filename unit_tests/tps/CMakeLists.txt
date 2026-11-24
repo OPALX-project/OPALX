@@ -38,13 +38,13 @@ foreach(example maps context_maps prepared_evaluation)
   set_tests_properties(tps.example_${example} PROPERTIES LABELS "unit;tps" TIMEOUT 60)
 endforeach()
 foreach(order forward reverse)
-  add_executable(tps_opalx_${order} opalx_headers.cpp)
-  target_link_libraries(tps_opalx_${order} PRIVATE OPALX::opalx)
+  # OPALX-linked custom-main tests need the normal launcher/uenv for MPI libraries.
+  # Keep their existing executable and CTest names while sharing launch policy.
+  add_opalx_test(tps_opalx_${order} SOURCES opalx_headers.cpp NUM_PROCS 1 TIMEOUT 60
+                 LABELS tps CTEST_NAME tps.opalx_headers_${order})
   if(order STREQUAL reverse)
     target_compile_definitions(tps_opalx_${order} PRIVATE TPS_REVERSE_INCLUDE_ORDER)
   endif()
-  add_test(NAME tps.opalx_headers_${order} COMMAND tps_opalx_${order})
-  set_tests_properties(tps.opalx_headers_${order} PROPERTIES LABELS "unit;tps" TIMEOUT 60)
 endforeach()
 
 # Check that no public header relies on inclusion through tps.hpp.

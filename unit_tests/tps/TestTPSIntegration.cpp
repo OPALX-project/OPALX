@@ -29,6 +29,22 @@ tps::PhaseSpaceChart chart(const char* name) {
     return result;
 }
 
+// NVCC extended device lambdas cannot be enclosed by GoogleTest's private TestBody.
+// Keep the real device launch in a namespace-scope helper on every backend.
+template <class MapView, class ValuesView, class StatusView>
+void evaluatePreparedParticles(MapView map, ValuesView input, ValuesView output,
+                               ValuesView workspace, StatusView status) {
+    const int particles = input.extent_int(0);
+    Kokkos::parallel_for(
+        "TPS OPALX rank tracking", particles, KOKKOS_LAMBDA(int i) {
+            status(i) =
+                tps::evaluate_one(map, tps::deviceSpan(Kokkos::subview(input, i, Kokkos::ALL)),
+                                  tps::deviceSpan(Kokkos::subview(output, i, Kokkos::ALL)),
+                                  tps::deviceSpan(Kokkos::subview(workspace, i, Kokkos::ALL)));
+        });
+    Kokkos::fence("TPS OPALX rank tracking complete");
+}
+
 TEST_F(TPSIntegration, HostCompositionAndPreparedTrackingPerRank) {
     using Series = tps::Tps<double>;
     // Production use configures the order before serialized host construction.
@@ -70,14 +86,7 @@ TEST_F(TPSIntegration, HostCompositionAndPreparedTrackingPerRank) {
         hostInput(i, 1) = 0.02;
     }
     Kokkos::deep_copy(input, hostInput);
-    Kokkos::parallel_for(
-        "TPS OPALX rank tracking", particles, KOKKOS_LAMBDA(int i) {
-            status(i) =
-                tps::evaluate_one(map, tps::deviceSpan(Kokkos::subview(input, i, Kokkos::ALL)),
-                                  tps::deviceSpan(Kokkos::subview(output, i, Kokkos::ALL)),
-                                  tps::deviceSpan(Kokkos::subview(workspace, i, Kokkos::ALL)));
-        });
-    Kokkos::fence("TPS OPALX rank tracking complete");
+    evaluatePreparedParticles(map, input, output, workspace, status);
     const auto hostOutput = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, output);
     const auto hostStatus = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, status);
     int localFailures = 0;
