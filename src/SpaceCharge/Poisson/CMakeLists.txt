@@ -10,4 +10,4 @@ set (_PRIVATE_HDRS
     P3MAdapters.h
     )
 
-target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})
+target_sources(opalx_run PRIVATE ${_SRCS} ${_PRIVATE_HDRS})

@@ -27,9 +27,9 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
-# Install the OPALX library.
+# Install the OPALX libraries; opalx links opalx_run publicly.
 install(
-  TARGETS opalx
+  TARGETS opalx_run opalx
   EXPORT OPALXTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}      # shared libs
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}      # static libs

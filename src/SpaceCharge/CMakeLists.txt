@@ -1,6 +1,13 @@
-set (_SRCS
-    SpaceChargeConfig.cpp
+# Build bridge, built into opalx: turns the RUN description into the space-charge configuration
+# through value-only functions of the BINNING, EMISSIONSOURCE and FIELDSOLVER commands.
+set (_BRIDGE_SRCS
     SpaceChargeConfigBuilder.cpp
+    SpaceChargeConfigBuilder.h
+    )
+
+# Run side.
+set (_RUN_SRCS
+    SpaceChargeConfig.cpp
     SpaceChargeFactory.cpp
     SpaceChargeSolveContext.cpp
     SpaceChargeSolver.cpp
@@ -14,13 +21,13 @@ set (HDRS
 set (_PRIVATE_HDRS
     SpaceChargeAlgorithm.h
     SpaceChargeSolver.h
-    SpaceChargeConfigBuilder.h
     SpaceChargeFactory.h
     )
 
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+opalx_include_source_directory()
 
-target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})
+target_sources(opalx PRIVATE ${_BRIDGE_SRCS})
+target_sources(opalx_run PRIVATE ${_RUN_SRCS} ${_PRIVATE_HDRS})
 
 add_subdirectory (Poisson)
 add_subdirectory (CartesianPIC3D)

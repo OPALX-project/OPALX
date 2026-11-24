@@ -52,10 +52,10 @@ set(_HDRS
 )
 
 # Add local include directory
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+opalx_include_source_directory()
 
 # Append sources to the main executable target
-target_sources(opalx PRIVATE ${_SRCS})
+target_sources(opalx_run PRIVATE ${_SRCS})
 
 # Optionally install headers
 install(FILES ${_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/AbsBeamline)

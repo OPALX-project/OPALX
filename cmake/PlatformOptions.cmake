@@ -23,11 +23,15 @@ else()
   message(STATUS "⏱️  Kokkos_DEVICES not set — defaulting to TimerFences = true.")
 endif()
 
-# Define macro for use in source code
-target_compile_definitions(opalx PUBLIC OPALX_ENABLE_TIMER_FENCES=${TimerFences})
+# Define macro for use in source code, in both OPALX libraries (OPALX_LIBRARY_TARGETS)
+foreach(_opalx_library IN LISTS OPALX_LIBRARY_TARGETS)
+  target_compile_definitions(${_opalx_library} PUBLIC OPALX_ENABLE_TIMER_FENCES=${TimerFences})
+endforeach()
 
-# Field debug option - apply compile definition to target
+# Field debug option - apply compile definition to the libraries
 if(OPALX_FIELD_DEBUG)
   message(STATUS "⚠️  OPALX_FIELD_DEBUG enabled — field dumps will be emitted during simulation")
-  target_compile_definitions(opalx PUBLIC OPALX_FIELD_DEBUG)
+  foreach(_opalx_library IN LISTS OPALX_LIBRARY_TARGETS)
+    target_compile_definitions(${_opalx_library} PUBLIC OPALX_FIELD_DEBUG)
+  endforeach()
 endif()

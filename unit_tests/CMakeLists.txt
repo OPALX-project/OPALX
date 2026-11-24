@@ -45,3 +45,20 @@ if(BUILD_TESTING)
                    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckRunSideBoundary.cmake)
   set_tests_properties(TestRunSideBoundary PROPERTIES LABELS unit TIMEOUT 120)
 endif()
+
+# Links every object of opalx_run without opalx, so a run-side reference to an input-side or
+# bridge symbol is an undefined symbol at link time. A static opalx_run is linked whole, since the
+# linker otherwise takes only the archive members it needs. A shared opalx_run holds all its
+# objects anyway: Apple ld rejects its undefined symbols when it links the library, GNU ld when it
+# links this executable.
+add_executable(TestRunSideLinksAlone TestRunSideLinksAlone.cpp)
+get_target_property(_opalx_run_type opalx_run TYPE)
+if(_opalx_run_type STREQUAL "STATIC_LIBRARY")
+  target_link_libraries(TestRunSideLinksAlone PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,opalx_run>")
+else()
+  target_link_libraries(TestRunSideLinksAlone PRIVATE opalx_run)
+endif()
+if(BUILD_TESTING)
+  add_test(NAME TestRunSideLinksAlone COMMAND TestRunSideLinksAlone)
+  set_tests_properties(TestRunSideLinksAlone PROPERTIES LABELS unit TIMEOUT 60)
+endif()

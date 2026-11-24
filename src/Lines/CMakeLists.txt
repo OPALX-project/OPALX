@@ -10,7 +10,7 @@ set (HDRS
     LineTemplate.h
     )
 
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+opalx_include_source_directory()
 
 target_sources(opalx PRIVATE ${_SRCS})
 

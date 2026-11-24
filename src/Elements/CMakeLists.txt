@@ -1,4 +1,5 @@
-set (_SRCS
+# Input side: the element and time-dependence commands.
+set (_INPUT_SRCS
     OpalCavity.cpp
     OpalBox.cpp
     OpalCollimator.cpp
@@ -18,12 +19,16 @@ set (_SRCS
     OpalRBend.cpp
     OpalSBend.cpp
     OpalSolenoid.cpp
-    OpalBeamline.cpp
-    PlacementResolver.cpp
     OpalPolynomialTimeDependence.cpp
     OpalSplineTimeDependence.cpp
     OpalSinusoidalTimeDependence.cpp
     OpalVariableRFCavity.cpp
+)
+
+# Run side: the runtime beamline and the placement of its elements.
+set (_RUN_SRCS
+    OpalBeamline.cpp
+    PlacementResolver.cpp
 )
 
 set (HDRS
@@ -54,8 +59,9 @@ set (HDRS
     OpalVariableRFCavity.h
 )
 
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+opalx_include_source_directory()
 
-target_sources(opalx PRIVATE ${_SRCS})
+target_sources(opalx PRIVATE ${_INPUT_SRCS})
+target_sources(opalx_run PRIVATE ${_RUN_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Elements")

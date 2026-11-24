@@ -12,7 +12,7 @@ set(HDRS
     PionDecay.h
 )
 
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_sources(opalx PRIVATE ${_SRCS})
+opalx_include_source_directory()
+target_sources(opalx_run PRIVATE ${_SRCS})
 
 install(FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Processes/GlobalProcesses")

@@ -2,12 +2,12 @@
 # src/CMakeLists.txt
 # cmake-format: off
 #
-# This file builds the main OPALX target. It:
+# This file builds the OPALX libraries opalx_run and opalx and the executable. It:
 #   - Generates BuildInfo.h from current build system info
 #   - Gathers sources and headers
 #   - Adds all component subdirectories
 #   - Links to external libraries
-#   - Installs headers and the library
+#   - Installs headers and the libraries
 #
 # cmake-format: on
 # -----------------------------------------------------------------------------
@@ -51,23 +51,51 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
 
 
 # ------------------------------------------------------------------
-# Build the main executable target: opalx
+# Libraries opalx_run and opalx, and the executable opalx
+#
+# opalx_run is the run side: elements, bunch, fields, solvers, tracker and output. opalx is the
+# input side (parser, commands, freeze()) plus the build bridge, the files
+# Track/BuildElements.cpp, Track/BuildTracking.cpp and SpaceCharge/SpaceChargeConfigBuilder.cpp,
+# which turn a frozen run description into runtime objects through value-only static functions
+# of the commands. opalx links opalx_run publicly, so linking opalx gives both. Each source
+# directory assigns its files to one of the two. The unit test TestRunSideLinksAlone links every
+# object of opalx_run without opalx, which proves that no run-side object needs an input-side or
+# bridge symbol.
 # ------------------------------------------------------------------
 
+add_library(opalx_run)
 add_library(opalx)
-target_sources(opalx PRIVATE changes.cpp)
+set(OPALX_LIBRARY_TARGETS opalx_run opalx)
+target_link_libraries(opalx PUBLIC opalx_run)
 
-target_compile_features(opalx PUBLIC cxx_std_20)
+target_sources(opalx_run PRIVATE changes.cpp)
 
-target_compile_options(
-  opalx
-  PUBLIC $<$<COMPILE_LANGUAGE:CXX>:
-         $<$<CONFIG:Debug>:-O0
-         -g>
-         $<$<CONFIG:RelWithDebInfo>:-O3
-         -g>
-         $<$<CONFIG:Release>:-O3>
-         >)
+# Both libraries compile with the same settings, so a file compiles the same in either.
+foreach(_opalx_library IN LISTS OPALX_LIBRARY_TARGETS)
+  target_compile_features(${_opalx_library} PUBLIC cxx_std_20)
+
+  target_compile_options(
+    ${_opalx_library}
+    PUBLIC $<$<COMPILE_LANGUAGE:CXX>:
+           $<$<CONFIG:Debug>:-O0
+           -g>
+           $<$<CONFIG:RelWithDebInfo>:-O3
+           -g>
+           $<$<CONFIG:Release>:-O3>
+           >)
+
+  target_include_directories(
+    ${_opalx_library} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/opalx>
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+endforeach()
+
+# Adds the calling source directory to the private include path of both libraries.
+function(opalx_include_source_directory)
+  foreach(_library IN LISTS OPALX_LIBRARY_TARGETS)
+    target_include_directories(${_library} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  endforeach()
+endfunction()
 
 get_target_property(_opalx_type opalx TYPE)
 if(_opalx_type)
@@ -82,13 +110,7 @@ if(NOT DEFINED _opalx_pic)
   set(_opalx_pic "DEFAULT(${CMAKE_POSITION_INDEPENDENT_CODE})")
 endif()
 
-message(STATUS "🔧 Target 'opalx': type=${_opalx_type}, POSITION_INDEPENDENT_CODE=${_opalx_pic}")
-
-target_include_directories(
-  opalx PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/opalx>
-  PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
+message(STATUS "🔧 Targets 'opalx_run' and 'opalx': type=${_opalx_type}, POSITION_INDEPENDENT_CODE=${_opalx_pic}")
 
 # Subdirectories
 add_subdirectory (AbsBeamline)
@@ -117,7 +139,8 @@ add_subdirectory (ValueDefinitions)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
-target_link_libraries(opalx PUBLIC
+# opalx gets the third-party libraries through its public link to opalx_run.
+target_link_libraries(opalx_run PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
     H5hut
@@ -125,11 +148,13 @@ target_link_libraries(opalx PUBLIC
     ZLIB::ZLIB
 )
 
-target_include_directories(opalx PRIVATE
-  ${HDF5_INCLUDE_DIR}
-  ${H5HUT_INCLUDE_DIR}
-  ZLIB::ZLIB
-)
+foreach(_opalx_library IN LISTS OPALX_LIBRARY_TARGETS)
+  target_include_directories(${_opalx_library} PRIVATE
+    ${HDF5_INCLUDE_DIR}
+    ${H5HUT_INCLUDE_DIR}
+    ZLIB::ZLIB
+  )
+endforeach()
 
 # CLI executable
 add_executable(opalx_exe Main.cpp)

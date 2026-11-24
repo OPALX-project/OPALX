@@ -1,4 +1,11 @@
-set (_SRCS
+# Input side: the OPTION globals and the parser's error.
+set (_INPUT_SRCS
+    Options.cpp
+    ParseError.cpp
+    )
+
+# Run side.
+set (_RUN_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
     ExpressionRandom.cpp
@@ -6,9 +13,7 @@ set (_SRCS
     FormatError.cpp
     GeneralOpalException.cpp
     LogicalError.cpp
-    Options.cpp
     OverflowError.cpp
-    ParseError.cpp
     Util.cpp
     OpalException.cpp
     Timer.cpp
@@ -38,8 +43,9 @@ set (HDRS
     GSLSpline.h
     )
 
-target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+opalx_include_source_directory()
 
-target_sources(opalx PRIVATE ${_SRCS})
+target_sources(opalx PRIVATE ${_INPUT_SRCS})
+target_sources(opalx_run PRIVATE ${_RUN_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
