@@ -24,5 +24,3 @@ BoxRep::BoxRep(const BoxRep& right) : Box(right) {}
 BoxRep::BoxRep(const std::string& name) : Box(name) {}
 
 BoxRep::~BoxRep() {}
-
-ElementBase* BoxRep::clone() const { return new BoxRep(*this); }

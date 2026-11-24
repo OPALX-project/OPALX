@@ -46,11 +46,7 @@ namespace {
     class MockComponent : public ElementBase {
     public:
         MockComponent() : ElementBase("MockComponent") { getGeometry() = Geometry::makeNull(); }
-        MockComponent(const MockComponent& /*rhs*/) : ElementBase("MockComponent") {
-            getGeometry() = Geometry::makeNull();
-        }
         ~MockComponent() override = default;
-        ElementBase* clone() const override { return new MockComponent(*this); }
         void apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/, const StepTime& /*time*/)
                 override {}
         void apply(

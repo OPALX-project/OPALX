@@ -29,7 +29,6 @@ namespace {
             getGeometry() = Geometry::makeNull();
         }
 
-        ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
         }
         void apply(

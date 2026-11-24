@@ -29,10 +29,6 @@ public:
     DriftRep(const DriftRep&);
     virtual ~DriftRep();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
-
 private:
     // Not implemented.
     void operator=(const DriftRep&);

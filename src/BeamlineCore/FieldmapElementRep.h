@@ -29,9 +29,6 @@ public:
     FieldmapElementRep(const FieldmapElementRep&);
     virtual ~FieldmapElementRep();
 
-    /// Return an identical deep copy of the element.
-    virtual ElementBase* clone() const override;
-
 private:
     void operator=(const FieldmapElementRep&) = delete;
 };

@@ -130,8 +130,6 @@ class TestTravelingWave : public TravelingWave {
 public:
     TestTravelingWave() : TravelingWave("test_tw") {}
 
-    ElementBase* clone() const override { return new TestTravelingWave(*this); }
-
     void setTestElementLength(double v) { getGeometry().setElementLength(v); }
 
     void setScale(double v) { scale_m = v; }

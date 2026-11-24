@@ -30,7 +30,6 @@ namespace {
             : DriftRep("OFF_CENTRE"), centreX_m(centreX), halfX_m(halfX) {
             getGeometry().setElementLength(1.0);
         }
-        ElementBase* clone() const override { return new OffCentreRangeDrift(*this); }
         std::optional<ApertureShape> getFieldRange() const override {
             ApertureShape range;
             range.centreX = centreX_m;
@@ -48,7 +47,6 @@ namespace {
     class OffCentreMapDrift final : public DriftRep {
     public:
         OffCentreMapDrift() : DriftRep("MAP") { getGeometry().setElementLength(1.0); }
-        ElementBase* clone() const override { return new OffCentreMapDrift(*this); }
         std::optional<ApertureShape> getFieldMapRange() const override {
             ApertureShape range;
             range.centreX = 0.5;  // x = 0.2 .. 0.8 m, wider than the 0.5 m reach

@@ -25,5 +25,3 @@ MonitorRep::MonitorRep(const MonitorRep& right) : Monitor(right) {}
 MonitorRep::MonitorRep(const std::string& name) : Monitor(name) {}
 
 MonitorRep::~MonitorRep() {}
-
-ElementBase* MonitorRep::clone() const { return new MonitorRep(*this); }

@@ -7,8 +7,7 @@
  * ---------------------------------------------------------------------------
  *
  * 1. Element identity
- *    - getType(), getFieldExtent() (the body span), one time step per element,
- *      clone() copies name, geometry and block size
+ *    - getType(), getFieldExtent() (the body span), one time step per element
  *
  * 2. Absorption
  *    - Box::markOutsideAperture marks particles inside the block
@@ -131,21 +130,6 @@ namespace {
         box.getFieldExtent(zBegin, zEnd);
         EXPECT_DOUBLE_EQ(zBegin, 0.0);
         EXPECT_DOUBLE_EQ(zEnd, 0.1);
-    }
-
-    TEST_F(BoxTest, CloneCopiesGeometryAndSize) {
-        BoxRep box = makeBox(0.1, 0.01, 0.02);
-
-        std::unique_ptr<ElementBase> copy(box.clone());
-        ASSERT_NE(copy, nullptr);
-        EXPECT_EQ(copy->getName(), "test_box");
-        EXPECT_EQ(copy->getType(), ElementType::BOX);
-        EXPECT_DOUBLE_EQ(copy->getGeometry().getElementLength(), 0.1);
-
-        const Box* copyBox = dynamic_cast<const Box*>(copy.get());
-        ASSERT_NE(copyBox, nullptr);
-        EXPECT_DOUBLE_EQ(copyBox->getHalfWidth(), 0.01);
-        EXPECT_DOUBLE_EQ(copyBox->getHalfHeight(), 0.02);
     }
 
     TEST_F(BoxTest, ApertureStaysWideOpen) {

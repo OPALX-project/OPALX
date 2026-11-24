@@ -136,8 +136,6 @@ class TestRFCavity : public RFCavity {
 public:
     TestRFCavity() : RFCavity("test") {}
 
-    ElementBase* clone() const override { return new TestRFCavity(*this); }
-
     // ---- Simple setters for testing ----
     void setScale(double v) { scale_m = v; }
     void setPhaseInternal(double v) { phase_m = v; }
@@ -573,16 +571,12 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
     EXPECT_NO_THROW(cavity.goOffline());
 }
 
-TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
+TEST_F(IdealRFCavityTest, ReferenceExcludesErrors) {
     cavity.setAmplitudeError(1.0);
     cavity.setPhaseError(Physics::pi);
-    std::unique_ptr<ElementBase> copy(cavity.clone());
-    auto* cloned = dynamic_cast<RFCavityRep*>(copy.get());
-    ASSERT_NE(cloned, nullptr);
-    EXPECT_TRUE(cloned->isIdeal());
     Vector_t<double, 3> e(0), refE(0), b(0);
-    cloned->apply({0., 0., 0.1}, {}, 0., e, b);
-    cloned->applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b);
+    cavity.apply({0., 0., 0.1}, {}, 0., e, b);
+    cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b);
     EXPECT_DOUBLE_EQ(e[2], -6.e6);
     EXPECT_DOUBLE_EQ(refE[2], 5.e6);
 }

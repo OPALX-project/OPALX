@@ -7,5 +7,3 @@ RBendRep::RBendRep(const RBendRep& right) : RBend(right) {}
 RBendRep::RBendRep(const std::string& name) : RBend(name) {}
 
 RBendRep::~RBendRep() = default;
-
-ElementBase* RBendRep::clone() const { return new RBendRep(*this); }

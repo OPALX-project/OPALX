@@ -9,5 +9,3 @@ ConstantEFieldCavityRep::ConstantEFieldCavityRep(const std::string& name)
     : ConstantEFieldCavity(name) {}
 
 ConstantEFieldCavityRep::~ConstantEFieldCavityRep() {}
-
-ElementBase* ConstantEFieldCavityRep::clone() const { return new ConstantEFieldCavityRep(*this); }

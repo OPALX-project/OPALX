@@ -63,8 +63,6 @@ public:
         getGeometry().setElementLength(0.01);
     }
 
-    ElementBase* clone() const override { return new TestMonitor(*this); }
-
     void setLength(double length) { getGeometry().setElementLength(length); }
 
     /// What initialise() sets at the end, without the bunch and the loss file it also needs.

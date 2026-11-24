@@ -99,7 +99,7 @@ void OpalFieldmapElement::fill(ElementBase& element, const ObjectValues& values)
     FieldmapElementRep* fm = dynamic_cast<FieldmapElementRep*>(&element);
 
     // The geometry length is deliberately NOT set here: it comes from the map, which is only
-    // loaded in FieldmapElement::initialise(). That runs on the tracked clone before the
+    // loaded in FieldmapElement::initialise(). That runs on the tracked element before the
     // element list is sorted and before PlacementResolver, so every consumer still sees it.
     fm->setFieldMapFN(values.getString("FMAPFN"));
     fm->setBScale(values.getReal("BSCALE"));

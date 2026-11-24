@@ -24,5 +24,3 @@ FieldmapElementRep::FieldmapElementRep(const FieldmapElementRep& right) : Fieldm
 FieldmapElementRep::FieldmapElementRep(const std::string& name) : FieldmapElement(name) {}
 
 FieldmapElementRep::~FieldmapElementRep() {}
-
-ElementBase* FieldmapElementRep::clone() const { return new FieldmapElementRep(*this); }

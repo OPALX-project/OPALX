@@ -24,5 +24,3 @@ MultipoleRep::MultipoleRep(const MultipoleRep& multipole) : Multipole(multipole)
 MultipoleRep::MultipoleRep(const std::string& name) : Multipole(name) {}
 
 MultipoleRep::~MultipoleRep() {}
-
-ElementBase* MultipoleRep::clone() const { return new MultipoleRep(*this); }

@@ -24,5 +24,3 @@ SolenoidRep::SolenoidRep(const SolenoidRep& right) : Solenoid(right) {}
 SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name) {}
 
 SolenoidRep::~SolenoidRep() {}
-
-ElementBase* SolenoidRep::clone() const { return new SolenoidRep(*this); }

@@ -9,8 +9,6 @@ public:
     LaserRep();
     LaserRep(const LaserRep&);
     ~LaserRep() override;
-
-    ElementBase* clone() const override;
 };
 
 #endif  // OPALX_LaserRep_HH

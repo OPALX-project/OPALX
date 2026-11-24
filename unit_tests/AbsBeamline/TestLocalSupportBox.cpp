@@ -83,7 +83,6 @@ namespace {
     public:
         DriftWithExtent(double begin, double end)
             : DriftRep("D_EXTENT"), begin_m(begin), end_m(end) {}
-        ElementBase* clone() const override { return new DriftWithExtent(*this); }
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = begin_m;
             zEnd   = end_m;
@@ -97,7 +96,6 @@ namespace {
     class BoxTravelingWave : public TravelingWave {
     public:
         BoxTravelingWave() : TravelingWave("TW") {}
-        ElementBase* clone() const override { return new BoxTravelingWave(*this); }
 
         void setFieldWindow(double start, double startExit, double end, double period) {
             startField_m     = start;
@@ -187,9 +185,9 @@ TEST_F(LocalSupportBoxTest, ReachAttributeIsUnsetByDefaultAndCopied) {
     EXPECT_FALSE(drift.getReach().has_value());
 
     drift.setReach(0.25);
-    std::unique_ptr<ElementBase> copy(drift.clone());
-    ASSERT_TRUE(copy->getReach().has_value());
-    EXPECT_DOUBLE_EQ(*copy->getReach(), 0.25);
+    const DriftRep copy(drift);
+    ASSERT_TRUE(copy.getReach().has_value());
+    EXPECT_DOUBLE_EQ(*copy.getReach(), 0.25);
 }
 
 TEST_F(LocalSupportBoxTest, SectorBendBoxContainsArcBandAndFringes) {

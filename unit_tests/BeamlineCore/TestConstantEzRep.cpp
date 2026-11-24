@@ -2,7 +2,7 @@
  * \file TestConstantEFieldCavityRep.cpp
  * \brief Unit tests for ConstantEFieldCavityRep (BeamlineCore layer).
  *
- * Tests: geometry, field, setElementLength/setEz, clone.
+ * Tests: geometry, field, setElementLength/setEz.
  */
 
 #include <gtest/gtest.h>
@@ -55,18 +55,6 @@ namespace {
     TEST_F(ConstantEFieldCavityRepTest, SetEzUpdatesEz) {
         rep_->setEz(100.0);
         EXPECT_DOUBLE_EQ(rep_->getEz(), 100.0);
-    }
-
-    // ---------------------------------------------------------------------------
-    // Clone
-    // ---------------------------------------------------------------------------
-    TEST_F(ConstantEFieldCavityRepTest, Clone) {
-        std::unique_ptr<ElementBase> copy(rep_->clone());
-        ASSERT_NE(copy.get(), nullptr);
-        ConstantEFieldCavityRep* repCopy = dynamic_cast<ConstantEFieldCavityRep*>(copy.get());
-        ASSERT_NE(repCopy, nullptr);
-        EXPECT_DOUBLE_EQ(repCopy->getGeometry().getElementLength(), 2.0);
-        EXPECT_DOUBLE_EQ(repCopy->getEz(), 5.0);
     }
 
 }  // namespace

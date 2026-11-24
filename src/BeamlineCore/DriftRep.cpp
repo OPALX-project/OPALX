@@ -24,5 +24,3 @@ DriftRep::DriftRep(const DriftRep& right) : Drift(right) {}
 DriftRep::DriftRep(const std::string& name) : Drift(name) {}
 
 DriftRep::~DriftRep() {}
-
-ElementBase* DriftRep::clone() const { return new DriftRep(*this); }

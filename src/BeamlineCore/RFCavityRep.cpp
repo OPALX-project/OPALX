@@ -24,5 +24,3 @@ RFCavityRep::RFCavityRep(const RFCavityRep& right) : RFCavity(right) {}
 RFCavityRep::RFCavityRep(const std::string& name) : RFCavity(name) {}
 
 RFCavityRep::~RFCavityRep() {}
-
-ElementBase* RFCavityRep::clone() const { return new RFCavityRep(*this); }

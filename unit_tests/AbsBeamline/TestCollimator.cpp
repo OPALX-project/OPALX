@@ -7,8 +7,7 @@
  * ---------------------------------------------------------------------------
  *
  * 1. Element identity
- *    - getType(), getFieldExtent() (the body span), one time step per element,
- *      clone() copies name, geometry and aperture
+ *    - getType(), getFieldExtent() (the body span), one time step per element
  *
  * 2. Absorption
  *    - the inherited ElementBase::markOutsideAperture marks particles inside
@@ -136,22 +135,6 @@ namespace {
         coll.getFieldExtent(zBegin, zEnd);
         EXPECT_DOUBLE_EQ(zBegin, 0.0);
         EXPECT_DOUBLE_EQ(zEnd, 0.1);
-    }
-
-    TEST_F(CollimatorTest, CloneCopiesGeometryAndAperture) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::RECTANGULAR, 0.01, 0.02);
-
-        std::unique_ptr<ElementBase> copy(coll.clone());
-        ASSERT_NE(copy, nullptr);
-        EXPECT_EQ(copy->getName(), "test_collimator");
-        EXPECT_EQ(copy->getType(), ElementType::COLLIMATOR);
-        EXPECT_DOUBLE_EQ(copy->getGeometry().getElementLength(), 0.1);
-
-        const auto aperture = copy->getAperture();
-        EXPECT_EQ(aperture.first, ApertureType::RECTANGULAR);
-        ASSERT_EQ(aperture.second.size(), 2u);
-        EXPECT_DOUBLE_EQ(aperture.second[0], 0.01);
-        EXPECT_DOUBLE_EQ(aperture.second[1], 0.02);
     }
 
     // ================================================================

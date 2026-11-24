@@ -24,5 +24,3 @@ TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right) : TravelingWav
 TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name) {}
 
 TravelingWaveRep::~TravelingWaveRep() {}
-
-ElementBase* TravelingWaveRep::clone() const { return new TravelingWaveRep(*this); }

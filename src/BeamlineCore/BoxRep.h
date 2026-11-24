@@ -29,10 +29,6 @@ public:
     BoxRep(const BoxRep&);
     virtual ~BoxRep();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
-
 private:
     // Not implemented.
     void operator=(const BoxRep&);

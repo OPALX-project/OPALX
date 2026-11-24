@@ -13,8 +13,6 @@ public:
     explicit RBendRep(const std::string& name);
     RBendRep(const RBendRep&);
     ~RBendRep() override;
-
-    ElementBase* clone() const override;
 };
 
 #endif  // OPALX_RBendRep_HH

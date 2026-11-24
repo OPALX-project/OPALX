@@ -163,8 +163,6 @@ void VariableRFCavity::initialise(PartBunch_t* bunch) {
         initialiseTimeDependencies();
 }
 
-ElementBase* VariableRFCavity::clone() const { return new VariableRFCavity(*this); }
-
 void VariableRFCavity::initialiseTimeDependencies() const {
     const std::shared_ptr<AbstractTimeDependence> phaseTD =
             AbstractTimeDependence::getTimeDependence(phaseName_m);

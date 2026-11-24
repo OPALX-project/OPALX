@@ -87,41 +87,6 @@ public:
     }
 };
 
-// Does the clone API return an object with the same configuration
-TEST_F(TestMultipoleT, Cloning) {
-    // Set up the magnet
-    setBendAngle(1, false);
-    setElementLength(4);
-    setAperture(3, 2);
-    setFringeField(2, 1, 2);
-    setRotation(0.4);
-    setEntranceAngle(1);
-    setMaxOrder(5, 10);
-    setTransProfile({1, 2, 3});
-    setBoundingBoxLength(7);
-    setEntryOffset(3);
-    setScalingName("Scaling");
-    // Does the clone have the same configuration
-    std::unique_ptr<MultipoleT> theClone;
-    theClone.reset(dynamic_cast<MultipoleT*>(clone()));
-    EXPECT_NE(theClone.get(), nullptr);
-    EXPECT_EQ(theClone->getMaxFOrder(), getMaxFOrder());
-    EXPECT_EQ(theClone->getMaxXOrder(), getMaxXOrder());
-    EXPECT_EQ(theClone->getTransMaxOrder(), getTransMaxOrder());
-    EXPECT_EQ(theClone->getTransProfile(), getTransProfile());
-    EXPECT_EQ(theClone->getFringeField(), getFringeField());
-    EXPECT_EQ(theClone->getEntryOffset(), getEntryOffset());
-    EXPECT_EQ(theClone->getVariableRadius(), getVariableRadius());
-    EXPECT_EQ(theClone->getBendAngle(), getBendAngle());
-    EXPECT_EQ(theClone->getEntranceAngle(), getEntranceAngle());
-    EXPECT_EQ(theClone->getLength(), getLength());
-    EXPECT_EQ(theClone->getAperture(), getAperture());
-    EXPECT_EQ(theClone->getRotation(), getRotation());
-    EXPECT_EQ(theClone->getBoundingBoxLength(), getBoundingBoxLength());
-    EXPECT_EQ(theClone->getScalingName(), getScalingName());
-    EXPECT_EQ(theClone->getEntryOffset(), getEntryOffset());
-}
-
 // Attach a time dependency object and check it affects the field output appropriately
 TEST_F(TestMultipoleT, TimeDependency) {
     // Set up a time dependency

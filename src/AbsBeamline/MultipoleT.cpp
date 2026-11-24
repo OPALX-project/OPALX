@@ -36,8 +36,6 @@ MultipoleT::MultipoleT(const MultipoleT& right)
     chooseImplementation();
 }
 
-ElementBase* MultipoleT::clone() const { return new MultipoleT(*this); }
-
 ElementType MultipoleT::getType() const { return ElementType::MULTIPOLET; }
 
 double MultipoleT::getScaling(const double t) const {

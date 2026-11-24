@@ -24,5 +24,3 @@ CollimatorRep::CollimatorRep(const CollimatorRep& right) : Collimator(right) {}
 CollimatorRep::CollimatorRep(const std::string& name) : Collimator(name) {}
 
 CollimatorRep::~CollimatorRep() {}
-
-ElementBase* CollimatorRep::clone() const { return new CollimatorRep(*this); }

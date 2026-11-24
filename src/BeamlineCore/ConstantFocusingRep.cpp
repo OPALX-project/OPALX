@@ -8,5 +8,3 @@ ConstantFocusingRep::ConstantFocusingRep(const ConstantFocusingRep& right)
 ConstantFocusingRep::ConstantFocusingRep(const std::string& name) : ConstantFocusing(name) {}
 
 ConstantFocusingRep::~ConstantFocusingRep() {}
-
-ElementBase* ConstantFocusingRep::clone() const { return new ConstantFocusingRep(*this); }

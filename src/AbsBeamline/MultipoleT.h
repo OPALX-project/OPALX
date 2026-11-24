@@ -76,8 +76,6 @@ public:
     MultipoleT(const MultipoleT& right);
     /** Destructor */
     ~MultipoleT() override = default;
-    /** Inheritable copy constructor */
-    ElementBase* clone() const override;
     /** @return The element type (ElementType::MULTIPOLET). */
     ElementType getType() const override;
     /** Calculate the field for all particles */

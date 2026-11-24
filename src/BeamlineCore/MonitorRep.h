@@ -30,10 +30,6 @@ public:
     MonitorRep(const MonitorRep&);
     virtual ~MonitorRep();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
-
 private:
     // Not implemented.
     void operator=(const MonitorRep&);

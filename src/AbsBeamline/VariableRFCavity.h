@@ -52,9 +52,6 @@ public:
     /** Destructor */
     ~VariableRFCavity() override = default;
 
-    /** Return a deep copy */
-    ElementBase* clone() const override;
-
     /** Apply the field at the common Boris midpoint t + dt/2 [s].
      * Amplitude [MV/m], integrated frequency [MHz s], and phase [rad]
      * are evaluated on the host; the additive field kernel runs on the device.

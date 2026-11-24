@@ -10,8 +10,6 @@ public:
     ConstantEFieldCavityRep(const ConstantEFieldCavityRep&);
     virtual ~ConstantEFieldCavityRep();
 
-    ElementBase* clone() const override;
-
 private:
     void operator=(const ConstantEFieldCavityRep&);
 };

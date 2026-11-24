@@ -30,5 +30,3 @@ MarkerRep::MarkerRep(const MarkerRep& right) : Marker(right) {}
 MarkerRep::MarkerRep(const std::string& name) : Marker(name) {}
 
 MarkerRep::~MarkerRep() {}
-
-ElementBase* MarkerRep::clone() const { return new MarkerRep(*this); }

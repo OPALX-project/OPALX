@@ -10,8 +10,6 @@ public:
     ConstantFocusingRep(const ConstantFocusingRep& right);
     ~ConstantFocusingRep() override;
 
-    ElementBase* clone() const override;
-
 private:
     void operator=(const ConstantFocusingRep&);
 };

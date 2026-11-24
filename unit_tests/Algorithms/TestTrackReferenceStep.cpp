@@ -22,7 +22,6 @@ namespace {
     class CountingMonitor : public MonitorRep {
     public:
         CountingMonitor() : MonitorRep("M") { getGeometry().setElementLength(1); }
-        ElementBase* clone() const override { return new CountingMonitor(*this); }
         void initialise(PartBunch_t*) override {}
         bool applyToReferenceParticle(
                 const Vector&, const Vector&, const double&, Vector&, Vector&) override {

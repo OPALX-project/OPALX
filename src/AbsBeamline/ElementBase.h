@@ -128,10 +128,6 @@ public:
     /// @brief Destructor.
     virtual ~ElementBase();
 
-    /// @brief Return an identical deep copy of the element.
-    /// @return The cloned element.
-    virtual ElementBase* clone() const = 0;
-
     /* =============================== Identity ================================ */
 
     /// @brief Get the element name.

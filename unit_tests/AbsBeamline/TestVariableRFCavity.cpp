@@ -213,14 +213,6 @@ TEST_F(TestVariableRFCavity, TestAssignmentValue) {
     EXPECT_DOUBLE_EQ(cav1.getLength(), cav2.getLength());
 }
 
-TEST_F(TestVariableRFCavity, TestClone) {
-    VariableRFCavity cav1;
-    cav1.setLength(99.);
-    const auto* cav2 = dynamic_cast<VariableRFCavity*>(cav1.clone());
-    EXPECT_DOUBLE_EQ(cav1.getLength(), cav2->getLength());
-    delete cav2;
-}
-
 TEST_F(TestVariableRFCavity, TestInitialiseFinalise) {
     // nothing to do here
 }

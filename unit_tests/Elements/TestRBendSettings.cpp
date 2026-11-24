@@ -94,14 +94,13 @@ TEST_F(RBendSettingsTest, ParserConvertsCentimetresAndUsesMapGap) {
     EXPECT_DOUBLE_EQ(b.getAperture().second[1], 0.025);
     EXPECT_NEAR(b.getGeometry().getChordLength(), 0.3 / std::cos(angle / 2), 1e-14);
     EXPECT_NEAR(b.getGeometry().getArcLength(), 0.3 * angle / std::sin(angle), 1e-14);
-    auto clone = std::unique_ptr<ElementBase>(b.clone());
-    EXPECT_EQ(dynamic_cast<RBend&>(*clone).hasFieldMap(), true);
-    EXPECT_DOUBLE_EQ(clone->getGeometry().getEntranceAngle(), 0.0);
-    clone->setDesignEnergy(1e6);
-    EXPECT_DOUBLE_EQ(clone->getDesignEnergy(), energy);
+    EXPECT_TRUE(b.hasFieldMap());
+    EXPECT_DOUBLE_EQ(b.getGeometry().getEntranceAngle(), 0.0);
+    b.setDesignEnergy(1e6);
+    EXPECT_DOUBLE_EQ(b.getDesignEnergy(), energy);
 }
 
-TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
+TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacement) {
     awaProfile();
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
@@ -119,10 +118,6 @@ TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
             EXPECT_NEAR(bend.getPlacementPathLength(), expected, 5e-8);
             EXPECT_DOUBLE_EQ(bend.getGeometry().getArcLength(), idealLength);
             EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), idealChord);
-            auto clone = std::unique_ptr<ElementBase>(bend.clone());
-            EXPECT_DOUBLE_EQ(
-                    dynamic_cast<RBend&>(*clone).getPlacementPathLength(),
-                    bend.getPlacementPathLength());
             const double first = bend.getPlacementPathLength();
             bend.initialiseReferencePath(electronMass, -1.0, 1e-13);
             EXPECT_DOUBLE_EQ(bend.getPlacementPathLength(), first);
@@ -136,7 +131,7 @@ TEST_F(RBendSettingsTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase
     auto first = element(-angle, 0.0), second = element(angle, angle);
     const auto firstBuilt  = opalx::test::buildFrom(*first);
     const auto secondBuilt = opalx::test::buildFrom(*second);
-    std::shared_ptr<ElementBase> b1(firstBuilt->clone()), b2(secondBuilt->clone());
+    std::shared_ptr<ElementBase> b1(firstBuilt), b2(secondBuilt);
     b1->setElementPosition(.623686);
     b2->setElementPosition(2.431686);
     for (auto bend : {b1, b2}) {
@@ -411,8 +406,6 @@ TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
     EXPECT_NEAR(field(bend, 0.0, 0.0, .15)(1), expected, 1e-14);
     bend.initialiseField(electronMass, 1.0);
     EXPECT_NEAR(field(bend, 0.0, 0.0, .15)(1), expected, 1e-14);
-    auto clone = std::unique_ptr<ElementBase>(bend.clone());
-    EXPECT_NEAR(field(dynamic_cast<RBend&>(*clone), 0.0, 0.0, .15)(1), expected, 1e-14);
 }
 
 TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
