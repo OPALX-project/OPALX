@@ -91,6 +91,7 @@ target_include_directories(
 
 
 # Subdirectories
+add_subdirectory(tps)
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)
@@ -123,6 +124,7 @@ add_subdirectory (ValueDefinitions)
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
 target_link_libraries(opalx PUBLIC
+    TPS::tps
     MPI::MPI_CXX
     IPPL::ippl
     H5hut

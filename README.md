@@ -251,3 +251,25 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
+
+## TPS map library
+
+`src/tps` provides C++20 Taylor-series algebra, context-bearing polynomial maps,
+and immutable prepared maps for device evaluation. Include `<tps/tps.hpp>`;
+`OPALX::opalx` links `TPS::tps` publicly. The library reuses IPPL's Kokkos backend
+and uses Kokkos Kernels for dense linear algebra. The existing OPALX linear-map
+and tune-analysis implementations are unchanged by this initial integration.
+
+Host map construction, composition and analysis are serialized per MPI rank.
+Prepared maps can be evaluated in parallel with separate workspace per particle.
+Coordinate/reference conversion, tracking orchestration, apertures and space-charge
+splitting remain OPALX integration tasks. See
+[src/tps/docs/mathematics.dox](src/tps/docs/mathematics.dox) and
+[src/tps/docs/code-review.md](src/tps/docs/code-review.md) for contracts and limits.
+The historical baseline remains in the standalone test bed; it is not built here.
+
+With `OPALX_ENABLE_UNIT_TESTS=ON`, run `ctest --test-dir <build> -L tps
+--output-on-failure`. This includes standalone numerical regressions, independent
+header compilation, and OPALX/IPPL integration on one and two MPI ranks.
+Configure `OPALX_BUILD_DOCS=ON` and build `tps_docs` or `opalx_docs` for HTML
+references under `<build>/docs/tps/html` and `<build>/docs/html`, respectively.
