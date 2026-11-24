@@ -20,7 +20,6 @@
 #define OPALX_MonitorRep_HH
 
 #include "AbsBeamline/Monitor.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class MonitorRep : public Monitor {
 public:
@@ -34,20 +33,6 @@ public:
     /// Return clone.
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
-
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
-protected:
-    /// The monitor geometry.
-    Geometry geometry;
 
 private:
     // Not implemented.

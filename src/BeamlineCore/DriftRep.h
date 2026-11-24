@@ -19,7 +19,6 @@
 #define OPALX_DriftRep_HH
 
 #include "AbsBeamline/Drift.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class DriftRep : public Drift {
 public:
@@ -34,20 +33,9 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
     // Not implemented.
     void operator=(const DriftRep&);
-
-    /// The geometry.
-    Geometry geometry;
 };
 
 #endif  // OPALX_DriftRep_HH

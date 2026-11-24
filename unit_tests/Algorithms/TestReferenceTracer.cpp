@@ -25,7 +25,9 @@ namespace {
     class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(const std::string& name, const double fieldLength)
-            : ElementBase(name), fieldLength_m(fieldLength) {}
+            : ElementBase(name), fieldLength_m(fieldLength) {
+            getGeometry() = Geometry::makeNull();
+        }
 
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
@@ -44,12 +46,9 @@ namespace {
             zEnd   = fieldLength_m;
         }
         ElementType getType() const override { return ElementType::ANY; }
-        Geometry& getGeometry() override { return geometry_m; }
-        const Geometry& getGeometry() const override { return geometry_m; }
 
     private:
         double fieldLength_m;
-        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 

@@ -17,16 +17,12 @@
 //
 #include "BeamlineCore/DriftRep.h"
 
-DriftRep::DriftRep() : Drift(), geometry() {}
+DriftRep::DriftRep() : Drift() {}
 
-DriftRep::DriftRep(const DriftRep& right) : Drift(right), geometry(right.geometry) {}
+DriftRep::DriftRep(const DriftRep& right) : Drift(right) {}
 
-DriftRep::DriftRep(const std::string& name) : Drift(name), geometry() {}
+DriftRep::DriftRep(const std::string& name) : Drift(name) {}
 
 DriftRep::~DriftRep() {}
 
 ElementBase* DriftRep::clone() const { return new DriftRep(*this); }
-
-Geometry& DriftRep::getGeometry() { return geometry; }
-
-const Geometry& DriftRep::getGeometry() const { return geometry; }

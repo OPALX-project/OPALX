@@ -17,16 +17,12 @@
 //
 #include "BeamlineCore/SolenoidRep.h"
 
-SolenoidRep::SolenoidRep() : Solenoid(), geometry() {}
+SolenoidRep::SolenoidRep() : Solenoid() {}
 
-SolenoidRep::SolenoidRep(const SolenoidRep& right) : Solenoid(right), geometry(right.geometry) {}
+SolenoidRep::SolenoidRep(const SolenoidRep& right) : Solenoid(right) {}
 
-SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry() {}
+SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name) {}
 
 SolenoidRep::~SolenoidRep() {}
 
 ElementBase* SolenoidRep::clone() const { return new SolenoidRep(*this); }
-
-Geometry& SolenoidRep::getGeometry() { return geometry; }
-
-const Geometry& SolenoidRep::getGeometry() const { return geometry; }

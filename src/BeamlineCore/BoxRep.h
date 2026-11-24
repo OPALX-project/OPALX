@@ -19,7 +19,6 @@
 #define OPALX_BoxRep_HH
 
 #include "AbsBeamline/Box.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class BoxRep : public Box {
 public:
@@ -34,20 +33,9 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
     // Not implemented.
     void operator=(const BoxRep&);
-
-    /// The geometry.
-    Geometry geometry;
 };
 
 #endif  // OPALX_BoxRep_HH

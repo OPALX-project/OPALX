@@ -17,17 +17,12 @@
 //
 #include "BeamlineCore/CollimatorRep.h"
 
-CollimatorRep::CollimatorRep() : Collimator(), geometry() {}
+CollimatorRep::CollimatorRep() : Collimator() {}
 
-CollimatorRep::CollimatorRep(const CollimatorRep& right)
-    : Collimator(right), geometry(right.geometry) {}
+CollimatorRep::CollimatorRep(const CollimatorRep& right) : Collimator(right) {}
 
-CollimatorRep::CollimatorRep(const std::string& name) : Collimator(name), geometry() {}
+CollimatorRep::CollimatorRep(const std::string& name) : Collimator(name) {}
 
 CollimatorRep::~CollimatorRep() {}
 
 ElementBase* CollimatorRep::clone() const { return new CollimatorRep(*this); }
-
-Geometry& CollimatorRep::getGeometry() { return geometry; }
-
-const Geometry& CollimatorRep::getGeometry() const { return geometry; }

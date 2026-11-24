@@ -6,9 +6,6 @@
 /**
  * @class RBendRep
  * @brief Concrete OPALX representation of an analytic rectangular bend.
- *
- * The representation owns the rectangular bend geometry and the local analytic
- * multipole field expansion used by the first OPALX-native `RBEND` port.
  */
 class RBendRep : public RBend {
 public:
@@ -18,12 +15,6 @@ public:
     ~RBendRep() override;
 
     ElementBase* clone() const override;
-
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
-private:
-    Geometry geometry_m{Geometry::makeRBend(0.0, 0.0)};
 };
 
 #endif  // OPALX_RBendRep_HH

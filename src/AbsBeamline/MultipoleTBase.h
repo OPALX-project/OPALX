@@ -67,7 +67,6 @@
 
 #include "AbsBeamline/ElementRegions.h"
 #include "AbsBeamline/MultipoleTConfig.h"
-#include "BeamlineGeometry/Geometry.h"
 class MultipoleT;
 
 class MultipoleTBase {
@@ -85,8 +84,6 @@ protected:
 public:
     /** Initialise the element */
     virtual void initialise() = 0;
-    /** Return the cell geometry */
-    virtual Geometry* getGeometry() = 0;
     /** Return the field for an array of points; points outside @p regions get none */
     virtual void getField(
             Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,

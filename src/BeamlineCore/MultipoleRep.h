@@ -19,7 +19,6 @@
 #define OPALX_MultipoleRep_HH
 
 #include "AbsBeamline/Multipole.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleRep : public Multipole {
 public:
@@ -34,20 +33,7 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Return the element geometry
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
-    /// Multipole geometry.
-    Geometry geometry;
-
     // Not implemented.
     void operator=(const MultipoleRep&);
 };

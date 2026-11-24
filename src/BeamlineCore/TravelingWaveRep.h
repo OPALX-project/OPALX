@@ -19,7 +19,6 @@
 #define OPALX_TravelingWaveRep_HH
 
 #include "AbsBeamline/TravelingWave.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class TravelingWaveRep : public TravelingWave {
 public:
@@ -34,22 +33,9 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Return the element geometry
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
     // Not implemented.
     void operator=(const TravelingWaveRep&);
-
-    /// The cavity's geometry.
-    Geometry geometry;
 };
 
 #endif  // OPALX_TravelingWaveRep_HH

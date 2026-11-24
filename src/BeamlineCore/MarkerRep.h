@@ -21,7 +21,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Marker.h"
-#include "BeamlineGeometry/Geometry.h"
 
 // Class MarkerRep
 // ------------------------------------------------------------------------
@@ -40,20 +39,7 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Return the element geometry
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
-    /// The marker geometry.
-    Geometry geometry{Geometry::makeNull()};
-
     // Not implemented.
     void operator=(const MarkerRep&);
 };

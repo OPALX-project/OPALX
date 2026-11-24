@@ -23,11 +23,16 @@
 // Class Marker
 // ------------------------------------------------------------------------
 
-Marker::Marker() : FramelessElement() {}
+Marker::Marker() : Marker("") {}
 
-Marker::Marker(const Marker& right) : FramelessElement(right) {}
+// A marker has no body; a copy starts from the null geometry as well.
+Marker::Marker(const Marker& right) : FramelessElement(right) {
+    getGeometry() = Geometry::makeNull();
+}
 
-Marker::Marker(const std::string& name) : FramelessElement(name) {}
+Marker::Marker(const std::string& name) : FramelessElement(name) {
+    getGeometry() = Geometry::makeNull();
+}
 
 Marker::~Marker() {}
 

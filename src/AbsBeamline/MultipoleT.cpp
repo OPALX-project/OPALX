@@ -158,10 +158,6 @@ void MultipoleT::initialiseTimeDependencies() const {
     }
 }
 
-Geometry& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
-
-const Geometry& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
-
 Vector_t<double, 3> MultipoleT::bendCoords(const Vector_t<double, 3>& r) const {
     // The stored frame is the design-orbit entrance tangent, so the arc coordinate is
     // measured directly. A straight MultipoleT has zero curvature and r comes back unchanged.

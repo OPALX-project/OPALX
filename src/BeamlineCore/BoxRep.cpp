@@ -17,16 +17,12 @@
 //
 #include "BeamlineCore/BoxRep.h"
 
-BoxRep::BoxRep() : Box(), geometry() {}
+BoxRep::BoxRep() : Box() {}
 
-BoxRep::BoxRep(const BoxRep& right) : Box(right), geometry(right.geometry) {}
+BoxRep::BoxRep(const BoxRep& right) : Box(right) {}
 
-BoxRep::BoxRep(const std::string& name) : Box(name), geometry() {}
+BoxRep::BoxRep(const std::string& name) : Box(name) {}
 
 BoxRep::~BoxRep() {}
 
 ElementBase* BoxRep::clone() const { return new BoxRep(*this); }
-
-Geometry& BoxRep::getGeometry() { return geometry; }
-
-const Geometry& BoxRep::getGeometry() const { return geometry; }

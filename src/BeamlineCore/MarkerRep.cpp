@@ -32,7 +32,3 @@ MarkerRep::MarkerRep(const std::string& name) : Marker(name) {}
 MarkerRep::~MarkerRep() {}
 
 ElementBase* MarkerRep::clone() const { return new MarkerRep(*this); }
-
-Geometry& MarkerRep::getGeometry() { return geometry; }
-
-const Geometry& MarkerRep::getGeometry() const { return geometry; }

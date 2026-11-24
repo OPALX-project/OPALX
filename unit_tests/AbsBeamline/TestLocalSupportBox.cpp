@@ -98,8 +98,6 @@ namespace {
     public:
         BoxTravelingWave() : TravelingWave("TW") {}
         ElementBase* clone() const override { return new BoxTravelingWave(*this); }
-        Geometry& getGeometry() override { return geometry_m; }
-        const Geometry& getGeometry() const override { return geometry_m; }
 
         void setFieldWindow(double start, double startExit, double end, double period) {
             startField_m     = start;
@@ -107,8 +105,6 @@ namespace {
             endField_m       = end;
             periodLength_m   = period;
         }
-
-        Geometry geometry_m;
     };
 
     std::string temporaryPath(const std::string& suffix) {
@@ -267,7 +263,7 @@ TEST_F(LocalSupportBoxTest, CurvedMultipoleTBoxContainsArcBand) {
 TEST_F(LocalSupportBoxTest, TravelingWaveCoversItsWholeFieldWindow) {
     // The particle kernel acts up to endField_m, past where isInside() stops (startExitField_m).
     BoxTravelingWave cavity;
-    cavity.geometry_m.setElementLength(4.0);
+    cavity.getGeometry().setElementLength(4.0);
     cavity.setFieldWindow(-1.0, 3.0, 4.5, 2.0);
 
     const auto [lower, upper] = cavity.getLocalSupportBox(reach).getCorners();

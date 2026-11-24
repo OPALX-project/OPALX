@@ -2,7 +2,6 @@
 #define OPALX_LaserRep_HH
 
 #include "AbsBeamline/Laser.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class LaserRep : public Laser {
 public:
@@ -12,12 +11,6 @@ public:
     ~LaserRep() override;
 
     ElementBase* clone() const override;
-
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
-private:
-    Geometry geometry_m;
 };
 
 #endif  // OPALX_LaserRep_HH

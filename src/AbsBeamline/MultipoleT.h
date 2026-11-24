@@ -80,10 +80,6 @@ public:
     ElementBase* clone() const override;
     /** @return The element type (ElementType::MULTIPOLET). */
     ElementType getType() const override;
-    /** Return the cell geometry */
-    Geometry& getGeometry() override;
-    /** Return the cell geometry */
-    const Geometry& getGeometry() const override;
     /** Calculate the field for all particles */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
     /** Calculate the field at some arbitrary position \n

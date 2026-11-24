@@ -2,7 +2,6 @@
 #define OPALX_ConstantEFieldCavityRep_HH
 
 #include "AbsBeamline/ConstantEFieldCavity.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class ConstantEFieldCavityRep : public ConstantEFieldCavity {
 public:
@@ -13,13 +12,8 @@ public:
 
     ElementBase* clone() const override;
 
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
 private:
     void operator=(const ConstantEFieldCavityRep&);
-
-    Geometry geometry;
 };
 
 #endif  // OPALX_ConstantEFieldCavityRep_HH

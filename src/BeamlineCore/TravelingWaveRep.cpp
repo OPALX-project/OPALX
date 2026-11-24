@@ -19,15 +19,10 @@
 
 TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}
 
-TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right)
-    : TravelingWave(right), geometry(right.geometry) {}
+TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right) : TravelingWave(right) {}
 
 TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name) {}
 
 TravelingWaveRep::~TravelingWaveRep() {}
 
 ElementBase* TravelingWaveRep::clone() const { return new TravelingWaveRep(*this); }
-
-Geometry& TravelingWaveRep::getGeometry() { return geometry; }
-
-const Geometry& TravelingWaveRep::getGeometry() const { return geometry; }

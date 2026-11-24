@@ -19,14 +19,10 @@
 
 RFCavityRep::RFCavityRep() : RFCavity() {}
 
-RFCavityRep::RFCavityRep(const RFCavityRep& right) : RFCavity(right), geometry(right.geometry) {}
+RFCavityRep::RFCavityRep(const RFCavityRep& right) : RFCavity(right) {}
 
 RFCavityRep::RFCavityRep(const std::string& name) : RFCavity(name) {}
 
 RFCavityRep::~RFCavityRep() {}
 
 ElementBase* RFCavityRep::clone() const { return new RFCavityRep(*this); }
-
-Geometry& RFCavityRep::getGeometry() { return geometry; }
-
-const Geometry& RFCavityRep::getGeometry() const { return geometry; }

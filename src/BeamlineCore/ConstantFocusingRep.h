@@ -2,7 +2,6 @@
 #define OPALX_ConstantFocusingRep_HH
 
 #include "AbsBeamline/ConstantFocusing.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class ConstantFocusingRep : public ConstantFocusing {
 public:
@@ -13,13 +12,8 @@ public:
 
     ElementBase* clone() const override;
 
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
 private:
     void operator=(const ConstantFocusingRep&);
-
-    Geometry geometry;
 };
 
 #endif  // OPALX_ConstantFocusingRep_HH

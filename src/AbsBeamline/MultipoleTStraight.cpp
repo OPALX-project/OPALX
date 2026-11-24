@@ -18,10 +18,12 @@
 #include "MultipoleTStraight.h"
 #include "MultipoleT.h"
 
-MultipoleTStraight::MultipoleTStraight(MultipoleT* element) : MultipoleTBase(element) {}
+MultipoleTStraight::MultipoleTStraight(MultipoleT* element) : MultipoleTBase(element) {
+    element->getGeometry() = Geometry();
+}
 
 void MultipoleTStraight::initialise() {
-    straightGeometry_m.setElementLength(element_m->getLength());
+    element_m->getGeometry().setElementLength(element_m->getLength());
     generateTanhCoefficients(element_m->getMaxFOrder() * 2 + 1);
 }
 

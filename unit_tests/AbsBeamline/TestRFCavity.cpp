@@ -138,9 +138,6 @@ public:
 
     ElementBase* clone() const override { return new TestRFCavity(*this); }
 
-    Geometry& getGeometry() override { return geom_; }
-    const Geometry& getGeometry() const override { return geom_; }
-
     // ---- Simple setters for testing ----
     void setScale(double v) { scale_m = v; }
     void setPhaseInternal(double v) { phase_m = v; }
@@ -149,9 +146,6 @@ public:
     void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
     void setStartField(double val) { startField_m = val; }
     void setEndField(double val) { endField_m = val; }
-
-private:
-    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------

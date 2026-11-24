@@ -1,17 +1,13 @@
 #include "BeamlineCore/ConstantEFieldCavityRep.h"
 
-ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity(), geometry() {}
+ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity() {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const ConstantEFieldCavityRep& right)
-    : ConstantEFieldCavity(right), geometry(right.geometry) {}
+    : ConstantEFieldCavity(right) {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const std::string& name)
-    : ConstantEFieldCavity(name), geometry() {}
+    : ConstantEFieldCavity(name) {}
 
 ConstantEFieldCavityRep::~ConstantEFieldCavityRep() {}
 
 ElementBase* ConstantEFieldCavityRep::clone() const { return new ConstantEFieldCavityRep(*this); }
-
-Geometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
-
-const Geometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }

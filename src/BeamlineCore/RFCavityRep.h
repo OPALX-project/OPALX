@@ -19,7 +19,6 @@
 #define OPALX_RFCavityRep_HH
 
 #include "AbsBeamline/RFCavity.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class RFCavityRep : public RFCavity {
 public:
@@ -34,22 +33,9 @@ public:
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
 
-    /// Get geometry.
-    //  Return the element geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
-
-    /// Get geometry.
-    //  Return the element geometry
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
-
 private:
     // Not implemented.
     void operator=(const RFCavityRep&);
-
-    /// The cavity's geometry.
-    Geometry geometry;
 };
 
 #endif  // OPALX_RFCavityRep_HH

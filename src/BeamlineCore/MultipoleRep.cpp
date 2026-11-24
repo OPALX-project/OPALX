@@ -17,17 +17,12 @@
 //
 #include "BeamlineCore/MultipoleRep.h"
 
-MultipoleRep::MultipoleRep() : Multipole(), geometry() {}
+MultipoleRep::MultipoleRep() : Multipole() {}
 
-MultipoleRep::MultipoleRep(const MultipoleRep& multipole)
-    : Multipole(multipole), geometry(multipole.geometry) {}
+MultipoleRep::MultipoleRep(const MultipoleRep& multipole) : Multipole(multipole) {}
 
-MultipoleRep::MultipoleRep(const std::string& name) : Multipole(name), geometry() {}
+MultipoleRep::MultipoleRep(const std::string& name) : Multipole(name) {}
 
 MultipoleRep::~MultipoleRep() {}
 
 ElementBase* MultipoleRep::clone() const { return new MultipoleRep(*this); }
-
-Geometry& MultipoleRep::getGeometry() { return geometry; }
-
-const Geometry& MultipoleRep::getGeometry() const { return geometry; }

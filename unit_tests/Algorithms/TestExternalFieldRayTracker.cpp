@@ -123,7 +123,9 @@ namespace {
               fieldBegin_m(fieldBegin),
               fieldEnd_m(fieldEnd),
               electricField_m(longitudinalElectricField),
-              magneticField_m(magneticField) {}
+              magneticField_m(magneticField) {
+            getGeometry() = Geometry::makeNull();
+        }
 
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
@@ -154,15 +156,11 @@ namespace {
 
         ElementType getType() const override { return ElementType::ANY; }
 
-        Geometry& getGeometry() override { return geometry_m; }
-        const Geometry& getGeometry() const override { return geometry_m; }
-
     private:
         double fieldBegin_m;
         double fieldEnd_m;
         double electricField_m;
         double magneticField_m;
-        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 

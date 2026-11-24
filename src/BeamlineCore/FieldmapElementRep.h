@@ -19,7 +19,6 @@
 #define OPALX_FieldmapElementRep_HH
 
 #include "AbsBeamline/FieldmapElement.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class FieldmapElementRep : public FieldmapElement {
 public:
@@ -33,17 +32,8 @@ public:
     /// Return an identical deep copy of the element.
     virtual ElementBase* clone() const override;
 
-    /// Get geometry. Version for non-constant object.
-    virtual Geometry& getGeometry() override;
-
-    /// Get geometry. Version for constant object.
-    virtual const Geometry& getGeometry() const override;
-
 private:
     void operator=(const FieldmapElementRep&) = delete;
-
-    /// The geometry. Straight, with its length taken from the map in initialise().
-    Geometry geometry;
 };
 
 #endif  // OPALX_FieldmapElementRep_HH

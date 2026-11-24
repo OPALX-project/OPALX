@@ -158,14 +158,9 @@ public:
 
     /* =============================== Geometry ================================ */
 
-    /// @brief Get the geometry. Version for non-constant object.
-    /// @note Supplied by the representation layer.
-    /// @return The element geometry.
-    virtual Geometry& getGeometry() = 0;
-
-    /// @brief Get the geometry. Version for constant object.
-    /// @return The element geometry.
-    virtual const Geometry& getGeometry() const = 0;
+    /// @brief The element's body geometry: lengths, bend, pole faces and edge transforms.
+    Geometry& getGeometry();
+    const Geometry& getGeometry() const;
 
     /// @brief Whether the element's field applies at r: getRegions().inFieldRegion(r).
     /// @param r Position [m] in the element's local frame.
@@ -481,6 +476,9 @@ private:
     std::string elementID;
     static const std::map<ElementType, std::string> elementTypeToString_s;
 
+    // --- Geometry ---
+    Geometry geometry_m;
+
     // --- Placement ---
     bool positionIsFixed;
     double elementPosition_m;  // S position of the element entrance
@@ -539,6 +537,10 @@ using ElementSet = std::set<std::shared_ptr<ElementBase>, ByLinePosition>;
 inline std::string ElementBase::getTypeString() const { return getTypeString(getType()); }
 
 /* ================================ Geometry ================================= */
+
+inline Geometry& ElementBase::getGeometry() { return geometry_m; }
+
+inline const Geometry& ElementBase::getGeometry() const { return geometry_m; }
 
 inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
     return getRegions().inFieldRegion(r);

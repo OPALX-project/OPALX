@@ -96,10 +96,6 @@ void VariableRFCavity::setFrequencyModel(
     frequencyTD_m = frequency_td;
 }
 
-Geometry& VariableRFCavity::getGeometry() { return geometry; }
-
-const Geometry& VariableRFCavity::getGeometry() const { return geometry; }
-
 void VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
@@ -187,5 +183,5 @@ void VariableRFCavity::initialiseTimeDependencies() const {
 
 void VariableRFCavity::setLength(const double length) {
     length_m = length;
-    geometry.setElementLength(length_m);
+    getGeometry().setElementLength(length_m);
 }

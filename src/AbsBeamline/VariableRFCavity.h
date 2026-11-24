@@ -188,11 +188,6 @@ public:
      */
     virtual void setFrequencyName(const std::string& frequency) { frequencyName_m = frequency; }
 
-    /** Set the cavity geometry */
-    Geometry& getGeometry() override;
-    /** @returns the cavity geometry */
-    const Geometry& getGeometry() const override;
-
     /** Lookup the time dependencies and update.
      *
      *  Throws if the named time dependencies can't be found. Also throws if the
@@ -211,9 +206,6 @@ protected:
     double halfWidth_m;
     double halfHeight_m;
     double length_m;
-
-    /// The cavity's geometry.
-    Geometry geometry;
 
     /* The host/device compute function */
     static KOKKOS_INLINE_FUNCTION bool computeField(

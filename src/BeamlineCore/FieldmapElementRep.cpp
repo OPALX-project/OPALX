@@ -17,18 +17,12 @@
 //
 #include "BeamlineCore/FieldmapElementRep.h"
 
-FieldmapElementRep::FieldmapElementRep() : FieldmapElement(), geometry() {}
+FieldmapElementRep::FieldmapElementRep() : FieldmapElement() {}
 
-FieldmapElementRep::FieldmapElementRep(const FieldmapElementRep& right)
-    : FieldmapElement(right), geometry(right.geometry) {}
+FieldmapElementRep::FieldmapElementRep(const FieldmapElementRep& right) : FieldmapElement(right) {}
 
-FieldmapElementRep::FieldmapElementRep(const std::string& name)
-    : FieldmapElement(name), geometry() {}
+FieldmapElementRep::FieldmapElementRep(const std::string& name) : FieldmapElement(name) {}
 
 FieldmapElementRep::~FieldmapElementRep() {}
 
 ElementBase* FieldmapElementRep::clone() const { return new FieldmapElementRep(*this); }
-
-Geometry& FieldmapElementRep::getGeometry() { return geometry; }
-
-const Geometry& FieldmapElementRep::getGeometry() const { return geometry; }

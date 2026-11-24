@@ -68,12 +68,10 @@
 
 class MultipoleTCurvedConstRadius final : public MultipoleTBase {
 public:
-    /** Constructor */
+    /** Constructor; sets the element geometry to the planar arc */
     explicit MultipoleTCurvedConstRadius(MultipoleT* element);
-    /** Initialise the element */
+    /** Initialise the element; rebuilds the planar-arc geometry of the element */
     void initialise() override;
-    /** Return the cell geometry */
-    Geometry* getGeometry() override { return &planarArcGeometry_m; }
     /** Return the field for an array of points */
     // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(
@@ -85,9 +83,6 @@ public:
             double scaling) override;
 
 private:
-    /** Geometry */
-    Geometry planarArcGeometry_m;
-
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(
             const Vector_t<double, 3>& R, const MultipoleTConfig& config);

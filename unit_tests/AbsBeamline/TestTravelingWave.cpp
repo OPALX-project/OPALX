@@ -132,10 +132,7 @@ public:
 
     ElementBase* clone() const override { return new TestTravelingWave(*this); }
 
-    void setTestElementLength(double v) { geom_.setElementLength(v); }
-
-    Geometry& getGeometry() override { return geom_; }
-    const Geometry& getGeometry() const override { return geom_; }
+    void setTestElementLength(double v) { getGeometry().setElementLength(v); }
 
     void setScale(double v) { scale_m = v; }
     void setScaleError(double v) { scaleError_m = v; }
@@ -149,9 +146,6 @@ public:
     void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
     void setStartField(double v) { startField_m = v; }
     void setEndField(double v) { endField_m = v; }
-
-private:
-    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------

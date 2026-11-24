@@ -30,7 +30,9 @@ SBend::SBend(const std::string& name)
       gap_m(0.0),
       fringeIntegral_m(0.5),
       designEnergy_m(0.0),
-      designEnergyChangeable_m(true) {}
+      designEnergyChangeable_m(true) {
+    getGeometry() = Geometry::makeSBend(0.0, 0.0);
+}
 
 SBend::~SBend() = default;
 

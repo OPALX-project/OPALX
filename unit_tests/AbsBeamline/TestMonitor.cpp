@@ -57,23 +57,18 @@
 // ---------------------------------------------------------------------------
 class TestMonitor : public Monitor {
 public:
-    TestMonitor() : Monitor("test_monitor") { geom_.setElementLength(0.01); }
+    TestMonitor() : Monitor("test_monitor") { getGeometry().setElementLength(0.01); }
 
-    explicit TestMonitor(const std::string& name) : Monitor(name) { geom_.setElementLength(0.01); }
+    explicit TestMonitor(const std::string& name) : Monitor(name) {
+        getGeometry().setElementLength(0.01);
+    }
 
     ElementBase* clone() const override { return new TestMonitor(*this); }
 
-    Geometry& getGeometry() override { return geom_; }
-
-    const Geometry& getGeometry() const override { return geom_; }
-
-    void setLength(double length) { geom_.setElementLength(length); }
+    void setLength(double length) { getGeometry().setElementLength(length); }
 
     /// What initialise() sets at the end, without the bunch and the loss file it also needs.
     void markOnline() { online_m = true; }
-
-private:
-    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------

@@ -65,16 +65,13 @@
 
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/MultipoleTConfig.h"
-#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleTStraight final : public MultipoleTBase {
 public:
-    /** Constructor */
+    /** Constructor; resets the element geometry to a straight body */
     explicit MultipoleTStraight(MultipoleT* element);
-    /** Initialise the element */
+    /** Initialise the element; sets the length of its geometry */
     void initialise() override;
-    /** Return the cell geometry */
-    Geometry* getGeometry() override { return &straightGeometry_m; }
     /** Return the field for an array of points */
     // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(
@@ -86,9 +83,6 @@ public:
             double scaling) override;
 
 private:
-    /** Geometry */
-    Geometry straightGeometry_m;
-
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(
             const Vector_t<double, 3>& R, const MultipoleTConfig& config);

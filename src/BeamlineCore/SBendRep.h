@@ -6,9 +6,6 @@
 /**
  * @class SBendRep
  * @brief Concrete OPALX representation of an analytic sector bend.
- *
- * The representation owns the planar-arc body geometry and the local analytic
- * multipole field expansion used by the first OPALX-native `SBEND` port.
  */
 class SBendRep : public SBend {
 public:
@@ -18,12 +15,6 @@ public:
     ~SBendRep() override;
 
     ElementBase* clone() const override;
-
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
-private:
-    Geometry geometry_m{Geometry::makeSBend(0.0, 0.0)};
 };
 
 #endif  // OPALX_SBendRep_HH
