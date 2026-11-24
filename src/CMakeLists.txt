@@ -60,7 +60,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
 # of the commands. opalx links opalx_run publicly, so linking opalx gives both. Each source
 # directory assigns its files to one of the two. The unit test TestRunSideLinksAlone links every
 # object of opalx_run without opalx, which proves that no run-side object needs an input-side or
-# bridge symbol.
+# bridge symbol; TestRunSideBoundary checks that this assignment agrees with its path rules.
 # ------------------------------------------------------------------
 
 add_library(opalx_run)

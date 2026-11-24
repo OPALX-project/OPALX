@@ -38,10 +38,27 @@ add_subdirectory(Processes)
 add_subdirectory(Steppers)
 add_subdirectory(Track)
 
-# Run-side sources read no OPTION globals and no OpalData and include no input-layer header.
+# Run-side sources read no OPTION globals and no OpalData and include no input-layer header, and
+# the libraries opalx_run and opalx hold the .cpp files that the same path rules assign to them.
+set(_library_sources_file "${CMAKE_CURRENT_BINARY_DIR}/OPALXLibrarySources.cmake")
+set(_library_sources_content "")
+foreach(_library IN ITEMS opalx_run opalx)
+  get_target_property(_sources ${_library} SOURCES)
+  get_target_property(_source_dir ${_library} SOURCE_DIR)
+  set(_relative_sources "")
+  foreach(_source IN LISTS _sources)
+    cmake_path(ABSOLUTE_PATH _source BASE_DIRECTORY "${_source_dir}" NORMALIZE)
+    cmake_path(RELATIVE_PATH _source BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+    list(APPEND _relative_sources "${_source}")
+  endforeach()
+  string(APPEND _library_sources_content "set(${_library}_SOURCES \"${_relative_sources}\")\n")
+endforeach()
+file(CONFIGURE OUTPUT "${_library_sources_file}" CONTENT "${_library_sources_content}" @ONLY)
+
 if(BUILD_TESTING)
   add_test(NAME TestRunSideBoundary
-           COMMAND ${CMAKE_COMMAND} -DOPALX_SOURCE_DIR=${PROJECT_SOURCE_DIR}/src -P
+           COMMAND ${CMAKE_COMMAND} -DOPALX_SOURCE_DIR=${PROJECT_SOURCE_DIR}/src
+                   -DOPALX_LIBRARY_SOURCES=${_library_sources_file} -P
                    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckRunSideBoundary.cmake)
   set_tests_properties(TestRunSideBoundary PROPERTIES LABELS unit TIMEOUT 120)
 endif()

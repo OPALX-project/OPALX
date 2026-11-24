@@ -5,9 +5,16 @@
 # run side (everything else under src/ except Main.cpp). A run-side source file must not
 #   (a) use Options:: or OpalData outside a comment or string literal, or
 #   (b) include an input-layer header; only the build bridge below may.
-# Prints every violation as <file>:<line> and fails if there is one.
+# With OPALX_LIBRARY_SOURCES, the file the build writes with the sources of the libraries opalx_run
+# and opalx, it also checks that
+#   (c) opalx_run compiles exactly the run-side .cpp files outside the build bridge, and opalx
+#       exactly the input-layer and bridge ones,
+# so that the library split and these path rules cannot drift apart.
+# Prints every violation as <file>:<line> (or <file> for (c)) and fails if there is one.
 #
-# Usage: cmake -DOPALX_SOURCE_DIR=<repository>/src -P CheckRunSideBoundary.cmake
+# Usage: cmake -DOPALX_SOURCE_DIR=<repository>/src
+#              [-DOPALX_LIBRARY_SOURCES=<build>/unit_tests/OPALXLibrarySources.cmake]
+#              -P CheckRunSideBoundary.cmake
 # -----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.20)
 
@@ -135,7 +142,48 @@ foreach(path IN LISTS SOURCES)
   endforeach()
 endforeach()
 
+# Rule (c): the library of every .cpp file under src/ agrees with the rules above.
+if(DEFINED OPALX_LIBRARY_SOURCES)
+  include("${OPALX_LIBRARY_SOURCES}")
+  if(NOT DEFINED opalx_run_SOURCES OR NOT DEFINED opalx_SOURCES)
+    message(FATAL_ERROR "OPALX_LIBRARY_SOURCES='${OPALX_LIBRARY_SOURCES}' does not set "
+                        "opalx_run_SOURCES and opalx_SOURCES.")
+  endif()
+  foreach(path IN LISTS SOURCES)
+    if(NOT path MATCHES "\\.cpp$" OR path STREQUAL "Main.cpp")
+      continue()
+    endif()
+    is_input_layer("${path}" input)
+    list(FIND BUILD_BRIDGE "${path}" bridge)
+    if(input OR NOT bridge EQUAL -1)
+      set(expected "opalx")
+    else()
+      set(expected "opalx_run")
+    endif()
+    set(libraries "")
+    foreach(library IN ITEMS opalx_run opalx)
+      list(FIND ${library}_SOURCES "${path}" found)
+      if(NOT found EQUAL -1)
+        list(APPEND libraries "${library}")
+      endif()
+    endforeach()
+    if(NOT libraries STREQUAL expected)
+      if(libraries STREQUAL "")
+        set(libraries "no library")
+      endif()
+      string(REPLACE ";" " and " libraries "${libraries}")
+      message("src/${path}: compiled into ${libraries}, but the rules above put it into ${expected}")
+      math(EXPR VIOLATIONS "${VIOLATIONS} + 1")
+    endif()
+  endforeach()
+endif()
+
 if(VIOLATIONS GREATER 0)
   message(FATAL_ERROR "${VIOLATIONS} run-side boundary violation(s) in ${CHECKED} run-side files.")
 endif()
-message(STATUS "Run-side boundary: ${CHECKED} run-side files, no violations.")
+if(DEFINED OPALX_LIBRARY_SOURCES)
+  message(STATUS "Run-side boundary: ${CHECKED} run-side files, no violations; opalx_run and opalx "
+                 "agree with the rules.")
+else()
+  message(STATUS "Run-side boundary: ${CHECKED} run-side files, no violations.")
+endif()
