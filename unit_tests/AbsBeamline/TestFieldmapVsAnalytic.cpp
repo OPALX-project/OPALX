@@ -20,8 +20,7 @@
  */
 
 #include "AbsBeamline/FieldmapElement.h"
-#include "BeamlineCore/FieldmapElementRep.h"
-#include "BeamlineCore/MultipoleRep.h"
+#include "AbsBeamline/Multipole.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Fields/Fieldmap.h"
 #include "Ippl.h"
@@ -117,8 +116,8 @@ protected:
     }
 
     /// A multipole with one normal component, wide open transversely.
-    static std::shared_ptr<MultipoleRep> makeMultipole(int order, double value) {
-        auto mp = std::make_shared<MultipoleRep>("ANALYTIC");
+    static std::shared_ptr<Multipole> makeMultipole(int order, double value) {
+        auto mp = std::make_shared<Multipole>("ANALYTIC");
         mp->getGeometry().setElementLength(kLength);
         mp->setNormalComponent(order, value);
         mp->setAperture(ApertureType::ELLIPTICAL, {1.0, 1.0});
@@ -126,8 +125,8 @@ protected:
     }
 
     /// A FIELDMAP on the given map file, with the same wide-open aperture.
-    std::shared_ptr<FieldmapElementRep> makeFieldmapElement() {
-        auto fm = std::make_shared<FieldmapElementRep>("FROM_MAP");
+    std::shared_ptr<FieldmapElement> makeFieldmapElement() {
+        auto fm = std::make_shared<FieldmapElement>("FROM_MAP");
         fm->setFieldMapFN(mapFile_);
         fm->setAperture(ApertureType::ELLIPTICAL, {1.0, 1.0});
         fm->initialise(nullptr);

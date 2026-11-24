@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <filesystem>
 #include <fstream>
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RBendProfile.h"
+#include "AbsBeamline/RFCavity.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/RBendRep.h"
-#include "BeamlineCore/RFCavityRep.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/PlacementResolver.h"
 #include "Ippl.h"
@@ -139,7 +139,7 @@ TEST_F(RBendSettingsTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase
         b.initialiseField(electronMass, -1.0);
         b.initialiseReferencePath(electronMass, -1.0, 1e-13);
     }
-    auto cavity = std::make_shared<RFCavityRep>("TDC");
+    auto cavity = std::make_shared<RFCavity>("TDC");
     cavity->setElementPosition(3.335485);
     cavity->setPhasem(1.5514735997026097 + Physics::pi / 2.0);
     const double phase   = cavity->getPhasem();
@@ -157,7 +157,7 @@ TEST_F(RBendSettingsTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase
 }
 
 TEST_F(RBendSettingsTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
-    RBendRep native;
+    RBend native;
     native.getGeometry() = Geometry::makeRBend(.3, angle);
     EXPECT_DOUBLE_EQ(native.getPlacementPathLength(), native.getGeometry().getArcLength());
     auto el          = element();
@@ -320,13 +320,13 @@ TEST_F(RBendSettingsTest, DefaultProfileAndRepeatedInitialisation) {
 TEST_F(RBendSettingsTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
-            auto bend = std::make_shared<RBendRep>("B");
+            auto bend = std::make_shared<RBend>("B");
             auto& g   = bend->getGeometry();
             g         = Geometry::makeRBend(.3, sign * angle);
             g.setPoleFaceAnglesEnabled(true);
             g.setEntranceAngle(e1);
             bend->setElementPosition(1.0);
-            auto drift = std::make_shared<DriftRep>("D");
+            auto drift = std::make_shared<Drift>("D");
             drift->setElementPosition(1.0 + g.getArcLength() + .4);
             ElementList elements = {bend, drift};
             PlacementResolver::resolve(elements, CoordinateSystemTrafo());

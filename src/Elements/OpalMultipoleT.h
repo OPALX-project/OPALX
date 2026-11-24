@@ -20,6 +20,8 @@
 
 #include "Elements/OpalElement.h"
 
+class MultipoleT;
+
 class OpalMultipoleT final : public OpalElement {
 public:
     // The attributes of class OpalMultipoleT
@@ -64,7 +66,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(MultipoleT& element, const ObjectValues& values);
 
     /** Constants */
     static constexpr double DefaultMAXFORDER = 3.0;

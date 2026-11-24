@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class VariableRFCavity;
+
 class OpalVariableRFCavity : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
@@ -61,7 +63,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(VariableRFCavity& element, const ObjectValues& values);
 
     static const std::string doc_string;
 };

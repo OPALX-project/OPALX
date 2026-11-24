@@ -19,8 +19,8 @@
 
 #include <memory>
 
+#include "AbsBeamline/FieldmapElement.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/FieldmapElementRep.h"
 #include "Utilities/OpalException.h"
 
 OpalFieldmapElement::OpalFieldmapElement()
@@ -57,12 +57,12 @@ OpalFieldmapElement::OpalFieldmapElement()
 OpalFieldmapElement::~OpalFieldmapElement() {}
 
 std::shared_ptr<ElementBase> OpalFieldmapElement::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<FieldmapElementRep>(values.getName());
+    auto element = std::make_shared<FieldmapElement>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalFieldmapElement::fill(ElementBase& element, const ObjectValues& values) {
+void OpalFieldmapElement::fill(FieldmapElement& element, const ObjectValues& values) {
     // Checked before setCommonFields(), so that the specific message wins over the generic
     // "placement is over-specified" one.
     if (values.hasValue("ELEMEDGE")) {
@@ -96,13 +96,11 @@ void OpalFieldmapElement::fill(ElementBase& element, const ObjectValues& values)
 
     setCommonFields(element, values);
 
-    FieldmapElementRep* fm = dynamic_cast<FieldmapElementRep*>(&element);
-
     // The geometry length is deliberately NOT set here: it comes from the map, which is only
     // loaded in FieldmapElement::initialise(). That runs on the tracked element before the
     // element list is sorted and before PlacementResolver, so every consumer still sees it.
-    fm->setFieldMapFN(values.getString("FMAPFN"));
-    fm->setBScale(values.getReal("BSCALE"));
-    fm->setEScale(values.getReal("ESCALE"));
-    fm->setIsZReversed(values.getBool("ZREVERSE"));
+    element.setFieldMapFN(values.getString("FMAPFN"));
+    element.setBScale(values.getReal("BSCALE"));
+    element.setEScale(values.getReal("ESCALE"));
+    element.setIsZReversed(values.getBool("ZREVERSE"));
 }

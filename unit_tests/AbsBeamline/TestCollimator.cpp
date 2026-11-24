@@ -1,6 +1,6 @@
 /**
  * \file TestCollimator.cpp
- * \brief Unit tests for the COLLIMATOR element (CollimatorRep).
+ * \brief Unit tests for the COLLIMATOR element (Collimator).
  *
  * ---------------------------------------------------------------------------
  * Coverage
@@ -33,7 +33,7 @@
 
 #include "Ippl.h"
 
-#include "BeamlineCore/CollimatorRep.h"
+#include "AbsBeamline/Collimator.h"
 #include "PartBunch/ParticleContainer.hpp"
 
 namespace {
@@ -51,9 +51,9 @@ namespace {
         static void TearDownTestSuite() { ippl::finalize(); }
 
         /// Collimator body of length L with the given aperture.
-        static CollimatorRep makeCollimator(
+        static Collimator makeCollimator(
                 double length, ApertureType type, double xLimit, double yLimit) {
-            CollimatorRep coll("test_collimator");
+            Collimator coll("test_collimator");
             coll.getGeometry().setElementLength(length);
             coll.setAperture(type, {xLimit, yLimit});
             return coll;
@@ -116,7 +116,7 @@ namespace {
     // ================================================================
 
     TEST_F(CollimatorTest, GetType) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
         EXPECT_EQ(coll.getType(), ElementType::COLLIMATOR);
         EXPECT_EQ(coll.getTypeString(), "Collimator");
     }
@@ -124,12 +124,12 @@ namespace {
     TEST_F(CollimatorTest, RequiredNumberOfTimeStepsIsOne) {
         // The ElementBase default of 10 makes ReferenceTracer::checkElementLengths
         // throw for short elements, which a collimator typically is.
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
         EXPECT_EQ(coll.getRequiredNumberOfTimeSteps(), 1);
     }
 
     TEST_F(CollimatorTest, FieldExtentIsTheBodySpan) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
 
         double zBegin = -1.0, zEnd = -1.0;
         coll.getFieldExtent(zBegin, zEnd);
@@ -142,8 +142,8 @@ namespace {
     // ================================================================
 
     TEST_F(CollimatorTest, MarksParticlesOutsideAnEllipticalAperture) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.005);
-        auto pc            = makeContainer();
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.005);
+        auto pc         = makeContainer();
 
         createParticlesAt(
                 pc, {
@@ -163,8 +163,8 @@ namespace {
     }
 
     TEST_F(CollimatorTest, MarksParticlesOutsideARectangularAperture) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::RECTANGULAR, 0.01, 0.005);
-        auto pc            = makeContainer();
+        Collimator coll = makeCollimator(0.1, ApertureType::RECTANGULAR, 0.01, 0.005);
+        auto pc         = makeContainer();
 
         createParticlesAt(
                 pc, {
@@ -180,7 +180,7 @@ namespace {
     }
 
     TEST_F(CollimatorTest, RespectsDeleteOnTransverseExitFlag) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
         coll.setFlagDeleteOnTransverseExit(false);
         auto pc = makeContainer();
 
@@ -191,8 +191,8 @@ namespace {
     }
 
     TEST_F(CollimatorTest, AbsorbedParticlesAreDeleted) {
-        CollimatorRep coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
-        auto pc            = makeContainer();
+        Collimator coll = makeCollimator(0.1, ApertureType::ELLIPTICAL, 0.01, 0.01);
+        auto pc         = makeContainer();
 
         createParticlesAt(
                 pc, {

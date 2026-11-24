@@ -18,9 +18,9 @@
 #include "Elements/OpalBox.h"
 
 #include <memory>
+#include "AbsBeamline/Box.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/BoxRep.h"
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
@@ -38,12 +38,12 @@ OpalBox::OpalBox()
 OpalBox::~OpalBox() {}
 
 std::shared_ptr<ElementBase> OpalBox::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<BoxRep>(values.getName());
+    auto element = std::make_shared<Box>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalBox::fill(ElementBase& element, const ObjectValues& values) {
+void OpalBox::fill(Box& element, const ObjectValues& values) {
     // Applies the common attributes, including DELETEONTRANSVERSEEXIT, to the
     // embedded element.
     setCommonFields(element, values);
@@ -70,9 +70,8 @@ void OpalBox::fill(ElementBase& element, const ObjectValues& values) {
                 "BOX \"" + values.getName() + "\" requires WIDTH > 0, HEIGHT > 0 and L > 0");
     }
 
-    BoxRep* box = dynamic_cast<BoxRep*>(&element);
-    box->getGeometry().setElementLength(length);
-    box->setHalfSize(0.5 * width, 0.5 * height);
+    element.getGeometry().setElementLength(length);
+    element.setHalfSize(0.5 * width, 0.5 * height);
     // The reach is one half-width for x and y: the larger of the two covers the block.
-    box->setReach(0.5 * std::max(width, height));
+    element.setReach(0.5 * std::max(width, height));
 }

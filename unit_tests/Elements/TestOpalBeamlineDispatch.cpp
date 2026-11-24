@@ -7,7 +7,7 @@
 #include "Ippl.h"
 
 #include "../KeywordObjects.h"
-#include "BeamlineCore/MultipoleRep.h"
+#include "AbsBeamline/Multipole.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
@@ -81,7 +81,7 @@ namespace {
                 Vector({1e-3, -1e-3, 0.4}), Vector({9e-3, 0.0, 0.45})};
         std::unique_ptr<PartBunch_t> bunch_m;
         std::shared_ptr<ParticleContainer_t> pc_m;
-        std::shared_ptr<MultipoleRep> quadrupole_m = std::make_shared<MultipoleRep>("Q");
+        std::shared_ptr<Multipole> quadrupole_m = std::make_shared<Multipole>("Q");
         OpalBeamline beamline_m;
     };
 

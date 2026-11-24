@@ -71,7 +71,7 @@
 #include "Utilities/Options.h"
 
 #include "AbsBeamline/ElementBase.h"
-#include "BeamlineCore/RFCavityRep.h"
+#include "AbsBeamline/RFCavity.h"
 #include "Fields/Fieldmap.h"
 
 #include <cmath>
@@ -505,7 +505,7 @@ protected:
         return bunch;
     }
     opalx::test::TemporaryDirectory directory_m;
-    RFCavityRep cavity{"ideal"};
+    RFCavity cavity{"ideal"};
     std::shared_ptr<Beam> beam;
 };
 
@@ -586,7 +586,7 @@ TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
     OpalCavity& input = *inputObject;
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
-    auto* rep = dynamic_cast<RFCavityRep*>(built.get());
+    auto* rep = dynamic_cast<RFCavity*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_FALSE(rep->isIdeal());
     EXPECT_EQ(rep->getCavityType(), CavityType::SW);
@@ -596,7 +596,7 @@ TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
     Attributes::setReal(input.itsAttr[OpalCavity::VOLT], 1.);
     Attributes::setReal(input.itsAttr[OpalCavity::FREQ], 100.);
     EXPECT_NO_THROW(built = opalx::test::buildFrom(input));
-    rep = dynamic_cast<RFCavityRep*>(built.get());
+    rep = dynamic_cast<RFCavity*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_TRUE(rep->isIdeal());
     EXPECT_DOUBLE_EQ(rep->getFrequencym(), Physics::two_pi * 100.e6);
@@ -661,7 +661,7 @@ constexpr int autophaseRefinements = 6;
 
 TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
     const auto bunch = makeBunch(1);
-    auto rf          = std::make_shared<RFCavityRep>(cavity);
+    auto rf          = std::make_shared<RFCavity>(cavity);
     rf->getGeometry().setElementLength(0.002);
     rf->setAmplitudem(50.0);
     rf->initialise(bunch.get());
@@ -695,7 +695,7 @@ TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
 
 TEST_F(IdealRFCavityTest, FullAutophaserAdjustsGradientToDesignEnergy) {
     const auto bunch = makeBunch(1);
-    auto rf          = std::make_shared<RFCavityRep>(cavity);
+    auto rf          = std::make_shared<RFCavity>(cavity);
     rf->getGeometry().setElementLength(0.002);
     rf->setAmplitudem(0.);
     rf->setDesignEnergy(10.2);

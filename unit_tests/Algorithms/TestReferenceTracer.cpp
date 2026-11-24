@@ -1,10 +1,10 @@
 #include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
+#include "AbsBeamline/Multipole.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/ReferenceTracer.h"
-#include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
@@ -112,9 +112,9 @@ protected:
         return bunch;
     }
 
-    static std::shared_ptr<MultipoleRep> makeQuadrupole(
+    static std::shared_ptr<Multipole> makeQuadrupole(
             const std::string& name, const double x, const double length) {
-        auto quadrupole = std::make_shared<MultipoleRep>(name);
+        auto quadrupole = std::make_shared<Multipole>(name);
         quadrupole->getGeometry().setElementLength(length);
         quadrupole->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(x, 0.0, 0.0), Quaternion()));

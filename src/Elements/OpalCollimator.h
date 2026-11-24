@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Collimator;
+
 class OpalCollimator : public OpalElement {
 public:
     /// Exemplar constructor.
@@ -40,7 +42,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(Collimator& element, const ObjectValues& values);
 
     // Not implemented.
     OpalCollimator(const OpalCollimator&);

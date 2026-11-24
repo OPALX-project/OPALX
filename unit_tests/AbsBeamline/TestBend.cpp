@@ -1,6 +1,6 @@
 //
 // Tests for the analytic SBEND/RBEND fringe field (Enge profile + pole-face edge
-// focusing) evaluated through SBendRep/RBendRep.
+// focusing) evaluated through SBend/RBend.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -16,9 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineCore/RBendRep.h"
-#include "BeamlineCore/SBendRep.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/SBend.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/ParticleContainer.hpp"
@@ -35,7 +35,7 @@ namespace {
     // F(0) at the nominal pole face for the OPAL default Enge profile.
     const double edgeScale = 1.0 / (1.0 + std::exp(0.478959));
 
-    class BendRepTest : public ::testing::Test {
+    class BendTest : public ::testing::Test {
     protected:
         static void SetUpTestSuite() {
             int argc    = 0;
@@ -57,13 +57,13 @@ namespace {
 // face, F=1 in the body, F=0.3825 at the exit face, 0 outside. Because the body is
 // curved, the sample points are taken on the design arc (framePosition), not at a
 // rigid Cartesian z (which for a 45 deg bend is not the same as s).
-TEST_F(BendRepTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
+TEST_F(BendTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
     constexpr double bodyLength = 1.0;
     constexpr double angle      = Physics::pi / 4.0;
     constexpr double halfGap    = 0.02;
     const double curvature      = angle / bodyLength;
 
-    SBendRep bend("SBEND");
+    SBend bend("SBEND");
     bend.getGeometry() = Geometry::makeSBend(bodyLength, curvature);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(angle);
@@ -133,11 +133,11 @@ TEST_F(BendRepTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
 // With no gap the fringe collapses to a hard edge: extent is the plain body, the
 // dipole is full inside and absent outside. The exit edge is sampled at its true arc
 // position on the curved reference orbit (arc length s = bodyLength), not at z = L.
-TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
+TEST_F(BendTest, SBendWithoutGapIsHardEdge) {
     constexpr double bodyLength = 1.0;
     constexpr double curvature  = 0.2;
 
-    SBendRep bend("SBEND");
+    SBend bend("SBEND");
     bend.getGeometry() = Geometry::makeSBend(bodyLength, curvature);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(curvature * bodyLength);
@@ -172,12 +172,12 @@ TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
 // The faces are perpendicular to the box axis (tilted only by an explicit E1/E2), so with
 // E1=E2=0 there is no projection: the extent is [-halfWidth, L + halfWidth]. The intrinsic
 // angle/2 is an orbit-to-face angle used for edge focusing, not a face tilt in this frame.
-TEST_F(BendRepTest, RBendFringeSupportProjectsExitByFaceAngle) {
+TEST_F(BendTest, RBendFringeSupportProjectsExitByFaceAngle) {
     constexpr double bodyLength = 1.0;
     constexpr double angle      = 0.2;
     constexpr double halfGap    = 0.02;
 
-    RBendRep bend("RBEND");
+    RBend bend("RBEND");
     bend.getGeometry() = Geometry::makeRBend(bodyLength, angle);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(angle);
@@ -206,14 +206,14 @@ TEST_F(BendRepTest, RBendFringeSupportProjectsExitByFaceAngle) {
 
 // Inside the entrance fringe the vertical edge focusing appears as a horizontal
 // field Bx proportional to y, and vanishes when FINT = 0 with a perpendicular face.
-TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
+TEST_F(BendTest, SBendEntryFringeAddsHorizontalEdgeField) {
     constexpr double bodyLength = 1.0;
     constexpr double angle      = 0.2;
     constexpr double halfGap    = 0.02;
     constexpr double entryAngle = 0.15;
     constexpr double yOffset    = 1.0e-3;
 
-    SBendRep bend("SBEND");
+    SBend bend("SBEND");
     bend.getGeometry() = Geometry::makeSBend(bodyLength, angle / bodyLength);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(angle);
@@ -230,7 +230,7 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
     EXPECT_GT(std::abs(B(0)), 0.0);  // edge focusing present
 
     // With FINT = 0 and a perpendicular entrance face the edge angle is zero, so no Bx.
-    SBendRep straight("SBEND");
+    SBend straight("SBEND");
     straight.getGeometry() = Geometry::makeSBend(bodyLength, angle / bodyLength);
     straight.getGeometry().setElementLength(bodyLength);
     straight.getGeometry().setBendAngle(angle);
@@ -250,7 +250,7 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
 // membership at identical points. Far transverse particles inside the same
 // longitudinal slab must not receive a remote ring magnet's field. Existing
 // gathered fields must remain additive; this field query must not mark losses.
-TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
+TEST_F(BendTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
     ippl::NDIndex<3> domain;
     for (unsigned d = 0; d < 3; ++d)
         domain[d] = ippl::Index(8);
@@ -267,9 +267,9 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
     const bool inside[count]    = {false, true, true, true, true, false, false, false, false};
     const Vector3 initialE(0.1, 0.2, 0.3), initialB(0.4, 0.5, 0.6);
     for (unsigned kind = 0; kind < 3; ++kind) {
-        SBendRep sector("sector");
-        RBendRep rectangular("rectangular");
-        MultipoleRep multipole("multipole");
+        SBend sector("sector");
+        RBend rectangular("rectangular");
+        Multipole multipole("multipole");
         constexpr double curvature = 0.2;
         sector.getGeometry()       = Geometry::makeSBend(1., curvature);
         sector.getGeometry().setElementLength(1.);
@@ -336,7 +336,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
 // Particles (Multipole::apply on a container) and the reference particle
 // (applyToReferenceParticle) must see the same MULTIPOLE field for every order up to decapole,
 // normal and skew. The particle kernel used to handle only dipole and quadrupole.
-TEST_F(BendRepTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
+TEST_F(BendTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
     ippl::NDIndex<3> domain;
     for (unsigned d = 0; d < 3; ++d)
         domain[d] = ippl::Index(8);
@@ -347,7 +347,7 @@ TEST_F(BendRepTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
     const Vector3 point(0.03, -0.02, 0.4);
     for (int order = 0; order < 5; ++order) {
         SCOPED_TRACE(order);
-        MultipoleRep multipole("multipole");
+        Multipole multipole("multipole");
         multipole.getGeometry().setElementLength(1.);
         multipole.setAperture(ApertureType::RECTANGULAR, {1., 1.});
         multipole.setNormalComponent(order, 0.7 + order);
@@ -372,7 +372,7 @@ TEST_F(BendRepTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
     }
 
     // Pure normal sextupole KN[2] = k2: By = k2 (x^2 - y^2) / 2, Bx = k2 x y.
-    MultipoleRep sextupole("sextupole");
+    Multipole sextupole("sextupole");
     sextupole.getGeometry().setElementLength(1.);
     sextupole.setAperture(ApertureType::RECTANGULAR, {1., 1.});
     const double k2 = 4.0;

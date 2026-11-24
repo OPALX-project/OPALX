@@ -5,6 +5,8 @@
 
 #include "Elements/OpalElement.h"
 
+class ConstantEFieldCavity;
+
 class OpalConstantEFieldCavity : public OpalElement {
 public:
     enum { EX = COMMON, EY, EZ, SIZE };
@@ -17,7 +19,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(ConstantEFieldCavity& element, const ObjectValues& values);
 
     OpalConstantEFieldCavity(const OpalConstantEFieldCavity&);
     void operator=(const OpalConstantEFieldCavity&);

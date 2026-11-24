@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "BeamlineCore/ConstantFocusingRep.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/ParticleContainer.hpp"
 
@@ -46,7 +46,7 @@ TEST_F(ConstantFocusingTest, UsesInitialSpaceChargeScaleAboutCentroid) {
     Kokkos::deep_copy(R, hostR);
     Kokkos::deep_copy(E, hostE);
 
-    ConstantFocusingRep focusing("focus");
+    ConstantFocusing focusing("focus");
     focusing.getGeometry().setElementLength(6.0);
     focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(2.0);
@@ -81,7 +81,7 @@ TEST_F(ConstantFocusingTest, AppliesOnlyInsideLongitudinalElementExtent) {
     Kokkos::deep_copy(R, hostR);
     Kokkos::deep_copy(E, hostE);
 
-    ConstantFocusingRep focusing("focus");
+    ConstantFocusing focusing("focus");
     focusing.getGeometry().setElementLength(1.0);
     focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(1.0);

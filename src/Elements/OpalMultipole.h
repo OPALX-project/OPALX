@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Multipole;
+
 class OpalMultipole : public OpalElement {
 public:
     /// The attributes of class OpalMultipole.
@@ -47,7 +49,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+    static void fill(Multipole& element, const ObjectValues& values, double p0);
 
     // Not implemented.
     OpalMultipole(const OpalMultipole&);

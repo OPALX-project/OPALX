@@ -18,9 +18,9 @@
 #include "Elements/OpalTravelingWave.h"
 
 #include <memory>
+#include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/TravelingWaveRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -49,15 +49,13 @@ OpalTravelingWave::OpalTravelingWave()
 OpalTravelingWave::~OpalTravelingWave() {}
 
 std::shared_ptr<ElementBase> OpalTravelingWave::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<TravelingWaveRep>(values.getName());
+    auto element = std::make_shared<TravelingWave>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalTravelingWave::fill(ElementBase& element, const ObjectValues& values) {
+void OpalTravelingWave::fill(TravelingWave& element, const ObjectValues& values) {
     setCommonFields(element, values);
-
-    TravelingWaveRep* rfc = dynamic_cast<TravelingWaveRep*>(&element);
 
     double length      = values.getReal("L");
     double vPeak       = values.getReal("VOLT");
@@ -72,17 +70,17 @@ void OpalTravelingWave::fill(ElementBase& element, const ObjectValues& values) {
     //    std::string type = values.getString("TYPE");
     double kineticEnergy = values.getReal("DESIGNENERGY");
 
-    rfc->getGeometry().setElementLength(length);
+    element.getGeometry().setElementLength(length);
 
-    rfc->setFieldMapFN(fmapfm);
-    rfc->setFast(fast);
-    rfc->setAutophaseVeto(apVeto);
-    rfc->setAmplitudem(vPeak);
-    rfc->setAmplitudeError(vPeakError);
-    rfc->setFrequencym(freq);
-    rfc->setPhasem(phase);
-    rfc->setPhaseError(phaseError);
-    rfc->setNumCells((int)values.getReal("NUMCELLS"));
-    rfc->setMode(values.getReal("MODE"));
-    rfc->setDesignEnergy(kineticEnergy);
+    element.setFieldMapFN(fmapfm);
+    element.setFast(fast);
+    element.setAutophaseVeto(apVeto);
+    element.setAmplitudem(vPeak);
+    element.setAmplitudeError(vPeakError);
+    element.setFrequencym(freq);
+    element.setPhasem(phase);
+    element.setPhaseError(phaseError);
+    element.setNumCells((int)values.getReal("NUMCELLS"));
+    element.setMode(values.getReal("MODE"));
+    element.setDesignEnergy(kineticEnergy);
 }

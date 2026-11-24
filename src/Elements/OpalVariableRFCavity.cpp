@@ -19,8 +19,8 @@
 
 #include <memory>
 
+#include "AbsBeamline/VariableRFCavity.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/VariableRFCavityRep.h"
 
 const std::string OpalVariableRFCavity::doc_string =
         std::string("The \"VARIABLE_RF_CAVITY\" element defines an RF cavity ")
@@ -56,26 +56,24 @@ std::shared_ptr<ElementBase> OpalVariableRFCavity::build(
     return element;
 }
 
-void OpalVariableRFCavity::fill(ElementBase& element, const ObjectValues& values) {
+void OpalVariableRFCavity::fill(VariableRFCavity& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
-    auto* cavity = dynamic_cast<VariableRfCavityRep*>(&element);
-
     const double length = values.getReal("L");
-    cavity->setLength(length);
+    element.setLength(length);
 
     const std::string phaseName = values.getString("PHASE_MODEL");
-    cavity->setPhaseName(phaseName);
+    element.setPhaseName(phaseName);
 
     const std::string ampName = values.getString("AMPLITUDE_MODEL");
-    cavity->setAmplitudeName(ampName);
+    element.setAmplitudeName(ampName);
 
     const std::string freqName = values.getString("FREQUENCY_MODEL");
-    cavity->setFrequencyName(freqName);
+    element.setFrequencyName(freqName);
 
     const double width = values.getReal("WIDTH");
-    cavity->setWidth(width);
+    element.setWidth(width);
 
     const double height = values.getReal("HEIGHT");
-    cavity->setHeight(height);
+    element.setHeight(height);
 }

@@ -5,6 +5,8 @@
 
 #include "Elements/OpalElement.h"
 
+class ConstantFocusing;
+
 class OpalConstantFocusing : public OpalElement {
 public:
     enum { STRENGTH = COMMON, RADIUS, SIZE };
@@ -17,7 +19,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(ConstantFocusing& element, const ObjectValues& values);
 
     OpalConstantFocusing(const OpalConstantFocusing&);
     void operator=(const OpalConstantFocusing&);

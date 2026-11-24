@@ -2,12 +2,12 @@
 #include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/SBend.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MultipoleTRep.h"
-#include "BeamlineCore/RBendRep.h"
-#include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Elements/OpalRBend.h"
@@ -125,7 +125,7 @@ protected:
 
 TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndKeepsNominalLocalFrames) {
     OpalBeamline beamline;
-    auto drift = std::make_shared<DriftRep>("D2");
+    auto drift = std::make_shared<Drift>("D2");
     drift->getGeometry().setElementLength(2.0);
     drift->setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(0.5, -1.0, 4.0), rotationAroundY(M_PI / 8.0)));
@@ -152,7 +152,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsComposes6DPoseWithLabFrame) {
     // Mode A (6D pose): the element records its global-to-local pose but stays unpositioned;
     // prepareSections() composes it with the lab frame in one place (no ELEMEDGE set).
     OpalBeamline beamline(Vector3(0.0, 0.0, 5.0), Quaternion());
-    auto drift = std::make_shared<DriftRep>("D3");
+    auto drift = std::make_shared<Drift>("D3");
     drift->getGeometry().setElementLength(0.4);
     drift->setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.0), rotationAroundY(M_PI / 10.0)));
@@ -169,7 +169,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsComposes6DPoseWithLabFrame) {
 }
 
 TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNominalPlacement) {
-    auto drift = std::make_shared<DriftRep>("D4");
+    auto drift = std::make_shared<Drift>("D4");
     drift->getGeometry().setElementLength(0.4);
     drift->setElementPosition(1.25);
 
@@ -191,7 +191,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNomi
 }
 
 TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
-    auto drift = std::make_shared<DriftRep>("D5");
+    auto drift = std::make_shared<Drift>("D5");
     drift->getGeometry().setElementLength(0.3);
     drift->setElementPosition(0.75);
 
@@ -221,11 +221,11 @@ TEST_F(OpalBeamlinePlacementTest, SequentialBendThenDriftChainWithoutGap) {
     // after every sequentially placed bend, stretching multi-bend lines (e.g. a chicane).
     const double bendEdge = 0.5, arc = 0.5, angle = 0.3;
 
-    auto bend           = std::make_shared<SBendRep>("BEND_B");
+    auto bend           = std::make_shared<SBend>("BEND_B");
     bend->getGeometry() = Geometry::makeSBend(arc, angle / arc);
     bend->setElementPosition(bendEdge);
 
-    auto drift = std::make_shared<DriftRep>("DRIFT_D");
+    auto drift = std::make_shared<Drift>("DRIFT_D");
     drift->getGeometry().setElementLength(1.0);
     drift->setElementPosition(bendEdge + arc);
 
@@ -265,7 +265,7 @@ TEST_F(OpalBeamlinePlacementTest, CurvedMultipoleTIsFramedLikeAnSBend) {
     const auto place = [&](const std::shared_ptr<ElementBase>& magnet) {
         magnet->setElementPosition(edge);
 
-        auto drift = std::make_shared<DriftRep>("DRIFT_AFTER");
+        auto drift = std::make_shared<Drift>("DRIFT_AFTER");
         drift->getGeometry().setElementLength(1.0);
         drift->setElementPosition(edge + arc);
 
@@ -290,11 +290,11 @@ TEST_F(OpalBeamlinePlacementTest, CurvedMultipoleTIsFramedLikeAnSBend) {
                 placedDrift->getCSTrafoGlobal2Local());
     };
 
-    auto bend                                            = std::make_shared<SBendRep>("BEND_REF");
+    auto bend                                            = std::make_shared<SBend>("BEND_REF");
     bend->getGeometry()                                  = Geometry::makeSBend(arc, angle / arc);
     const auto [bendBeamline, bendFrame, driftAfterBend] = place(bend);
 
-    auto magnet = std::make_shared<MultipoleTRep>("MULTIPOLET_UNDER_TEST");
+    auto magnet = std::make_shared<MultipoleT>("MULTIPOLET_UNDER_TEST");
     magnet->setElementLength(arc);
     magnet->setBendAngle(angle, false);
     magnet->setTransProfile({-1.0});
@@ -315,7 +315,7 @@ TEST_F(OpalBeamlinePlacementTest, ModeAStoresEntranceFrameVerbatim) {
     const double s0 = 1.0, L = 1.0, angle = 0.3, h = angle / L;
     const CoordinateSystemTrafo entrancePose(Vector3(0.0, 0.0, s0), Quaternion());
 
-    auto bend           = std::make_shared<SBendRep>("MA_BEND");
+    auto bend           = std::make_shared<SBend>("MA_BEND");
     bend->getGeometry() = Geometry::makeSBend(L, h);
     bend->setCSTrafoGlobal2Local(entrancePose);  // Mode A: no ELEMEDGE
 
@@ -336,7 +336,7 @@ TEST_F(OpalBeamlinePlacementTest, SBendModeAMatchesModeB) {
     const double edge = 0.7, arc = 0.5, angle = 0.4, h = angle / arc;
 
     // Mode B.
-    auto bendB           = std::make_shared<SBendRep>("SB_MODEB");
+    auto bendB           = std::make_shared<SBend>("SB_MODEB");
     bendB->getGeometry() = Geometry::makeSBend(arc, h);
     bendB->setElementPosition(edge);
     auto bunchB = makeBunch(0);
@@ -347,7 +347,7 @@ TEST_F(OpalBeamlinePlacementTest, SBendModeAMatchesModeB) {
             beamlineB.getCSTrafoLab2Local(*beamlineB.getElements().begin());
 
     // Mode A with the pose equal to Mode B's entrance frame (identity lab frame ⇒ verbatim).
-    auto bendA           = std::make_shared<SBendRep>("SB_MODEA");
+    auto bendA           = std::make_shared<SBend>("SB_MODEA");
     bendA->getGeometry() = Geometry::makeSBend(arc, h);
     bendA->setCSTrafoGlobal2Local(frameB);
     auto bunchA = makeBunch(0);
@@ -365,7 +365,7 @@ TEST_F(OpalBeamlinePlacementTest, RBendModeAMatchesModeB) {
     // tangent), so frameB has a non-trivial rotation — a stronger check than the SBend case.
     const double edge = 0.7, boxLength = 0.5, angle = 0.4;
 
-    auto bendB           = std::make_shared<RBendRep>("RB_MODEB");
+    auto bendB           = std::make_shared<RBend>("RB_MODEB");
     bendB->getGeometry() = Geometry::makeRBend(boxLength, angle);
     bendB->setElementPosition(edge);
     auto bunchB = makeBunch(0);
@@ -375,7 +375,7 @@ TEST_F(OpalBeamlinePlacementTest, RBendModeAMatchesModeB) {
     const CoordinateSystemTrafo frameB =
             beamlineB.getCSTrafoLab2Local(*beamlineB.getElements().begin());
 
-    auto bendA           = std::make_shared<RBendRep>("RB_MODEA");
+    auto bendA           = std::make_shared<RBend>("RB_MODEA");
     bendA->getGeometry() = Geometry::makeRBend(boxLength, angle);
     bendA->setCSTrafoGlobal2Local(frameB);
     auto bunchA = makeBunch(0);
@@ -424,12 +424,12 @@ TEST_F(OpalBeamlinePlacementTest, RejectsMixedPlacementConventions) {
     // the reference orbit that ELEMEDGE (Mode B) elements are walked along, so mixing the two
     // silently misplaces every ELEMEDGE element downstream of the posed bend. resolve() must
     // reject the mix instead of producing a geometrically inconsistent lattice.
-    auto poseBend           = std::make_shared<SBendRep>("MIX_BEND_A");
+    auto poseBend           = std::make_shared<SBend>("MIX_BEND_A");
     poseBend->getGeometry() = Geometry::makeSBend(0.5, 0.3 / 0.5);
     poseBend->setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(0.0, 0.0, 1.0), Quaternion()));  // Mode A: 6D pose
 
-    auto edgeDrift = std::make_shared<DriftRep>("MIX_DRIFT_B");
+    auto edgeDrift = std::make_shared<Drift>("MIX_DRIFT_B");
     edgeDrift->getGeometry().setElementLength(0.4);
     edgeDrift->setElementPosition(2.0);  // Mode B: ELEMEDGE
 
@@ -444,11 +444,11 @@ TEST_F(OpalBeamlinePlacementTest, RejectsMixedPlacementConventions) {
 TEST_F(OpalBeamlinePlacementTest, AcceptsUniform6DPoseAcrossMultipleElements) {
     // The mixed-convention guard must NOT fire when every element uses the same convention:
     // two Mode-A (6D pose) elements are a valid, uniform beamline.
-    auto d1 = std::make_shared<DriftRep>("POSE_D1");
+    auto d1 = std::make_shared<Drift>("POSE_D1");
     d1->getGeometry().setElementLength(0.4);
     d1->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector3(0.0, 0.0, 1.0), Quaternion()));
 
-    auto d2 = std::make_shared<DriftRep>("POSE_D2");
+    auto d2 = std::make_shared<Drift>("POSE_D2");
     d2->getGeometry().setElementLength(0.4);
     d2->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector3(0.0, 0.0, 2.0), Quaternion()));
 

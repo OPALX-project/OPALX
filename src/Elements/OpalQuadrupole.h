@@ -4,7 +4,7 @@
 //
 //   A convenience wrapper around MULTIPOLE that accepts a single
 //   quadrupole strength K1 instead of the full KN vector.
-//   Internally the element is represented as a MultipoleRep with
+//   Internally the element is represented as a Multipole with
 //   KN = {0, K1}.
 //
 // Copyright (c) 2024 – 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -26,6 +26,8 @@
 #include <memory>
 
 #include "Elements/OpalElement.h"
+
+class Multipole;
 
 class OpalQuadrupole : public OpalElement {
 public:
@@ -51,7 +53,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+    static void fill(Multipole& element, const ObjectValues& values, double p0);
 
     // Not implemented.
     OpalQuadrupole(const OpalQuadrupole&);

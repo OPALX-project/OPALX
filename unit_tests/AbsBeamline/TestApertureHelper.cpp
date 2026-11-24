@@ -12,7 +12,7 @@
  *    - the default aperture {1e6, 1e6} accepts any realistic point
  *
  * 2. Equivalence with the element-level check (fixture, IPPL)
- *    - probes a DriftRep through the public isInside() for in-window z and
+ *    - probes a Drift through the public isInside() for in-window z and
  *      compares against the scalar helper for both aperture types
  */
 
@@ -22,7 +22,7 @@
 
 #include "Ippl.h"
 
-#include "BeamlineCore/DriftRep.h"
+#include "AbsBeamline/Drift.h"
 
 namespace {
     bool inside(double x, double y, ApertureType type, double xLim, double yLim) {
@@ -87,7 +87,7 @@ TEST(ApertureHelperTest, DefaultHugeApertureAcceptsEverything) {
 }
 
 // ---------------------------------------------------------------------------
-// Equivalence with the element-level aperture check via DriftRep::isInside
+// Equivalence with the element-level aperture check via Drift::isInside
 // ---------------------------------------------------------------------------
 class ApertureHelperElementTest : public ::testing::Test {
 protected:
@@ -107,7 +107,7 @@ TEST_F(ApertureHelperElementTest, MatchesElementBaseApertureCheck) {
             {ApertureType::ELLIPTICAL, {0.03, 0.02}},
     };
 
-    DriftRep drift("test_drift");
+    Drift drift("test_drift");
     drift.getGeometry().setElementLength(L);
 
     // probe grid: transverse points around the limits, several z inside [0, L)

@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Solenoid;
+
 class OpalSolenoid : public OpalElement {
 public:
     /// The attributes of class OpalSolenoid.
@@ -44,7 +46,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(Solenoid& element, const ObjectValues& values);
 
     // Not implemented.
     OpalSolenoid(const OpalSolenoid&);

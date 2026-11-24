@@ -1,13 +1,13 @@
 #include <cmath>
 #include <map>
-#include "BeamlineCore/SBendRep.h"
+#include "AbsBeamline/SBend.h"
 #include "Structure/MeshGenerator.h"
 #include "gtest/gtest.h"
 
 class MeshGeneratorTest : public ::testing::Test {
 protected:
     static void checkBend(double horizontal, double vertical, bool finite, bool shared) {
-        SBendRep bend("BEND");
+        SBend bend("BEND");
         bend.getGeometry() = Geometry::makeSBend(1.0, 0.5);
         bend.setAperture(
                 ApertureType::RECTANGULAR,

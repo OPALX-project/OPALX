@@ -19,10 +19,10 @@
 
 #include <memory>
 
+#include "AbsBeamline/RFCavity.h"
 #include "AbstractObjects/Attribute.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/RFCavityRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
@@ -58,15 +58,13 @@ OpalCavity::OpalCavity()
 OpalCavity::~OpalCavity() {}
 
 std::shared_ptr<ElementBase> OpalCavity::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<RFCavityRep>(values.getName());
+    auto element = std::make_shared<RFCavity>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
+void OpalCavity::fill(RFCavity& element, const ObjectValues& values) {
     setCommonFields(element, values);
-
-    RFCavityRep* rfc = dynamic_cast<RFCavityRep*>(&element);
 
     double length      = values.getReal("L");
     double peak        = values.getReal("VOLT");
@@ -81,25 +79,25 @@ void OpalCavity::fill(ElementBase& element, const ObjectValues& values) {
 
     double kineticEnergy = values.getReal("DESIGNENERGY");
 
-    rfc->getGeometry().setElementLength(length);
+    element.getGeometry().setElementLength(length);
 
-    rfc->dropFieldmaps();
+    element.dropFieldmaps();
 
-    rfc->setAmplitudem(peak);
-    rfc->setAmplitudeError(peakError);
-    rfc->setFrequencym(freq);
-    rfc->setPhasem(phase);
-    rfc->setPhaseError(phaseError);
-    rfc->setFieldMapFN(fmapfn);
+    element.setAmplitudem(peak);
+    element.setAmplitudeError(peakError);
+    element.setFrequencym(freq);
+    element.setPhasem(phase);
+    element.setPhaseError(phaseError);
+    element.setFieldMapFN(fmapfn);
 
-    rfc->setFast(fast);
-    rfc->setAutophaseVeto(apVeto);
-    rfc->setCavityType(type);
-    rfc->setDesignEnergy(kineticEnergy);
+    element.setFast(fast);
+    element.setAutophaseVeto(apVeto);
+    element.setCavityType(type);
+    element.setDesignEnergy(kineticEnergy);
 
-    rfc->setPhaseModelName(values.getString("PHASE_MODEL"));
-    rfc->setAmplitudeModelName(values.getString("AMPLITUDE_MODEL"));
-    rfc->setFrequencyModelName(values.getString("FREQUENCY_MODEL"));
+    element.setPhaseModelName(values.getString("PHASE_MODEL"));
+    element.setAmplitudeModelName(values.getString("AMPLITUDE_MODEL"));
+    element.setFrequencyModelName(values.getString("FREQUENCY_MODEL"));
 
-    rfc->validateIdeal();
+    element.validateIdeal();
 }

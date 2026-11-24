@@ -31,6 +31,8 @@
  * a length along that orbit, and a map's extent is not one. Placement is the absolute 6D lab
  * pose (X, Y, Z, THETA, PHI, PSI).
  */
+class FieldmapElement;
+
 class OpalFieldmapElement : public OpalElement {
 public:
     /// The attributes of class OpalFieldmapElement.
@@ -52,7 +54,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(FieldmapElement& element, const ObjectValues& values);
 
     // Not implemented.
     OpalFieldmapElement(const OpalFieldmapElement&);

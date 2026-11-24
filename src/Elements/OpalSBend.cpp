@@ -20,9 +20,9 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include "AbsBeamline/SBend.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/SBendRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
@@ -35,12 +35,12 @@ OpalSBend::OpalSBend()
 OpalSBend::~OpalSBend() {}
 
 std::shared_ptr<ElementBase> OpalSBend::build(const ObjectValues& values, double p0) {
-    auto element = std::make_shared<SBendRep>(values.getName());
+    auto element = std::make_shared<SBend>(values.getName());
     fill(*element, values, p0);
     return element;
 }
 
-void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0) {
+void OpalSBend::fill(SBend& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
@@ -54,10 +54,9 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
     }
 
     // Define geometry.
-    SBendRep* bend     = dynamic_cast<SBendRep*>(&element);
     double length      = values.getReal("L");
     double angle       = values.getReal("ANGLE");
-    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
+    Geometry& geometry = static_cast<Geometry&>(element.getGeometry());
 
     if (length) {
         geometry = Geometry::makeSBend(length, angle / length);
@@ -78,7 +77,7 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
     const std::vector<double> skew = {
             factor * values.getReal("K0S"), factor * values.getReal("K1S"),
             factor * values.getReal("K2S") / 2.0, factor * values.getReal("K3S") / 6.0};
-    bend->setFieldComponents(normal, skew);
+    element.setFieldComponents(normal, skew);
 
     // Set field amplitude or bend angle.
     if (values.hasValue("ANGLE")) {
@@ -90,7 +89,7 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
 
     // Units are eV.
     if (values.hasValue("DESIGNENERGY")) {
-        // bend->setDesignEnergy(values.getReal("DESIGNENERGY") * Units::MeV2eV, false);
+        // element.setDesignEnergy(values.getReal("DESIGNENERGY") * Units::MeV2eV, false);
         throw OpalException(
                 "OpalSBend::build",
                 "DESIGNENERGY is not supported yet for the OPALX-native SBEND port.");
@@ -100,8 +99,8 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
         throw OpalException(
                 "OpalSBend::build", "GAP is not supported; specify HGAP (the half gap) instead.");
     // gap_m stores the full gap; HGAP is the half gap, so double it.
-    bend->setFullGap(2.0 * values.getReal("HGAP"));
-    bend->setFringeIntegral(values.getReal("FINT"));
+    element.setFullGap(2.0 * values.getReal("HGAP"));
+    element.setFringeIntegral(values.getReal("FINT"));
 
     // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
     // one comes from HAPERT or from APERTURE, never from both. setCommonFields() has
@@ -134,7 +133,7 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
         throw OpalException("OpalSBend::build", values.getName() + ": HAPERT must be positive.");
     }
 
-    auto aperture = bend->getAperture();
+    auto aperture = element.getAperture();
     if (hasApert) {
         // Keep the input's own shape and half-widths, but the chamber cannot be taller than
         // the poles it sits between. Equality is fine: flush with the pole faces.
@@ -153,13 +152,13 @@ void OpalSBend::fill(ElementBase& element, const ObjectValues& values, double p0
         if (hasHapert) {
             aperture.second[0] = hapert;
         }
-        bend->setAperture(aperture.first, aperture.second);
+        element.setAperture(aperture.first, aperture.second);
     }
 
     if (values.hasValue("L"))
-        bend->getGeometry().setElementLength(values.getReal("L"));
+        element.getGeometry().setElementLength(values.getReal("L"));
     else
-        bend->getGeometry().setElementLength(0.0);
+        element.getGeometry().setElementLength(0.0);
 
     if (values.hasValue("WAKEF")) {
         throw OpalException(

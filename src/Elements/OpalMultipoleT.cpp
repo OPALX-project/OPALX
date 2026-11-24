@@ -17,8 +17,8 @@
 
 #include <memory>
 #include <vector>
+#include "AbsBeamline/MultipoleT.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/MultipoleTRep.h"
 
 OpalMultipoleT::OpalMultipoleT()
     : OpalElement(
@@ -69,7 +69,7 @@ std::shared_ptr<ElementBase> OpalMultipoleT::build(const ObjectValues& values, d
     return element;
 }
 
-void OpalMultipoleT::fill(ElementBase& element, const ObjectValues& values) {
+void OpalMultipoleT::fill(MultipoleT& element, const ObjectValues& values) {
     // Base class first
     setCommonFields(element, values);
     // Make some sanity checks
@@ -107,17 +107,16 @@ void OpalMultipoleT::fill(ElementBase& element, const ObjectValues& values) {
                 "A curved magnet (non-zero ANGLE) needs a non-zero L: the curvature is "
                 "ANGLE / L, with L the arc length");
     }
-    auto* multT = dynamic_cast<MultipoleTRep*>(&element);
-    multT->setElementLength(length);
-    multT->setBendAngle(bendAngle, varRadius);
-    multT->setAperture(values.getReal("VAPERT"), values.getReal("HAPERT"));
-    multT->setFringeField(length * 0.5, values.getReal("LFRINGE"), values.getReal("RFRINGE"));
-    multT->setBoundingBoxLength(values.getReal("BBLENGTH"));
-    multT->setTransProfile(tp);
-    multT->setMaxOrder(
+    element.setElementLength(length);
+    element.setBendAngle(bendAngle, varRadius);
+    element.setAperture(values.getReal("VAPERT"), values.getReal("HAPERT"));
+    element.setFringeField(length * 0.5, values.getReal("LFRINGE"), values.getReal("RFRINGE"));
+    element.setBoundingBoxLength(values.getReal("BBLENGTH"));
+    element.setTransProfile(tp);
+    element.setMaxOrder(
             static_cast<size_t>(maxFOrder), static_cast<size_t>(values.getReal("MAXXORDER")));
-    multT->setRotation(rotation);
-    multT->setEntranceAngle(values.getReal("EANGLE"));
-    multT->setEntryOffset(entryOffset);
-    multT->setScalingName(values.getString("SCALING_MODEL"));
+    element.setRotation(rotation);
+    element.setEntranceAngle(values.getReal("EANGLE"));
+    element.setEntryOffset(entryOffset);
+    element.setScalingName(values.getString("SCALING_MODEL"));
 }

@@ -18,9 +18,9 @@
 #include "Elements/OpalMonitor.h"
 
 #include <memory>
+#include "AbsBeamline/Monitor.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/MonitorRep.h"
 #include "Utilities/Util.h"
 
 OpalMonitor::OpalMonitor()
@@ -31,23 +31,21 @@ OpalMonitor::OpalMonitor()
 OpalMonitor::~OpalMonitor() {}
 
 std::shared_ptr<ElementBase> OpalMonitor::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<MonitorRep>(values.getName());
+    auto element = std::make_shared<Monitor>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalMonitor::fill(ElementBase& element, const ObjectValues& values) {
+void OpalMonitor::fill(Monitor& element, const ObjectValues& values) {
     setCommonFields(element, values);
 
-    MonitorRep* mon = dynamic_cast<MonitorRep*>(&element);
-
     double length = std::max(0.01, values.getReal("L"));
-    mon->getGeometry().setElementLength(length);
-    mon->setOutputFN(values.getString("OUTFN"));
+    element.getGeometry().setElementLength(length);
+    element.setOutputFN(values.getString("OUTFN"));
 
     if (values.getString("TYPE") == "TEMPORAL") {
-        mon->setCollectionType(CollectionType::TEMPORAL);
+        element.setCollectionType(CollectionType::TEMPORAL);
     } else {
-        mon->setCollectionType(CollectionType::SPATIAL);
+        element.setCollectionType(CollectionType::SPATIAL);
     }
 }

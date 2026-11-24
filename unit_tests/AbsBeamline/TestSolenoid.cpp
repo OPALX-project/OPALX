@@ -1,15 +1,14 @@
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/StepSizeConfig.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MarkerRep.h"
-#include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineCore/RBendRep.h"
-#include "BeamlineCore/RFCavityRep.h"
-#include "BeamlineCore/SBendRep.h"
-#include "BeamlineCore/SolenoidRep.h"
-#include "BeamlineCore/TravelingWaveRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
@@ -156,7 +155,7 @@ protected:
 TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     const auto mapFile = writeXZFieldmap("solenoid_edges.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
-    SolenoidRep solenoid("SOL1");
+    Solenoid solenoid("SOL1");
     solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
@@ -200,7 +199,7 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
 TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType) {
     const auto mapFile = writeXZFieldmap("solenoid_lattice.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
-    auto solenoid = std::make_shared<SolenoidRep>("SOL1");
+    auto solenoid = std::make_shared<Solenoid>("SOL1");
     solenoid->getGeometry().setElementLength(1.0);
     solenoid->setFieldMapFN(mapFile.string());
     solenoid->setElementPosition(1.0);
@@ -265,7 +264,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
 }
 
 TEST_F(SolenoidPlacementTest, SBendMeshesAsCurvedDipole) {
-    SBendRep bend("B1");
+    SBend bend("B1");
     bend.getGeometry() = Geometry::makeSBend(1.0, Physics::pi / 2.0);
     bend.setAperture(ApertureType::RECTANGULAR, {0.2, 0.1, 1.0});
 
@@ -283,12 +282,12 @@ TEST_F(SolenoidPlacementTest, SBendMeshesAsCurvedDipole) {
 }
 
 TEST_F(SolenoidPlacementTest, DefaultUnboundedApertureIsNotADriftMeshReference) {
-    MarkerRep marker("M1");
+    Marker marker("M1");
     double minor = 0.0;
     double major = 0.0;
     EXPECT_FALSE(MeshGenerator::getTransverseSupport(marker, minor, major));
 
-    SBendRep bend("B1");
+    SBend bend("B1");
     bend.setAperture(ApertureType::RECTANGULAR, {2.0, 1.0, 1.0});
     ASSERT_TRUE(MeshGenerator::getTransverseSupport(bend, minor, major));
     EXPECT_DOUBLE_EQ(minor, 2.0);
@@ -307,7 +306,7 @@ TEST_F(SolenoidPlacementTest, DefaultUnboundedApertureIsNotADriftMeshReference) 
 }
 
 TEST_F(SolenoidPlacementTest, EmptyMeshSerializesAsValidPython) {
-    RBendRep bend("RB1");
+    RBend bend("RB1");
 
     MeshGenerator mesh;
     mesh.add(bend);
@@ -324,11 +323,11 @@ TEST_F(SolenoidPlacementTest, EmptyMeshSerializesAsValidPython) {
 TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReference) {
     const auto mapFile = writeXZFieldmap("solenoid_drift_mesh.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
-    auto drift = std::make_shared<DriftRep>("DR1");
+    auto drift = std::make_shared<Drift>("DR1");
     drift->getGeometry().setElementLength(0.5);
     drift->setElementPosition(0.0);
 
-    auto solenoid = std::make_shared<SolenoidRep>("SOL1");
+    auto solenoid = std::make_shared<Solenoid>("SOL1");
     solenoid->getGeometry().setElementLength(1.0);
     solenoid->setFieldMapFN(mapFile.string());
     solenoid->setElementPosition(0.5);
@@ -349,7 +348,7 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
 }
 
 TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinder) {
-    auto quadrupole = std::make_shared<MultipoleRep>("Q1");
+    auto quadrupole = std::make_shared<Multipole>("Q1");
     quadrupole->getGeometry().setElementLength(0.4);
     quadrupole->setElementPosition(0.0);
     quadrupole->setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
@@ -370,7 +369,7 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
 }
 
 TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
-    RFCavityRep cavity("RFC1");
+    RFCavity cavity("RFC1");
     cavity.getGeometry().setElementLength(0.7);
     cavity.setElementPosition(0.0);
     cavity.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
@@ -388,7 +387,7 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
 }
 
 TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
-    TravelingWaveRep travelingWave("TW1");
+    TravelingWave travelingWave("TW1");
     travelingWave.getGeometry().setElementLength(0.8);
     travelingWave.setElementPosition(0.0);
     travelingWave.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});

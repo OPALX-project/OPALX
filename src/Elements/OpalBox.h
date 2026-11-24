@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Box;
+
 class OpalBox : public OpalElement {
 public:
     /// The attributes of class OpalBox.
@@ -46,7 +48,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(Box& element, const ObjectValues& values);
 
     // Not implemented.
     OpalBox(const OpalBox&);

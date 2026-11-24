@@ -1,5 +1,5 @@
+#include "AbsBeamline/Laser.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/LaserRep.h"
 #include "Elements/OpalLaser.h"
 #include "Physics/Physics.h"
 #include "Utilities/LogicalError.h"
@@ -31,7 +31,7 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(built.get());
+    auto* rep = dynamic_cast<Laser*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getGeometry().getElementLength(), 0.01);
     EXPECT_DOUBLE_EQ(rep->getWavelength(), 1.03e-6);
@@ -53,7 +53,7 @@ TEST(TestLaser, UpdateDefaultsStokesToZero) {
     std::shared_ptr<ElementBase> built;
     EXPECT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(built.get());
+    auto* rep = dynamic_cast<Laser*>(built.get());
     ASSERT_NE(rep, nullptr);
     EXPECT_DOUBLE_EQ(rep->getStokes()(0), 0.0);
     EXPECT_DOUBLE_EQ(rep->getStokes()(1), 0.0);
@@ -163,7 +163,7 @@ TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinemati
     std::shared_ptr<ElementBase> built;
     ASSERT_NO_THROW(built = opalx::test::buildFrom(laser));
 
-    auto* rep = dynamic_cast<LaserRep*>(built.get());
+    auto* rep = dynamic_cast<Laser*>(built.get());
     ASSERT_NE(rep, nullptr);
 
     Vector_t<double, 3> beamDirection(0.0);

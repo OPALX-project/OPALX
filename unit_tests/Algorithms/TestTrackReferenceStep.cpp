@@ -1,8 +1,8 @@
 #include "../KeywordObjects.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/Multipole.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/TrackReferenceStep.h"
-#include "BeamlineCore/MonitorRep.h"
-#include "BeamlineCore/MultipoleRep.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
@@ -19,9 +19,9 @@ using track_reference::State;
 using Vector = Vector_t<double, 3>;
 
 namespace {
-    class CountingMonitor : public MonitorRep {
+    class CountingMonitor : public Monitor {
     public:
-        CountingMonitor() : MonitorRep("M") { getGeometry().setElementLength(1); }
+        CountingMonitor() : Monitor("M") { getGeometry().setElementLength(1); }
         void initialise(PartBunch_t*) override {}
         bool applyToReferenceParticle(
                 const Vector&, const Vector&, const double&, Vector&, Vector&) override {
@@ -141,9 +141,9 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
     const State start{Vector(0, 0, 0.5), Vector(0, 0, 0.1)};
     std::array<std::array<double, 12>, 2> snapshots{};
     for (unsigned arrangement = 0; arrangement < 2; ++arrangement) {
-        std::array<std::shared_ptr<MultipoleRep>, 3> magnets;
+        std::array<std::shared_ptr<Multipole>, 3> magnets;
         for (auto& magnet : magnets)
-            magnet = std::make_shared<MultipoleRep>("unassigned");
+            magnet = std::make_shared<Multipole>("unassigned");
         std::sort(magnets.begin(), magnets.end());
         if (arrangement == 1) std::reverse(magnets.begin(), magnets.end());
         OpalBeamline lattice;
@@ -182,7 +182,7 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
             opalx::spacecharge::CartesianDomainConfig3D{});
     // A quadrupole over lab z in [0, 1) m with a 4 mm bore, shifted by DX = 3 mm and DZ = 0.3 m.
     // In the misaligned frame a lab point has local x - 3 mm and local z - 0.3 m.
-    auto quad = std::make_shared<MultipoleRep>("Q");
+    auto quad = std::make_shared<Multipole>("Q");
     quad->getGeometry().setElementLength(1.);
     quad->setNormalComponent(1, 2.);
     quad->setAperture(ApertureType::RECTANGULAR, {4e-3, 4e-3});

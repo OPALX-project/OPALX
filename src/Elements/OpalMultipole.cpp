@@ -22,11 +22,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "AbsBeamline/Multipole.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/MultipoleRep.h"
 #include "Expressions/SRefExpr.h"
 #include "Expressions/SValue.h"
 #include "Physics/Physics.h"
@@ -62,18 +62,16 @@ OpalMultipole::~OpalMultipole() {}
 void OpalMultipole::print(std::ostream& os) const { OpalElement::print(os); }
 
 std::shared_ptr<ElementBase> OpalMultipole::build(const ObjectValues& values, double p0) {
-    auto element = std::make_shared<MultipoleRep>(values.getName());
+    auto element = std::make_shared<Multipole>(values.getName());
     fill(*element, values, p0);
     return element;
 }
 
-void OpalMultipole::fill(ElementBase& element, const ObjectValues& values, double p0) {
+void OpalMultipole::fill(Multipole& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
-    // Get pointer to MultipoleRep object to set length
-    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(&element);
-    double length      = values.getReal("L");
-    mult->getGeometry().setElementLength(length);
+    double length = values.getReal("L");
+    element.getGeometry().setElementLength(length);
 
     // Get the vector with the multipole expansion components
     const std::vector<double> norm = values.getRealArray("KN");
@@ -123,10 +121,10 @@ void OpalMultipole::fill(ElementBase& element, const ObjectValues& values, doubl
     // coefficient views read by Multipole::apply().
     for (unsigned int comp = 0; comp < top; ++comp) {
         if (comp < normSize) {
-            mult->setNormalComponent(comp, factor * norm[comp], factor * normErrors[comp]);
+            element.setNormalComponent(comp, factor * norm[comp], factor * normErrors[comp]);
         }
         if (comp < skewSize) {
-            mult->setSkewComponent(comp, factor * skew[comp], factor * skewErrors[comp]);
+            element.setSkewComponent(comp, factor * skew[comp], factor * skewErrors[comp]);
         }
     }
 }

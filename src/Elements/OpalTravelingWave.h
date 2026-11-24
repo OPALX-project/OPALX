@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class TravelingWave;
+
 class OpalTravelingWave : public OpalElement {
 public:
     /// The attributes of class OpalTravelingWave.
@@ -50,7 +52,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(TravelingWave& element, const ObjectValues& values);
 
     // Not implemented.
     OpalTravelingWave(const OpalTravelingWave&);

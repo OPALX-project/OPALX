@@ -2,8 +2,8 @@
 
 #include <memory>
 
+#include "AbsBeamline/Laser.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/LaserRep.h"
 #include "Utilities/OpalException.h"
 
 #include <cmath>
@@ -63,20 +63,15 @@ OpalLaser::OpalLaser()
 OpalLaser::~OpalLaser() {}
 
 std::shared_ptr<ElementBase> OpalLaser::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<LaserRep>(values.getName());
+    auto element = std::make_shared<Laser>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalLaser::fill(ElementBase& element, const ObjectValues& values) {
+void OpalLaser::fill(Laser& element, const ObjectValues& values) {
     constexpr const char* where = "OpalLaser::build";
 
     setCommonFields(element, values);
-
-    auto* laser = dynamic_cast<LaserRep*>(&element);
-    if (!laser) {
-        return;
-    }
 
     // A LASER that sets none of the required attributes is left unconfigured, as before.
     const bool anyConfigured = values.hasValue("WAVELENGTH") || values.hasValue("PULSEENERGY")
@@ -113,12 +108,12 @@ void OpalLaser::fill(ElementBase& element, const ObjectValues& values) {
         throw OpalException(where, "\"L\" must be greater than or equal to 0.");
     }
 
-    laser->getGeometry().setElementLength(length);
-    laser->setWavelength(wavelength);
-    laser->setPulseEnergy(pulseEnergy);
-    laser->setPulseLength(pulseLength);
-    laser->setWaistX(waistX);
-    laser->setWaistY(waistY);
-    laser->setDirection(direction);
-    laser->setStokes(stokes);
+    element.getGeometry().setElementLength(length);
+    element.setWavelength(wavelength);
+    element.setPulseEnergy(pulseEnergy);
+    element.setPulseLength(pulseLength);
+    element.setWaistX(waistX);
+    element.setWaistY(waistY);
+    element.setDirection(direction);
+    element.setStokes(stokes);
 }

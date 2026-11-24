@@ -24,6 +24,8 @@
 
 class OpalWake;
 
+class RFCavity;
+
 class OpalCavity : public OpalElement {
 public:
     /// The attributes of class OpalCavity.
@@ -54,7 +56,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(RFCavity& element, const ObjectValues& values);
 
     // Not implemented.
     OpalCavity(const OpalCavity&);

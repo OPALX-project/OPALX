@@ -22,7 +22,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/cmake/AddOPALXTest.cmake")
 add_subdirectory(OpalParser)
 
 add_subdirectory(AbsBeamline)
-add_subdirectory(BeamlineCore)
 add_subdirectory(BeamlineGeometry)
 add_subdirectory(Distribution)
 add_subdirectory(Fields)

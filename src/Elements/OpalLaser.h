@@ -5,6 +5,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Laser;
+
 class OpalLaser : public OpalElement {
 public:
     enum { WAVELENGTH = COMMON, PULSEENERGY, PULSELENGTH, WAISTX, WAISTY, DIR, STOKES, SIZE };
@@ -17,7 +19,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(Laser& element, const ObjectValues& values);
 
     OpalLaser(const OpalLaser&);
     void operator=(const OpalLaser&);

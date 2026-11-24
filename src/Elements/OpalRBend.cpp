@@ -20,9 +20,9 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include "AbsBeamline/RBend.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/RBendRep.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
@@ -35,22 +35,21 @@ OpalRBend::OpalRBend()
 OpalRBend::~OpalRBend() {}
 
 std::shared_ptr<ElementBase> OpalRBend::build(const ObjectValues& values, double p0) {
-    auto element = std::make_shared<RBendRep>(values.getName());
+    auto element = std::make_shared<RBend>(values.getName());
     fill(*element, values, p0);
     return element;
 }
 
-void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0) {
+void OpalRBend::fill(RBend& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
     // Geometry, field profile and calibration are independent RBEND settings.
     const bool hasProfile = !values.defaultUsed("FMAPFN");
     const bool hasE1      = !values.defaultUsed("E1");
     const bool hasE2      = !values.defaultUsed("E2");
-    RBendRep* bend        = dynamic_cast<RBendRep*>(&element);
     const double length   = values.getReal("L");
     double angle          = values.getReal("ANGLE");
-    Geometry& geometry    = static_cast<Geometry&>(bend->getGeometry());
+    Geometry& geometry    = static_cast<Geometry&>(element.getGeometry());
     geometry.setElementLength(length);
     geometry.setBendAngle(angle);
     geometry.setPoleFaceAnglesEnabled(hasE1 || hasE2);
@@ -93,8 +92,8 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0
     const std::vector<double> skew = {
             factor * values.getReal("K0S"), factor * values.getReal("K1S"),
             factor * values.getReal("K2S") / 2.0, factor * values.getReal("K3S") / 6.0};
-    bend->setFieldComponents(normal, skew);
-    bend->setReferenceMomentum(p0);
+    element.setFieldComponents(normal, skew);
+    element.setReferenceMomentum(p0);
 
     // Set the bend angle.
     if (values.hasValue("ANGLE")) {
@@ -110,7 +109,7 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0
         const double energy = values.getReal("DESIGNENERGY");
         if (!std::isfinite(energy) || energy <= 0.0)
             throw OpalException("OpalRBend::build", "DESIGNENERGY must be positive and finite.");
-        bend->setDesignEnergy(energy * Units::MeV2eV, false);
+        element.setDesignEnergy(energy * Units::MeV2eV, false);
     }
 
     const bool hasGap  = !values.defaultUsed("GAP");
@@ -121,13 +120,13 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0
     if (!std::isfinite(fullGap) || fullGap < 0.0)
         throw OpalException("OpalRBend::build", "The pole gap must be finite and nonnegative.");
     // gap_m stores the full gap; HGAP is the half gap, so double it.
-    bend->setFullGap(fullGap);
-    bend->setFringeIntegral(values.getReal("FINT"));
+    element.setFullGap(fullGap);
+    element.setFringeIntegral(values.getReal("FINT"));
     const std::string filename = hasProfile ? values.getString("FMAPFN") : "";
     if (hasProfile && filename.empty())
         throw OpalException("OpalRBend::build", "FMAPFN cannot be empty.");
-    bend->setFieldMap(filename);
-    if (hasProfile && fullGap == 0.0) fullGap = bend->getFullGap();
+    element.setFieldMap(filename);
+    if (hasProfile && fullGap == 0.0) fullGap = element.getFullGap();
 
     // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
     // one comes from HAPERT or from APERTURE, never from both. setCommonFields() has
@@ -160,7 +159,7 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0
         throw OpalException("OpalRBend::build", values.getName() + ": HAPERT must be positive.");
     }
 
-    auto aperture = bend->getAperture();
+    auto aperture = element.getAperture();
     if (hasApert) {
         // Keep the input's own shape and half-widths, but the chamber cannot be taller than
         // the poles it sits between. Equality is fine: flush with the pole faces.
@@ -179,13 +178,13 @@ void OpalRBend::fill(ElementBase& element, const ObjectValues& values, double p0
         if (hasHapert) {
             aperture.second[0] = hapert;
         }
-        bend->setAperture(aperture.first, aperture.second);
+        element.setAperture(aperture.first, aperture.second);
     }
 
     if (values.hasValue("L"))
-        bend->getGeometry().setElementLength(values.getReal("L"));
+        element.getGeometry().setElementLength(values.getReal("L"));
     else
-        bend->getGeometry().setElementLength(0.0);
+        element.getGeometry().setElementLength(0.0);
 
     if (values.hasValue("WAKEF")) {
         throw OpalException(

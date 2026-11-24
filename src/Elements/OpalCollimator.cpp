@@ -18,9 +18,9 @@
 #include "Elements/OpalCollimator.h"
 
 #include <memory>
+#include "AbsBeamline/Collimator.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/CollimatorRep.h"
 #include "Utilities/OpalException.h"
 
 OpalCollimator::OpalCollimator()
@@ -33,12 +33,12 @@ OpalCollimator::OpalCollimator()
 OpalCollimator::~OpalCollimator() {}
 
 std::shared_ptr<ElementBase> OpalCollimator::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<CollimatorRep>(values.getName());
+    auto element = std::make_shared<Collimator>(values.getName());
     fill(*element, values);
     return element;
 }
 
-void OpalCollimator::fill(ElementBase& element, const ObjectValues& values) {
+void OpalCollimator::fill(Collimator& element, const ObjectValues& values) {
     // Applies the common attributes, including APERTURE and
     // DELETEONTRANSVERSEEXIT, to the embedded element.
     setCommonFields(element, values);
@@ -60,6 +60,5 @@ void OpalCollimator::fill(ElementBase& element, const ObjectValues& values) {
 
     const double length = values.getReal("L");
 
-    CollimatorRep* coll = dynamic_cast<CollimatorRep*>(&element);
-    coll->getGeometry().setElementLength(length);
+    element.getGeometry().setElementLength(length);
 }

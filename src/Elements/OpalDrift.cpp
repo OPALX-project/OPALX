@@ -18,8 +18,8 @@
 #include "Elements/OpalDrift.h"
 
 #include <memory>
+#include "AbsBeamline/Drift.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/DriftRep.h"
 
 OpalDrift::OpalDrift()
     : OpalElement(SIZE, "DRIFT", "The \"DRIFT\" element defines a drift space.") {
@@ -34,7 +34,7 @@ OpalDrift::OpalDrift()
 OpalDrift::~OpalDrift() {}
 
 std::shared_ptr<ElementBase> OpalDrift::build(const ObjectValues& values, double /*p0*/) {
-    auto element = std::make_shared<DriftRep>(values.getName());
+    auto element = std::make_shared<Drift>(values.getName());
     fill(*element, values);
     return element;
 }

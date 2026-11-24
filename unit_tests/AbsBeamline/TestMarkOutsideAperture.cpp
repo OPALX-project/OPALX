@@ -6,7 +6,7 @@
  * Coverage
  * ---------------------------------------------------------------------------
  *
- * 1. Base implementation (DriftRep on a minimal 8^3 mesh)
+ * 1. Base implementation (Drift on a minimal 8^3 mesh)
  *    - marks exactly the particles inside the body window, inside the reach and
  *      outside the aperture in InvalidMask, and returns the newly-marked count
  *    - particles beyond the reach are never marked
@@ -15,10 +15,10 @@
  *    - marked particles are removed by deleteInvalidParticles()
  *    - empty container / nullptr return 0
  *
- * 2. z-window source (MonitorRep)
+ * 2. z-window source (Monitor)
  *    - the window is the body [startZ, startZ + L), not getFieldExtent()
  *
- * 3. Arc coordinates (SBendRep, curved MultipoleT)
+ * 3. Arc coordinates (SBend, curved MultipoleT)
  *    - the z-window and the aperture are measured in arc coordinates
  *      relative to the design orbit, not in the straight entrance frame
  *
@@ -36,10 +36,10 @@
 
 #include "Ippl.h"
 
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MonitorRep.h"
-#include "BeamlineCore/MultipoleTRep.h"
-#include "BeamlineCore/SBendRep.h"
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/SBend.h"
 #include "PartBunch/ParticleContainer.hpp"
 
 namespace {
@@ -57,8 +57,8 @@ namespace {
         static void TearDownTestSuite() { ippl::finalize(); }
 
         /// Drift body of length L with a circular aperture of radius r.
-        static DriftRep makeDrift(double length, double radius) {
-            DriftRep drift("test_drift");
+        static Drift makeDrift(double length, double radius) {
+            Drift drift("test_drift");
             drift.getGeometry().setElementLength(length);
             drift.setAperture(ApertureType::ELLIPTICAL, {radius, radius});
             return drift;
@@ -117,12 +117,12 @@ namespace {
     };
 
     // ================================================================
-    // Base implementation (DriftRep)
+    // Base implementation (Drift)
     // ================================================================
 
     TEST_F(MarkOutsideApertureTest, MarksOnlyParticlesInsideZAndOutsideAperture) {
-        DriftRep drift = makeDrift(0.1, 0.01);
-        auto pc        = makeContainer();
+        Drift drift = makeDrift(0.1, 0.01);
+        auto pc     = makeContainer();
 
         createParticlesAt(
                 pc, {
@@ -142,7 +142,7 @@ namespace {
     }
 
     TEST_F(MarkOutsideApertureTest, NeverMarksParticlesBeyondTheReach) {
-        DriftRep drift = makeDrift(0.1, 0.01);
+        Drift drift = makeDrift(0.1, 0.01);
         drift.setReach(0.2);
         auto pc = makeContainer();
 
@@ -158,7 +158,7 @@ namespace {
     }
 
     TEST_F(MarkOutsideApertureTest, RespectsDeleteOnTransverseExitFlag) {
-        DriftRep drift = makeDrift(0.1, 0.01);
+        Drift drift = makeDrift(0.1, 0.01);
         drift.setFlagDeleteOnTransverseExit(false);
         auto pc = makeContainer();
 
@@ -169,8 +169,8 @@ namespace {
     }
 
     TEST_F(MarkOutsideApertureTest, NeverClearsExistingMarksAndDoesNotRecountThem) {
-        DriftRep drift = makeDrift(0.1, 0.01);
-        auto pc        = makeContainer();
+        Drift drift = makeDrift(0.1, 0.01);
+        auto pc     = makeContainer();
 
         // The first particle passes the aperture but is pre-marked by another
         // producer (e.g. a decay process); the second is out of the aperture
@@ -188,8 +188,8 @@ namespace {
     }
 
     TEST_F(MarkOutsideApertureTest, MarkedParticlesAreDeletedByDeleteInvalidParticles) {
-        DriftRep drift = makeDrift(0.1, 0.01);
-        auto pc        = makeContainer();
+        Drift drift = makeDrift(0.1, 0.01);
+        auto pc     = makeContainer();
 
         createParticlesAt(
                 pc, {
@@ -216,15 +216,15 @@ namespace {
     }
 
     TEST_F(MarkOutsideApertureTest, EmptyContainerAndNullptrReturnZero) {
-        DriftRep drift = makeDrift(0.1, 0.01);
-        auto pc        = makeContainer();
+        Drift drift = makeDrift(0.1, 0.01);
+        auto pc     = makeContainer();
 
         EXPECT_EQ(drift.markOutsideAperture(pc, {}), 0u);
         EXPECT_EQ(drift.markOutsideAperture(nullptr, {}), 0u);
     }
 
     // ================================================================
-    // z-window source (MonitorRep)
+    // z-window source (Monitor)
     // ================================================================
 
     TEST_F(MarkOutsideApertureTest, UsesBodyWindowNotFieldExtent) {
@@ -233,7 +233,7 @@ namespace {
         // recording plane ([-halfLength, +halfLength]) and so reaches upstream
         // of the body, while the body starts at z = 0.
         const double length = 0.01;  // what OpalMonitor::update installs
-        MonitorRep monitor("test_monitor");
+        Monitor monitor("test_monitor");
         monitor.getGeometry().setElementLength(length);
         monitor.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
 
@@ -256,7 +256,7 @@ namespace {
     }
 
     // ================================================================
-    // Arc-coordinate override (SBendRep)
+    // Arc-coordinate override (SBend)
     // ================================================================
 
     TEST_F(MarkOutsideApertureTest, SBendMeasuresApertureInArcCoordinates) {
@@ -265,7 +265,7 @@ namespace {
         const double length    = 1.0;
         const double radius    = 1.0 / curvature;
 
-        SBendRep sbend("test_sbend");
+        SBend sbend("test_sbend");
         sbend.getGeometry().setElementLength(length);
         sbend.getGeometry().setCurvature(curvature);
         sbend.setAperture(ApertureType::ELLIPTICAL, {0.05, 0.05});
@@ -306,7 +306,7 @@ namespace {
         const double length    = 1.0;
         const double radius    = 1.0 / curvature;
 
-        MultipoleTRep magnet("test_multipolet");
+        MultipoleT magnet("test_multipolet");
         magnet.setElementLength(length);
         magnet.setBendAngle(curvature * length, false);
         magnet.setTransProfile({-1.0});
@@ -340,7 +340,7 @@ namespace {
         const double length    = 1.0;
         const double radius    = 1.0 / curvature;
 
-        SBendRep sbend("test_sbend_fringe");
+        SBend sbend("test_sbend_fringe");
         sbend.getGeometry().setElementLength(length);
         sbend.getGeometry().setCurvature(curvature);
         sbend.setFullGap(0.02);

@@ -22,6 +22,8 @@
 
 #include "Elements/OpalElement.h"
 
+class Monitor;
+
 class OpalMonitor : public OpalElement {
 public:
     /// Exemplar constructor.
@@ -34,7 +36,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values);
+    static void fill(Monitor& element, const ObjectValues& values);
 
     // Not implemented.
     OpalMonitor(const OpalMonitor&);

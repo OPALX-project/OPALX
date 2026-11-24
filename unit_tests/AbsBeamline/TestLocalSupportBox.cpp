@@ -20,13 +20,13 @@
 
 #include "Ippl.h"
 
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/FieldmapElement.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/SBend.h"
+#include "AbsBeamline/VariableRFCavity.h"
 #include "AbstractObjects/OpalData.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/FieldmapElementRep.h"
-#include "BeamlineCore/MonitorRep.h"
-#include "BeamlineCore/MultipoleTRep.h"
-#include "BeamlineCore/SBendRep.h"
-#include "BeamlineCore/VariableRFCavityRep.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
 
@@ -79,10 +79,9 @@ namespace {
         }
     }
 
-    class DriftWithExtent : public DriftRep {
+    class DriftWithExtent : public Drift {
     public:
-        DriftWithExtent(double begin, double end)
-            : DriftRep("D_EXTENT"), begin_m(begin), end_m(end) {}
+        DriftWithExtent(double begin, double end) : Drift("D_EXTENT"), begin_m(begin), end_m(end) {}
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = begin_m;
             zEnd   = end_m;
@@ -133,7 +132,7 @@ protected:
 };
 
 TEST_F(LocalSupportBoxTest, ElementWithoutApertureUsesReach) {
-    DriftRep drift("D");
+    Drift drift("D");
     drift.getGeometry().setElementLength(1.0);
 
     const auto [lower, upper] = drift.getLocalSupportBox(reach).getCorners();
@@ -146,7 +145,7 @@ TEST_F(LocalSupportBoxTest, ElementWithoutApertureUsesReach) {
 }
 
 TEST_F(LocalSupportBoxTest, ApertureWiderThanReachSetsHalfWidth) {
-    DriftRep drift("D");
+    Drift drift("D");
     drift.getGeometry().setElementLength(1.0);
     drift.setAperture(ApertureType::RECTANGULAR, {0.8, 0.3});
 
@@ -157,7 +156,7 @@ TEST_F(LocalSupportBoxTest, ApertureWiderThanReachSetsHalfWidth) {
 }
 
 TEST_F(LocalSupportBoxTest, ApertureAbove1e5CountsAsNone) {
-    DriftRep drift("D");
+    Drift drift("D");
     drift.getGeometry().setElementLength(1.0);
     drift.setAperture(ApertureType::ELLIPTICAL, {2e5, 2e5});
 
@@ -181,18 +180,18 @@ TEST_F(LocalSupportBoxTest, ZRangeJoinsFieldExtentAndBody) {
 }
 
 TEST_F(LocalSupportBoxTest, ReachAttributeIsUnsetByDefaultAndCopied) {
-    DriftRep drift("D");
+    Drift drift("D");
     EXPECT_FALSE(drift.getReach().has_value());
 
     drift.setReach(0.25);
-    const DriftRep copy(drift);
+    const Drift copy(drift);
     ASSERT_TRUE(copy.getReach().has_value());
     EXPECT_DOUBLE_EQ(*copy.getReach(), 0.25);
 }
 
 TEST_F(LocalSupportBoxTest, SectorBendBoxContainsArcBandAndFringes) {
     for (double h : {0.8, -0.8}) {
-        SBendRep bend("B");
+        SBend bend("B");
         bend.getGeometry() = Geometry::makeSBend(1.5, h);
         bend.setFullGap(0.04);  // fringe reach 5 * gap = 0.2 m per side
         bend.setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
@@ -211,7 +210,7 @@ TEST_F(LocalSupportBoxTest, SectorBendBoxContainsArcBandAndFringes) {
 }
 
 TEST_F(LocalSupportBoxTest, StraightMultipoleTUsesItsHalfApertures) {
-    MultipoleTRep magnet("MT");
+    MultipoleT magnet("MT");
     magnet.setBendAngle(0.0, false);
     magnet.setElementLength(0.5);
     magnet.setAperture(1.2, 2.0);  // full vertical, full horizontal
@@ -228,7 +227,7 @@ TEST_F(LocalSupportBoxTest, StraightMultipoleTUsesItsHalfApertures) {
 }
 
 TEST_F(LocalSupportBoxTest, RotatedMultipoleTCoversItsRotatedAperture) {
-    MultipoleTRep magnet("MT");
+    MultipoleT magnet("MT");
     magnet.setBendAngle(0.0, false);
     magnet.setElementLength(0.5);
     magnet.setAperture(0.4, 2.0);
@@ -245,7 +244,7 @@ TEST_F(LocalSupportBoxTest, RotatedMultipoleTCoversItsRotatedAperture) {
 }
 
 TEST_F(LocalSupportBoxTest, CurvedMultipoleTBoxContainsArcBand) {
-    MultipoleTRep magnet("MT");
+    MultipoleT magnet("MT");
     magnet.setBendAngle(0.6, false);
     magnet.setElementLength(1.0);
     magnet.setAperture(0.1, 0.1);
@@ -271,7 +270,7 @@ TEST_F(LocalSupportBoxTest, TravelingWaveCoversItsWholeFieldWindow) {
 }
 
 TEST_F(LocalSupportBoxTest, MonitorCoversItsPlaneAndItsBody) {
-    MonitorRep monitor("M");
+    Monitor monitor("M");
     monitor.getGeometry().setElementLength(0.1);
 
     const auto [lower, upper] = monitor.getLocalSupportBox(reach).getCorners();
@@ -280,7 +279,7 @@ TEST_F(LocalSupportBoxTest, MonitorCoversItsPlaneAndItsBody) {
 }
 
 TEST_F(LocalSupportBoxTest, VariableRFCavityUsesHalfWidthAndHeight) {
-    VariableRfCavityRep cavity("V");
+    VariableRFCavity cavity("V");
     cavity.getGeometry().setElementLength(1.0);
     cavity.setWidth(1.6);
     cavity.setHeight(0.4);
@@ -305,7 +304,7 @@ TEST_F(LocalSupportBoxTest, FieldmapBoxCoversTheMapCrossSection) {
                     f << 0.1 << (ir + 1 == 5 ? '\n' : '\t');
         }
     }
-    FieldmapElementRep element("FM");
+    FieldmapElement element("FM");
     element.setFieldMapFN(file);
     element.initialise(nullptr);
 
@@ -320,7 +319,7 @@ TEST_F(LocalSupportBoxTest, FieldmapBoxCoversTheMapCrossSection) {
 
 TEST_F(LocalSupportBoxTest, SectorBendSegmentBoxesCoverTheBandButNotTheTangentLine) {
     for (double h : {0.8, -0.8}) {
-        SBendRep bend("B");
+        SBend bend("B");
         bend.getGeometry() = Geometry::makeSBend(1.5, h);
         bend.setFullGap(0.04);
         bend.setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
@@ -344,7 +343,7 @@ TEST_F(LocalSupportBoxTest, SectorBendSegmentBoxesCoverTheBandButNotTheTangentLi
 }
 
 TEST_F(LocalSupportBoxTest, StraightElementHasOneAxisAlignedSegmentBox) {
-    DriftRep drift("D");
+    Drift drift("D");
     drift.getGeometry().setElementLength(1.0);
     const auto boxes = drift.getLocalSupportBoxes(reach);
     ASSERT_EQ(boxes.size(), 1u);

@@ -19,8 +19,8 @@
 #include "Elements/OpalMarker.h"
 
 #include <memory>
+#include "AbsBeamline/Marker.h"
 #include "AbstractObjects/OpalData.h"
-#include "BeamlineCore/MarkerRep.h"
 #include "Utilities/Options.h"
 
 #include <iostream>
@@ -45,5 +45,5 @@ OpalMarker::~OpalMarker() {}
 void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 
 std::shared_ptr<ElementBase> OpalMarker::build(const ObjectValues& values, double /*p0*/) {
-    return std::make_shared<MarkerRep>(values.getName());
+    return std::make_shared<Marker>(values.getName());
 }

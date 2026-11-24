@@ -10,10 +10,10 @@
 
 #include "Ippl.h"
 
+#include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineCore/SBendRep.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/SBend.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/GeneralOpalException.h"
 
@@ -24,10 +24,10 @@ namespace {
     using Vector = Vector_t<double, 3>;
 
     /// A drift whose field model covers an off-centre rectangle, like a 3D field map.
-    class OffCentreRangeDrift final : public DriftRep {
+    class OffCentreRangeDrift final : public Drift {
     public:
         OffCentreRangeDrift(double centreX, double halfX)
-            : DriftRep("OFF_CENTRE"), centreX_m(centreX), halfX_m(halfX) {
+            : Drift("OFF_CENTRE"), centreX_m(centreX), halfX_m(halfX) {
             getGeometry().setElementLength(1.0);
         }
         std::optional<ApertureShape> getFieldRange() const override {
@@ -44,9 +44,9 @@ namespace {
     };
 
     /// A drift with an off-centre field map, like a 3D G4beamline grid.
-    class OffCentreMapDrift final : public DriftRep {
+    class OffCentreMapDrift final : public Drift {
     public:
-        OffCentreMapDrift() : DriftRep("MAP") { getGeometry().setElementLength(1.0); }
+        OffCentreMapDrift() : Drift("MAP") { getGeometry().setElementLength(1.0); }
         std::optional<ApertureShape> getFieldMapRange() const override {
             ApertureShape range;
             range.centreX = 0.5;  // x = 0.2 .. 0.8 m, wider than the 0.5 m reach
@@ -65,8 +65,8 @@ namespace {
         }
         static void TearDownTestSuite() { ippl::finalize(); }
 
-        static MultipoleRep makeQuadrupole(const double apertureHalfWidth) {
-            MultipoleRep quad("Q");
+        static Multipole makeQuadrupole(const double apertureHalfWidth) {
+            Multipole quad("Q");
             quad.getGeometry().setElementLength(1.0);
             if (apertureHalfWidth > 0.0)
                 quad.setAperture(ApertureType::RECTANGULAR, {apertureHalfWidth, apertureHalfWidth});
@@ -100,7 +100,7 @@ namespace {
     }
 
     TEST_F(ElementRegionsTest, WithoutApertureTheReachIsTheAperture) {
-        MultipoleRep quad            = makeQuadrupole(0.0);
+        Multipole quad               = makeQuadrupole(0.0);
         const ElementRegions regions = quad.getRegions();
         EXPECT_TRUE(regions.inFieldRegion(Vector({0.4, 0.0, 0.5})));
         EXPECT_FALSE(regions.inFieldRegion(Vector({0.6, 0.0, 0.5})));
@@ -112,7 +112,7 @@ namespace {
     }
 
     TEST_F(ElementRegionsTest, SectorBendUsesArcCoordinates) {
-        SBendRep bend("B");
+        SBend bend("B");
         constexpr double curvature = 0.5;
         bend.getGeometry()         = Geometry::makeSBend(1.0, curvature);
         bend.getGeometry().setElementLength(1.0);
@@ -162,7 +162,7 @@ namespace {
     }
 
     TEST_F(ElementRegionsTest, ApertureWiderThanTheReachIsAnError) {
-        MultipoleRep quad = makeQuadrupole(0.8);
+        Multipole quad = makeQuadrupole(0.8);
         EXPECT_THROW(quad.checkRegions(), GeneralOpalException);
         quad.setReach(1.0);
         EXPECT_NO_THROW(quad.checkRegions());

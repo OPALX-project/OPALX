@@ -7,8 +7,8 @@
 #include "Ippl.h"
 
 #include "../KeywordObjects.h"
+#include "AbsBeamline/Drift.h"
 #include "Algorithms/BunchReference.h"
-#include "BeamlineCore/DriftRep.h"
 #include "Distribution/EmittingSamplers.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -118,7 +118,7 @@ namespace {
     }
 
     TEST_F(BunchReferenceTest, AdvanceInADriftMovesByBetaCDt) {
-        const auto drift = std::make_shared<DriftRep>("D");
+        const auto drift = std::make_shared<Drift>("D");
         drift->getGeometry().setElementLength(2.0);
         drift->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0.0), Quaternion()));
         drift->fixPosition();

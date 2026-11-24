@@ -20,6 +20,8 @@
 
 #include "Elements/OpalBend.h"
 
+class SBend;
+
 class OpalSBend : public OpalBend {
 public:
     /// Exemplar constructor.
@@ -32,7 +34,7 @@ public:
 
 private:
     /// Set the fields of @p element from @p values.
-    static void fill(ElementBase& element, const ObjectValues& values, double p0);
+    static void fill(SBend& element, const ObjectValues& values, double p0);
 
     // Not implemented.
     OpalSBend(const OpalSBend&);

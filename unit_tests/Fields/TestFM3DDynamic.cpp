@@ -3,7 +3,7 @@
 #include "../TemporaryDirectory.h"
 #include "Track/FreezeRun.h"
 
-#include "BeamlineCore/RFCavityRep.h"
+#include "AbsBeamline/RFCavity.h"
 #include "Fields/FM3DDynamic.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -334,7 +334,7 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
     particles->createParticles(1);
     const Vector position(0.015, -0.005, 0.09);
     Kokkos::deep_copy(particles->R.getView(), position);
-    RFCavityRep cavity("3D cavity");
+    RFCavity cavity("3D cavity");
     cavity.setFieldMapFN(path);
     cavity.setFrequencym(125 * Physics::two_pi * Units::MHz2Hz);
     cavity.setAmplitudem(2.0);

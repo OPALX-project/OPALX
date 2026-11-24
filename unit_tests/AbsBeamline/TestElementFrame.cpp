@@ -18,9 +18,9 @@
 
 #include "Ippl.h"
 
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MonitorRep.h"
-#include "BeamlineCore/MultipoleRep.h"
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/Multipole.h"
 #include "PartBunch/ParticleContainer.hpp"
 
 namespace {
@@ -95,11 +95,11 @@ namespace {
     };
 
     TEST_F(ElementFrameTest, FieldElementsKeepLocalFrame) {
-        MultipoleRep multipole("multipole");
-        MonitorRep monitor("monitor");
+        Multipole multipole("multipole");
+        Monitor monitor("monitor");
         EXPECT_EQ(multipole.fieldFrame(), ElementFrame::Local);
         EXPECT_EQ(monitor.fieldFrame(), ElementFrame::Local);
-        EXPECT_EQ(DriftRep("drift").fieldFrame(), ElementFrame::None);
+        EXPECT_EQ(Drift("drift").fieldFrame(), ElementFrame::None);
     }
 
     TEST_F(ElementFrameTest, ApertureThroughTransformMatchesMovedBunch) {
@@ -107,7 +107,7 @@ namespace {
         // frame, so a transform applied the wrong way round marks different particles.
         const CoordinateSystemTrafo toLocal(
                 Vec(0.008, -0.006, -0.1), getQuaternion(Vec(0.01, -0.02, 1.0), Vec(0, 0, 1)));
-        DriftRep drift("drift");
+        Drift drift("drift");
         drift.getGeometry().setElementLength(1.0);
         drift.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
 

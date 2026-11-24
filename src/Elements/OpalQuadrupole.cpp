@@ -4,7 +4,7 @@
 //
 //   A convenience wrapper around MULTIPOLE that accepts a single
 //   quadrupole strength K1 instead of the full KN vector.
-//   Internally the element is represented as a MultipoleRep with
+//   Internally the element is represented as a Multipole with
 //   KN = {0, K1}.
 //
 // Copyright (c) 2024 – 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -23,9 +23,9 @@
 #include "Elements/OpalQuadrupole.h"
 
 #include <memory>
+#include "AbsBeamline/Multipole.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/MultipoleRep.h"
 #include "Physics/Physics.h"
 
 OpalQuadrupole::OpalQuadrupole()
@@ -52,17 +52,16 @@ OpalQuadrupole::~OpalQuadrupole() {}
 void OpalQuadrupole::print(std::ostream& os) const { OpalElement::print(os); }
 
 std::shared_ptr<ElementBase> OpalQuadrupole::build(const ObjectValues& values, double p0) {
-    auto element = std::make_shared<MultipoleRep>(values.getName());
+    auto element = std::make_shared<Multipole>(values.getName());
     fill(*element, values, p0);
     return element;
 }
 
-void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values, double p0) {
+void OpalQuadrupole::fill(Multipole& element, const ObjectValues& values, double p0) {
     setCommonFields(element, values);
 
-    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(&element);
-    double length      = values.getReal("L");
-    mult->getGeometry().setElementLength(length);
+    double length = values.getReal("L");
+    element.getGeometry().setElementLength(length);
 
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
     // Populate the device coefficient views read by Multipole::apply().
@@ -77,10 +76,10 @@ void OpalQuadrupole::fill(ElementBase& element, const ObjectValues& values, doub
     double dk1s   = values.getReal("DK1S") * factor;
 
     // comp 0 (dipole): strength = 0
-    mult->setNormalComponent(0, 0.0, 0.0);
-    mult->setSkewComponent(0, 0.0, 0.0);
+    element.setNormalComponent(0, 0.0, 0.0);
+    element.setSkewComponent(0, 0.0, 0.0);
 
     // comp 1 (quadrupole)
-    mult->setNormalComponent(1, k1, dk1);
-    mult->setSkewComponent(1, k1s, dk1s);
+    element.setNormalComponent(1, k1, dk1);
+    element.setSkewComponent(1, k1s, dk1s);
 }

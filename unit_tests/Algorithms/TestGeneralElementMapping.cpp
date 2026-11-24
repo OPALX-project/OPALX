@@ -21,13 +21,13 @@
 
 #include "Ippl.h"
 
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/SBend.h"
 #include "Algorithms/GeneralElementMapping.h"
 #include "Attributes/Attributes.h"
 #include "BasicActions/Option.h"
-#include "BeamlineCore/DriftRep.h"
-#include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineCore/MultipoleTRep.h"
-#include "BeamlineCore/SBendRep.h"
 #include "Physics/Physics.h"
 #include "Utilities/ElementList.h"
 #include "Utilities/OpalException.h"
@@ -56,10 +56,10 @@ namespace {
         return y * (x * z);
     }
 
-    std::shared_ptr<DriftRep> makeDrift(
+    std::shared_ptr<Drift> makeDrift(
             const std::string& name, double length, const Vector& origin,
             const Quaternion& orientation = Quaternion(1, 0, 0, 0)) {
-        auto drift = std::make_shared<DriftRep>(name);
+        auto drift = std::make_shared<Drift>(name);
         drift->getGeometry().setElementLength(length);
         drift->setCSTrafoGlobal2Local(CoordinateSystemTrafo(origin, orientation.conjugate()));
         return drift;
@@ -279,7 +279,7 @@ TEST_F(GeneralElementMappingTest, ElementWithoutApertureNeverStopsTheReference) 
 }
 
 TEST_F(GeneralElementMappingTest, ReferenceThatWouldBeDeletedStopsTheRun) {
-    auto quad = std::make_shared<MultipoleRep>("QB");
+    auto quad = std::make_shared<Multipole>("QB");
     quad->getGeometry().setElementLength(1.0);
     quad->setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
     quad->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0.0), Quaternion(1, 0, 0, 0)));
@@ -307,7 +307,7 @@ TEST_F(GeneralElementMappingTest, ReferenceThatWouldBeDeletedStopsTheRun) {
 TEST_F(GeneralElementMappingTest, StraightLatticeOnAxisPassesTheChecks) {
     ElementList lattice;
     for (int cell = 0; cell < 4; ++cell) {
-        auto quad = std::make_shared<MultipoleRep>("Q" + std::to_string(cell));
+        auto quad = std::make_shared<Multipole>("Q" + std::to_string(cell));
         quad->getGeometry().setElementLength(0.2);
         quad->setAperture(ApertureType::ELLIPTICAL, {0.03, 0.03});
         quad->setCSTrafoGlobal2Local(
@@ -365,8 +365,8 @@ TEST_F(GeneralElementMappingTest, MappingOptionsAreValidatedAndPersist) {
 namespace {
     /// Branch B: a 90-degree sector bend of radius 1 m with a 0.02 m half-aperture, entrance at
     /// the lab origin. Branch A continues straight along the bend's entrance tangent.
-    std::shared_ptr<SBendRep> makeBranchBend() {
-        auto bend           = std::make_shared<SBendRep>("B_BEND");
+    std::shared_ptr<SBend> makeBranchBend() {
+        auto bend           = std::make_shared<SBend>("B_BEND");
         bend->getGeometry() = Geometry::makeSBend(0.5 * Physics::pi, 1.0);
         bend->setAperture(ApertureType::RECTANGULAR, {0.02, 0.02});
         bend->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0.0), Quaternion(1, 0, 0, 0)));
@@ -405,7 +405,7 @@ TEST_F(GeneralElementMappingTest, ReachErrorSuggestsALowerReach) {
 TEST_F(GeneralElementMappingTest, PointBeyondTheReachIsNeverDeleted) {
     // A MULTIPOLET with a 2 m wide HAPERT but a 5 cm APERTURE: the APERTURE is the material
     // boundary and the reach limits it, so 0.3 m off axis is lost but 0.7 m is not.
-    auto magnet = std::make_shared<MultipoleTRep>("MT");
+    auto magnet = std::make_shared<MultipoleT>("MT");
     magnet->setBendAngle(0.0, false);
     magnet->setElementLength(1.0);
     magnet->setAperture(0.4, 2.0);

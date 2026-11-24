@@ -16,7 +16,6 @@
 
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbstractObjects/OpalData.h"
-#include "BeamlineCore/FieldmapElementRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Fields/Fieldmap.h"
 #include "Ippl.h"
@@ -147,7 +146,7 @@ TEST_F(FieldmapElementTest, BoxComesFromTheMap) {
     const auto file = track(mapPath("_box.g4blmap"));
     writeUniformCylinderMap(file, 100.0, 11, 50.0, 5, 10.0, 0.25);
 
-    FieldmapElementRep element("FM_BOX");
+    FieldmapElement element("FM_BOX");
     element.setFieldMapFN(file);
     ASSERT_EQ(element.getGeometry().getElementLength(), 0.0);  // nothing set at parse time
 
@@ -184,7 +183,7 @@ TEST_F(FieldmapElementTest, FieldIsTheMapTimesBScale) {
     const auto file = track(mapPath("_bscale.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);
 
-    FieldmapElementRep element("FM_BSCALE");
+    FieldmapElement element("FM_BSCALE");
     element.setFieldMapFN(file);
     element.setBScale(2.0);
     element.initialise(nullptr);
@@ -210,7 +209,7 @@ TEST_F(FieldmapElementTest, OutsideTheMapMeansNoFieldAndNoLoss) {
     const auto file = track(mapPath("_oob.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);  // r up to 40 mm
 
-    FieldmapElementRep element("FM_OOB");
+    FieldmapElement element("FM_OOB");
     element.setFieldMapFN(file);
     element.initialise(nullptr);
     Fieldmap::readMap(file);
@@ -239,7 +238,7 @@ TEST_F(FieldmapElementTest, MapNarrowerThanTheApertureLeavesAFieldFreeGap) {
     const auto file = track(mapPath("_gap.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);  // r up to 40 mm
 
-    FieldmapElementRep element("FM_GAP");
+    FieldmapElement element("FM_GAP");
     element.setFieldMapFN(file);
     element.setAperture(ApertureType::ELLIPTICAL, {0.2, 0.2});
     element.initialise(nullptr);
@@ -263,7 +262,7 @@ TEST_F(FieldmapElementTest, ApertureHitIsStillALoss) {
     const auto file = track(mapPath("_apert.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);
 
-    FieldmapElementRep element("FM_APERT");
+    FieldmapElement element("FM_APERT");
     element.setFieldMapFN(file);
     element.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
     element.initialise(nullptr);
@@ -286,7 +285,7 @@ TEST_F(FieldmapElementTest, ApertureWinsOverTheMapExtentForTheEnvelope) {
     const auto file = track(mapPath("_env.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 9, 10.0, 0.25);  // r up to 80 mm
 
-    FieldmapElementRep element("FM_ENV");
+    FieldmapElement element("FM_ENV");
     element.setFieldMapFN(file);
     element.setAperture(ApertureType::ELLIPTICAL, {0.03, 0.02});
     element.initialise(nullptr);
@@ -303,7 +302,7 @@ TEST_F(FieldmapElementTest, OneDimensionalMapHasNoTransverseExtent) {
     const auto file = track(mapPath("_1d.astra"));
     writeAstra1DMap(file, {0.0, 0.25, 0.5, 0.75, 1.0}, {1.0, 1.0, 1.0, 1.0, 1.0});
 
-    FieldmapElementRep element("FM_1D");
+    FieldmapElement element("FM_1D");
     element.setFieldMapFN(file);
     element.initialise(nullptr);
 
@@ -321,18 +320,18 @@ TEST_F(FieldmapElementTest, DynamicMapIsRejected) {
     const auto file = track(mapPath("_dyn.map"));
     writeFM2DDynamicMap(file);
 
-    FieldmapElementRep element("FM_DYN");
+    FieldmapElement element("FM_DYN");
     element.setFieldMapFN(file);
     EXPECT_THROW(element.initialise(nullptr), GeneralOpalException);
 }
 
 TEST_F(FieldmapElementTest, MissingFieldMapIsRejected) {
-    FieldmapElementRep element("FM_NONE");
+    FieldmapElement element("FM_NONE");
     EXPECT_THROW(element.initialise(nullptr), GeneralOpalException);
 }
 
 TEST_F(FieldmapElementTest, ReportsItsOwnType) {
-    FieldmapElementRep element("FM_TYPE");
+    FieldmapElement element("FM_TYPE");
     EXPECT_EQ(element.getType(), ElementType::FIELDMAP);
     EXPECT_EQ(element.getTypeString(), "Fieldmap");
 }
@@ -343,7 +342,7 @@ TEST_F(FieldmapElementTest, SelectionFollowsTheOffsetFieldWindow) {
     const auto file = track(mapPath("_offset.g4blmap"));
     writeUniformCylinderMap(file, 200.0, 11, 50.0, 5, 10.0, 0.25);  // z = 200 .. 700 mm
 
-    FieldmapElementRep element("FM_OFFSET");
+    FieldmapElement element("FM_OFFSET");
     element.setFieldMapFN(file);
     element.initialise(nullptr);
 
@@ -362,7 +361,7 @@ TEST_F(FieldmapElementTest, ScrapingFollowsTheOffsetFieldWindow) {
     const auto file = track(mapPath("_scrape.g4blmap"));
     writeUniformCylinderMap(file, 200.0, 11, 50.0, 5, 10.0, 0.25);  // z = 200 .. 700 mm
 
-    FieldmapElementRep element("FM_SCRAPE");
+    FieldmapElement element("FM_SCRAPE");
     element.setFieldMapFN(file);
     element.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
     element.setFlagDeleteOnTransverseExit(true);
