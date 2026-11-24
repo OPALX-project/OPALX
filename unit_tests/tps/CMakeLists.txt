@@ -8,7 +8,7 @@ endfunction()
 
 foreach(name numerical truncation cache_bounds coefficient_indexing array_indexing
              column_iterators modern_storage workflow_algebra map_defects map_context
-             kokkos_linear_algebra runtime_lifecycle public_api)
+             kokkos_linear_algebra linear_solve runtime_lifecycle public_api)
   add_tps_regression(${name})
 endforeach()
 add_tps_regression(prepared_map device_map_header.cpp)

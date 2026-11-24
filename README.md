@@ -257,10 +257,23 @@ The documentation has been moved to the [OPAL Landing Page](https://amas.pages.p
 `src/tps` provides C++20 Taylor-series algebra, context-bearing polynomial maps,
 and immutable prepared maps for device evaluation. Include `<tps/tps.hpp>`;
 `OPALX::opalx` links `TPS::tps` publicly. The library reuses IPPL's Kokkos backend
-and uses Kokkos Kernels for dense linear algebra. The existing OPALX linear-map
-and tune-analysis implementations are unchanged by this initial integration.
+and uses Kokkos Kernels for dense linear algebra. OPALX uses first-order TPS for
+ordered segment-map composition and the COF linearization passed to eigenanalysis.
+The runtime beamline owns a complete immutable TPS pass, including ownerless
+field-tail segments; element attachments share segment handles with separate
+local ordinals. Reporting matrices are derived Jacobians. Finite-difference ray
+construction and Richardson refinement retain their existing algorithms. The 6D
+input solve and diagnostics use TPS/Kokkos host kernels with the existing pivot
+and condition policies; see [numerical contracts](src/tps/docs/linear-map-algebra.md).
+COF retains its existing Newton QR, LAPACK spectrum and full-tune winding policies.
+The [Part 1 completion audit](src/tps/docs/part1-completion-audit.md) records the
+implemented scope, retained backends and pending CI regression acceptance.
 
 Host map construction, composition and analysis are serialized per MPI rank.
+Retained snapshots survive recalculation, but polynomial use ends at explicit
+`releaseTransferMapStorage()` or Kokkos finalization. Call the release function
+before IPPL finalization; a Kokkos hook also revokes payloads in retained handles.
+See [persistent storage](src/tps/docs/persistent-storage.md) for lifecycle contracts.
 Prepared maps can be evaluated in parallel with separate workspace per particle.
 Coordinate/reference conversion, tracking orchestration, apertures and space-charge
 splitting remain OPALX integration tasks. See

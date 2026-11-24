@@ -321,13 +321,16 @@ TEST_F(SolenoidPlacementTest, LinearTransferMapUsesTabulatedFieldMap) {
     ASSERT_EQ(elements.size(), 1u);
     const auto& maps = (*elements.begin())->getLinearTransferMaps();
     ASSERT_EQ(maps.size(), 1u);
-    EXPECT_NEAR(maps.front().exit.pathLength - maps.front().entrance.pathLength, 0.2, 2.0e-5);
+    EXPECT_NEAR(
+            maps.front().map->metadata().exit.pathLength
+                    - maps.front().map->metadata().entrance.pathLength,
+            0.2, 2.0e-5);
     double transverseCoupling = 0.0;
     for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
-            ASSERT_TRUE(std::isfinite(maps.front().matrix(row, column)));
+            ASSERT_TRUE(std::isfinite(maps.front().map->matrix()(row, column)));
             if ((row < 2) != (column < 2)) {
-                transverseCoupling += std::abs(maps.front().matrix(row, column));
+                transverseCoupling += std::abs(maps.front().map->matrix()(row, column));
             }
         }
     }

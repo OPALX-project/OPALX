@@ -12,6 +12,8 @@ jets for accelerator maps. All public types live in namespace tps; include
 - @subpage workflow_audit identifies missing OPALX map-workflow capabilities.
 - @subpage map_context_api specifies the context-bearing map API.
 - @subpage kokkos_execution explains runtime ownership, storage and numerical backends.
+- @subpage opalx_segment_composition describes OPALX segment-map composition.
+- @subpage opalx_cof_eigenanalysis describes the COF-to-LAPACK boundary.
 - @subpage prepared_map_api describes immutable plans and allocation-free device evaluation.
 - @ref tps::Tps is the scalar polynomial API.
 - @ref tps::VpsMap is the vector-valued map API.
@@ -371,4 +373,155 @@ positive stride metadata, not allocation extent, memory accessibility, overlap
 or offset overflow. The adapter must establish those conditions before launching.
 EvaluationStatus reports only the checks in evaluate_one; it is not an error
 estimate, symplecticity proof, aperture test or particle-loss decision.
+*/
+
+/**
+@page opalx_segment_composition OPALX linear segment composition
+
+LinearTransferMapBuilder retains its existing reference tracking, boundary location,
+finite-difference input solve and Richardson extrapolation. Only the final ordered
+product is computed with TPS. opalx::maps::toTpsLinearTransferMap converts a segment
+matrix into a degree-one tps::Map with zero constant term, then composeSequence
+applies the first segment first. The combined Jacobian is extracted into the
+existing OPALX matrix result; element-owned attachments and diagnostics remain.
+
+@section segment_coordinates Coordinates and boundary charts
+The reported coordinates are
+@f[
+ X=(x,x',y,y',\zeta,\delta),\quad
+ x'=p_x/p_s,\quad y'=p_y/p_s,\quad
+ \zeta=-\beta_0c(t-t_0),\quad\delta=|\mathbf p|/p_0-1.
+@f]
+Lengths use metres; slopes/delta are dimensionless. Momentum is mechanical p/(mc),
+with @f$\beta_0=p_0/\sqrt{1+p_0^2}@f$. The adapter declares mechanical coordinates,
+unit numerical scales and no canonical pairs. Each map is differential:
+@f$\Delta X_{out}=M\Delta X_{in}@f$. Its zero constant does not assert orbit closure
+or provide an absolute-coordinate tracking map.
+
+Frame rows are the local x/y/section-normal axes expressed in lab coordinates.
+The frame origin is reference.position-reference.positionCorrection; referenceTime
+is reference.time-reference.timeCorrection. These metadata are rounded to double;
+the original reference state retains its compensated low parts. The output chart
+retains the reference slope values even at a ring return where the momentum is
+not parallel to the fixed section normal. No implicit reorientation or momentum
+renormalization occurs.
+
+@section segment_order Ownership, validity and execution
+Composition uses the builder's unique segment list, including ownerless intervals
+with field tails. Copies attached to multiple owners must not be composed again.
+Segment IDs identify traversal occurrences within one builder result; they do not
+use owner names or pointer addresses and are not globally unique across builds.
+TPS maps are temporary host objects inside the active IPPL/Kokkos lifetime.
+Nonfinite matrices/references, invalid frames and inconsistent adjacent charts
+are rejected. Host TPS algebra must remain serialized within each rank.
+
+No nonlinear coefficients, eigensolver, direct polynomial field integration or
+device tracking is added by this migration. First-order TPS composition can change
+floating-point summation order relative to a matrix product; no bitwise-equivalence
+or performance claim is made. Existing physical/finite-difference tolerances are
+unchanged. Adapter tests compare with independent dense arithmetic; builder tests
+include shared-owner overlap, nonzero ownerless field tails and nonunit-momentum
+analytic drift, in addition to the previous OrbitThreader regressions.
+*/
+
+/**
+@page opalx_cof_eigenanalysis COF linearization and eigenanalysis
+
+COF still solves its fixed-energy closed orbit using the existing finite-difference
+Newton/QR algorithm. After convergence, opalx::maps::toTpsClosedOrbitMap snapshots
+the final reference, measured residual and matrix without tracking any new rays.
+The TPS overload of LinearMapEigenAnalysis::analyze extracts the Jacobian at zero
+local deviation and delegates to the original LAPACKE dgeev/dgesvd matrix overload.
+The matrix overload and report implementation are unchanged and need no TPS runtime.
+
+@section cof_coordinates Mechanical fixed-section coordinates
+The four coordinates are
+@f[
+ u=(x,u_x,y,u_y),\qquad u_x=p_x/(mc),\quad u_y=p_y/(mc),
+ \qquad u_z=+\sqrt{u_0^2-u_x^2-u_y^2}.
+@f]
+The chart names are x,px,y,py; positions use metres and momentum components use
+mechanical p/(mc). These are not the slopes used by the six-dimensional segment
+maps. The adapter declares mechanical coordinates, no canonical pairs, and unit
+numerical scales. Its input and output use the same solved reference and section.
+Frame rows implement local=R*(lab-origin). The autonomous four-dimensional chart
+has no referenceTime: launch T0, independent perturbed arrival times and return
+duration remain with COF diagnostics, not a fixed-time polynomial map.
+
+Let @f$u_*@f$ be the solved reference, @f$r=T(u_*)-u_*@f$ the measured closure
+residual, and @f$M@f$ the final finite-difference Jacobian. The snapshot is
+@f[
+ \widehat T_1(\xi)=r+M\xi,\qquad \xi=u-u_*.
+@f]
+The finite residual is retained, not set to zero or hidden by shifting the output
+reference. This neither proves exact closure nor supplies nonlinear coefficients.
+The existing solver's convergence status is required by the adapter. A nonzero
+constant also means default origin-preserving TPS composition is inappropriate
+without a separate reference/accuracy policy; this map is currently for analysis.
+
+@section cof_scaling Scaling and spectral interpretation
+The TPS overload accepts first-order same-chart four-dimensional mechanical maps
+with these names/units and a valid fixed-momentum reference. It rejects unsupported
+charts, time references, polynomial orders and nonfinite coefficients, including
+constants. For a normalized chart @f$\xi=D^{-1}(u-u_*)@f$, it reconstructs
+@f[
+ M=D J_{local}D^{-1}
+@f]
+before passing the matrix to LAPACK. Settings::scales remain physical coordinate
+conditioning scales @f$S@f$; the original solver applies @f$S^{-1}MS@f$ exactly once.
+Eigenvalue ordering and eigenvector complex phase are not interpretation contracts.
+Conjugate fractional branches, residual checks, basis conditioning and stability
+classification remain those of the original matrix implementation.
+
+@section cof_preserved_paths Preserved full tunes and output
+CofCmd still passes the original solved matrix to OneTurnMap::fullTunes. Continuous
+phase winding remains necessary for integer/oriented tunes and plane assignment;
+TPS eigenphases do not replace it. The existing JSON matrix/residual, reports,
+energy-drift calculation, fresh return, rank-zero work and error/result broadcasts
+are unchanged. SpectralTunes and its independent sampling convention are unchanged.
+
+TPS snapshot construction and its Jacobian require an active Kokkos runtime and
+serialized host algebra. Maps are temporary inside the existing initialized COF
+call. Regression tests cover residual/reference retention, rotated sections,
+spectrum/eigenvector parity, independent chart/conditioning scaling, invalid data,
+no added ray evaluations and identical full-tune results before/after eigenanalysis.
+*/
+
+/**
+@page tps_linear_map_numerics Linear map construction solve and diagnostics
+
+For six centered ray pairs, define columns of @f$D_{in}@f$ and @f$D_{out}@f$ as
+one half of the plus/minus coordinate difference at each boundary. The reported
+coordinates remain @f$(x,x',y,y',\zeta,\delta)@f$. We seek
+@f[ M D_{in}=D_{out},\qquad D_{in}^{T}M^{T}=D_{out}^{T}. @f]
+opalx::maps::solveInputDifferences factors the original @f$D_{in}@f$ with Kokkos
+Getrf partial pivoting, then solves the transposed system with Getrs. This avoids
+an inverse-product calculation of M and preserves the original orientation of
+pivot testing. A separately factored transpose has different pivots in general.
+
+The compatibility policy rejects exact singularity or an LU diagonal magnitude
+strictly smaller than @f$10^{-18}@f$. It also rejects a nonfinite or excessive
+@f[ \kappa_\infty(D_{in})=\|D_{in}\|_\infty\|D_{in}^{-1}\|_\infty>10^{12}. @f]
+The inverse used only for this diagnostic is obtained through identity RHS solves.
+The infinity norm is the maximum absolute row sum of the original matrix/inverse,
+not the transposed system. These matrices mix physical coordinate units; this is
+neither a scaled optics condition measure nor a finite-difference error bound.
+Equality at either threshold is accepted. LU changes arithmetic ordering relative
+to Gauss--Jordan, so rounding and classifications extremely close to boundaries
+are not promised bitwise identical. Inputs and resulting matrices must be finite.
+
+opalx::maps::diagnoseLinearMap computes @f$|\det M-1|@f$ using pivoted Kokkos LU,
+including row-swap parity. Exact singularity gives determinant zero/residual one,
+without making a diagnostic fatal. No absolute pivot floor applies to determinant
+calculation. Direct diagonal products retain ordinary underflow/overflow behavior;
+OPALX rejects nonfinite diagnostic results. The other diagnostic is
+@f[ \max_{i,j}|(M^T J M-J)_{ij}|,\quad
+J=\mathrm{diag}(J_2,J_2,J_2),\quad J_2=\begin{pmatrix}0&1\\-1&0\end{pmatrix}. @f]
+Products use TPS/Kokkos dense kernels. The maximum-entry reduction is unchanged.
+Slopes and mechanical momenta are not globally canonical, so neither residual is
+a universal invariant of physical tracking here. No symplectification is applied.
+
+Ray construction, support queries, exit localization, Richardson extrapolation,
+LAPACK eigenanalysis, full tunes and Newton QR are outside this backend change.
+See @ref tps_linear_map_algebra for regression coverage and numerical limits.
 */

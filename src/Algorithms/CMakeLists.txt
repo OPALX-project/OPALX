@@ -12,6 +12,9 @@ set (_SRCS
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     LinearMapEigenAnalysis.cpp
+    TpsClosedOrbitMap.cpp
+    TpsLinearMapAlgebra.cpp
+    TpsLinearTransferMap.cpp
     LinearTransferMapBuilder.cpp
     SpectralTunes.cpp
     OrbitThreader.cpp
@@ -45,9 +48,11 @@ set (HDRS
     OneTurnMap.h
     ClosedOrbitSolver.h
     LinearMapEigenAnalysis.h
+    TpsClosedOrbitMap.h
+    TpsLinearMapAlgebra.h
+    TpsLinearTransferMap.h
     LinearTransferMapBuilder.h
     SpectralTunes.h
-    LinearTransferMap.h
     OrbitThreader.h
     OrbitThreaderDiagnostics.h
     ParallelTracker.h

@@ -116,12 +116,8 @@ const std::string& ElementBase::getBeamlineOwnerName() const {
 
 bool ElementBase::hasLinearTransferMaps() const { return !linearTransferMaps_m.empty(); }
 
-const std::vector<LinearTransferMap>& ElementBase::getLinearTransferMaps() const {
+const std::vector<LinearTransferMapAttachment>& ElementBase::getLinearTransferMaps() const {
     return linearTransferMaps_m;
-}
-
-void ElementBase::addLinearTransferMap(LinearTransferMap map) {
-    linearTransferMaps_m.push_back(std::move(map));
 }
 
 void ElementBase::clearLinearTransferMaps() { linearTransferMaps_m.clear(); }

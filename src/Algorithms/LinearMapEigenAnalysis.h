@@ -7,6 +7,11 @@
 #include <vector>
 #include "Algorithms/OneTurnMap.h"
 
+namespace tps {
+    template <class T>
+    class Map;
+}
+
 /** LAPACKE analysis of a real nonsymmetric four-dimensional one-turn map.
  * Analyze the complete matrix, including transverse coupling. Coordinates must
  * use the same entrance/exit frame at a closed orbit. Kinetic coordinates need
@@ -49,6 +54,17 @@ public:
     };
     /// Throws OpalException for invalid input, LAPACK failure or inaccurate eigenpairs.
     static Result analyze(const Matrix&, const Settings&);
+    /** Analyze a first-order autonomous 4D COF TPS map at zero local deviation.
+     * Input/output charts must match and declare (x,px,y,py), mechanical p/(mc)
+     * momenta and metres. The finite constant residual is retained but does not
+     * enter the Jacobian; closure remains the caller's responsibility.
+     * With chart scale D, recover the physical Jacobian D*J_local*D^-1 before
+     * delegating to the existing LAPACK overload. Settings::scales remain physical
+     * coordinate scales, so conditioning is applied once. Requires active Kokkos
+     * and serialized host TPS algebra; the matrix overload needs neither.
+     * Throws OpalException for unsupported charts/orders or nonfinite coefficients.
+     */
+    static Result analyze(const tps::Map<double>&, const Settings&);
     /// Human-readable diagnostic report; phases are not integer or plane-labelled tunes.
     static void writeReport(std::ostream&, const Result&);
 };

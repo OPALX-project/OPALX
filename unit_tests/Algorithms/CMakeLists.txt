@@ -8,6 +8,9 @@ add_opalx_test(TestQuaternion USE_GTEST_MAIN)
 add_opalx_test(TestCoordinateSystemTrafo USE_GTEST_MAIN)
 add_opalx_test(TestIndexMap USE_GTEST_MAIN)
 add_opalx_test(TestOrbitThreader USE_GTEST_MAIN)
+add_opalx_test(TestTpsLinearTransferMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestTpsLinearTransferMapMPI SOURCES TestTpsLinearTransferMap.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestSpectralTunes USE_GTEST_MAIN)
 add_opalx_test(TestOneTurnMap USE_GTEST_MAIN)
 add_opalx_test(TestTrackReferenceStep USE_GTEST_MAIN)
@@ -22,7 +25,19 @@ add_opalx_test(TestBorisMidpoint USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitInitialState USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitSolver USE_GTEST_MAIN)
 add_opalx_test(TestLinearMapEigenAnalysis USE_GTEST_MAIN)
+add_opalx_test(TestTpsClosedOrbitMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestTpsClosedOrbitMapMPI SOURCES TestTpsClosedOrbitMap.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN)
 
 add_opalx_test(TestCyclotronProbe USE_GTEST_MAIN)
 add_opalx_test(TestCyclotronProbeMPI SOURCES TestCyclotronProbe.cpp NUM_PROCS 2 USE_GTEST_MAIN)
+
+add_opalx_test(TestTransferMapStorageLifecycle NO_MPI LABELS tps)
+add_opalx_test(TestTransferMapStorageMPI SOURCES TestOrbitThreader.cpp NUM_PROCS 2
+               USE_GTEST_MAIN LABELS tps
+               ARGS --gtest_filter=OrbitThreaderTest.TpsCompositionKeepsSharedOverlapAndNonzeroOwnerlessTail:OrbitThreaderTest.CompleteOwnerlessPassSurvivesBuilderAndFailedRecalculation)
+
+add_opalx_test(TestTpsLinearMapAlgebra USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestTpsLinearMapAlgebraMPI SOURCES TestTpsLinearMapAlgebra.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)

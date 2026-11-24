@@ -1,7 +1,17 @@
 PROJECT_NAME = "OPALX TPS"
 PROJECT_NUMBER = @PROJECT_VERSION@
 OUTPUT_DIRECTORY = @PROJECT_BINARY_DIR@/docs/tps
-INPUT = @PROJECT_SOURCE_DIR@/src/tps @PROJECT_SOURCE_DIR@/unit_tests/tps/examples
+INPUT = @PROJECT_SOURCE_DIR@/src/tps @PROJECT_SOURCE_DIR@/unit_tests/tps/examples \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearTransferMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearTransferMap.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsClosedOrbitMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsClosedOrbitMap.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/LinearMapEigenAnalysis.h \
+        @PROJECT_SOURCE_DIR@/src/Structure/LinearTransferMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/LinearTransferMapBuilder.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitSolver.h
 RECURSIVE = YES
 FILE_PATTERNS = *.h *.hpp *.cpp *.dox *.md
 EXTRACT_ALL = YES
