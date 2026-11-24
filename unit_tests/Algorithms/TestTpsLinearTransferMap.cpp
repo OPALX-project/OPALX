@@ -237,16 +237,16 @@ TEST_F(TpsLinearTransferMapTest, RejectsInvalidMatrixAndReferences) {
 }
 
 TEST_F(TpsLinearTransferMapTest, PersistentRecordOwnsPolynomialAndCompensatedMetadata) {
-    auto matrix = identity();
-    matrix(0, 3) = .27;
-    matrix(5, 1) = -.19;
-    auto draft = segment(matrix, boundary(0, .2), boundary(1, -.3));
+    auto matrix                       = identity();
+    matrix(0, 3)                      = .27;
+    matrix(5, 1)                      = -.19;
+    auto draft                        = segment(matrix, boundary(0, .2), boundary(1, -.3));
     draft.entrance.positionCorrection = {1e-17, 2e-17, -3e-17};
-    draft.exit.timeCorrection = 1e-20;
-    draft.exit.pathLengthCorrection = -2e-17;
-    draft.segment = 7;
-    draft.activeElements = {"FRINGE"};
-    const auto stored = std::make_shared<const LinearTransferMap>(draft, "record:7");
+    draft.exit.timeCorrection         = 1e-20;
+    draft.exit.pathLengthCorrection   = -2e-17;
+    draft.segment                     = 7;
+    draft.activeElements              = {"FRINGE"};
+    const auto stored  = std::make_shared<const LinearTransferMap>(draft, "record:7");
     draft.matrix(0, 3) = 99;
     draft.activeElements.clear();
     expectMatrix(stored->polynomial(), matrix);
@@ -258,5 +258,6 @@ TEST_F(TpsLinearTransferMapTest, PersistentRecordOwnsPolynomialAndCompensatedMet
     EXPECT_EQ(stored->metadata().exit.pathLengthCorrection, -2e-17);
     const auto jacobian = stored->matrix();
     for (unsigned i = 0; i < 6; ++i)
-        for (unsigned j = 0; j < 6; ++j) EXPECT_EQ(jacobian(i, j), matrix(i, j));
+        for (unsigned j = 0; j < 6; ++j)
+            EXPECT_EQ(jacobian(i, j), matrix(i, j));
 }

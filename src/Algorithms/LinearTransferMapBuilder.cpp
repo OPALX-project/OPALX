@@ -4,8 +4,8 @@
 #include <iterator>
 #include "Algorithms/CompensatedSum.h"
 #include "Algorithms/MapExitRoot.h"
-#include "Algorithms/TpsLinearMapAlgebra.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
+#include "Algorithms/TpsLinearMapAlgebra.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 #include "tps/Map.hpp"
@@ -365,9 +365,9 @@ LinearTransferMapDraft LinearTransferMapBuilder::makeLinearTransferMap(
     result.entrance                  = entrance;
     result.exit                      = exit;
     result.segment                   = segment;
-    const auto diagnostics = opalx::maps::diagnoseLinearMap(result.matrix);
-    result.determinantResidual = diagnostics.determinantResidual;
-    result.symplecticResidual = diagnostics.symplecticResidual;
+    const auto diagnostics           = opalx::maps::diagnoseLinearMap(result.matrix);
+    result.determinantResidual       = diagnostics.determinantResidual;
+    result.symplecticResidual        = diagnostics.symplecticResidual;
     result.includesOverlappingFields = false;
     return result;
 }
@@ -564,7 +564,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     for (const auto& segment : result.segments)
         handles.push_back(segment.map);
     const auto diagnostics = opalx::maps::diagnoseLinearMap(combined);
-    result.pass = std::shared_ptr<const TransferMapPass>(new TransferMapPass(
+    result.pass            = std::shared_ptr<const TransferMapPass>(new TransferMapPass(
             passId, std::move(handles), std::move(*composed), diagnostics.determinantResidual,
             diagnostics.symplecticResidual));
     return result;

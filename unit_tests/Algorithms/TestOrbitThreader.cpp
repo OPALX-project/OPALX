@@ -1495,7 +1495,7 @@ TEST_F(OrbitThreaderTest, NominalDriftMapIncludesNeighbourFieldWithoutOwningItsS
     // Acceleration in the nominal drift must change its momentum transfer, not act as a drift.
     EXPECT_GT(std::abs(maps[1].map->matrix()(5, 5) - 1.0), 1.e-4);
     const auto left = maps[1].map->matrix(), right = maps[0].map->matrix();
-    const auto product = prod(left, right);
+    const auto product  = prod(left, right);
     const auto combined = *threader.getCombinedLinearTransferMap();
     // Dense and TPS products can sum terms in different orders. Check each against
     // a long-double dot product using gamma_12=sum/product roundoff for six terms.
