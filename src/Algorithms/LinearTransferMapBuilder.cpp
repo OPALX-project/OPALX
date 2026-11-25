@@ -479,13 +479,35 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         return left.element->getName() < right.element->getName();
     });
 
+    // Collapse near-coincident body events onto one complete reference state.
+    // Anchor each group to its first event (not to successive neighbours), so a
+    // chain of short intervals cannot erase an arbitrarily long physical span.
+    // This changes ownership boundaries only; ray integration still sums all fields.
+    constexpr double minimumSegmentLength = 1.0e-12;
+    for (std::size_t first = 0; first < events.size();) {
+        std::size_t end = first + 1;
+        while (end < events.size()
+               && events[end].state.pathLength - events[first].state.pathLength
+                          <= minimumSegmentLength)
+            ++end;
+        auto shared        = events[first].state;
+        const auto& start  = referenceSamples_m.front().state;
+        const auto& finish = referenceSamples_m.back().state;
+        if (shared.pathLength - start.pathLength <= minimumSegmentLength)
+            shared = start;
+        else if (finish.pathLength - shared.pathLength <= minimumSegmentLength)
+            shared = finish;
+        for (std::size_t i = first; i < end; ++i)
+            events[i].state = shared;
+        first = end;
+    }
+
     std::vector<Segment> segments;
     IndexMap::value_t active =
             itsOpalBeamline_m.getBodyElements(referenceSamples_m.front().state.position);
     LinearTransferMapReference segmentEntrance = referenceSamples_m.front().state;
-    constexpr double minimumSegmentLength      = 1.0e-12;
     for (const auto& event : events) {
-        if (event.state.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+        if (event.state.pathLength > segmentEntrance.pathLength) {
             segments.push_back({segmentEntrance, event.state, active});
         }
         if (event.entering) {
@@ -496,7 +518,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         segmentEntrance = event.state;
     }
     const auto& finalState = referenceSamples_m.back().state;
-    if (finalState.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+    if (finalState.pathLength > segmentEntrance.pathLength) {
         segments.push_back({segmentEntrance, finalState, active});
     }
 

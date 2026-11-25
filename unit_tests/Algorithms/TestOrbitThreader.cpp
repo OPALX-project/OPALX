@@ -1,3 +1,4 @@
+#include <tps/Map.hpp>
 #include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
@@ -2021,4 +2022,51 @@ TEST_F(OrbitThreaderTest, PersistentPassDoesNotKeepNominalOwnersAlive) {
     ASSERT_TRUE(retained);
     EXPECT_TRUE(retained->available());
     EXPECT_NEAR(retained->matrix()(0, 1), .1, 1e-9);
+}
+
+TEST_F(OrbitThreaderTest, NearCoincidentMapBoundariesShareReferenceStates) {
+    // Zero-gradient quadrupoles supply independent body boundaries in free drift.
+    for (double gap : {-5e-13, 0.0, 5e-13, 5e-11}) {
+        SCOPED_TRACE(gap);
+        auto bunch = makeBunch(0);
+        DummyBeamline line;
+        DefaultVisitor visitor(line, false, false);
+        OpalBeamline beamline;
+        auto first  = makePlacedQuadrupole("FIRST", .1, .02, 0);
+        auto second = makePlacedQuadrupole("SECOND", .1, .12 + gap, 0);
+        beamline.visit(*first, visitor, *bunch);
+        beamline.visit(*second, visitor, *bunch);
+        beamline.prepareSections();
+        PartData particle(1, 9.382720813e8, 1e6);
+        auto start     = LinearTransferMapBuilder::initialFrame(beamline, {0, 0, 1});
+        start.momentum = {0, 0, 1};
+        for (double length : {.3, .22 + gap + 5e-13}) {
+            SCOPED_TRACE(length);
+            std::vector<LinearTransferMapBuilder::ReferenceSample> samples;
+            for (int i = 0; i <= 12; ++i) {
+                auto state        = start;
+                state.position(2) = state.pathLength = std::min(.025 * i, length);
+                state.time = state.pathLength * std::sqrt(2.) / Physics::c;
+                samples.push_back({state});
+                if (state.pathLength == length) break;
+            }
+            LinearTransferMapBuilder::Settings settings;
+            // Remove central-difference O(h^2) error from the analytic R56 check.
+            settings.richardsonLevels = 1;
+            LinearTransferMapBuilder builder(beamline, particle, 1e-11, settings);
+            const auto result = builder.build(samples, 0);
+            ASSERT_TRUE(result.pass);
+            const auto& maps = result.pass->segments();
+            ASSERT_GE(maps.size(), 3u);
+            for (std::size_t i = 1; i < maps.size(); ++i)
+                EXPECT_EQ(
+                        maps[i - 1]->polynomial().context().output(),
+                        maps[i]->polynomial().context().input());
+            EXPECT_DOUBLE_EQ(maps.front()->metadata().entrance.pathLength, 0);
+            EXPECT_DOUBLE_EQ(maps.back()->metadata().exit.pathLength, length);
+            EXPECT_NEAR(result.pass->matrix()(0, 1), length, 1e-9);
+            EXPECT_NEAR(result.pass->matrix()(2, 3), length, 1e-9);
+            EXPECT_NEAR(result.pass->matrix()(4, 5), length / 2, 1e-7);
+        }
+    }
 }

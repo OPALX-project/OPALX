@@ -23,7 +23,10 @@ class PartData;
  * exactly; there is no implicit reference/frame/normalization conversion. This requires an active
  * Kokkos runtime and serialized host TPS algebra. Finite differences, Richardson extrapolation and
  * the input-difference solve are independent of the TPS composition and retain their existing
- * numerical implementation.
+ * numerical implementation. Body events within a first-event-anchored path span
+ * of 1e-12 m share one complete reference state before maps are constructed.
+ * Endpoint groups use the pass endpoint; all positive remaining intervals are
+ * transported. Coalescing changes owner boundaries, never the summed field model.
  *
  * Two independent selections are used: nominal body containment splits the sampled
  * orbit into constant-owner segments, while each private ray selects field supports
