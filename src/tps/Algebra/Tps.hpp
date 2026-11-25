@@ -539,7 +539,8 @@ namespace tps {
             Tps<T> z(x[0]);
 
             if (int maxOrd = getMaxOrder()) {
-                const Array1D<TpsSubstitution>& table = rep->help->getSubTable();
+                // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+                const Array1D<TpsSubstitution> table = rep->help->getSubTable();
                 Array1D<Tps<T>> product(maxOrd + 1);
                 product[0] = Tps<T>(T(1));
 
@@ -569,7 +570,8 @@ namespace tps {
         Tps<T> z(x[0]);
 
         if (int maxOrd = getMaxOrder()) {
-            const Array1D<TpsSubstitution>& table = rep->help->getSubTable();
+            // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+            const Array1D<TpsSubstitution> table = rep->help->getSubTable();
             Array1D<Tps<T>> product(maxOrd + 1);
             product[0] = Tps<T>(T(1));
             int trunc  = getTruncOrder();
@@ -597,7 +599,8 @@ namespace tps {
         T z        = x[0];
 
         if (int maxOrd = getMaxOrder()) {
-            const Array1D<TpsSubstitution>& table = rep->help->getSubTable();
+            // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+            const Array1D<TpsSubstitution> table = rep->help->getSubTable();
             Array1D<T> product(maxOrd + 1);
             product[0] = T(1);
 

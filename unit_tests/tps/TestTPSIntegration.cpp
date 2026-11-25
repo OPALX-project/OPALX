@@ -122,4 +122,29 @@ namespace {
             EXPECT_EQ(error.what(), "Monomial index out of range.");
         }
     }
+    TEST_F(TPSIntegration, NonlinearSubstitutionSurvivesFreshCacheGrowth) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(6);
+        for (int variables : {3, 4, 5}) {
+            SCOPED_TRACE(variables);
+            const auto x      = Series::makeVariable(variables, 0);
+            const auto y      = Series::makeVariable(variables, 1);
+            const auto source = Series::makeVarPower(variables, 0, 3) + 2.0 * y + 1.0;
+            tps::VpsMap<double> inner(variables, variables);
+            for (int i = 0; i < variables; ++i)
+                inner[i] = Series::makeVariable(variables, i);
+            inner[0] = x * x;
+            // Do not build the degree-six oracle before substitution: a fresh
+            // degree-three traversal must survive product growth to degree six.
+            const auto result = source.substitute(inner);
+            tps::Vector<double> point(variables, .2);
+            point[0] = .5;
+            EXPECT_NEAR(result.evaluate(point), std::pow(.5, 6) + 1.4, 2e-13);
+            const auto expected = Series::makeVarPower(variables, 0, 6) + 2.0 * y + 1.0;
+            EXPECT_EQ(result.getMaxOrder(), 6);
+            for (int i = 0; i < expected.getSize(); ++i)
+                EXPECT_DOUBLE_EQ(result.getCoefficient(i), expected.getCoefficient(i));
+        }
+        Series::setGlobalTruncOrder(Series::EXACT);
+    }
 }  // namespace

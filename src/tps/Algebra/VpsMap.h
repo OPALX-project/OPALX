@@ -198,7 +198,8 @@ namespace tps {
         }
 
         // This statement makes sure that the substitution table exists.
-        const Array1D<TpsSubstitution>& table =
+        // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+        const Array1D<TpsSubstitution> table =
                 TpsData::getTpsData(this->getTopOrder(), this->getVariables())->getSubTable();
 
         // Copy the constant term.
@@ -296,7 +297,8 @@ namespace tps {
         }
 
         // This statement makes sure that the substitution table exists.
-        const Array1D<TpsSubstitution>& table =
+        // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+        const Array1D<TpsSubstitution> table =
                 TpsData::getTpsData(trunc, this->getVariables())->getSubTable();
 
         // Highest order present in this Vps.
