@@ -1,4 +1,4 @@
-// Copyright: see NOTICE and LICENSE.
+// Copyright: see LICENSE.
 #ifndef OPAL_SINGULAR_MATRIX_ERROR_H
 #define OPAL_SINGULAR_MATRIX_ERROR_H
 

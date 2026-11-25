@@ -15,14 +15,16 @@ int main() {
         S::setGlobalTruncOrder(4);
         auto q = S::makeVariable(2, 0), p = S::makeVariable(2, 1);
         tps::VpsMap<double> drift(2, 2), kick(2, 2), scale(2, 2);
-        drift[0]         = q + 2.0 * p;
-        drift[1]         = p;
-        kick[0]          = q;
-        kick[1]          = p - 3.0 * q * q;
-        scale[0]         = 2.0 * q;
-        scale[1]         = 0.5 * p;
-        auto combined    = scale.substitute(kick.substitute(drift, 4), 4);
-        auto alternative = scale.substitute(kick, 4).substitute(drift, 4);
+        drift[0] = q + 2.0 * p;
+        drift[1] = p;
+        kick[0]  = q;
+        kick[1]  = p - 3.0 * q * q;
+        scale[0] = 2.0 * q;
+        scale[1] = 0.5 * p;
+        //! [raw map composition]
+        const auto driftKick = kick.substitute(drift, 4);
+        auto combined        = scale.substitute(driftKick, 4);
+        auto alternative     = scale.substitute(kick, 4).substitute(drift, 4);
         tps::Vector<double> x(2, 0.0);
         x[0]            = 0.1;
         x[1]            = 0.2;
@@ -34,6 +36,16 @@ int main() {
             near(evaluated[i], sequential[i]);
             near(evaluated[i], other[i]);
         }
+        // Analytic derivative of (q+2p, p-3(q+2p)^2) at (0.1, 0.2).
+        const auto driftKickValue = driftKick.constantTerm(x);
+        near(driftKickValue[0], 0.5);
+        near(driftKickValue[1], -0.55);
+        const auto jacobian = driftKick.linearTerms(x);
+        near(jacobian(0, 0), 1);
+        near(jacobian(0, 1), 2);
+        near(jacobian(1, 0), -3);
+        near(jacobian(1, 1), -5);
+        //! [raw map composition]
         // Preserve a standalone linear solve while decoupling it from the TPS headers.
         tps::Matrix<double> matrix(2, 2, 0.0);
         matrix(0, 0) = 2;

@@ -1,7 +1,7 @@
 #ifndef TPS_TpsMath_HH
 #define TPS_TpsMath_HH
 #include "Utilities/DomainError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Overloaded template functions:
 //   Elementary functions acting on Tps<T> objects.

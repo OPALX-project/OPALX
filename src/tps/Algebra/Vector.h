@@ -1,7 +1,7 @@
 #ifndef TPS_VECTOR_HPP
 #define TPS_VECTOR_HPP
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
+// Copyright: see LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
 #include <KokkosBatched_Axpy.hpp>
 #include <KokkosBatched_Dot.hpp>
 #include <KokkosBlas1_mult.hpp>

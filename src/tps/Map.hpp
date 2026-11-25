@@ -37,6 +37,8 @@ namespace tps {
      * Construction checks component dimensions, degree and available precision.
      * Global scalar truncation is temporarily overridden/restored by operations;
      * external synchronization is still required for concurrent map algebra.
+     * @test tps.map_context checks composition, chart joins and precision restoration.
+     * @snippet map_context.cpp context map composition
      */
     template <class T = double>
     class Map {

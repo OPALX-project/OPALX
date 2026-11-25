@@ -2,7 +2,7 @@
 #define TPS_VpsMap_HH
 #include "Utilities/DivideError.h"
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Class: VpsMap
 
@@ -21,7 +21,8 @@ namespace tps {
     /** @brief Vector-valued polynomial map with component-wise TPS storage.
      * @details Input and output dimensions may differ. F.substitute(G,p) computes
      * the degree-p projection of F composed with G: G acts first.
-     * @see tps_mathematics
+     * @test tps.workflow_algebra checks ordered composition, analytic values and Jacobians.
+     * @snippet workflow_algebra.cpp raw map composition
      */
 
     template <class T>

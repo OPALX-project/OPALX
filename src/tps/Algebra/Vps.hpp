@@ -3,7 +3,7 @@
 #include "Utilities/DivideError.h"
 #include "Utilities/FormatError.h"
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Class: Vps
 //   Vector truncated power series in n variables.

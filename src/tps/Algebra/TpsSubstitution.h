@@ -1,4 +1,4 @@
-// Copyright: see NOTICE and LICENSE (original OPAL/CLASSIC sources).
+// Copyright: see LICENSE (original OPAL/CLASSIC sources).
 #ifndef TPS_TPS_SUBSTITUTION_H
 #define TPS_TPS_SUBSTITUTION_H
 namespace tps {

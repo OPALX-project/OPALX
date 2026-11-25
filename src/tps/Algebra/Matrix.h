@@ -1,7 +1,7 @@
 #ifndef TPS_MATRIX_HPP
 #define TPS_MATRIX_HPP
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
+// Copyright: see LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
 #include <KokkosBatched_Copy_Decl.hpp>
 #include <KokkosBatched_Gemm_Decl.hpp>
 #include <KokkosBlas2_serial_gemv.hpp>

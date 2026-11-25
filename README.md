@@ -282,7 +282,7 @@ existing divide/domain/format categories. `SingularMatrixError` derives from
 Catch `OpalException` explicitly; it does not derive from `std::exception`.
 Map/context validation retains standard exceptions and device evaluation returns
 status values. `TPS::tps` links the shared `opalx_exceptions` implementation.
-Original TPS attribution and license terms are retained in root `NOTICE` and `LICENSE`.
+The repository license is provided in root `LICENSE`.
 The historical baseline remains in the standalone test bed; it is not built here.
 
 With `OPALX_ENABLE_UNIT_TESTS=ON`, run `ctest --test-dir <build> -L tps

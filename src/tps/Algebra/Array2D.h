@@ -2,7 +2,7 @@
 #define TPS_Array2D_HH
 #include "Utilities/CLRangeError.h"
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Template class: Array2D
 

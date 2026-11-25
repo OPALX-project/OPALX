@@ -2,7 +2,7 @@
 #define TPS_Vps_HH
 #include "Utilities/CLRangeError.h"
 #include "Utilities/DivideError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Class: Vps
 

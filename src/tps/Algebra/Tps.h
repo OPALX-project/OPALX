@@ -3,7 +3,7 @@
 #include "Utilities/CLRangeError.h"
 #include "Utilities/DivideError.h"
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Template Class: Tps<class T>
 //   Truncated power series in n variables of type T.

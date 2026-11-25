@@ -1,6 +1,6 @@
 #include "Utilities/CLRangeError.h"
 #include "Utilities/LogicalError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Class: TpsMonomial
 //   Index set for a Tps monomial.

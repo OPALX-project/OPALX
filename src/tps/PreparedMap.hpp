@@ -16,6 +16,9 @@ namespace tps {
      * Construction uploads and fences its execution space before returning. Source
      * maps can subsequently be destroyed. Chart metadata stays on the host.
      * Preparation still uses host algebra/cache access and needs its synchronization.
+     * @test tps.prepared_map checks device evaluation against host and analytic results,
+     * including strided buffers, float/double, failure statuses and allocation-free execution.
+     * @snippet prepared_map.cpp prepared map evaluation
      */
     template <DeviceMapScalar T, class ExecutionSpace = Kokkos::DefaultExecutionSpace>
     class PreparedMap {

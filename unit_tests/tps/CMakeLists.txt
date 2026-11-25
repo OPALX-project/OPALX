@@ -27,10 +27,6 @@ foreach(variables 1 2 6)
                    CTEST_NAME tps.zero_order_${mode}_${variables})
   endforeach()
 endforeach()
-foreach(example maps context_maps prepared_evaluation)
-  add_opalx_test(tps_example_${example} SOURCES examples/${example}.cpp NUM_PROCS 1
-                 TIMEOUT 60 LABELS tps CTEST_NAME tps.example_${example})
-endforeach()
 foreach(order forward reverse)
   # OPALX-linked custom-main tests need the normal launcher/uenv for MPI libraries.
   # Keep their existing executable and CTest names while sharing launch policy.

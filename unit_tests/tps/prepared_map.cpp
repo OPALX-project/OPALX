@@ -72,6 +72,7 @@ namespace {
         // The evaluator must not observe a subsequently changed host global order.
         const int old = tps::Tps<T>::getGlobalTruncOrder();
         tps::Tps<T>::setGlobalTruncOrder(0);
+        //! [prepared map evaluation]
         Kokkos::parallel_for(
                 "prepared map comparison", count, KOKKOS_LAMBDA(int i) {
                     auto in   = Kokkos::subview(input, i, Kokkos::ALL),
@@ -96,6 +97,7 @@ namespace {
             near(result(i, 0), 2 + x + 2 * y + 3 * x * y + std::pow(x, 5), tolerance);
             near(result(i, 1), -1 + z * z - 2 * x * y, tolerance);
         }
+        //! [prepared map evaluation]
         // Copying the handle retains read-only data after source/prepared owner destruction.
         auto surviving = [] {
             tps::PreparedMap<T> temporary(sourceMap<T>());

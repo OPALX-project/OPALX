@@ -40,7 +40,9 @@ int main() {
     Kokkos::ScopeGuard kokkos;
     try {
         auto a = chart("A"), b = chart("B"), c = chart("C");
-        S::setGlobalTruncOrder(4);
+        // Fresh executable: construction/composition works without global-order setup.
+        require(S::getGlobalTruncOrder() == S::EXACT, "default scalar order");
+        //! [context map composition]
         auto q = S::makeVariable(2, 0), p = S::makeVariable(2, 1);
         std::array<S, 2> drift{q + 2.0 * p, p}, kick{q, p - 3.0 * q * q};
         double& retained = drift[0][0];
@@ -63,6 +65,7 @@ int main() {
         near(jac(0, 1), 2);
         near(jac(1, 0), -3);
         near(jac(1, 1), -5);
+        //! [context map composition]
         auto id   = tps::identityMap<double>(a, 4);
         auto same = tps::compose(d, id, 4).evaluate(x);
         near(same[0], 0.5);

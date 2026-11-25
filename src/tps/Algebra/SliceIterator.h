@@ -1,7 +1,7 @@
 #ifndef TPS_SliceIterator_HH
 #define TPS_SliceIterator_HH
 #include "Utilities/CLRangeError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Template class: SliceIterator
 

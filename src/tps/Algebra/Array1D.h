@@ -1,7 +1,7 @@
 #ifndef TPS_Array1D_HH
 #define TPS_Array1D_HH
 #include "Utilities/CLRangeError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Template class: Array1D
 

@@ -1,7 +1,7 @@
 #ifndef TPS_TpsData_H
 #define TPS_TpsData_H
 #include "Utilities/CLRangeError.h"
-// Copyright: see NOTICE and LICENSE
+// Copyright: see LICENSE
 
 // Class: TpsData
 
