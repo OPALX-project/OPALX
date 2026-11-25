@@ -251,6 +251,25 @@ namespace opalx::run {
         }
 
         /**
+         * @brief For every beam, the index of the beam whose reference particle it follows
+         *        (resolveDecayRoots()): the first beam of its decay chain, or itself.
+         * @param beams The beams of the TRACK, in the order of @p beamNames.
+         */
+        std::vector<std::size_t> decayRootsOf(
+                const std::vector<BeamDescription>& beams,
+                const std::vector<std::string>& beamNames) {
+            std::vector<std::string> daughterNames;
+            std::vector<bool> hasDecay;
+            for (const BeamDescription& b : beams) {
+                daughterNames.push_back(b.daughterBeam);
+                const std::vector<std::string>& processes = b.globalProcesses;
+                hasDecay.push_back(
+                        std::find(processes.begin(), processes.end(), "DECAY") != processes.end());
+            }
+            return resolveDecayRoots(beamNames, daughterNames, hasDecay);
+        }
+
+        /**
          * @brief Wire daughter containers to cross-container processes (e.g. muon decay ->
          * electron).
          * @note Must be called after setupGlobalProcesses - reads processes from the containers.
@@ -580,27 +599,15 @@ namespace opalx::run {
             BinningCmd::printInfo(*gmsg << level1, *binning) << endl;
         }
 
+        // Copy run descritpion values
         const TrackDescription& track             = description.track;
         const RunContext& context                 = description.context;
         const OptionValues& options               = description.options;
-        const std::vector<std::string>& beamNames = track.beamNames;
-
-        // Create vector of BEAMs (validate() checked that they exist).
+        const std::vector<std::string>& beamNames = description.track.beamNames;
         const std::vector<BeamDescription>& beams = description.beams;
-        // Decay chains: a beam named as another beam's DAUGHTERBEAM uses the reference particle of
-        // the first beam of its chain. It has no momentum and no emission sources of its own.
-        std::vector<std::size_t> decayRoots;
-        {
-            std::vector<std::string> daughterNames;
-            std::vector<bool> hasDecay;
-            for (const BeamDescription& b : beams) {
-                daughterNames.push_back(b.daughterBeam);
-                const std::vector<std::string>& processes = b.globalProcesses;
-                hasDecay.push_back(
-                        std::find(processes.begin(), processes.end(), "DECAY") != processes.end());
-            }
-            decayRoots = resolveDecayRoots(beamNames, daughterNames, hasDecay);
-        }
+
+        // Resolve daughter and partent containers for decay process
+        const std::vector<std::size_t> decayRoots = decayRootsOf(beams, beamNames);
         *gmsg << level1 << "* RUN resolved beams: ";
         for (size_t i = 0; i < beamNames.size(); ++i) {
             *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
@@ -611,7 +618,7 @@ namespace opalx::run {
             *gmsg << level1 << b.banner << endl;
         }
 
-        // Vectors for each species
+        // Quantities for each container (beam)
         std::vector<double> macrocharges;
         std::vector<double> macromasses;
         std::vector<std::vector<ObjectValues>> emissionSourcesLists;

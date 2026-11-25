@@ -74,18 +74,25 @@ TrackRun::TrackRun()
 TrackRun::~TrackRun() {}
 
 void TrackRun::execute() {
-    // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy
-    // as text and stop: nothing is tracked and no other output is written.
     const opalx::run::TrackDescription* track = TrackCmd::openTrack();
     if (track == nullptr) {
         throw OpalException("TrackRun::execute", "RUN is only valid inside TRACK.");
     }
+
     OpalData* opal = OpalData::getInstance();
+
+    // build run description
     opalx::run::RunDescription description =
             opalx::run::freeze(*this, *track, ++opal->numberOfRuns);
+    
+    // validate parsed description
     std::vector<std::string> errors = opalx::run::validate(description);
+
+    // build runtime elements
     std::vector<std::shared_ptr<ElementBase>> elements =
             opalx::run::buildElements(description.line, description.context.p0, errors);
+
+    // --check run
     if (opal->checkOnly) {
         const std::string fileName = opalx::run::dumpFileName(description);
         if (ippl::Comm->rank() == 0) {
@@ -95,15 +102,32 @@ void TrackRun::execute() {
         *gmsg << level1 << "* --check: wrote the run description to " << fileName
               << "; RUN does not track." << endl;
     }
-    // All input errors of this RUN at once, before anything is allocated.
+
+    // most input errors caught here
     if (!errors.empty()) {
         throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
     }
-    if (opal->checkOnly) return;
 
-    // The tracker is destroyed before the objects it borrows.
+    // --check run ends here
+    if (opal->checkOnly){
+        return;
+    } 
+
+    /**
+     * @brief Builds tracking objects
+     * Tracking objects:
+     *  - PartBunch
+     *  - Containers
+     *  - Solver
+     *  - Beamline
+     *  - Global Processes: decay, ...
+     */
     opalx::run::RunObjects objects;
     TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
-    auto tracker        = std::make_unique<ParallelTracker>(std::move(setup));
+
+    // Build tracker
+    auto tracker = std::make_unique<ParallelTracker>(std::move(setup));
+
+    // Run tracker -> Start simulation
     tracker->execute();
 }
