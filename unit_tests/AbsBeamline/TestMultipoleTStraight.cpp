@@ -17,11 +17,11 @@
 
 #include <array>
 #include <vector>
+#include "../BunchBeam.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
-#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
@@ -198,9 +198,7 @@ public:
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
-                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
-                /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
+                /*beams=*/std::vector{opalx::test::bunchBeam(*opBeam, numParticles)},
                 /*lbt=*/1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);

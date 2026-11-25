@@ -14,15 +14,22 @@
 #include <string>
 #include <vector>
 
+#include "Algorithms/PartData.h"
 #include "Moments/BeamMoments.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "PartBunch/ParticleContainer.hpp"
 
-namespace opalx::run {
-    struct BeamDescription;
-}  // namespace opalx::run
+/// What PartBunch needs to know about one beam; one entry per particle container.
+struct BunchBeam {
+    double chargePerParticle = 0;      ///< Macro charge per particle (C).
+    double massPerParticle   = 0;      ///< Macro mass per particle (GeV/c^2).
+    PartData reference;                ///< Charge, rest mass and start momentum of the species.
+    std::string particleName;          ///< PARTICLE of the BEAM.
+    bool hasSpin             = false;  ///< Store Pol and track spin (POLARIZATION is set).
+    std::size_t numParticles = 0;      ///< Particles to reserve room for.
+};
 
 /**
  * @brief All beams of one RUN.
@@ -52,20 +59,15 @@ public:
     /**
      * @brief Construct a multi-beam bunch and its initial Cartesian particle layout.
      *
-     * @param qi                     Macrocharge per container (C).
-     * @param mi                     Macromass per container (GeV/c²).
-     * @param beams                  One beam per container: reference particle, PARTICLE name
-     *                               and whether it tracks spin (POLARIZATION).
-     * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
-     * @param lbt                    OPTION LOADBALANCINGTHRESHOLD; only printed by print().
-     * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
-     * @param qmAttributes           Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
-     * @param aggressiveStateSync    OPTION AGGRESSIVE_STATE_SYNC, see BunchStateHandler.
+     * @param beams                One entry per container, in container order.
+     * @param lbt                  OPTION LOADBALANCINGTHRESHOLD; only printed by print().
+     * @param domainConfig         Immutable Cartesian domain and particle-layout setup.
+     * @param qmAttributes         Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
+     * @param aggressiveStateSync  OPTION AGGRESSIVE_STATE_SYNC, see BunchStateHandler.
+     * @throws OpalException if @p beams is empty.
      */
     PartBunch(
-            std::vector<double> qi, std::vector<double> mi,
-            const std::vector<opalx::run::BeamDescription>& beams,
-            std::vector<size_t> totalParticlesPerBeam, double lbt,
+            const std::vector<BunchBeam>& beams, double lbt,
             opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig,
             bool qmAttributes = false, bool aggressiveStateSync = false);
 

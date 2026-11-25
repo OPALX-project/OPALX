@@ -53,8 +53,8 @@
  *      scale = 1, frequency = 1, phase = 0
  *   Individual tests override only what they need.
  */
+#include "../BunchBeam.h"
 #include "../TemporaryDirectory.h"
-#include "Track/FreezeRun.h"
 
 #include <gtest/gtest.h>
 #include <limits>
@@ -497,9 +497,7 @@ protected:
         beam = std::make_shared<Beam>();
         Beam::defineBuiltins();
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0},
-                std::vector{opalx::run::describeBeamForBunch(*Beam::find("UNNAMED_BEAM"))},
-                std::vector<size_t>{count}, 1.0,
+                std::vector{opalx::test::bunchBeam(*Beam::find("UNNAMED_BEAM"), count)}, 1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(count);
         return bunch;

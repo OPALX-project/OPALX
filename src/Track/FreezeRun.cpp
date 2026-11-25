@@ -325,14 +325,6 @@ namespace opalx::run {
         return run;
     }
 
-    BeamDescription describeBeamForBunch(const Beam& beam) {
-        BeamDescription d;
-        d.reference       = beam.getReference();
-        d.particleName    = beam.getParticleName();
-        d.hasPolarization = beam.hasPolarization();
-        return d;
-    }
-
     LineDescription describeLine(const BeamSequence& sequence) {
         LineDescription description;
         description.name = sequence.getOpalName();

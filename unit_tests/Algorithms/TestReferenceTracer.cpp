@@ -1,4 +1,4 @@
-#include "Track/FreezeRun.h"
+#include "../BunchBeam.h"
 #include "gtest/gtest.h"
 
 #include "AbsBeamline/Multipole.h"
@@ -106,8 +106,7 @@ protected:
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0},
-                std::vector{opalx::run::describeBeamForBunch(*opBeam)}, std::vector<size_t>{0}, 1.0,
+                std::vector{opalx::test::bunchBeam(*opBeam, 0)}, 1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         return bunch;
     }

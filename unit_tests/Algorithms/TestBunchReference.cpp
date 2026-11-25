@@ -6,6 +6,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "AbsBeamline/Drift.h"
 #include "Algorithms/BunchReference.h"
@@ -57,9 +58,8 @@ namespace {
             Attributes::setPredefinedString(*beam->findAttribute("PARTICLE"), "PROTON");
             Attributes::setReal(*beam->findAttribute("PC"), 0.1);
             bunch_m = std::make_unique<PartBunch_t>(
-                    std::vector<double>(3, 1.0), std::vector<double>(3, 1.0),
-                    std::vector(3, opalx::run::describeBeamForBunch(*beam)),
-                    std::vector<size_t>(3, 8), 1.0, opalx::spacecharge::CartesianDomainConfig3D{});
+                    std::vector(3, opalx::test::bunchBeam(*beam, 8)), 1.0,
+                    opalx::spacecharge::CartesianDomainConfig3D{});
             auto pc = bunch_m->getParticleContainer(0);
             pc->createParticles(3);
             auto R = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());

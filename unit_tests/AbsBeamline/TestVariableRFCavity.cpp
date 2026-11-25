@@ -17,6 +17,7 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+#include "../BunchBeam.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/AbstractTimeDependence.h"
@@ -26,7 +27,6 @@
 #include "Physics/Units.h"
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
-#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 class TestVariableRFCavity : public testing::Test, public VariableRFCavity {
@@ -83,9 +83,7 @@ public:
         Beam::defineBuiltins();
         Beam* opBeam = Beam::find("UNNAMED_BEAM");
         auto bunch   = std::make_shared<PartBunch_t>(
-                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
-                /*beams=*/std::vector{opalx::run::describeBeamForBunch(*opBeam)},
-                /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
+                /*beams=*/std::vector{opalx::test::bunchBeam(*opBeam, numParticles)},
                 /*lbt=*/1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);

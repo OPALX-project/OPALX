@@ -11,8 +11,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../BunchBeam.h"
 #include "../TemporaryDirectory.h"
-#include "Track/FreezeRun.h"
 
 #include <memory>
 #include <random>
@@ -77,11 +77,9 @@ namespace {
             const double m1 = 0.938;
 
             bunch = std::make_shared<PartBunch_t>(
-                    std::vector<double>{q0, q1}, std::vector<double>{m0, m1},
                     std::vector{
-                            opalx::run::describeBeamForBunch(*testBeam),
-                            opalx::run::describeBeamForBunch(*testBeam)},
-                    std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
+                            opalx::test::bunchBeam(*testBeam, kParticlesPerBeam, q0, m0),
+                            opalx::test::bunchBeam(*testBeam, kParticlesPerBeam, q1, m1)},
                     /*lbt=*/1.0, storageConfig);
             q0_m = q0;
             q1_m = q1;
@@ -220,15 +218,10 @@ namespace {
         EXPECT_THROW(static_cast<void>(bunch->getPcRoot(2)), std::out_of_range);
     }
 
-    TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnQiSizeMismatch) {
+    TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsWithoutBeams) {
         EXPECT_THROW(
                 static_cast<void>(std::make_shared<PartBunch_t>(
-                        std::vector<double>{1.0}, std::vector<double>{1.0, 1.0},
-                        std::vector{
-                                opalx::run::describeBeamForBunch(*testBeam),
-                                opalx::run::describeBeamForBunch(*testBeam)},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0,
-                        storageConfig)),
+                        std::vector<BunchBeam>{}, 1.0, storageConfig)),
                 OpalException);
     }
 
@@ -244,12 +237,10 @@ namespace {
         std::shared_ptr<PartBunch_t> overlapBunch;
         ASSERT_NO_THROW(
                 overlapBunch = std::make_shared<PartBunch_t>(
-                        std::vector<double>{q0_m, q1_m}, std::vector<double>{m0_m, m1_m},
                         std::vector{
-                                opalx::run::describeBeamForBunch(*testBeam),
-                                opalx::run::describeBeamForBunch(*testBeam)},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0,
-                        overlapConfig));
+                                opalx::test::bunchBeam(*testBeam, kParticlesPerBeam, q0_m, m0_m),
+                                opalx::test::bunchBeam(*testBeam, kParticlesPerBeam, q1_m, m1_m)},
+                        1.0, overlapConfig));
 
         const auto& domain      = overlapBunch->cartesianDomain();
         const auto& localDomain = domain.layout().getLocalNDIndex();
@@ -273,9 +264,8 @@ namespace {
         overlapConfig.overlapCutoffCells = 1.0;
 
         const auto overlapBunch = std::make_shared<PartBunch_t>(
-                std::vector<double>{q0_m}, std::vector<double>{m0_m},
-                std::vector{opalx::run::describeBeamForBunch(*testBeam)},
-                std::vector<size_t>{kParticlesPerBeam}, 1.0, overlapConfig);
+                std::vector{opalx::test::bunchBeam(*testBeam, kParticlesPerBeam, q0_m, m0_m)}, 1.0,
+                overlapConfig);
         EXPECT_DOUBLE_EQ(
                 overlapBunch->getParticleContainer()->getP3MLayout().getCutoff(), 6.0 / 8.0);
     }

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
+#include "../BunchBeam.h"
 #include "../TemporaryDirectory.h"
-#include "Track/FreezeRun.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -71,11 +71,10 @@ namespace {
 
         std::unique_ptr<Bunch> makeBunch() {
             return std::make_unique<Bunch>(
-                    std::vector<double>{1.25e-12, -2.5e-12}, std::vector<double>{0.511e-3, 0.938},
                     std::vector{
-                            opalx::run::describeBeamForBunch(*beam),
-                            opalx::run::describeBeamForBunch(*beam)},
-                    std::vector<std::size_t>{16, 16}, 1.0, storageConfig, Options::useQMAttributes);
+                            opalx::test::bunchBeam(*beam, 16, 1.25e-12, 0.511e-3),
+                            opalx::test::bunchBeam(*beam, 16, -2.5e-12, 0.938)},
+                    1.0, storageConfig, Options::useQMAttributes);
         }
 
         void populate(Bunch& bunch) {

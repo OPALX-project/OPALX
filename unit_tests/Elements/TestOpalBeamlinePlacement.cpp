@@ -1,5 +1,5 @@
+#include "../BunchBeam.h"
 #include "Elements/PlacementResolver.h"
-#include "Track/FreezeRun.h"
 #include "gtest/gtest.h"
 
 #include "AbsBeamline/Drift.h"
@@ -112,9 +112,7 @@ protected:
         EXPECT_NE(opBeam, nullptr);
 
         auto bunch = std::make_shared<PartBunch_t>(
-                std::vector{1.0}, std::vector{1.0},
-                std::vector{opalx::run::describeBeamForBunch(*opBeam)},
-                std::vector<size_t>{numParticles}, 1.0,
+                std::vector{opalx::test::bunchBeam(*opBeam, numParticles)}, 1.0,
                 opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;

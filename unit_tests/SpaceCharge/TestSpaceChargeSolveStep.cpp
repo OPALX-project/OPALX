@@ -6,6 +6,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "../TemporaryDirectory.h"
 #include "Moments/BeamMoments.h"
@@ -75,9 +76,8 @@ namespace opalx::spacecharge {
                 directory_m.create("opalx-solve-step");
                 const auto beam = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
                 bunch_m         = std::make_unique<PartBunch_t>(
-                        std::vector<double>(2, 1e-15), std::vector<double>(2, 0.938),
-                        std::vector(2, opalx::run::describeBeamForBunch(*beam)),
-                        std::vector<size_t>(2, 8), 1.0, domain_m);
+                        std::vector(2, opalx::test::bunchBeam(*beam, 8, 1e-15, 0.938)), 1.0,
+                        domain_m);
                 const std::vector<Vector> positions{
                         Vector({1e-3, 0.0, -1e-3}), Vector({-1e-3, 5e-4, 0.0}),
                         Vector({0.0, -1e-3, 1e-3}), Vector({5e-4, 1e-3, 2e-3})};

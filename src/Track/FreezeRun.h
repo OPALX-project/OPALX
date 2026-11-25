@@ -9,7 +9,6 @@
 
 #include "Track/RunDescription.h"
 
-class Beam;
 class BeamSequence;
 class Object;
 
@@ -43,13 +42,6 @@ namespace opalx::run {
      *        in line order, nested lines entered.
      */
     LineDescription describeLine(const BeamSequence& sequence);
-
-    /**
-     * @brief The values of @p beam that PartBunch reads: the reference particle, the PARTICLE
-     *        name and whether POLARIZATION is set. The other fields are left empty.
-     * @note For the unit tests, which make a bunch without a RUN.
-     */
-    BeamDescription describeBeamForBunch(const Beam& beam);
 
 }  // namespace opalx::run
 

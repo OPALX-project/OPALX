@@ -2,6 +2,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "Algorithms/BeamStop.h"
 #include "Algorithms/StepSizeConfig.h"
@@ -36,9 +37,7 @@ namespace {
         static std::unique_ptr<PartBunch_t> makeBunch(const size_t beams) {
             const auto beam = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
             return std::make_unique<PartBunch_t>(
-                    std::vector<double>(beams, 1.0), std::vector<double>(beams, 1.0),
-                    std::vector(beams, opalx::run::describeBeamForBunch(*beam)),
-                    std::vector<size_t>(beams, 8), 1.0,
+                    std::vector(beams, opalx::test::bunchBeam(*beam, 8)), 1.0,
                     opalx::spacecharge::CartesianDomainConfig3D{});
         }
 

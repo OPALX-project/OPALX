@@ -623,12 +623,8 @@ namespace opalx::run {
         }
 
         // Quantities for each container (beam)
-        std::vector<double> macrocharges;
-        std::vector<double> macromasses;
         std::vector<std::vector<ObjectValues>> emissionSourcesLists;
         std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists;
-        macrocharges.reserve(beams.size());
-        macromasses.reserve(beams.size());
         emissionSourcesLists.reserve(beams.size());
         globalProcessesLists.resize(beams.size());
 
@@ -638,8 +634,6 @@ namespace opalx::run {
 
             const double macrocharge = b.chargePerParticle;
             const double macromass   = b.massPerParticle;
-            macrocharges.push_back(macrocharge);
-            macromasses.push_back(macromass);
 
             const double part_per_macro_ratio = macrocharge / (b.charge * Physics::q_e);
             *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
@@ -695,19 +689,21 @@ namespace opalx::run {
 
         DataSink* dataSink = initDataSink(beams.size(), context, options, objects);
 
-        // Set total particles per container (beam)
-        std::vector<size_t> totalParticlesPerBeam(beams.size());
+        // What the bunch needs per container (beam), with the particle count to reserve room for
+        std::vector<BunchBeam> bunchBeams(beams.size());
         for (size_t i = 0; i < beams.size(); ++i) {
-            totalParticlesPerBeam[i] = computeTotalAllocationForBunch(
+            bunchBeams[i].chargePerParticle = beams[i].chargePerParticle;
+            bunchBeams[i].massPerParticle   = beams[i].massPerParticle;
+            bunchBeams[i].reference         = beams[i].reference;
+            bunchBeams[i].particleName      = beams[i].particleName;
+            bunchBeams[i].hasSpin           = beams[i].hasPolarization;
+            bunchBeams[i].numParticles      = computeTotalAllocationForBunch(
                     beams[i], emissionSourcesLists[i], description.distributions);
         }
 
         // Create PartBunch with multiple particle containers.
         objects.bunch = std::make_unique<PartBunch_t>(
-                macrocharges,                    // Macro charge [C]
-                macromasses,                     // Macro Mass [GeV]
-                beams,                           // Beam descriptions per container
-                totalParticlesPerBeam,           // Per-beam particle counts for allocation
+                bunchBeams,                      // One entry per container (beam)
                 options.loadBalancingThreshold,  // Load balancing threshold
                 cartesianDomainConfig,           // Cartesian domain and particle-layout setup
                 options.useQMAttributes,         // Per-particle Q and M (QM_MODE)

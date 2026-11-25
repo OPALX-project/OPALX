@@ -6,6 +6,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "../TemporaryDirectory.h"
 #include "Moments/BeamMoments.h"
@@ -43,13 +44,12 @@ namespace {
 
         void SetUp() override {
             directory_m.create("opalx-data-sink-step");
-            const auto beam          = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
-            auto withSpin            = opalx::run::describeBeamForBunch(*beam);
-            auto withoutSpin         = withSpin;
-            withSpin.hasPolarization = true;
-            bunch_m                  = std::make_unique<PartBunch_t>(
-                    std::vector<double>(2, 1.0), std::vector<double>(2, 1.0),
-                    std::vector{withoutSpin, withSpin}, std::vector<size_t>(2, 8), 1.0,
+            const auto beam  = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+            auto withSpin    = opalx::test::bunchBeam(*beam, 8);
+            auto withoutSpin = withSpin;
+            withSpin.hasSpin = true;
+            bunch_m          = std::make_unique<PartBunch_t>(
+                    std::vector{withoutSpin, withSpin}, 1.0,
                     opalx::spacecharge::CartesianDomainConfig3D{});
             for (const auto& pc : bunch_m->getParticleContainers())
                 place(*pc, {1e-3, 2e-3, 3e-3, 6e-3});

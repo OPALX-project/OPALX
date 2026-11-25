@@ -7,7 +7,6 @@
 #include <algorithm>
 #include "Physics/ParticleProperties.h"
 #include "Processes/GlobalProcesses/GlobalProcess.h"
-#include "Track/RunDescription.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -18,9 +17,7 @@ extern Inform* gmsg;
  */
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
-        std::vector<double> qi, std::vector<double> mi,
-        const std::vector<opalx::run::BeamDescription>& beams,
-        std::vector<size_t> totalParticlesPerBeam, double lbt,
+        const std::vector<BunchBeam>& beams, double lbt,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
     : dt_m(0.5 / domainConfig.meshSize[2]),
@@ -28,8 +25,6 @@ PartBunch<T, Dim>::PartBunch(
       boundingBoxIncreasePercent_m(0.0),
       t_m(0.0),
       globalTrackStep_m(0) {
-    qi_m         = qi;
-    mi_m         = mi;
     bunchState_m = std::make_shared<BunchStateHandler>(aggressiveStateSync);
 
     Inform m("PartBunch::PartBunch");
@@ -38,15 +33,9 @@ PartBunch<T, Dim>::PartBunch(
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
     }
-    if (qi.size() != num_containers) {
-        throw OpalException("PartBunch::PartBunch", "qi size must match num_containers.");
-    }
-    if (mi.size() != num_containers) {
-        throw OpalException("PartBunch::PartBunch", "mi size must match num_containers.");
-    }
-    if (totalParticlesPerBeam.size() != num_containers) {
-        throw OpalException(
-                "PartBunch::PartBunch", "totalParticlesPerBeam size must match num_containers.");
+    for (const BunchBeam& beam : beams) {
+        qi_m.push_back(beam.chargePerParticle);
+        mi_m.push_back(beam.massPerParticle);
     }
 
     // The initial geometry only provides a valid mesh and layout while particles are sampled or
@@ -79,7 +68,7 @@ PartBunch<T, Dim>::PartBunch(
     // All containers share one BunchStateHandler.
     for (size_t i = 0; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
-                cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasPolarization,
+                cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasSpin,
                 layoutType, overlapCutoff, particleBoundary, qmAttributes);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
@@ -92,8 +81,8 @@ PartBunch<T, Dim>::PartBunch(
         pcRoot_m[i] = i;  // buildTracking() links decay chains with setPcRoot()
     }
     for (size_t i = 0; i < num_containers; ++i) {
-        pcontainers_m[i]->setQ(qi[i]);
-        pcontainers_m[i]->setM(mi[i]);
+        pcontainers_m[i]->setQ(beams[i].chargePerParticle);
+        pcontainers_m[i]->setM(beams[i].massPerParticle);
         pcontainers_m[i]->setReference(beams[i].reference);
         particleNames_m[i] = beams[i].particleName;
         pcontainers_m[i]->Sp =
@@ -105,7 +94,7 @@ PartBunch<T, Dim>::PartBunch(
     const double nRanks = static_cast<double>(ippl::Comm->size());
     for (size_t i = 0; i < num_containers; ++i) {
         const size_t maxLocalNum =
-                static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
+                static_cast<size_t>(beams[i].numParticles / nRanks + 2 * nRanks + 1);
         pcontainers_m[i]->allocateParticles(maxLocalNum);
         *gmsg << level3 << "* Container " << i << ": capacity for " << maxLocalNum
               << " particles allocated." << endl;

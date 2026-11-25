@@ -6,6 +6,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "AbsBeamline/Multipole.h"
 #include "Elements/OpalBeamline.h"
@@ -38,9 +39,8 @@ namespace {
         void SetUp() override {
             const auto beam = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
             bunch_m         = std::make_unique<PartBunch_t>(
-                    std::vector<double>{1.0}, std::vector<double>{1.0},
-                    std::vector{opalx::run::describeBeamForBunch(*beam)}, std::vector<size_t>{8},
-                    1.0, opalx::spacecharge::CartesianDomainConfig3D{});
+                    std::vector{opalx::test::bunchBeam(*beam, 8)}, 1.0,
+                    opalx::spacecharge::CartesianDomainConfig3D{});
             pc_m = bunch_m->getParticleContainer(0);
             // The reference frame sits 0.3 m downstream of the lab origin.
             pc_m->setToLabTrafo(toLab_m);

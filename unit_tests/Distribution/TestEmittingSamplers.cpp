@@ -6,6 +6,7 @@
 
 #include "Ippl.h"
 
+#include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "Distribution/EmittingSamplers.h"
 #include "Distribution/SamplingBase.hpp"
@@ -73,9 +74,8 @@ namespace {
         void SetUp() override {
             const auto beam = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
             bunch_m         = std::make_unique<PartBunch_t>(
-                    std::vector<double>(2, 1.0), std::vector<double>(2, 1.0),
-                    std::vector(2, opalx::run::describeBeamForBunch(*beam)),
-                    std::vector<size_t>(2, 8), 1.0, opalx::spacecharge::CartesianDomainConfig3D{});
+                    std::vector(2, opalx::test::bunchBeam(*beam, 8)), 1.0,
+                    opalx::spacecharge::CartesianDomainConfig3D{});
         }
 
         std::shared_ptr<StubSampler> stub(
