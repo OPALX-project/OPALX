@@ -200,8 +200,14 @@ int main(int argc, char* argv[]) {
 
         H5SetVerbosityLevel(1);  // 65535);
 
-        static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
+        // mainTimer covers the whole run
+        // Startup covers everything until parsing starts
+        // Parsing covers all the parsing and is paused during the RUN
+        static IpplTimings::TimerRef mainTimer    = IpplTimings::getTimer("mainTimer");
+        static IpplTimings::TimerRef startupTimer = IpplTimings::getTimer("Startup");
+        static IpplTimings::TimerRef parseTimer   = IpplTimings::getTimer("Parse input");
         IpplTimings::startTimer(mainTimer);
+        IpplTimings::startTimer(startupTimer);
 
         if (ippl::Comm->rank() == 0) remove("errormsg.txt");
 
@@ -448,6 +454,8 @@ int main(int argc, char* argv[]) {
                 *gmsg << "Input file '" << fname << "' not found." << endl;
             }
 
+            IpplTimings::stopTimer(startupTimer);
+            IpplTimings::startTimer(parseTimer);
             if (is) {
                 *gmsg << "* Reading input stream '" << fname << "'" << endl;
                 parser.run(is);
@@ -550,6 +558,7 @@ int main(int argc, char* argv[]) {
 
         // print dictionary
 
+        IpplTimings::stopTimer(parseTimer);
         IpplTimings::stopTimer(mainTimer);
 
         IpplTimings::print();

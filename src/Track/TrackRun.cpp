@@ -27,6 +27,7 @@
 #include "Track/ValidateRun.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
+#include "Utility/IpplTimings.h"
 
 #include <fstream>
 #include <memory>
@@ -74,6 +75,12 @@ TrackRun::TrackRun()
 TrackRun::~TrackRun() {}
 
 void TrackRun::execute() {
+    // Parser timer is stopped during RUN
+    static IpplTimings::TimerRef parseTimer  = IpplTimings::getTimer("Parse input");
+    static IpplTimings::TimerRef freezeTimer = IpplTimings::getTimer("Run: freeze, check");
+    IpplTimings::stopTimer(parseTimer);
+    IpplTimings::startTimer(freezeTimer);
+
     // Copy what this RUN tracks with out of the parsed objects. With --check, write that copy
     // as text and stop: nothing is tracked and no other output is written.
     const opalx::run::TrackDescription* track = TrackCmd::openTrack();
@@ -99,11 +106,30 @@ void TrackRun::execute() {
     if (!errors.empty()) {
         throw OpalException("TrackRun::execute", opalx::run::joinErrors(errors));
     }
-    if (opal->checkOnly) return;
+    if (opal->checkOnly) {
+        IpplTimings::stopTimer(freezeTimer);
+        IpplTimings::startTimer(parseTimer);
+        return;
+    }
+    IpplTimings::stopTimer(freezeTimer);
 
-    // The tracker is destroyed before the objects it borrows.
-    opalx::run::RunObjects objects;
-    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
-    auto tracker        = std::make_unique<ParallelTracker>(std::move(setup));
-    tracker->execute();
+    IpplTimings::TimerRef tearDownTimer;
+    {
+        static IpplTimings::TimerRef buildTimer = IpplTimings::getTimer("Run: build tracking");
+        IpplTimings::startTimer(buildTimer);
+
+        opalx::run::RunObjects objects;
+        TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+        auto tracker        = std::make_unique<ParallelTracker>(std::move(setup));
+
+        IpplTimings::stopTimer(buildTimer);
+
+        tracker->execute();
+
+        // Tear down timer starts where scope ends
+        tearDownTimer = IpplTimings::getTimer("Run: tear down");
+        IpplTimings::startTimer(tearDownTimer);
+    }  
+    IpplTimings::stopTimer(tearDownTimer);
+    IpplTimings::startTimer(parseTimer);
 }
