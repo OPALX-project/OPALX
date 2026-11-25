@@ -190,11 +190,18 @@ void PartBunch<T, Dim>::resetFields() {
 
 template <typename T, unsigned Dim>
 size_t PartBunch<T, Dim>::applyGlobalProcesses() {
+    // Decay writes daughters in the shared reference frame of parent and daughter, so every
+    // container must be in its reference frame.
+    requireReferenceFrame("PartBunch::applyGlobalProcesses");
     size_t nMarked = 0;
     for (size_t ci = 0; ci < pcontainers_m.size(); ++ci) {
+        // A beam that has passed its ZSTOP is frozen and does not decay any more. An empty
+        // container is not skipped: a daughter container that an earlier container of this loop
+        // fills applies its own processes in the same call.
+        if (pcAtSStop_m[ci]) {
+            continue;
+        }
         const auto& pc = pcontainers_m[ci];
-        // Decay writes daughters in the shared reference frame of parent and daughter.
-        pc->requireReferenceFrame("PartBunch::applyGlobalProcesses");
         for (const auto& process : pc->getGlobalProcesses()) {
             if (process) {
                 nMarked += process->apply(*pc, dt_m, globalTrackStep_m, ci);

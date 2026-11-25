@@ -172,9 +172,10 @@ public:
     /// @brief Zero E and B on every active container.
     void resetFields();
 
-    /// @brief Apply the global processes of every container (e.g. decay) over the bunch time
-    ///        step getdT() and switch on daughter containers that received particles.
-    ///        Collective.
+    /// @brief Apply the global processes (e.g. decay) of every container whose beam has not
+    ///        passed its ZSTOP, over the bunch time step getdT(), and switch on daughter
+    ///        containers that received particles. Every container must be in its reference
+    ///        frame, since decay writes into the daughter container. Collective.
     /// @return Global number of particles the processes marked invalid.
     size_t applyGlobalProcesses();
 

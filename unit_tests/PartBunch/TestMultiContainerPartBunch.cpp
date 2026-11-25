@@ -23,6 +23,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 #include "SpaceCharge/SpaceChargeFactory.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
@@ -216,6 +217,41 @@ namespace {
         EXPECT_THROW(static_cast<void>(bunch->isPcActive(2)), std::out_of_range);
         EXPECT_THROW(static_cast<void>(bunch->pcAtSStop(2)), std::out_of_range);
         EXPECT_THROW(static_cast<void>(bunch->getPcRoot(2)), std::out_of_range);
+    }
+
+    /// A global process that only counts how often it is applied.
+    class CountingProcess : public GlobalProcess {
+    public:
+        explicit CountingProcess(int& calls) : calls_m(calls) {}
+        size_t apply(ParticleContainer<double, 3>&, double, long long, size_t) override {
+            ++calls_m;
+            return 0;
+        }
+
+    private:
+        int& calls_m;
+    };
+
+    TEST_F(MultiContainerPartBunchTest, ApplyGlobalProcesses_SkipsStoppedContainer) {
+        PartBunch_t local(
+                std::vector(2, opalx::test::bunchBeam(*testBeam, kParticlesPerBeam)), 1.0,
+                storageConfig);
+        int calls = 0;
+        std::vector<std::unique_ptr<GlobalProcess>> processes;
+        processes.push_back(std::make_unique<CountingProcess>(calls));
+        local.getParticleContainer(0)->setGlobalProcesses(std::move(processes));
+        local.getParticleContainer(0)->createParticles(4);
+        local.resetPcActive();
+        local.setdT(1e-12);
+        ASSERT_TRUE(local.isPcActive(0));
+
+        local.applyGlobalProcesses();
+        EXPECT_EQ(calls, 1);
+
+        // A beam that has passed its ZSTOP does not decay any more.
+        local.setPcAtSStop(0);
+        local.applyGlobalProcesses();
+        EXPECT_EQ(calls, 1);
     }
 
     TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsWithoutBeams) {
