@@ -1,6 +1,6 @@
 // Compile the kernel interface independently of host TPS/context/preparation headers.
-#include <tps/DeviceMap.hpp>
 #include <complex>
+#include <tps/DeviceMap.hpp>
 static_assert(tps::DeviceMapScalar<double> && tps::DeviceMapScalar<float>);
 static_assert(!tps::DeviceMapScalar<std::complex<double>>);
 static_assert(!tps::DeviceMapScalar<int>);

@@ -1,10 +1,10 @@
-#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
-#include "tps/Algebra/Tps.hpp"
-#include "tps/Algebra/TpsMath.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include "Utilities/CLRangeError.h"
+#include "tps/Algebra/Tps.hpp"
+#include "tps/Algebra/TpsMath.h"
 
 using namespace tps;
 using TPS = Tps<double>;
@@ -16,16 +16,14 @@ int main() {
     Kokkos::ScopeGuard kokkos;
 
     try {
-        if (TPS::getGlobalTruncOrder() != TPS::EXACT)
-            return 1;
+        if (TPS::getGlobalTruncOrder() != TPS::EXACT) return 1;
         for (int order : {0, 1, 2, 3, 5}) {
             TPS x(order, 2);
-            if (order)
-                x.setCoefficient(1, 1);
+            if (order) x.setCoefficient(1, 1);
             auto e = exp(x), inv = (x + 1.0).inverse(), logarithm = log(x + 1.0);
             for (int k = 0; k <= order; ++k) {
                 TpsMonomial m(2);
-                m[0] = k;
+                m[0]             = k;
                 double factorial = 1;
                 for (int j = 1; j <= k; ++j)
                     factorial *= j;
@@ -41,7 +39,7 @@ int main() {
             near(sqrt(1.0 + x)[0], 1);
             for (int k = 1; k <= order; ++k) {
                 TpsMonomial m(2);
-                m[0] = k;
+                m[0]             = k;
                 double factorial = 1;
                 for (int j = 1; j <= k; ++j)
                     factorial *= j;
@@ -68,8 +66,7 @@ int main() {
         near(c.inverse()[0], 0.5);
         auto x = TPS::makeVariable(2, 0);
         // EXACT still permits polynomial degree growth.
-        if ((x * x).getMaxOrder() != 2)
-            return 2;
+        if ((x * x).getMaxOrder() != 2) return 2;
         near(x.integral(0).getCoefficient(3), 0.5);
         near(x.multiplyVariable(0).getCoefficient(3), 1);
         // Explicit inverse order and global order can exceed the stored degree.
@@ -84,27 +81,23 @@ int main() {
         near(log(1.0 + x)[0], 0);
         near(cosh(x)[0], 1);
         TPS::setGlobalTruncOrder(2);
-        if (exp(x).getMaxOrder() != 2)
-            return 3;
+        if (exp(x).getMaxOrder() != 2) return 3;
         bool rejected = false;
         try {
             TPS::setGlobalTruncOrder(-1);
         } catch (const ::CLRangeError&) {
             rejected = true;
         }
-        if (!rejected || TPS::getGlobalTruncOrder() != 2)
-            return 4;
+        if (!rejected || TPS::getGlobalTruncOrder() != 2) return 4;
         rejected = false;
         try {
             (1.0 + x).inverse(-1);
         } catch (const ::CLRangeError&) {
             rejected = true;
         }
-        if (!rejected)
-            return 5;
+        if (!rejected) return 5;
         TPS::setGlobalTruncOrder(TPS::EXACT);
-        if (exp(x).getMaxOrder() != 1)
-            return 6;
+        if (exp(x).getMaxOrder() != 1) return 6;
         std::cout << "Truncation regressions passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

@@ -1,20 +1,20 @@
-#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
-#include <tps/tps.hpp>
 #include <array>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <tps/tps.hpp>
+#include "Utilities/CLRangeError.h"
 using S = tps::Tps<double>;
 void require(bool condition, const char* msg) {
-    if (!condition)
-        throw std::runtime_error(msg);
+    if (!condition) throw std::runtime_error(msg);
 }
 void near(double a, double b) {
     require(std::isfinite(a) && std::abs(a - b) < 2e-13, "map context numerical mismatch");
 }
-template <class F> void rejects(F f) {
+template <class F>
+void rejects(F f) {
     bool caught = false;
     try {
         f();
@@ -25,15 +25,15 @@ template <class F> void rejects(F f) {
 }
 tps::PhaseSpaceChart chart(std::string name) {
     tps::PhaseSpaceChart c;
-    c.name = std::move(name);
-    c.coordinates = {{"q", "m", 1}, {"p", "normalized", 1}};
-    c.reference = {0, 0};
-    c.frame.name = "lab";
-    c.referenceTime = 0;
+    c.name              = std::move(name);
+    c.coordinates       = {{"q", "m", 1}, {"p", "normalized", 1}};
+    c.reference         = {0, 0};
+    c.frame.name        = "lab";
+    c.referenceTime     = 0;
     c.referenceMomentum = 1;
-    c.momentumUnit = "mc";
-    c.convention = tps::CoordinateConvention::canonical;
-    c.canonicalPairs = {{0, 1}};
+    c.momentumUnit      = "mc";
+    c.convention        = tps::CoordinateConvention::canonical;
+    c.canonicalPairs    = {{0, 1}};
     return c;
 }
 int main() {
@@ -45,10 +45,10 @@ int main() {
         std::array<S, 2> drift{q + 2.0 * p, p}, kick{q, p - 3.0 * q * q};
         double& retained = drift[0][0];
         tps::Map<double> d(tps::MapContext(a, b, 4, {"drift"}), drift),
-            k(tps::MapContext(b, c, 4, {"kick"}), kick);
+                k(tps::MapContext(b, c, 4, {"kick"}), kick);
         const std::array<double, 2> x{0.1, 0.2};
         auto combined = tps::compose(k, d, 4);
-        auto y = combined.evaluate(x);
+        auto y        = combined.evaluate(x);
         near(y[0], 0.5);
         near(y[1], -0.55);
         auto sequential = k.evaluate(d.evaluate(x));
@@ -63,23 +63,37 @@ int main() {
         near(jac(0, 1), 2);
         near(jac(1, 0), -3);
         near(jac(1, 1), -5);
-        auto id = tps::identityMap<double>(a, 4);
+        auto id   = tps::identityMap<double>(a, 4);
         auto same = tps::compose(d, id, 4).evaluate(x);
         near(same[0], 0.5);
         near(same[1], 0.2);
         auto rightId = tps::identityMap<double>(b, 4);
-        same = tps::compose(rightId, d, 4).evaluate(x);
+        same         = tps::compose(rightId, d, 4).evaluate(x);
         near(same[0], 0.5);
         std::array<tps::Map<double>, 2> sequence{d, k};
         auto total = tps::composeSequence<double>(sequence, 4);
         near(total.evaluate(x)[1], -0.55);
-        rejects([&] { (void)tps::composeSequence<double>({}, 4); });
-        rejects([&] { (void)tps::compose(d, k, 4); });
-        rejects([&] { (void)tps::compose(k, d, 5); });
-        rejects([&] { (void)tps::compose(k, d, -1); });
-        rejects([&] { (void)tps::identityMap<double>(a, 0); });
-        rejects([&] { (void)d.evaluate(std::array<double, 1>{0}); });
-        rejects([&] { (void)d.jacobian(std::array<double, 1>{0}); });
+        rejects([&] {
+            (void)tps::composeSequence<double>({}, 4);
+        });
+        rejects([&] {
+            (void)tps::compose(d, k, 4);
+        });
+        rejects([&] {
+            (void)tps::compose(k, d, 5);
+        });
+        rejects([&] {
+            (void)tps::compose(k, d, -1);
+        });
+        rejects([&] {
+            (void)tps::identityMap<double>(a, 0);
+        });
+        rejects([&] {
+            (void)d.evaluate(std::array<double, 1>{0});
+        });
+        rejects([&] {
+            (void)d.jacobian(std::array<double, 1>{0});
+        });
         // Precision is explicit and operations restore the caller's scalar setting.
         S::setGlobalTruncOrder(0);
         auto projected = tps::compose(k, d, 1);
@@ -96,16 +110,18 @@ int main() {
         auto shifted = drift;
         shifted[0] += 1.0;
         tps::Map<double> affine(tps::MapContext(a, b, 4), shifted);
-        rejects([&] { (void)tps::compose(k, affine, 4); });
+        rejects([&] {
+            (void)tps::compose(k, affine, 4);
+        });
         auto affineResult = tps::compose(k, affine, 4, tps::CompositionPolicy::storedPolynomial);
         near(affineResult.evaluate(x)[1], 0.2 - 3 * 1.5 * 1.5);
         auto translatedConstant =
-            tps::compose(k, affine, 0, tps::CompositionPolicy::storedPolynomial);
+                tps::compose(k, affine, 0, tps::CompositionPolicy::storedPolynomial);
         near(translatedConstant.evaluate(x)[0], 1);
         near(translatedConstant.evaluate(x)[1], -3);
         std::array<tps::Map<double>, 2> affineSequence{affine, k};
         auto constantSequence = tps::composeSequence<double>(
-            affineSequence, 0, tps::CompositionPolicy::storedPolynomial);
+                affineSequence, 0, tps::CompositionPolicy::storedPolynomial);
         near(constantSequence.evaluate(x)[1], -3);
         // Constant outputs retain input dimension through context and have zero derivatives.
         std::array<S, 2> constants{S(2.0), S(4.0)};
@@ -121,76 +137,88 @@ int main() {
         for (int field = 0; field < 8; ++field) {
             auto bad = b;
             switch (field) {
-            case 0:
-                bad.coordinates[0].unit = "cm";
-                break;
-            case 1:
-                bad.coordinates[0].scale = 2;
-                break;
-            case 2:
-                bad.reference[0] = 1;
-                break;
-            case 3:
-                bad.frame.origin[0] = 1;
-                break;
-            case 4:
-                bad.referenceTime = 1;
-                break;
-            case 5:
-                bad.referenceMomentum = 2;
-                break;
-            case 6:
-                bad.coordinates[0].name = "other";
-                break;
-            case 7:
-                bad.canonicalPairs = {{1, 0}};
-                break;
+                case 0:
+                    bad.coordinates[0].unit = "cm";
+                    break;
+                case 1:
+                    bad.coordinates[0].scale = 2;
+                    break;
+                case 2:
+                    bad.reference[0] = 1;
+                    break;
+                case 3:
+                    bad.frame.origin[0] = 1;
+                    break;
+                case 4:
+                    bad.referenceTime = 1;
+                    break;
+                case 5:
+                    bad.referenceMomentum = 2;
+                    break;
+                case 6:
+                    bad.coordinates[0].name = "other";
+                    break;
+                case 7:
+                    bad.canonicalPairs = {{1, 0}};
+                    break;
             }
             tps::Map<double> wrong(tps::MapContext(bad, c, 4), kick);
-            rejects([&] { (void)tps::compose(wrong, d, 4); });
+            rejects([&] {
+                (void)tps::compose(wrong, d, 4);
+            });
         }
         tps::Map<double> duplicate(tps::MapContext(b, c, 4, {"drift"}), kick);
-        rejects([&] { (void)tps::compose(duplicate, d, 4); });
+        rejects([&] {
+            (void)tps::compose(duplicate, d, 4);
+        });
         require(S::getGlobalTruncOrder() == 4, "rejection changed precision");
-        rejects([&] { (void)tps::MapContext(a, b, 4, {"x", "x"}); });
-        rejects([&] { (void)tps::MapContext(a, b, -1); });
+        rejects([&] {
+            (void)tps::MapContext(a, b, 4, {"x", "x"});
+        });
+        rejects([&] {
+            (void)tps::MapContext(a, b, -1);
+        });
         for (int field = 0; field < 10; ++field) {
             auto invalid = a;
             switch (field) {
-            case 0:
-                invalid.coordinates.clear();
-                break;
-            case 1:
-                invalid.reference.clear();
-                break;
-            case 2:
-                invalid.coordinates[0].scale = 0;
-                break;
-            case 3:
-                invalid.reference[0] = std::numeric_limits<double>::quiet_NaN();
-                break;
-            case 4:
-                invalid.frame.axes[0] = 2;
-                break;
-            case 5:
-                invalid.frame.axes[0] = -1;
-                break;
-            case 6:
-                invalid.coordinates[1].name = "q";
-                break;
-            case 7:
-                invalid.canonicalPairs = {{0, 0}};
-                break;
-            case 8:
-                invalid.referenceMomentum = -1;
-                break;
-            case 9:
-                invalid.frame.name.clear();
-                break;
+                case 0:
+                    invalid.coordinates.clear();
+                    break;
+                case 1:
+                    invalid.reference.clear();
+                    break;
+                case 2:
+                    invalid.coordinates[0].scale = 0;
+                    break;
+                case 3:
+                    invalid.reference[0] = std::numeric_limits<double>::quiet_NaN();
+                    break;
+                case 4:
+                    invalid.frame.axes[0] = 2;
+                    break;
+                case 5:
+                    invalid.frame.axes[0] = -1;
+                    break;
+                case 6:
+                    invalid.coordinates[1].name = "q";
+                    break;
+                case 7:
+                    invalid.canonicalPairs = {{0, 0}};
+                    break;
+                case 8:
+                    invalid.referenceMomentum = -1;
+                    break;
+                case 9:
+                    invalid.frame.name.clear();
+                    break;
             }
-            rejects([&] { (void)tps::MapContext(invalid, b, 4); });
+            rejects([&] {
+                (void)tps::MapContext(invalid, b, 4);
+            });
         }
-        rejects([&] { (void)tps::Map<double>(tps::MapContext(a, b, 1), kick); });
+        rejects([&] {
+            (void)tps::Map<double>(tps::MapContext(a, b, 1), kick);
+        });
         rejects([&] {
             std::array<S, 1> missing{q};
             (void)tps::Map<double>(tps::MapContext(a, b, 4), missing);
@@ -198,7 +226,9 @@ int main() {
         auto insufficient = drift;
         S::setGlobalTruncOrder(1);
         insufficient[0] = q * q;
-        rejects([&] { (void)tps::Map<double>(tps::MapContext(a, b, 4), insufficient); });
+        rejects([&] {
+            (void)tps::Map<double>(tps::MapContext(a, b, 4), insufficient);
+        });
         require(S::getGlobalTruncOrder() == 1, "constructor restored precision");
         // A rectangular context map joins a two-variable and a one-variable chart.
         auto one = a;

@@ -1,17 +1,17 @@
 #include <Kokkos_Core.hpp>
-#include "tps/Algebra/Tps.hpp"
-#include "tps/Algebra/TpsMath.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include "tps/Algebra/Tps.hpp"
+#include "tps/Algebra/TpsMath.h"
 
 using namespace tps;
 using TPS = Tps<double>;
 void near(double actual, double expected, double tol = 2e-13) {
     if (!std::isfinite(actual) || std::abs(actual - expected) > tol)
-        throw std::runtime_error("actual=" + std::to_string(actual) +
-                                 " expected=" + std::to_string(expected));
+        throw std::runtime_error(
+                "actual=" + std::to_string(actual) + " expected=" + std::to_string(expected));
 }
 int main(int argc, char** argv) {
     Kokkos::ScopeGuard kokkos;
@@ -34,15 +34,13 @@ int main(int argc, char** argv) {
                     auto y = TPS::makeVariable(variables, variables - 1);
                     Vector<double> p(variables, 0.0);
                     p[0] = 0.02;
-                    if (variables > 1)
-                        p[variables - 1] = -0.03;
+                    if (variables > 1) p[variables - 1] = -0.03;
                     if (mode == "constant_multiplication") {
                         auto polynomial = 4.0 + x + 2.0 * y;
-                        if (order >= 2)
-                            polynomial += x * x + 3.0 * x * y;
+                        if (order >= 2) polynomial += x * x + 3.0 * x * y;
                         for (double c : {0.0, 1.0, 2.0, -3.0}) {
-                            auto left = TPS(c) * polynomial;
-                            auto right = polynomial * TPS(c);
+                            auto left   = TPS(c) * polynomial;
+                            auto right  = polynomial * TPS(c);
                             auto scalar = c * polynomial;
                             for (int i = 0; i < polynomial.getSize(); ++i) {
                                 near(left.getCoefficient(i), c * polynomial.getCoefficient(i));
@@ -58,12 +56,12 @@ int main(int argc, char** argv) {
                         near(x.substitute(m).evaluate(p), p[0]);
                         m(0, variables - 1) += 2;
                         const double transformed = p[0] + 2 * p[variables - 1];
-                        auto linear = x.substitute(m);
+                        auto linear              = x.substitute(m);
                         near(linear.evaluate(p), transformed);
                         for (int j = 0; j < variables; ++j)
                             near(linear.getCoefficient(j + 1), m(0, j));
                         if (order >= 2) {
-                            auto actual = (x * x).substitute(m);
+                            auto actual   = (x * x).substitute(m);
                             auto expected = linear * linear;
                             for (int i = 0; i < expected.getSize(); ++i)
                                 near(actual.getCoefficient(i), expected.getCoefficient(i));
@@ -77,15 +75,15 @@ int main(int argc, char** argv) {
             TPS::setGlobalTruncOrder(order);
             auto x = TPS::makeVariable(6, 0), y = TPS::makeVariable(6, 1);
             Vector<double> p(6, 0.0);
-            p[0] = 0.02;
-            p[1] = -0.03;
+            p[0]   = 0.02;
+            p[1]   = -0.03;
             auto f = (x + 2.0) * (y + 3.0);
             near(f.evaluate(p), 6 + 3 * p[0] + 2 * p[1] + (order >= 2 ? p[0] * p[1] : 0));
             if (order >= 2) {
                 near(f.derivative(0).evaluate(p), 3 + p[1]);
                 near(f.derivative(1).evaluate(p), 2 + p[0]);
             }
-            auto e = exp(x);
+            auto e          = exp(x);
             double expected = 1, term = 1;
             for (int k = 1; k <= order; ++k) {
                 term *= p[0] / k;
@@ -94,7 +92,7 @@ int main(int argc, char** argv) {
             near(e.evaluate(p), expected);
             auto inv = (x + 1.0).inverse();
             expected = 0;
-            term = 1;
+            term     = 1;
             for (int k = 0; k <= order; ++k) {
                 expected += term;
                 term *= -p[0];

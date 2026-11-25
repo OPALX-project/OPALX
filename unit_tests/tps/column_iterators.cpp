@@ -1,26 +1,26 @@
-#include "Utilities/CLRangeError.h"
-#include "Utilities/OpalException.h"
 #include <Kokkos_Core.hpp>
-#include "tps/Algebra/Array2D.h"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
+#include "Utilities/CLRangeError.h"
+#include "Utilities/OpalException.h"
+#include "tps/Algebra/Array2D.h"
 
 using namespace tps;
 void require(bool ok, const char* message) {
-    if (!ok)
-        throw std::runtime_error(message);
+    if (!ok) throw std::runtime_error(message);
 }
-template <class Iterator> void check(Iterator begin, Iterator end, int rows, int column) {
+template <class Iterator>
+void check(Iterator begin, Iterator end, int rows, int column) {
     require(end - begin == rows && begin - end == -rows, "iterator difference");
     require(std::distance(begin, end) == rows, "std::distance");
     const Iterator fixed = begin;
     require(fixed + rows == end && end - rows == begin, "logical end arithmetic");
     auto assigned = end;
-    assigned = begin;
+    assigned      = begin;
     assigned += rows;
     require(assigned == end, "copy assignment/add");
     assigned -= rows;
@@ -35,7 +35,7 @@ template <class Iterator> void check(Iterator begin, Iterator end, int rows, int
     }
     require(count == rows, "traversal count");
     if (rows) {
-        auto it = begin;
+        auto it  = begin;
         auto old = it++;
         require(old == begin, "postincrement old value");
         require(it == begin + 1, "postincrement advance");
@@ -49,14 +49,15 @@ template <class Iterator> void check(Iterator begin, Iterator end, int rows, int
     std::vector<int> copied(rows);
     std::copy(begin, end, copied.begin());
     require(std::accumulate(begin, end, 0) == 5 * rows * (rows - 1) + rows * column, "accumulate");
-    auto reverse = std::make_reverse_iterator(end);
+    auto reverse          = std::make_reverse_iterator(end);
     const auto reverseEnd = std::make_reverse_iterator(begin);
-    count = rows;
+    count                 = rows;
     for (; reverse != reverseEnd; ++reverse)
         require(*reverse == (--count) * 10 + column, "reverse traversal");
     require(count == 0, "reverse count");
 }
-template <class F> void rejects(F f) {
+template <class F>
+void rejects(F f) {
     bool rejected = false;
     try {
         f();
@@ -100,10 +101,18 @@ int main() {
         require(*first == 5 && first[2] == 1 && *(last - 1) == 1, "negative stride values");
         ConstSliceIterator<int> cf(values + 5, -2), cl(values + 5, -2, 3);
         require(cl - cf == 3 && cf + 3 == cl && *(cl - 1) == 1, "const negative stride range");
-        rejects([&] { SliceIterator<int> invalid(values, 0); });
-        rejects([&] { ConstSliceIterator<int> invalid(values, 0); });
-        rejects([&] { (void)(first - SliceIterator<int>(values, 1)); });
-        rejects([&] { (void)(cf - ConstSliceIterator<int>(values, 1)); });
+        rejects([&] {
+            SliceIterator<int> invalid(values, 0);
+        });
+        rejects([&] {
+            ConstSliceIterator<int> invalid(values, 0);
+        });
+        rejects([&] {
+            (void)(first - SliceIterator<int>(values, 1));
+        });
+        rejects([&] {
+            (void)(cf - ConstSliceIterator<int>(values, 1));
+        });
         SliceIterator<int> empty(nullptr, 1), emptyEnd(nullptr, 1, 0);
         require(empty == emptyEnd && emptyEnd - empty == 0, "null-origin empty range");
         ConstSliceIterator<int> ce(nullptr, 1), cend(nullptr, 1, 0);

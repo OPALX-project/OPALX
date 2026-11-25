@@ -4,8 +4,8 @@
 #include <tps/tps.hpp>
 #include "Utilities/DivideError.h"
 #else
-#include "Utilities/DivideError.h"
 #include <tps/tps.hpp>
+#include "Utilities/DivideError.h"
 #endif
 static_assert(std::is_base_of_v<::OpalException, ::DivideError>);
 int main() {
@@ -22,9 +22,8 @@ int main() {
     } catch (const ::OpalException&) {
         tpsCaught = true;
     }
-    if (!opalCaught || !tpsCaught)
-        return 2;
-    auto x = tps::Tps<double>::makeVariable(2, 0);
+    if (!opalCaught || !tpsCaught) return 2;
+    auto x       = tps::Tps<double>::makeVariable(2, 0);
     const auto f = (x + 2.0) * (x + 2.0);
     return f.getCoefficient(1) == 4.0 ? 0 : 1;
 }

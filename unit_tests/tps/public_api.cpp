@@ -21,8 +21,8 @@ int main() {
         try {
             throw ::LogicalError("test operation", "dimension mismatch");
         } catch (const ::OpalException& error) {
-            if (error.where() != "test operation" ||
-                std::string(error.what()) != "dimension mismatch")
+            if (error.where() != "test operation"
+                || std::string(error.what()) != "dimension mismatch")
                 throw std::runtime_error("algebra exception metadata");
         }
     } catch (const std::exception& error) {

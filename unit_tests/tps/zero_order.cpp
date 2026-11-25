@@ -1,20 +1,19 @@
 #include <Kokkos_Core.hpp>
-#include "tps/Algebra/Tps.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include "tps/Algebra/Tps.hpp"
 
 using namespace tps;
 using TPS = Tps<double>;
 void require(bool ok, const char* message) {
-    if (!ok)
-        throw std::runtime_error(message);
+    if (!ok) throw std::runtime_error(message);
 }
 int main(int argc, char** argv) {
     Kokkos::ScopeGuard kokkos;
 
     try {
-        const int variables = argc > 1 ? std::stoi(argv[1]) : 2;
+        const int variables    = argc > 1 ? std::stoi(argv[1]) : 2;
         const bool seriesFirst = argc > 2;
         // Each CTest invocation is a fresh process; no prior positive-order cache.
         TpsMonomial zero(variables);
@@ -31,7 +30,7 @@ int main(int argc, char** argv) {
         require(data->getProductArray(0)[0] == 0, "constant product table");
         require(data->getSubTable().size() == 1, "constant substitution table");
         TPS a(0, variables);
-        a[zero] = 3;
+        a[zero]       = 3;
         const TPS& ca = a;
         require(ca[zero] == 3, "const indexing");
         require((a * a)[zero] == 9, "zero-order multiplication");
@@ -42,7 +41,7 @@ int main(int argc, char** argv) {
             identity(j, j) = 1;
         require(a.substitute(identity)[0] == 3, "zero-order substitution");
         // Grow the same cache and then reuse an existing zero-order object.
-        auto x = TPS::makeVariable(variables, 0);
+        auto x    = TPS::makeVariable(variables, 0);
         auto cube = x * x * x;
         TpsMonomial third(variables);
         third[0] = 3;

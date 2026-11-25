@@ -1,7 +1,4 @@
-#include "Utilities/OpalException.h"
-#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
-#include "tps/tps.hpp"
 #include <algorithm>
 #include <complex>
 #include <concepts>
@@ -9,32 +6,27 @@
 #include <iostream>
 #include <ranges>
 #include <stdexcept>
+#include "Utilities/CLRangeError.h"
+#include "Utilities/OpalException.h"
+#include "tps/tps.hpp"
 using namespace tps;
 static_assert(std::random_access_iterator<SliceIterator<int>>);
 static_assert(std::random_access_iterator<ConstSliceIterator<int>>);
 struct alignas(64) Tracked {
     static inline int alive = 0;
     static inline bool fail = false;
-    int value = 0;
-    Tracked(int v = 0) : value(v) {
-        ++alive;
-    }
-    Tracked(const Tracked& rhs) : value(rhs.value) {
-        ++alive;
-    }
+    int value               = 0;
+    Tracked(int v = 0) : value(v) { ++alive; }
+    Tracked(const Tracked& rhs) : value(rhs.value) { ++alive; }
     Tracked& operator=(const Tracked& rhs) {
-        if (fail)
-            throw std::runtime_error("injected copy failure");
+        if (fail) throw std::runtime_error("injected copy failure");
         value = rhs.value;
         return *this;
     }
-    ~Tracked() {
-        --alive;
-    }
+    ~Tracked() { --alive; }
 };
 void require(bool ok, const char* message) {
-    if (!ok)
-        throw std::runtime_error(message);
+    if (!ok) throw std::runtime_error(message);
 }
 int main() {
     Kokkos::ScopeGuard kokkos;
@@ -46,13 +38,13 @@ int main() {
             require(reinterpret_cast<std::uintptr_t>(&x[0]) % alignof(Tracked) == 0,
                     "coefficient alignment");
             auto copy = x;
-            copy[0] = Tracked(9);
+            copy[0]   = Tracked(9);
             require(static_cast<const Tps<Tracked>&>(x)[0].value == 7,
                     "nontrivial coefficient copy");
             Array1D<Tracked> a(2, Tracked(3)), b(3, Tracked(4));
             Array2D<Tracked> m(2, 2, Tracked(3)), n(1, 3, Tracked(4));
-            auto shared = x;
-            Tracked::fail = true;
+            auto shared      = x;
+            Tracked::fail    = true;
             bool cloneFailed = false;
             try {
                 (void)shared[0];
@@ -61,11 +53,11 @@ int main() {
             }
             require(cloneFailed, "copy-on-write failure injection");
             Tracked::fail = false;
-            x[0] = Tracked(8);
+            x[0]          = Tracked(8);
             require(static_cast<const Tps<Tracked>&>(shared)[0].value == 7,
                     "copy-on-write rollback");
             Tracked::fail = true;
-            bool caught = false;
+            bool caught   = false;
             try {
                 a = b;
             } catch (const std::runtime_error&) {
@@ -92,11 +84,11 @@ int main() {
         Tps<double> alias(1, 2);
         alias[0] = 7;
         alias[1] = 2;
-        alias = alias[0];
+        alias    = alias[0];
         require(alias[0] == 7 && alias.getVariables() == 0, "aliased scalar assignment");
         const double coefficients[] = {1.0, 1.0, 0.5};
-        const auto variable = Tps<double>::makeVariable(1, 0);
-        const auto approximation = variable.taylor(coefficients);
+        const auto variable         = Tps<double>::makeVariable(1, 0);
+        const auto approximation    = variable.taylor(coefficients);
         require(approximation[0] == 1 && approximation[1] == 1 && approximation[2] == 0.5,
                 "span Taylor interface");
         bool spanRejected = false;
@@ -108,8 +100,8 @@ int main() {
         require(spanRejected, "empty Taylor span rejection");
         using C = std::complex<double>;
         Tps<C>::setGlobalTruncOrder(3);
-        auto x = Tps<C>::makeVariable(2, 0);
-        x[0] = C(1, 2);
+        auto x      = Tps<C>::makeVariable(2, 0);
+        x[0]        = C(1, 2);
         auto square = x * x;
         require(std::abs(square[0] - C(-3, 4)) < 1e-13, "complex constant");
         require(std::abs(square[1] - C(2, 4)) < 1e-13, "complex linear coefficient");
@@ -118,7 +110,7 @@ int main() {
         auto e = exp(x);
         require(std::abs(e[0] - std::exp(C(1, 2))) < 1e-13, "complex exponential");
         using Inner = Tps<double>;
-        auto outer = Tps<Inner>::makeVariable(1, 0);
+        auto outer  = Tps<Inner>::makeVariable(1, 0);
         auto nested = (outer + Inner(2.0)) * (outer + Inner(2.0));
         require(nested[0][0] == 4 && nested[1][0] == 4 && nested[2][0] == 1,
                 "nested coefficient arithmetic");

@@ -1,11 +1,11 @@
-#include "Utilities/LogicalError.h"
-#include "Utilities/SingularMatrixError.h"
-#include <tps/tps.hpp>
-#include <tps/LinearSolve.hpp>
-#include <complex>
 #include <cmath>
+#include <complex>
 #include <iostream>
 #include <stdexcept>
+#include <tps/LinearSolve.hpp>
+#include <tps/tps.hpp>
+#include "Utilities/LogicalError.h"
+#include "Utilities/SingularMatrixError.h"
 void near(double a, double b) {
     if (!std::isfinite(a) || std::abs(a - b) > 2e-13)
         throw std::runtime_error("Kokkos linear algebra mismatch");
@@ -25,7 +25,7 @@ int main() {
         factor.solve(b);
         near(b[0], 1);
         near(b[1], 2);
-        near(a(0, 0), 0); // pivoting required; input unchanged
+        near(a(0, 0), 0);  // pivoting required; input unchanged
         auto identity = a * factor.inverse();
         for (int i = 0; i < 2; ++i)
             for (int j = 0; j < 2; ++j)
@@ -61,8 +61,7 @@ int main() {
         } catch (const ::SingularMatrixError&) {
             singular = true;
         }
-        if (!singular)
-            throw std::runtime_error("singular matrix was accepted");
+        if (!singular) throw std::runtime_error("singular matrix was accepted");
         bool mismatch = false;
         try {
             tps::Vector<double> wrong(3);
@@ -70,8 +69,7 @@ int main() {
         } catch (const ::LogicalError&) {
             mismatch = true;
         }
-        if (!mismatch)
-            throw std::runtime_error("bad vector shape accepted");
+        if (!mismatch) throw std::runtime_error("bad vector shape accepted");
         using C = std::complex<double>;
         tps::Vector<C> cx(2, C(0, 1));
         auto dot = cx * cx;
@@ -81,17 +79,17 @@ int main() {
         tps::Matrix<C> ca(2, 2, C(0));
         ca(0, 0) = C(1, 1);
         ca(1, 1) = C(2, -1);
-        auto cb = ca * ca;
+        auto cb  = ca * ca;
         near(cb(0, 0).imag(), 2);
         near(cb(1, 1).real(), 3);
         // Fixed-size device values, dynamic View storage, explicit host/device transfer.
         Kokkos::View<double* [6]> particles("particles", 4);
         Kokkos::Array<double, 6> shift{1, 2, 3, 4, 5, 6};
         Kokkos::parallel_for(
-            "fixed coordinate data", 4, KOKKOS_LAMBDA(int i) {
-                for (int j = 0; j < 6; ++j)
-                    particles(i, j) = i + shift[j];
-            });
+                "fixed coordinate data", 4, KOKKOS_LAMBDA(int i) {
+                    for (int j = 0; j < 6; ++j)
+                        particles(i, j) = i + shift[j];
+                });
         auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles);
         for (int i = 0; i < 4; ++i)
             for (int j = 0; j < 6; ++j)
