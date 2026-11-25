@@ -1,3 +1,6 @@
+#include "Utilities/CLRangeError.h"
+#include "Utilities/LogicalError.h"
+#include "Utilities/OpalException.h"
 #include <Kokkos_Core.hpp>
 #include "tps/Algebra/Tps.hpp"
 #include <climits>
@@ -14,19 +17,19 @@ template <class F> void range(F f) {
     bool rejected = false;
     try {
         f();
-    } catch (const CLRangeError&) {
+    } catch (const ::CLRangeError&) {
         rejected = true;
     }
-    require(rejected, "expected CLRangeError");
+    require(rejected, "expected ::CLRangeError");
 }
 template <class F> void size(F f) {
     bool rejected = false;
     try {
         f();
-    } catch (const SizeError&) {
+    } catch (const ::LogicalError&) {
         rejected = true;
     }
-    require(rejected, "expected SizeError");
+    require(rejected, "expected ::LogicalError");
 }
 int main() {
     Kokkos::ScopeGuard kokkos;
@@ -109,7 +112,7 @@ int main() {
         second[0] = 2;
         require(square[second] == 1, "arithmetic after rejected operations");
         std::cout << "Cache bounds checks passed\n";
-    } catch (const Error& e) {
+    } catch (const ::OpalException& e) {
         std::cerr << e.where() << ": " << e.what() << '\n';
         return 1;
     } catch (const std::exception& e) {

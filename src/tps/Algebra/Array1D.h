@@ -1,10 +1,10 @@
 #ifndef TPS_Array1D_HH
 #define TPS_Array1D_HH
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Template class: Array1D
 
-#include "tps/Error.hpp"
 #include <algorithm>
 #include "tps/HostStorage.hpp"
 #include <utility>
@@ -49,22 +49,22 @@ template <class T> class Array1D {
 
     /// Get reference to element.
     ///  Return a reference to the element in position `n`.
-    ///  Throw CLRangeError, if `n` is out of range.
+    ///  Throw ::CLRangeError, if `n` is out of range.
     T& operator()(int n);
 
     /// Get value of element.
     ///  Return the value of the element in position `n`.
-    ///  Throw CLRangeError, if `n` is out of range.
+    ///  Throw ::CLRangeError, if `n` is out of range.
     const T& operator()(int n) const;
 
     /// Get reference to element.
     ///  Return a reference to the element in position `n`.
-    ///  Throws CLRangeError, if `n` is out of range.
+    ///  Throws ::CLRangeError, if `n` is out of range.
     T& operator[](int);
 
     /// Get value of element.
     ///  Return the value of the element in position `n`.
-    ///  Throws CLRangeError, if `n` is out of range.
+    ///  Throws ::CLRangeError, if `n` is out of range.
     const T& operator[](int) const;
 
     /// Get beginning of data.
@@ -111,7 +111,7 @@ template <class T> class Array1D {
   protected:
     static int checkedSize(int n) {
         if (n < 0)
-            throw CLRangeError("Array1D::size", "Negative array size.");
+            throw ::CLRangeError("Array1D::size", "Negative array size.");
         return n;
     }
 
@@ -167,14 +167,14 @@ template <class T> inline const T& Array1D<T>::operator[](int i) const {
 
 template <class T> T& Array1D<T>::operator()(int i) {
     if (i < 0 || i >= size()) {
-        throw CLRangeError("Array1D::operator()", "Index out of range.");
+        throw ::CLRangeError("Array1D::operator()", "Index out of range.");
     }
     return data[i];
 }
 
 template <class T> const T& Array1D<T>::operator()(int i) const {
     if (i < 0 || i >= size()) {
-        throw CLRangeError("Array1D::operator()", "Index out of range.");
+        throw ::CLRangeError("Array1D::operator()", "Index out of range.");
     }
     return data[i];
 }

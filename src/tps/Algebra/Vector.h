@@ -1,8 +1,8 @@
 #ifndef TPS_VECTOR_HPP
 #define TPS_VECTOR_HPP
-// Copyright: see Copyright.readme (OPAL/CLASSIC API; Kokkos Kernels implementation).
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
 #include "tps/Algebra/Array1D.h"
-#include "tps/Error.hpp"
 #include <KokkosBlas1_scal.hpp>
 #include <KokkosBlas1_nrm2.hpp>
 #include <KokkosBlas1_mult.hpp>
@@ -41,7 +41,7 @@ template <class T> class Vector : public Array1D<T> {
   private:
     void check(const Vector& b) const {
         if (this->size() != b.size())
-            throw SizeError("Vector", "Dimension mismatch");
+            throw ::LogicalError("Vector", "Dimension mismatch");
     }
 };
 template <class T> Vector<T> operator+(Vector<T> a, const Vector<T>& b) {
@@ -62,7 +62,7 @@ template <class T> Vector<T> operator/(Vector<T> a, const T& b) {
 /** @brief Bilinear dot product; complex coefficients are NOT conjugated. */
 template <class T> T operator*(const Vector<T>& a, const Vector<T>& b) {
     if (a.size() != b.size())
-        throw SizeError("Vector dot", "Dimension mismatch");
+        throw ::LogicalError("Vector dot", "Dimension mismatch");
     T result{};
     Kokkos::View<T, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> scalar(&result);
     KokkosBatched::SerialDot<KokkosBatched::Trans::Transpose, 0>::invoke(a.view(), b.view(),
@@ -75,7 +75,7 @@ template <class T> auto euclidean_norm(const Vector<T>& a) {
 }
 template <class T> auto scaled_norm(const Array1D<T>& d, const Vector<T>& a) {
     if (d.size() != a.size())
-        throw SizeError("scaled_norm", "Dimension mismatch");
+        throw ::LogicalError("scaled_norm", "Dimension mismatch");
     Vector<T> temporary(a.size());
     KokkosBlas::mult(T(0), temporary.view(), T(1), d.view(), a.view());
     Kokkos::fence();

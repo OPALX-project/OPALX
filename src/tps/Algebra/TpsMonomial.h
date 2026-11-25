@@ -1,6 +1,6 @@
 #ifndef TPS_TpsMonomial_HH
 #define TPS_TpsMonomial_HH
-// Copyright: see Copyright.readme
+// Copyright: see NOTICE and LICENSE
 
 // Class: TpsMonomial
 

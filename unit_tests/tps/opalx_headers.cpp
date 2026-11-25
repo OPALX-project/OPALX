@@ -7,7 +7,7 @@
 #include "Utilities/DivideError.h"
 #include <tps/tps.hpp>
 #endif
-static_assert(!std::is_same_v<::DivideError, tps::DivideError>);
+static_assert(std::is_base_of_v<::OpalException, ::DivideError>);
 int main() {
     Kokkos::ScopeGuard kokkos;
 
@@ -18,8 +18,8 @@ int main() {
         opalCaught = true;
     }
     try {
-        throw tps::DivideError("coexistence");
-    } catch (const std::exception&) {
+        (void)(tps::Tps<double>(1.0) / 0.0);
+    } catch (const ::OpalException&) {
         tpsCaught = true;
     }
     if (!opalCaught || !tpsCaught)

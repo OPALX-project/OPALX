@@ -1,3 +1,4 @@
+#include "Utilities/LogicalError.h"
 #include <Kokkos_Core.hpp>
 #include <tps/tps.hpp>
 #include <cmath>
@@ -33,7 +34,7 @@ int main() {
         bool rejected = false;
         try {
             (void)(bad * f);
-        } catch (const tps::SizeError&) {
+        } catch (const ::LogicalError&) {
             rejected = true;
         }
         if (!rejected)
@@ -54,7 +55,7 @@ int main() {
         rejected = false;
         try {
             (void)f.linearTerms(wrong);
-        } catch (const tps::SizeError&) {
+        } catch (const ::LogicalError&) {
             rejected = true;
         }
         if (!rejected)

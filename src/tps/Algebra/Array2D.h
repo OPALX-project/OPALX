@@ -1,12 +1,13 @@
 #ifndef TPS_Array2D_HH
 #define TPS_Array2D_HH
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Template class: Array2D
 
 #include "tps/Algebra/Array1D.h"
 #include "tps/Algebra/SliceIterator.h"
-#include "tps/Error.hpp"
 #include <algorithm>
 #include "tps/HostStorage.hpp"
 #include <utility>
@@ -127,93 +128,93 @@ template <class T> class Array2D {
 
     /// Get row iterator.
     ///  Return pointer to beginning of row r.
-    ///  Throw CLRangeError, if row is out of range.
+    ///  Throw ::CLRangeError, if row is out of range.
     ///  Version for non-constant objects.
     row_iterator row_begin(int r);
 
     /// Get row iterator.
     ///  Return pointer past end of row r.
-    ///  Throw CLRangeError, if row is out of range.
+    ///  Throw ::CLRangeError, if row is out of range.
     ///  Version for non-constant objects.
     row_iterator row_end(int r);
 
     /// Get row iterator.
     ///  Return pointer to beginning of constant row r.
-    ///  Throws CLRangeError, if row is out of range.
+    ///  Throws ::CLRangeError, if row is out of range.
     ///  Version for constant objects.
     const_row_iterator row_begin(int r) const;
 
     /// Get row iterator.
     ///  Return pointer past end of constant row r.
-    ///  Throws CLRangeError, if row is out of range.
+    ///  Throws ::CLRangeError, if row is out of range.
     ///  Version for constant objects.
     const_row_iterator row_end(int r) const;
 
     /// Get checked row view.
     ///  Return a view supporting checked column subscripting.
-    ///  Throws CLRangeError, if either subscript is out of range.
+    ///  Throws ::CLRangeError, if either subscript is out of range.
     ///  Version for non-constant objects.
     row_view operator[](int r);
 
     /// Get checked row view.
     ///  Return a view supporting checked column subscripting.
-    ///  Throws CLRangeError, if either subscript is out of range.
+    ///  Throws ::CLRangeError, if either subscript is out of range.
     ///  Version for constant objects.
     const_row_view operator[](int r) const;
 
     /// Get column iterator.
     ///  Return pointer to beginning of column c.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     ///  Version for non-constant objects.
     col_iterator col_begin(int c);
 
     /// Get column iterator.
     ///  Return pointer past end of column c.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     ///  Version for non-constant objects.
     col_iterator col_end(int c);
 
     /// Get column iterator.
     ///  Return pointer to beginning of column c.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     ///  Version for constant objects.
     const_col_iterator col_begin(int c) const;
 
     /// Get column iterator.
     ///  Return pointer past end of column c.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     ///  Version for constant objects.
     const_col_iterator col_end(int c) const;
 
     /// Fetch column.
     ///  Store the column `c` into the array `toArray`.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     void getColumn(Array1D<T>& toArray, int c) const;
 
     /// Fetch row.
     ///  Store the row `r` into the array `toArray`.
-    ///  Throw CLRangeError if r is out of range.
+    ///  Throw ::CLRangeError if r is out of range.
     void getRow(Array1D<T>& toArray, int r) const;
 
     /// Store column.
     ///  Fill the column `c` from the array `fromArray`.
-    ///  Throw CLRangeError if c is out of range.
+    ///  Throw ::CLRangeError if c is out of range.
     void putColumn(const Array1D<T>& fromArray, int c);
 
     /// Store row.
     ///  Fill the row `r` from the array `fromArray`.
-    ///  Throw CLRangeError if r is out of range.
+    ///  Throw ::CLRangeError if r is out of range.
     void putRow(const Array1D<T>& fromArray, int r);
 
     /// Exchange columns.
     ///  Exchange the columns `c1` and `c2`.
 
-    //  Throw CLRangeError, if either index is out of range.
+    //  Throw ::CLRangeError, if either index is out of range.
     void swapColumns(int c1, int c2);
 
     /// Exchange rows.
     ///  Exchange the rows `r1` and `r2`.
-    ///  Throw CLRangeError, if either index is out of range.
+    ///  Throw ::CLRangeError, if either index is out of range.
     void swapRows(int row1, int row2);
 
     /** @brief Borrow mutable HostSpace storage without transferring ownership.
@@ -244,7 +245,7 @@ template <class T> class Array2D {
   protected:
     static int checkedSize(int r, int c) {
         if (r < 0 || c < 0 || (c && r > INT_MAX / c))
-            throw CLRangeError("Array2D::size", "Negative or overflowing dimensions.");
+            throw ::CLRangeError("Array2D::size", "Negative or overflowing dimensions.");
         return r * c;
     }
 
@@ -297,14 +298,14 @@ template <class T> inline Array2D<T>& Array2D<T>::operator=(const Array2D<T>& rh
 
 template <class T> inline T& Array2D<T>::operator()(int r, int c) {
     if (r < 0 || r >= rows || c < 0 || c >= ncols()) {
-        throw CLRangeError("Array2d::operator()", "Index out of range.");
+        throw ::CLRangeError("Array2d::operator()", "Index out of range.");
     }
     return data[cols * r + c];
 }
 
 template <class T> inline const T& Array2D<T>::operator()(int r, int c) const {
     if (r < 0 || r >= rows || c < 0 || c >= ncols()) {
-        throw CLRangeError("Array2d::operator()", "Index out of range.");
+        throw ::CLRangeError("Array2d::operator()", "Index out of range.");
     }
     return data[cols * r + c];
 }
@@ -339,75 +340,75 @@ template <class T> inline typename Array2D<T>::const_iterator Array2D<T>::end() 
 
 template <class T> typename Array2D<T>::row_iterator Array2D<T>::row_begin(int r) {
     if (r < 0 || r >= rows) {
-        throw CLRangeError("Array2D::row_begin()", "Row index out of range.");
+        throw ::CLRangeError("Array2D::row_begin()", "Row index out of range.");
     }
     return cols ? data + cols * r : data;
 }
 
 template <class T> typename Array2D<T>::row_iterator Array2D<T>::row_end(int r) {
     if (r < 0 || r >= rows) {
-        throw CLRangeError("Array2D::row_end()", "Row index out of range.");
+        throw ::CLRangeError("Array2D::row_end()", "Row index out of range.");
     }
     return cols ? data + cols * (r + 1) : data;
 }
 
 template <class T> typename Array2D<T>::const_row_iterator Array2D<T>::row_begin(int r) const {
     if (r < 0 || r >= rows) {
-        throw CLRangeError("Array2D::row_begin()", "Row index out of range.");
+        throw ::CLRangeError("Array2D::row_begin()", "Row index out of range.");
     }
     return cols ? data + cols * r : data;
 }
 
 template <class T> typename Array2D<T>::const_row_iterator Array2D<T>::row_end(int r) const {
     if (r < 0 || r >= rows) {
-        throw CLRangeError("Array2D::row_end()", "Row index out of range.");
+        throw ::CLRangeError("Array2D::row_end()", "Row index out of range.");
     }
     return cols ? data + cols * (r + 1) : data;
 }
 
 template <class T> typename Array2D<T>::row_view Array2D<T>::operator[](int r) {
     if (r < 0 || r >= rows)
-        throw CLRangeError("Array2D::operator[]", "Row index out of range.");
+        throw ::CLRangeError("Array2D::operator[]", "Row index out of range.");
     return row_view(*this, r);
 }
 
 template <class T> typename Array2D<T>::const_row_view Array2D<T>::operator[](int r) const {
     if (r < 0 || r >= rows)
-        throw CLRangeError("Array2D::operator[]", "Row index out of range.");
+        throw ::CLRangeError("Array2D::operator[]", "Row index out of range.");
     return const_row_view(*this, r);
 }
 
 template <class T> typename Array2D<T>::col_iterator Array2D<T>::col_begin(int c) {
     if (c < 0 || c >= cols) {
-        throw CLRangeError("Array2D::col_begin()", "Column index out of range.");
+        throw ::CLRangeError("Array2D::col_begin()", "Column index out of range.");
     }
     return col_iterator(rows ? data + c : data, cols);
 }
 
 template <class T> typename Array2D<T>::col_iterator Array2D<T>::col_end(int c) {
     if (c < 0 || c >= cols) {
-        throw CLRangeError("Array2D::col_end()", "Column index out of range.");
+        throw ::CLRangeError("Array2D::col_end()", "Column index out of range.");
     }
     return col_iterator(rows ? data + c : data, cols, rows);
 }
 
 template <class T> typename Array2D<T>::const_col_iterator Array2D<T>::col_begin(int c) const {
     if (c < 0 || c >= cols) {
-        throw CLRangeError("Array2D::col_begin()", "Column index out of range.");
+        throw ::CLRangeError("Array2D::col_begin()", "Column index out of range.");
     }
     return const_col_iterator(rows ? data + c : data, cols);
 }
 
 template <class T> typename Array2D<T>::const_col_iterator Array2D<T>::col_end(int c) const {
     if (c < 0 || c >= cols) {
-        throw CLRangeError("Array2D::col_end()", "Column index out of range.");
+        throw ::CLRangeError("Array2D::col_end()", "Column index out of range.");
     }
     return const_col_iterator(rows ? data + c : data, cols, rows);
 }
 
 template <class T> void Array2D<T>::getColumn(Array1D<T>& toArray, int c) const {
     if (c < 0 || c >= cols)
-        throw CLRangeError("Array2D::getColumn()", "Column index out of range.");
+        throw ::CLRangeError("Array2D::getColumn()", "Column index out of range.");
     if (toArray.size() != rows)
         toArray = Array1D<T>(rows);
     std::copy(col_begin(c), col_end(c), toArray.begin());
@@ -415,7 +416,7 @@ template <class T> void Array2D<T>::getColumn(Array1D<T>& toArray, int c) const 
 
 template <class T> void Array2D<T>::getRow(Array1D<T>& toArray, int r) const {
     if (r < 0 || r >= rows)
-        throw CLRangeError("Array2D::getRow()", "Row index out of range.");
+        throw ::CLRangeError("Array2D::getRow()", "Row index out of range.");
     if (toArray.size() != cols)
         toArray = Array1D<T>(cols);
     std::copy(row_begin(r), row_end(r), toArray.begin());
@@ -423,14 +424,14 @@ template <class T> void Array2D<T>::getRow(Array1D<T>& toArray, int r) const {
 
 template <class T> void Array2D<T>::putColumn(const Array1D<T>& fromArray, int c) {
     if (fromArray.size() != rows) {
-        throw SizeError("Array2D::putColumn()", "Dimensions inconsistent.");
+        throw ::LogicalError("Array2D::putColumn()", "Dimensions inconsistent.");
     }
     std::copy(fromArray.begin(), fromArray.end(), col_begin(c));
 }
 
 template <class T> void Array2D<T>::putRow(const Array1D<T>& fromArray, int r) {
     if (fromArray.size() != cols) {
-        throw SizeError("Array2D::putRow()", "Dimensions inconsistent.");
+        throw ::LogicalError("Array2D::putRow()", "Dimensions inconsistent.");
     }
     std::copy(fromArray.begin(), fromArray.end(), row_begin(r));
 }

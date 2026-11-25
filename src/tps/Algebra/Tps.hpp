@@ -1,6 +1,10 @@
 #ifndef TPS_Tps_CC
 #define TPS_Tps_CC 1
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/DivideError.h"
+#include "Utilities/FormatError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Template Class: Tps<class T>
 //   Truncated power series in n variables of type T.
@@ -13,7 +17,6 @@
 #include "tps/Algebra/TpsMonomial.h"
 #include "tps/Algebra/TpsSubstitution.h"
 #include "tps/Algebra/VpsMap.h"
-#include "tps/Error.hpp"
 #include <algorithm>
 #include <cstring>
 #include <iomanip>
@@ -87,7 +90,7 @@ template <class T> inline T* TpsRep<T>::data() {
 template <class T> inline TpsRep<T>* TpsRep<T>::create(int maxOrder, int trcOrder, int variables) {
     TpsData::validateVariables(variables);
     if (maxOrder < 0 || maxOrder > INT_MAX - 2 || trcOrder < 0)
-        throw CLRangeError("TpsRep::create()", "Invalid order.");
+        throw ::CLRangeError("TpsRep::create()", "Invalid order.");
     // Construct descriptor and size.
     TpsData* d = 0;
     int s = 1;
@@ -206,7 +209,7 @@ template <class T> const T Tps<T>::operator[](int index) const {
 
 template <class T> T& Tps<T>::operator[](int index) {
     if (index < 0 || index >= rep->len)
-        throw CLRangeError("Tps::operator[]", "Coefficient index out of range.");
+        throw ::CLRangeError("Tps::operator[]", "Coefficient index out of range.");
     unique();
     return rep->data()[index];
 }
@@ -221,7 +224,7 @@ template <class T> T& Tps<T>::operator[](const TpsMonomial& monomial) {
 
 template <class T> const T Tps<T>::getCoefficient(int index) const {
     if (index < 0 || index >= rep->len) {
-        throw CLRangeError("Tps::getCoefficients()", "Monomial index out of range.");
+        throw ::CLRangeError("Tps::getCoefficients()", "Monomial index out of range.");
     }
 
     return rep->data()[index];
@@ -229,7 +232,7 @@ template <class T> const T Tps<T>::getCoefficient(int index) const {
 
 template <class T> void Tps<T>::setCoefficient(int index, const T& value) {
     if (index < 0 || (!rep->help && index != 0))
-        throw CLRangeError("Tps::setCoefficient()", "Index out of range.");
+        throw ::CLRangeError("Tps::setCoefficient()", "Index out of range.");
     int order = getOrder(index);
     if (order > rep->trcOrd)
         return;
@@ -248,9 +251,9 @@ template <class T> void Tps<T>::setCoefficient(int index, const T& value) {
 
 template <class T> int Tps<T>::checkedCoefficientIndex(const TpsMonomial& monomial) const {
     if (monomial.getVariables() != getVariables())
-        throw SizeError("Tps::coefficientIndex()", "Inconsistent number of variables.");
+        throw ::LogicalError("Tps::coefficientIndex()", "Inconsistent number of variables.");
     if (monomial.getOrder() > getMaxOrder())
-        throw CLRangeError("Tps::coefficientIndex()", "Monomial exceeds stored order.");
+        throw ::CLRangeError("Tps::coefficientIndex()", "Monomial exceeds stored order.");
     return monomial.getIndex();
 }
 
@@ -263,7 +266,7 @@ template <class T> void Tps<T>::setCoefficient(const TpsMonomial& monomial, cons
     int v2 = getVariables();
 
     if (v1 != v2) {
-        throw SizeError("Tps::getCoefficients()", "Inconsistent number of variables.");
+        throw ::LogicalError("Tps::getCoefficients()", "Inconsistent number of variables.");
     }
 
     setCoefficient(monomial.getIndex(), value);
@@ -272,7 +275,7 @@ template <class T> void Tps<T>::setCoefficient(const TpsMonomial& monomial, cons
 template <class T> Tps<T> Tps<T>::makeVariable(int nVar, int var) {
     TpsData::validateVariables(nVar);
     if (var < 0 || var >= nVar)
-        throw CLRangeError("Tps::makeVariable()", "Variable index out of range.");
+        throw ::CLRangeError("Tps::makeVariable()", "Variable index out of range.");
     TpsRep<T>* p = TpsRep<T>::create(1, EXACT, nVar);
     p->data()[var + 1] = T(1);
     return Tps<T>(p);
@@ -308,7 +311,7 @@ template <class T> Tps<T>& Tps<T>::operator+=(const Tps<T>& rhs) {
     if (int v1 = getVariables()) {
         if (int v2 = rhs.getVariables()) {
             if (v1 != v2) {
-                throw SizeError("TpsRep::operator+=()", "Number of variables inconsistent.");
+                throw ::LogicalError("TpsRep::operator+=()", "Number of variables inconsistent.");
             }
 
             int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
@@ -340,7 +343,7 @@ template <class T> Tps<T>& Tps<T>::operator-=(const Tps<T>& rhs) {
     if (int v1 = getVariables()) {
         if (int v2 = rhs.getVariables()) {
             if (v1 != v2) {
-                throw SizeError("TpsRep::operator-=()", "Number of variables inconsistent.");
+                throw ::LogicalError("TpsRep::operator-=()", "Number of variables inconsistent.");
             }
 
             int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
@@ -398,7 +401,7 @@ template <class T> Tps<T>& Tps<T>::operator*=(const T& rhs) {
 
 template <class T> Tps<T>& Tps<T>::operator/=(const T& rhs) {
     if (rhs == T(0))
-        throw DivideError("Tps::operator/()");
+        throw ::DivideError("Tps::operator/()");
     T* x = rep->data();
     std::transform(x, x + rep->len, x, [&rhs](const T& value) { return value / rhs; });
     return *this;
@@ -475,7 +478,7 @@ template <class T> Tps<T> Tps<T>::substitute(const Matrix<T>& M) const {
         int v1 = getVariables();
         int v2 = M.nrows();
         if (v1 != v2) {
-            throw SizeError("Tps::substitute()", "Matrix not consistent with Tps.");
+            throw ::LogicalError("Tps::substitute()", "Matrix not consistent with Tps.");
         }
         int nRow = M.nrows();
         int nCol = M.ncols();
@@ -516,7 +519,7 @@ template <class T> Tps<T> Tps<T>::substitute(const VpsMap<T>& rhs) const {
     int v1 = getVariables();
     int v2 = rhs.getDimension();
     if (v1 != v2) {
-        throw SizeError("Tps::substitute()", "VpsMap is inconsistent with Tps.");
+        throw ::LogicalError("Tps::substitute()", "VpsMap is inconsistent with Tps.");
     }
 
     const T* x = rep->data();
@@ -543,7 +546,7 @@ template <class T> T Tps<T>::evaluate(const Vector<T>& rhs) const {
     int v1 = getVariables();
     int v2 = rhs.size();
     if (v1 != v2) {
-        throw SizeError("Tps::evaluate()", "Vector is inconsistent with Tps.");
+        throw ::LogicalError("Tps::evaluate()", "Vector is inconsistent with Tps.");
     }
 
     const T* x = rep->data();
@@ -576,7 +579,7 @@ template <class T> std::istream& Tps<T>::get(std::istream& is) {
     char head[4];
     is.get(head, 4);
     if (strcmp(head, "Tps") != 0) {
-        throw FormatError("Tps::get()", "Flag word \"Tps\" missing.");
+        throw ::FormatError("Tps::get()", "Flag word \"Tps\" missing.");
     }
 
     int maxOrder, truncOrder, nVar;
@@ -616,7 +619,7 @@ template <class T> std::istream& Tps<T>::get(std::istream& is) {
             if (done)
                 break;
             if (fail)
-                throw FormatError("Tps::get()", "File read error");
+                throw ::FormatError("Tps::get()", "File read error");
             int index = monomial.getIndex();
 
             if (coeff != T(0)) {
@@ -677,7 +680,7 @@ template <class T> Tps<T> Tps<T>::multiply(const Tps<T>& rhs, int trunc) const {
     if (v1) {
         if (v2) {
             if (v1 != v2) {
-                throw SizeError("TpsRep::multiply()", "Number of variables inconsistent.");
+                throw ::LogicalError("TpsRep::multiply()", "Number of variables inconsistent.");
             }
 
             if (getTruncOrder() != EXACT) {
@@ -742,10 +745,10 @@ template <class T> Tps<T> Tps<T>::multiply(const Tps<T>& rhs, int trunc) const {
 
 template <class T> Tps<T> Tps<T>::inverse(int trunc) const {
     if (trunc < 0)
-        throw CLRangeError("Tps::inverse()", "Negative truncation order.");
+        throw ::CLRangeError("Tps::inverse()", "Negative truncation order.");
     T aZero = rep->data()[0];
     if (aZero == T(0))
-        throw DivideError("Tps::inverse()");
+        throw ::DivideError("Tps::inverse()");
 
     if (isConstant()) {
         return Tps<T>(T(1) / aZero);
@@ -765,7 +768,7 @@ template <class T> Tps<T> Tps<T>::inverse(int trunc) const {
 
 template <class T> Tps<T> Tps<T>::derivative(int var) const {
     if (var < 0 || (getVariables() && var >= getVariables()))
-        throw CLRangeError("Tps::derivative()", "Variable index out of range.");
+        throw ::CLRangeError("Tps::derivative()", "Variable index out of range.");
     if (getVariables() && getMaxOrder() > 0) {
         int maxOrder = getMaxOrder() - 1;
         int trcOrder = getTruncOrder();
@@ -791,9 +794,9 @@ template <class T> Tps<T> Tps<T>::derivative(int var) const {
 
 template <class T> Tps<T> Tps<T>::integral(int var) const {
     if (var < 0 || (getVariables() && var >= getVariables()))
-        throw CLRangeError("Tps::integral()", "Variable index out of range.");
+        throw ::CLRangeError("Tps::integral()", "Variable index out of range.");
     if (getVariables() == 0) {
-        throw LogicalError("TpsRep::integral()", "Cannot integrate a constant.");
+        throw ::LogicalError("TpsRep::integral()", "Cannot integrate a constant.");
     }
 
     int trcO = std::min(rep->trcOrd == EXACT ? EXACT : rep->trcOrd + 1, truncOrder);
@@ -814,10 +817,10 @@ template <class T> Tps<T> Tps<T>::integral(int var) const {
 
 template <class T> Tps<T> Tps<T>::multiplyVariable(int var) const {
     if (var < 0 || (getVariables() && var >= getVariables()))
-        throw CLRangeError("Tps::multiplyVariable()", "Variable index out of range.");
+        throw ::CLRangeError("Tps::multiplyVariable()", "Variable index out of range.");
     if (getVariables() == 0) {
-        throw LogicalError("TpsRep::multiplyVariable()",
-                           "Cannot multiply a constant by a numbered variable.");
+        throw ::LogicalError("TpsRep::multiplyVariable()",
+                             "Cannot multiply a constant by a numbered variable.");
     }
 
     int trcO = std::min(rep->trcOrd == EXACT ? EXACT : rep->trcOrd + 1, truncOrder);
@@ -840,7 +843,7 @@ template <class T> Tps<T> Tps<T>::scaleMonomials(const Tps<T>& rhs) const {
     int v2 = rhs.getVariables();
 
     if (v1 != v2) {
-        throw SizeError("TpsRep::scaleMonomials()", "Number of variables inconsistent.");
+        throw ::LogicalError("TpsRep::scaleMonomials()", "Number of variables inconsistent.");
     }
 
     int order = std::min(getMaxOrder(), rhs.getMaxOrder());
@@ -856,7 +859,7 @@ template <class T> Tps<T> Tps<T>::scaleMonomials(const Tps<T>& rhs) const {
 
 template <class T> Tps<T> Tps<T>::taylor(std::span<const T> series) const {
     if (series.empty() || series.size() > static_cast<std::size_t>(INT_MAX))
-        throw CLRangeError("Tps::taylor()", "Invalid coefficient span size.");
+        throw ::CLRangeError("Tps::taylor()", "Invalid coefficient span size.");
     const int order = static_cast<int>(series.size()) - 1;
     if (isConstant()) {
         return Tps<T>(series[0]);
@@ -894,7 +897,7 @@ template <class T> bool Tps<T>::isConstant() const {
 
 template <class T> int Tps<T>::getTaylorOrder(int order) const {
     if (order < 0)
-        throw CLRangeError("Tps::getTaylorOrder()", "Negative truncation order.");
+        throw ::CLRangeError("Tps::getTaylorOrder()", "Negative truncation order.");
     if (isConstant())
         return 0;
     const int cut = std::min(order, getTruncOrder());
@@ -907,13 +910,13 @@ template <class T> int Tps<T>::getGlobalTruncOrder() {
 
 template <class T> void Tps<T>::setGlobalTruncOrder(int order) {
     if (order < 0)
-        throw CLRangeError("Tps::setGlobalTruncOrder()", "Negative truncation order.");
+        throw ::CLRangeError("Tps::setGlobalTruncOrder()", "Negative truncation order.");
     truncOrder = order;
 }
 
 template <class T> const TpsMonomial& Tps<T>::getExponents(int index) const {
     if (rep->help == 0) {
-        throw LogicalError("Tps::getExponents()", "Cannot get exponents of a constant.");
+        throw ::LogicalError("Tps::getExponents()", "Cannot get exponents of a constant.");
     }
 
     return rep->help->getExponents(index);

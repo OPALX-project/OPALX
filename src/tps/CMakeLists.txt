@@ -8,9 +8,8 @@ set_target_properties(tps PROPERTIES CXX_EXTENSIONS OFF POSITION_INDEPENDENT_COD
 target_include_directories(tps PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/opalx>)
-target_link_libraries(tps PUBLIC Kokkos::kokkos Kokkos::kokkoskernels)
+target_link_libraries(tps PUBLIC opalx_exceptions Kokkos::kokkos Kokkos::kokkoskernels)
 
 install(TARGETS tps EXPORT OPALXTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES Copyright.readme DESTINATION ${CMAKE_INSTALL_DATADIR}/opalx/tps)

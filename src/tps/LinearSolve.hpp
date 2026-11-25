@@ -1,7 +1,8 @@
 #ifndef TPS_LINEAR_SOLVE_HPP
 #define TPS_LINEAR_SOLVE_HPP
+#include "Utilities/LogicalError.h"
+#include "Utilities/SingularMatrixError.h"
 #include "tps/Algebra/Matrix.h"
-#include "tps/Error.hpp"
 #include <KokkosBatched_Getrf.hpp>
 #include <KokkosBatched_Getrs.hpp>
 #include <algorithm>
@@ -19,7 +20,7 @@ template <class T> class LUFactorization {
     explicit LUFactorization(const Matrix<T>& matrix, double minimumPivot = 0)
         : factors_(matrix), pivots_(matrix.nrows()) {
         if (matrix.nrows() != matrix.ncols())
-            throw SizeError("LUFactorization", "Matrix must be square");
+            throw ::LogicalError("LUFactorization", "Matrix must be square");
         if (!std::isfinite(minimumPivot) || minimumPivot < 0)
             throw std::invalid_argument("LU minimum pivot must be finite and nonnegative");
         for (int i = 0; i < matrix.nrows(); ++i)
@@ -29,7 +30,7 @@ template <class T> class LUFactorization {
         int info = KokkosBatched::SerialGetrf<KokkosBatched::Algo::Getrf::Unblocked>::invoke(
             factors_.view(), pivots_.view());
         if (info > 0)
-            throw SingularMatrixError("Kokkos Getrf");
+            throw ::SingularMatrixError("Kokkos Getrf");
         if (info < 0)
             throw std::runtime_error("Kokkos Getrf invalid argument");
         for (int i = 0; i < factors_.nrows(); ++i) {
@@ -37,17 +38,17 @@ template <class T> class LUFactorization {
             if (!std::isfinite(magnitude))
                 throw std::runtime_error("Nonfinite LU factor");
             if (magnitude == 0 || magnitude < minimumPivot)
-                throw SingularMatrixError("LU minimum pivot");
+                throw ::SingularMatrixError("LU minimum pivot");
         }
     }
     void solve(Vector<T>& rhs) const {
         if (rhs.size() != factors_.nrows())
-            throw SizeError("LUFactorization solve", "Dimension mismatch");
+            throw ::LogicalError("LUFactorization solve", "Dimension mismatch");
         solveView<KokkosBatched::Trans::NoTranspose>(rhs.view());
     }
     void solve(Matrix<T>& rhs) const {
         if (rhs.nrows() != factors_.nrows())
-            throw SizeError("LUFactorization solve", "Dimension mismatch");
+            throw ::LogicalError("LUFactorization solve", "Dimension mismatch");
         for (int i = 0; i < rhs.ncols(); ++i)
             solveView<KokkosBatched::Trans::NoTranspose>(
                 Kokkos::subview(rhs.view(), Kokkos::ALL, i));
@@ -55,13 +56,13 @@ template <class T> class LUFactorization {
     /// Solve A^T x=b in place with the original factorization/pivots (no conjugation).
     void solveTranspose(Vector<T>& rhs) const {
         if (rhs.size() != factors_.nrows())
-            throw SizeError("LU transpose solve", "Dimension mismatch");
+            throw ::LogicalError("LU transpose solve", "Dimension mismatch");
         solveView<KokkosBatched::Trans::Transpose>(rhs.view());
     }
     /// Solve A^T X=B in place, one RHS per column.
     void solveTranspose(Matrix<T>& rhs) const {
         if (rhs.nrows() != factors_.nrows())
-            throw SizeError("LU transpose solve", "Dimension mismatch");
+            throw ::LogicalError("LU transpose solve", "Dimension mismatch");
         for (int i = 0; i < rhs.ncols(); ++i)
             solveView<KokkosBatched::Trans::Transpose>(Kokkos::subview(rhs.view(), Kokkos::ALL, i));
     }
@@ -99,7 +100,7 @@ template <class T> class LUFactorization {
 template <class T> T determinant(const Matrix<T>& matrix) {
     try {
         return LUFactorization<T>(matrix).determinant();
-    } catch (const SingularMatrixError&) {
+    } catch (const ::SingularMatrixError&) {
         return T(0);
     }
 }

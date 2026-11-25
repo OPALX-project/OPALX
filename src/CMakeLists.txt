@@ -90,6 +90,27 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 
+# Shared host exceptions avoid a circular dependency between TPS and OPALX.
+add_library(opalx_exceptions
+  Utilities/OpalException.cpp
+  Utilities/ArithmeticError.cpp
+  Utilities/CLRangeError.cpp
+  Utilities/DivideError.cpp
+  Utilities/DomainError.cpp
+  Utilities/FormatError.cpp
+  Utilities/LogicalError.cpp
+)
+target_compile_features(opalx_exceptions PUBLIC cxx_std_20)
+set_target_properties(opalx_exceptions PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(opalx_exceptions PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/opalx>)
+install(TARGETS opalx_exceptions EXPORT OPALXTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${PROJECT_SOURCE_DIR}/NOTICE ${PROJECT_SOURCE_DIR}/LICENSE
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/opalx)
+
 # Subdirectories
 add_subdirectory(tps)
 add_subdirectory (AbsBeamline)

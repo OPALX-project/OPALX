@@ -1,4 +1,6 @@
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: TpsData
 //   Bookkeeper class for Tps class.
@@ -25,8 +27,8 @@ TpsData::~TpsData() {}
 
 int TpsData::validateVariables(int variables) {
     if (variables < 0 || variables > MAX_VARIABLES)
-        throw CLRangeError("TpsData::validateVariables()",
-                           "Variable count must be between 0 and 99.");
+        throw ::CLRangeError("TpsData::validateVariables()",
+                             "Variable count must be between 0 and 99.");
     return variables;
 }
 
@@ -48,17 +50,18 @@ TpsData* TpsData::getTpsData(int nOrd, int nVar) {
         registered = true;
     }
     if (nOrd < 0 || nOrd > INT_MAX - 2)
-        throw CLRangeError("TpsData::getTpsData()", "Invalid cache order.");
+        throw ::CLRangeError("TpsData::getTpsData()", "Invalid cache order.");
     // Check table dimensions and coefficient counts before mutating the cache.
     if (nVar && nOrd + 2 > INT_MAX / nVar)
-        throw CLRangeError("TpsData::getTpsData()", "Table dimensions exceed integer range.");
+        throw ::CLRangeError("TpsData::getTpsData()", "Table dimensions exceed integer range.");
     std::int64_t count = 1;
     const int k = std::min(nOrd, nVar);
     const std::int64_t total = std::int64_t(nOrd) + nVar;
     for (int i = 1; i <= k; ++i) {
         count = count * (total - k + i) / i;
         if (count > INT_MAX)
-            throw CLRangeError("TpsData::getTpsData()", "Coefficient count exceeds integer range.");
+            throw ::CLRangeError("TpsData::getTpsData()",
+                                 "Coefficient count exceeds integer range.");
     }
     if (nVar == 0) {
         return 0;
@@ -70,9 +73,9 @@ TpsData* TpsData::getTpsData(int nOrd, int nVar) {
 
 int TpsData::indexMonomial(const TpsMonomial& pows) const {
     if (pows.getVariables() != variables)
-        throw SizeError("TpsData::indexMonomial()", "Variable count mismatch.");
+        throw ::LogicalError("TpsData::indexMonomial()", "Variable count mismatch.");
     if (pows.getOrder() > topOrder)
-        throw CLRangeError("TpsData::indexMonomial()", "Order outside built cache.");
+        throw ::CLRangeError("TpsData::indexMonomial()", "Order outside built cache.");
     int index = 0;
     int order = 0;
 

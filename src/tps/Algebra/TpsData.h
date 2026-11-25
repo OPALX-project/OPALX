@@ -1,6 +1,7 @@
 #ifndef TPS_TpsData_H
 #define TPS_TpsData_H
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: TpsData
 
@@ -29,7 +30,7 @@ class TpsData {
     ~TpsData();
 
     /// Obtain/grow shared tables through nOrd; zero variables returns nullptr.
-    /// Invalid orders/counts and nonrepresentable table sizes throw CLRangeError.
+    /// Invalid orders/counts and nonrepresentable table sizes throw ::CLRangeError.
     static TpsData* getTpsData(int nOrd, int nVar);
 
     /// Power array for monomial with index "index"
@@ -43,7 +44,7 @@ class TpsData {
     const int* getProductArray(int index) const;
 
     /// Number of terms through total degree order; getSize(-1) returns zero.
-    /// Orders outside [-1, built order] throw CLRangeError.
+    /// Orders outside [-1, built order] throw ::CLRangeError.
     int getSize(int order) const;
 
     /// Depth-first traversal records, with subtree skip indices.
@@ -100,13 +101,13 @@ class TpsData {
 
 inline const TpsMonomial& TpsData::getExponents(int index) const {
     if (index < 0 || index >= maxSize)
-        throw CLRangeError("TpsData::getExponents()", "Index out of range.");
+        throw ::CLRangeError("TpsData::getExponents()", "Index out of range.");
     return expon[index];
 }
 
 inline const int* TpsData::getProductArray(int index) const {
     if (index < 0 || index >= maxSize)
-        throw CLRangeError("TpsData::getProductArray()", "Index out of range.");
+        throw ::CLRangeError("TpsData::getProductArray()", "Index out of range.");
     return prod[index].begin();
 }
 
@@ -116,7 +117,7 @@ inline int TpsData::getOrder(int index) const {
 
 inline int TpsData::getSize(int order) const {
     if (order < -1 || order > topOrder)
-        throw CLRangeError("TpsData::getSize()", "Order outside built cache.");
+        throw ::CLRangeError("TpsData::getSize()", "Order outside built cache.");
     return order == -1 ? 0 : binom[0][order + 1];
 }
 

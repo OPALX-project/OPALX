@@ -1,6 +1,9 @@
 #ifndef TPS_VPS_IMPLEMENTATION_HPP
 #define TPS_VPS_IMPLEMENTATION_HPP
-// Copyright: see Copyright.readme
+#include "Utilities/DivideError.h"
+#include "Utilities/FormatError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: Vps
 //   Vector truncated power series in n variables.
@@ -10,7 +13,6 @@
 #include "tps/Algebra/Vector.h"
 #include "tps/Algebra/Tps.h"
 #include "tps/Algebra/TpsMonomial.h"
-#include "tps/Error.hpp"
 #include <algorithm>
 #include <iostream>
 
@@ -58,7 +60,7 @@ template <class T> const Tps<T>& Vps<T>::getComponent(int index) const {
 template <class T> void Vps<T>::setComponent(int index, const Tps<T>& value) {
     check();
     if (value.getVariables() != variables) {
-        throw SizeError("Vps::setComponent()", "Index out of range.");
+        throw ::LogicalError("Vps::setComponent()", "Index out of range.");
     }
     data(index) = value;
 }
@@ -69,7 +71,7 @@ template <class T> void Vps<T>::check() const {
     for (const Tps<T>* p = data.begin(); p != data.end(); ++p) {
         if (int var = p->getVariables()) {
             if (variables != 0 && var != variables) {
-                throw SizeError("Vps::check()", "Vps has inconsistent number of variables.");
+                throw ::LogicalError("Vps::check()", "Vps has inconsistent number of variables.");
             }
             variables = var;
         }
@@ -108,7 +110,7 @@ template <class T> Vps<T>& Vps<T>::operator*=(const T& y) {
 
 template <class T> Vps<T>& Vps<T>::operator/=(const T& y) {
     if (y == T(0))
-        throw DivideError("Vps::operator/()");
+        throw ::DivideError("Vps::operator/()");
     T t = T(1) / y;
     for (int i = 0; i < getDimension(); i++)
         data[i] *= t;
@@ -117,7 +119,7 @@ template <class T> Vps<T>& Vps<T>::operator/=(const T& y) {
 
 template <class T> Vps<T>& Vps<T>::operator+=(const Vps<T>& y) {
     if (getDimension() != y.getDimension()) {
-        throw SizeError("Vps::operator+=()", "Inconsistent dimensions.");
+        throw ::LogicalError("Vps::operator+=()", "Inconsistent dimensions.");
     }
 
     for (int i = 0; i < getDimension(); i++)
@@ -127,7 +129,7 @@ template <class T> Vps<T>& Vps<T>::operator+=(const Vps<T>& y) {
 
 template <class T> Vps<T>& Vps<T>::operator-=(const Vps<T>& y) {
     if (getDimension() != y.getDimension()) {
-        throw SizeError("Vps::operator-=()", "Inconsistent dimensions.");
+        throw ::LogicalError("Vps::operator-=()", "Inconsistent dimensions.");
     }
 
     for (int i = 0; i < getDimension(); i++)
@@ -137,7 +139,7 @@ template <class T> Vps<T>& Vps<T>::operator-=(const Vps<T>& y) {
 
 template <class T> Vps<T>& Vps<T>::operator+=(const Vector<T>& y) {
     if (getDimension() != y.size()) {
-        throw SizeError("Vps::operator+=()", "Inconsistent dimensions.");
+        throw ::LogicalError("Vps::operator+=()", "Inconsistent dimensions.");
     }
 
     for (int i = 0; i < getDimension(); i++)
@@ -147,7 +149,7 @@ template <class T> Vps<T>& Vps<T>::operator+=(const Vector<T>& y) {
 
 template <class T> Vps<T>& Vps<T>::operator-=(const Vector<T>& y) {
     if (getDimension() != y.size()) {
-        throw SizeError("Vps::operator-=()", "Inconsistent dimensions.");
+        throw ::LogicalError("Vps::operator-=()", "Inconsistent dimensions.");
     }
 
     for (int i = 0; i < getDimension(); i++)
@@ -161,14 +163,14 @@ template <class T> std::istream& Vps<T>::get(std::istream& is) {
     is.get(head, 4);
 
     if (std::strcmp(head, "Vps") != 0) {
-        throw FormatError("Vps::get()", "Flag word \"Vps\" missing.");
+        throw ::FormatError("Vps::get()", "Flag word \"Vps\" missing.");
     }
 
     int nDim;
     is >> nDim;
 
     if (nDim == 0) {
-        throw FormatError("Vps::get()", "Zero Vps dimension");
+        throw ::FormatError("Vps::get()", "Zero Vps dimension");
     }
 
     Vps<T> temp(nDim);

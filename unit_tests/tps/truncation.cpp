@@ -1,3 +1,4 @@
+#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
 #include "tps/Algebra/Tps.hpp"
 #include "tps/Algebra/TpsMath.h"
@@ -88,7 +89,7 @@ int main() {
         bool rejected = false;
         try {
             TPS::setGlobalTruncOrder(-1);
-        } catch (const CLRangeError&) {
+        } catch (const ::CLRangeError&) {
             rejected = true;
         }
         if (!rejected || TPS::getGlobalTruncOrder() != 2)
@@ -96,7 +97,7 @@ int main() {
         rejected = false;
         try {
             (1.0 + x).inverse(-1);
-        } catch (const CLRangeError&) {
+        } catch (const ::CLRangeError&) {
             rejected = true;
         }
         if (!rejected)

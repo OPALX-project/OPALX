@@ -1,3 +1,4 @@
+#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
 #include <tps/tps.hpp>
 #include <array>
@@ -238,7 +239,7 @@ int main() {
         bool overflowRejected = false;
         try {
             (void)tps::compose(largeIdentity, largeIdentity, 65536);
-        } catch (const tps::CLRangeError&) {
+        } catch (const ::CLRangeError&) {
             overflowRejected = true;
         }
         require(overflowRejected && S::getGlobalTruncOrder() == 1,

@@ -1,12 +1,12 @@
 #ifndef TPS_TpsMath_HH
 #define TPS_TpsMath_HH
-// Copyright: see Copyright.readme
+#include "Utilities/DomainError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Overloaded template functions:
 //   Elementary functions acting on Tps<T> objects.
 
 #include "tps/Algebra/Tps.hpp"
-#include "tps/Error.hpp"
 #include <cmath>
 
 namespace tps {
@@ -70,7 +70,7 @@ template <class T> Tps<T> sqrt(const Tps<T>& x) {
     using std::sqrt;
     T aZero = x[0];
     if (aZero <= 0.0)
-        throw DomainError("sqrt(const Tps &)");
+        throw ::DomainError("sqrt(const Tps &)");
 
     // Build Taylor series.
     int cut = x.getTaylorOrder();
@@ -152,7 +152,7 @@ template <class T> Tps<T> log(const Tps<T>& x) {
     using std::log;
     T aZero = x[0];
     if (aZero <= 0)
-        throw DomainError("log(const Tps &)");
+        throw ::DomainError("log(const Tps &)");
 
     int cut = x.getTaylorOrder();
     double power;

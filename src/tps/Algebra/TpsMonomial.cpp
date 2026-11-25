@@ -1,4 +1,6 @@
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: TpsMonomial
 //   Index set for a Tps monomial.
@@ -19,23 +21,23 @@ TpsMonomial::TpsMonomial(int nVar, int var) : array(TpsData::validateVariables(n
 
 int& TpsMonomial::operator[](int index) {
     if (index < 0 || index >= array.size())
-        throw CLRangeError("TpsMonomial::operator[]", "Variable index out of range.");
+        throw ::CLRangeError("TpsMonomial::operator[]", "Variable index out of range.");
     return array[index];
 }
 
 int TpsMonomial::operator[](int index) const {
     if (index < 0 || index >= array.size())
-        throw CLRangeError("TpsMonomial::operator[]", "Variable index out of range.");
+        throw ::CLRangeError("TpsMonomial::operator[]", "Variable index out of range.");
     return array[index];
 }
 
 TpsMonomial TpsMonomial::operator*(const TpsMonomial& rhs) const {
     int n = rhs.getVariables();
     if (n != getVariables())
-        throw SizeError("TpsMonomial::operator*()", "Variable count mismatch.");
+        throw ::LogicalError("TpsMonomial::operator*()", "Variable count mismatch.");
     const int leftOrder = getOrder(), rightOrder = rhs.getOrder();
     if (leftOrder > INT_MAX - rightOrder)
-        throw CLRangeError("TpsMonomial::operator*()", "Order overflow.");
+        throw ::CLRangeError("TpsMonomial::operator*()", "Order overflow.");
     TpsMonomial z(*this);
     for (int i = 0; i < n; i++)
         z.array[i] += rhs.array[i];
@@ -55,7 +57,7 @@ int TpsMonomial::getOrder() const {
 
     for (int i = 0; i < array.size(); i++) {
         if (array[i] < 0 || array[i] > INT_MAX - order)
-            throw CLRangeError("TpsMonomial::getOrder()", "Negative exponent or order overflow.");
+            throw ::CLRangeError("TpsMonomial::getOrder()", "Negative exponent or order overflow.");
         order += array[i];
     }
 

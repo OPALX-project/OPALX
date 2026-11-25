@@ -1,3 +1,5 @@
+#include "Utilities/CLRangeError.h"
+#include "Utilities/OpalException.h"
 #include <Kokkos_Core.hpp>
 #include "tps/Algebra/Array2D.h"
 #include <climits>
@@ -16,10 +18,10 @@ template <class F> void rejects(F f) {
     bool rejected = false;
     try {
         f();
-    } catch (const CLRangeError&) {
+    } catch (const ::CLRangeError&) {
         rejected = true;
     }
-    require(rejected, "expected CLRangeError");
+    require(rejected, "expected ::CLRangeError");
 }
 int main() {
     Kokkos::ScopeGuard kokkos;
@@ -126,7 +128,7 @@ int main() {
                 "const empty column");
         rejects([&] { (void)noRows[0]; });
         std::cout << "Array indexing regressions passed\n";
-    } catch (const Error& e) {
+    } catch (const ::OpalException& e) {
         std::cerr << e.where() << ": " << e.what() << '\n';
         return 1;
     } catch (const std::exception& e) {

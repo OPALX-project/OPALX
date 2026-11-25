@@ -1,6 +1,8 @@
 #ifndef TPS_Vps_HH
 #define TPS_Vps_HH
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/DivideError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: Vps
 
@@ -40,22 +42,22 @@ template <class T> class Vps {
 
     /// Get component.
     ///  Return the component `index`.
-    ///  Throw CLRangeError, if `index` is out of range.
+    ///  Throw ::CLRangeError, if `index` is out of range.
     const Tps<T>& getComponent(int index) const;
 
     /// Set component.
     ///  Set the component `index`.
-    ///  Throw CLRangeError, if `index` is out of range.
+    ///  Throw ::CLRangeError, if `index` is out of range.
     void setComponent(int index, const Tps<T>& value);
 
     /// Get component.
     ///  Return the component `index`.
-    ///  Throws CLRangeError if `index` is out of range.
+    ///  Throws ::CLRangeError if `index` is out of range.
     Tps<T>& operator[](int index);
 
     /// Get read-only component.
     ///  Return the component `index`.
-    ///  Throws CLRangeError if `index` is out of range.
+    ///  Throws ::CLRangeError if `index` is out of range.
     const Tps<T>& operator[](int index) const;
 
     /// Check consistency.
@@ -71,14 +73,14 @@ template <class T> class Vps {
     Vps<T>& operator*=(const Tps<T>& y);
 
     /// Divide by Tps<T> and assign.
-    /// Throw DivideError if constant part of `y` is zero.
+    /// Throw ::DivideError if constant part of `y` is zero.
     Vps<T>& operator/=(const Tps<T>& y);
 
     /// Multiply by constant and assign.
     Vps<T>& operator*=(const T& y);
 
     /// Divide by constant and assign.
-    ///  Throw DivideError if `y` is zero.
+    ///  Throw ::DivideError if `y` is zero.
     Vps<T>& operator/=(const T& y);
 
     /// Addition.
@@ -150,11 +152,11 @@ template <class T> Vps<T> operator*(const Vps<T>& x, const T& y);
 template <class T> Vps<T> operator*(const T& x, const Vps<T>& y);
 
 /// Divide.
-///  Throw DivideError, if constant part of `y` is zero.
+///  Throw ::DivideError, if constant part of `y` is zero.
 template <class T> Vps<T> operator/(const Vps<T>& x, const Tps<T>& y);
 
 /// Divide.
-///  Throw DivideError, if `y` is zero.
+///  Throw ::DivideError, if `y` is zero.
 template <class T> Vps<T> operator/(const Vps<T>& x, const T& y);
 
 /// Add.

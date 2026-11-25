@@ -1,3 +1,5 @@
+#include "Utilities/LogicalError.h"
+#include "Utilities/SingularMatrixError.h"
 #include <tps/tps.hpp>
 #include <tps/LinearSolve.hpp>
 #include <complex>
@@ -56,7 +58,7 @@ int main() {
         try {
             tps::Matrix<double> zero(2, 2, 0.0);
             tps::LUFactorization<double> bad(zero);
-        } catch (const tps::SingularMatrixError&) {
+        } catch (const ::SingularMatrixError&) {
             singular = true;
         }
         if (!singular)
@@ -65,7 +67,7 @@ int main() {
         try {
             tps::Vector<double> wrong(3);
             (void)(x + wrong);
-        } catch (const tps::SizeError&) {
+        } catch (const ::LogicalError&) {
             mismatch = true;
         }
         if (!mismatch)

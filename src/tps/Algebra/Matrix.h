@@ -1,6 +1,7 @@
 #ifndef TPS_MATRIX_HPP
 #define TPS_MATRIX_HPP
-// Copyright: see Copyright.readme (OPAL/CLASSIC API; Kokkos Kernels implementation).
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE (OPAL/CLASSIC API; Kokkos Kernels implementation).
 #include "tps/Algebra/Array2D.h"
 #include "tps/Algebra/Vector.h"
 #include <KokkosBlas2_serial_gemv.hpp>
@@ -43,7 +44,7 @@ template <class T> class Matrix : public Array2D<T> {
     /// Add a scalar multiple of the identity; requires a square matrix.
     Matrix& operator+=(const T& a) {
         if (this->nrows() != this->ncols())
-            throw SizeError("Matrix diagonal", "Not square");
+            throw ::LogicalError("Matrix diagonal", "Not square");
         for (int i = 0; i < this->nrows(); ++i)
             (*this)(i, i) += a;
         return *this;
@@ -61,7 +62,7 @@ template <class T> class Matrix : public Array2D<T> {
     }
     Matrix dotm(const Matrix& b) const {
         if (this->ncols() != b.nrows())
-            throw SizeError("Matrix product", "Dimension mismatch");
+            throw ::LogicalError("Matrix product", "Dimension mismatch");
         Matrix r(this->nrows(), b.ncols(), T(0));
         KokkosBatched::SerialGemm<KokkosBatched::Trans::NoTranspose,
                                   KokkosBatched::Trans::NoTranspose,
@@ -72,14 +73,14 @@ template <class T> class Matrix : public Array2D<T> {
     }
     Vector<T> dotcv(const Vector<T>& b) const {
         if (this->ncols() != b.size())
-            throw SizeError("Matrix-vector", "Dimension mismatch");
+            throw ::LogicalError("Matrix-vector", "Dimension mismatch");
         Vector<T> r(this->nrows(), T(0));
         KokkosBlas::Experimental::serial_gemv('N', T(1), this->view(), b.view(), T(0), r.view());
         return r;
     }
     Vector<T> dotrv(const Vector<T>& b) const {
         if (this->nrows() != b.size())
-            throw SizeError("Vector-matrix", "Dimension mismatch");
+            throw ::LogicalError("Vector-matrix", "Dimension mismatch");
         Vector<T> r(this->ncols(), T(0));
         KokkosBlas::Experimental::serial_gemv('T', T(1), this->view(), b.view(), T(0), r.view());
         return r;
@@ -88,7 +89,7 @@ template <class T> class Matrix : public Array2D<T> {
   private:
     void check(const Matrix& b) const {
         if (this->nrows() != b.nrows() || this->ncols() != b.ncols())
-            throw SizeError("Matrix", "Dimension mismatch");
+            throw ::LogicalError("Matrix", "Dimension mismatch");
     }
 };
 template <class T> Matrix<T> operator+(Matrix<T> a, const Matrix<T>& b) {

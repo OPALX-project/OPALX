@@ -1,6 +1,9 @@
 #ifndef TPS_Tps_HH
 #define TPS_Tps_HH
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+#include "Utilities/DivideError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Template Class: Tps<class T>
 //   Truncated power series in n variables of type T.
@@ -64,7 +67,7 @@ template <class T> class Tps {
 
     /// Get coefficient.
     ///  Return the coefficient denoted by the Giorgilli index.
-    ///  Throw CLRangeError, if index is out of range.
+    ///  Throw ::CLRangeError, if index is out of range.
     const T getCoefficient(int index) const;
 
     /// Set coefficient.
@@ -74,34 +77,34 @@ template <class T> class Tps {
 
     /// Get coefficient.
     ///  Return the coefficient denoted by monomial exponents.
-    ///  Throw CLRangeError, if index is out of range.
+    ///  Throw ::CLRangeError, if index is out of range.
     const T getCoefficient(const TpsMonomial& monomial) const;
 
     /// Set coefficient.
     ///  Assign the coefficient denoted by monomial exponents.
-    ///  Throw CLRangeError, if index is out of range.
+    ///  Throw ::CLRangeError, if index is out of range.
     void setCoefficient(const TpsMonomial& monomial, const T& value);
 
     /// Get coefficient.
     ///  Return the coefficient denoted by the Giorgilli index.
-    ///  Throws CLRangeError outside allocated coefficients; does not expand storage.
+    ///  Throws ::CLRangeError outside allocated coefficients; does not expand storage.
     const T operator[](int index) const;
 
     /// Get coefficient.
     ///  Return a reference to the coefficient denoted by the Giorgilli index.
-    ///  Throws CLRangeError outside allocated coefficients; does not expand storage.
+    ///  Throws ::CLRangeError outside allocated coefficients; does not expand storage.
     T& operator[](int index);
 
     /// Get coefficient.
     ///  Return the coefficient denoted by monomial exponents.
-    ///  Throws CLRangeError outside allocated coefficients; does not expand storage.
-    ///  Throws SizeError for mismatched variable counts.
+    ///  Throws ::CLRangeError outside allocated coefficients; does not expand storage.
+    ///  Throws ::LogicalError for mismatched variable counts.
     const T operator[](const TpsMonomial& monomial) const;
 
     /// Get coefficient.
     ///  Return reference to the coefficient denoted by monomial exponents.
-    ///  Throws CLRangeError outside allocated coefficients; does not expand storage.
-    ///  Throws SizeError for mismatched variable counts.
+    ///  Throws ::CLRangeError outside allocated coefficients; does not expand storage.
+    ///  Throws ::LogicalError for mismatched variable counts.
     T& operator[](const TpsMonomial& monomial);
 
     /// Make variable.
@@ -179,8 +182,8 @@ template <class T> class Tps {
     /** @brief Finite Taylor jet of the reciprocal.
      * @param order Requested order, constrained by representation/global precision.
      * @return Reciprocal jet; EXACT resolves to a finite stored order.
-     * @throws DivideError If the constant coefficient is zero.
-     * @throws CLRangeError If order is negative.
+     * @throws ::DivideError If the constant coefficient is zero.
+     * @throws ::CLRangeError If order is negative.
      * @see tps_mathematics
      */
     Tps<T> inverse(int order = truncOrder) const;
@@ -195,11 +198,11 @@ template <class T> class Tps {
 
     /// Partial integral.
     ///  Return partial integral with respect to variable `var`.
-    ///  Throw LogicalError for a constant.
+    ///  Throw ::LogicalError for a constant.
     Tps<T> integral(int var) const;
 
     /// Multiply by variable `var`.
-    ///  Throw LogicalError for a constant.
+    ///  Throw ::LogicalError for a constant.
     Tps<T> multiplyVariable(int var) const;
 
     /// Multiply monomial-wise.
@@ -210,7 +213,7 @@ template <class T> class Tps {
      * @param coefficients Coefficients of successive powers of
      * \f$u=f-f(0)\f$, including the constant coefficient.
      * @return The Horner-evaluated polynomial, subject to truncation limits.
-     * @throws CLRangeError For an empty or unrepresentably large coefficient span.
+     * @throws ::CLRangeError For an empty or unrepresentably large coefficient span.
      * @note Coefficients must already include factorial normalization.
      */
     [[nodiscard]] Tps<T> taylor(std::span<const T> coefficients) const;

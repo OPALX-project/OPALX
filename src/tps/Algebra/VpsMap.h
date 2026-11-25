@@ -1,6 +1,8 @@
 #ifndef TPS_VpsMap_HH
 #define TPS_VpsMap_HH
-// Copyright: see Copyright.readme
+#include "Utilities/DivideError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Class: VpsMap
 
@@ -11,7 +13,6 @@
 #include "tps/Algebra/TpsSubstitution.h"
 #include "tps/Algebra/Vector.h"
 #include "tps/Algebra/Vps.h"
-#include "tps/Error.hpp"
 #include <iosfwd>
 
 namespace tps {
@@ -99,11 +100,11 @@ template <class T> VpsMap<T> operator*(const VpsMap<T>& x, const T& y);
 template <class T> VpsMap<T> operator*(const T& x, const VpsMap<T>& y);
 
 /// Divide.
-///  Throw DivideError if constant part of `y` is zero.
+///  Throw ::DivideError if constant part of `y` is zero.
 template <class T> VpsMap<T> operator/(const VpsMap<T>& x, const Tps<T>& y);
 
 /// Divide.
-///  Throw DivideError if `y` is zero.
+///  Throw ::DivideError if `y` is zero.
 template <class T> VpsMap<T> operator/(const VpsMap<T>& x, const T& y);
 
 /// Add.
@@ -166,7 +167,7 @@ template <class T> inline VpsMap<T> VpsMap<T>::substitute(const Matrix<T>& y) co
 
 template <class T> Vector<T> VpsMap<T>::constantTerm(const Vector<T>& y) const {
     if (this->getVariables() != y.size()) {
-        throw SizeError("VpsMap::constantTerm()", "Inconsistent dimensions.");
+        throw ::LogicalError("VpsMap::constantTerm()", "Inconsistent dimensions.");
     }
 
     // This statement makes sure that the substitution table exists.
@@ -204,7 +205,7 @@ template <class T> Vector<T> VpsMap<T>::constantTerm() const {
 template <class T> Matrix<T> VpsMap<T>::linearTerms(const Vector<T>& y) const {
     const int variables = this->getVariables();
     if (variables && variables != y.size())
-        throw SizeError("VpsMap::linearTerms()", "Point dimension mismatch.");
+        throw ::LogicalError("VpsMap::linearTerms()", "Point dimension mismatch.");
     // All-scalar maps have no stored input dimension: the point supplies it.
     Matrix<T> z(this->getDimension(), y.size());
     for (int i = 0; i < z.nrows(); i++) {
@@ -258,7 +259,7 @@ template <class T> VpsMap<T> VpsMap<T>::substitute(const VpsMap<T>& y, int trunc
     y.check();
 
     if (this->variables != y.getDimension()) {
-        throw SizeError("VpsMap::substitute()", "Inconsistent dimensions.");
+        throw ::LogicalError("VpsMap::substitute()", "Inconsistent dimensions.");
     }
 
     // This statement makes sure that the substitution table exists.
@@ -295,7 +296,7 @@ template <class T> VpsMap<T> VpsMap<T>::substitute(const VpsMap<T>& y, int trunc
 
 template <class T> VpsMap<T> VpsMap<T>::substituteInto(const Matrix<T>& x) const {
     if (x.ncols() != this->getDimension()) {
-        throw SizeError("VpsMap::substituteInto()", "Inconsistent dimensions.");
+        throw ::LogicalError("VpsMap::substituteInto()", "Inconsistent dimensions.");
     }
 
     VpsMap<T> z(x.nrows(), this->getVariables());

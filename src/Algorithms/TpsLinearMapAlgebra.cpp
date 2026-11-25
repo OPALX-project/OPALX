@@ -1,7 +1,8 @@
+#include "Utilities/SingularMatrixError.h"
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
-#include "Algorithms/TpsLinearMapAlgebra.h"
 #include <algorithm>
 #include <cmath>
+#include "Algorithms/TpsLinearMapAlgebra.h"
 #include "Utilities/OpalException.h"
 #include "tps/LinearSolve.hpp"
 
@@ -40,7 +41,7 @@ namespace opalx::maps {
                     result(i, j) = rhs(j, i);
                 }
             return result;
-        } catch (const tps::SingularMatrixError&) {
+        } catch (const ::SingularMatrixError&) {
             throw OpalException(
                     "LinearTransferMapBuilder::makeLinearTransferMap",
                     "The finite-difference input matrix is singular.");

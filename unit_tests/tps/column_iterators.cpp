@@ -1,3 +1,5 @@
+#include "Utilities/CLRangeError.h"
+#include "Utilities/OpalException.h"
 #include <Kokkos_Core.hpp>
 #include "tps/Algebra/Array2D.h"
 #include <algorithm>
@@ -58,7 +60,7 @@ template <class F> void rejects(F f) {
     bool rejected = false;
     try {
         f();
-    } catch (const CLRangeError&) {
+    } catch (const ::CLRangeError&) {
         rejected = true;
     }
     require(rejected, "expected iterator exception");
@@ -107,7 +109,7 @@ int main() {
         ConstSliceIterator<int> ce(nullptr, 1), cend(nullptr, 1, 0);
         require(ce == cend && std::distance(ce, cend) == 0, "const null empty range");
         std::cout << "Column iterator regressions passed\n";
-    } catch (const Error& e) {
+    } catch (const ::OpalException& e) {
         std::cerr << e.where() << ": " << e.what() << '\n';
         return 1;
     } catch (const std::exception& e) {

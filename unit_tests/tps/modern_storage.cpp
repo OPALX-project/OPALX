@@ -1,3 +1,5 @@
+#include "Utilities/OpalException.h"
+#include "Utilities/CLRangeError.h"
 #include <Kokkos_Core.hpp>
 #include "tps/tps.hpp"
 #include <algorithm>
@@ -100,7 +102,7 @@ int main() {
         bool spanRejected = false;
         try {
             (void)variable.taylor({});
-        } catch (const CLRangeError&) {
+        } catch (const ::CLRangeError&) {
             spanRejected = true;
         }
         require(spanRejected, "empty Taylor span rejection");
@@ -131,11 +133,14 @@ int main() {
         bool caught = false;
         try {
             (void)matrix[-1];
-        } catch (const std::exception&) {
+        } catch (const ::OpalException&) {
             caught = true;
         }
-        require(caught, "standard exception interoperability");
+        require(caught, "OPALX exception interoperability");
         std::cout << "Modern storage and C++20 concepts passed\n";
+    } catch (const ::OpalException& e) {
+        std::cerr << e.where() << ": " << e.what() << '\n';
+        return 1;
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
         return 1;

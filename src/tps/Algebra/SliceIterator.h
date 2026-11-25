@@ -1,12 +1,12 @@
 #ifndef TPS_SliceIterator_HH
 #define TPS_SliceIterator_HH
-// Copyright: see Copyright.readme
+#include "Utilities/CLRangeError.h"
+// Copyright: see NOTICE and LICENSE
 
 // Template class: SliceIterator
 
 #include <iterator>
 #include <compare>
-#include "tps/Error.hpp"
 
 namespace tps {
 
@@ -47,7 +47,7 @@ template <class T> class SliceIterator {
     bool operator!=(const SliceIterator<T>& rhs) const;
     std::strong_ordering operator<=>(const SliceIterator& rhs) const {
         if (cursor != rhs.cursor || stride != rhs.stride)
-            throw CLRangeError("SliceIterator::compare", "Iterators belong to different slices.");
+            throw ::CLRangeError("SliceIterator::compare", "Iterators belong to different slices.");
         return position <=> rhs.position;
     }
     friend SliceIterator operator+(difference_type n, const SliceIterator& iterator) {
@@ -131,8 +131,8 @@ template <class T> class ConstSliceIterator {
     bool operator!=(const ConstSliceIterator<T>& rhs) const;
     std::strong_ordering operator<=>(const ConstSliceIterator& rhs) const {
         if (cursor != rhs.cursor || stride != rhs.stride)
-            throw CLRangeError("ConstSliceIterator::compare",
-                               "Iterators belong to different slices.");
+            throw ::CLRangeError("ConstSliceIterator::compare",
+                                 "Iterators belong to different slices.");
         return position <=> rhs.position;
     }
     friend ConstSliceIterator operator+(difference_type n, const ConstSliceIterator& iterator) {
@@ -184,7 +184,7 @@ template <class T>
 inline SliceIterator<T>::SliceIterator(T* array, std::ptrdiff_t n, std::ptrdiff_t p)
     : cursor(array), position(p), stride(n) {
     if (n == 0)
-        throw CLRangeError("SliceIterator", "Zero stride.");
+        throw ::CLRangeError("SliceIterator", "Zero stride.");
 }
 
 template <class T>
@@ -253,8 +253,8 @@ template <class T>
 inline typename SliceIterator<T>::difference_type
 SliceIterator<T>::operator-(const SliceIterator<T>& rhs) const {
     if (cursor != rhs.cursor || stride != rhs.stride)
-        throw CLRangeError("SliceIterator::difference",
-                           "Iterators have different origins or strides.");
+        throw ::CLRangeError("SliceIterator::difference",
+                             "Iterators have different origins or strides.");
     return position - rhs.position;
 }
 
@@ -272,7 +272,7 @@ template <class T>
 inline ConstSliceIterator<T>::ConstSliceIterator(const T* array, std::ptrdiff_t n, std::ptrdiff_t p)
     : cursor(array), position(p), stride(n) {
     if (n == 0)
-        throw CLRangeError("ConstSliceIterator", "Zero stride.");
+        throw ::CLRangeError("ConstSliceIterator", "Zero stride.");
 }
 
 template <class T>
@@ -347,8 +347,8 @@ template <class T>
 inline typename ConstSliceIterator<T>::difference_type
 ConstSliceIterator<T>::operator-(const ConstSliceIterator<T>& rhs) const {
     if (cursor != rhs.cursor || stride != rhs.stride)
-        throw CLRangeError("SliceIterator::difference",
-                           "Iterators have different origins or strides.");
+        throw ::CLRangeError("SliceIterator::difference",
+                             "Iterators have different origins or strides.");
     return position - rhs.position;
 }
 

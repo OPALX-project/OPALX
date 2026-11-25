@@ -1,3 +1,5 @@
+#include "Utilities/LogicalError.h"
+#include "Utilities/SingularMatrixError.h"
 #include <tps/LinearSolve.hpp>
 #include <Kokkos_Core.hpp>
 #include <cmath>
@@ -62,19 +64,18 @@ int main() {
             near(b[i], x[i]);
         tps::Vector<double> wrongVector(2);
         tps::Matrix<double> wrongMatrix(2, 3);
-        rejects<tps::SizeError>([&] { factor.solveTranspose(wrongVector); });
-        rejects<tps::SizeError>([&] { factor.solveTranspose(wrongMatrix); });
+        rejects<::LogicalError>([&] { factor.solveTranspose(wrongVector); });
+        rejects<::LogicalError>([&] { factor.solveTranspose(wrongMatrix); });
         auto diagonal = tps::Matrix<double>::identity(3);
         diagonal(0, 0) = 1e-18;
         tps::LUFactorization<double> boundary(diagonal, 1e-18);
         diagonal(0, 0) = std::nextafter(1e-18, 0.);
-        rejects<tps::SingularMatrixError>(
-            [&] { tps::LUFactorization<double> bad(diagonal, 1e-18); });
+        rejects<::SingularMatrixError>([&] { tps::LUFactorization<double> bad(diagonal, 1e-18); });
         diagonal(0, 0) = std::nextafter(1e-18, 1.);
         tps::LUFactorization<double> above(diagonal, 1e-18);
         diagonal(0, 0) = 0;
         near(tps::determinant(diagonal), 0);
-        rejects<tps::SingularMatrixError>([&] { tps::LUFactorization<double> bad(diagonal); });
+        rejects<::SingularMatrixError>([&] { tps::LUFactorization<double> bad(diagonal); });
         auto permutation = tps::Matrix<double>::identity(6);
         for (int shift : {1, 2, 3, 5}) {
             permutation = tps::Matrix<double>(6, 6, 0.);
@@ -88,7 +89,7 @@ int main() {
         rejects<std::invalid_argument>(
             [&] { tps::LUFactorization<double> bad(a, std::numeric_limits<double>::infinity()); });
         tps::Matrix<double> nonsquare(2, 3);
-        rejects<tps::SizeError>([&] { (void)tps::determinant(nonsquare); });
+        rejects<::LogicalError>([&] { (void)tps::determinant(nonsquare); });
         diagonal(0, 0) = std::numeric_limits<double>::quiet_NaN();
         rejects<std::invalid_argument>([&] { (void)tps::determinant(diagonal); });
         require(std::isnan(tps::infinityNorm(diagonal)));

@@ -275,6 +275,14 @@ Prepared maps can be evaluated in parallel with separate workspace per particle.
 Coordinate/reference conversion, tracking orchestration, apertures and space-charge
 splitting remain OPALX integration tasks. Design reports and mathematical documentation
 are archived separately in `opalx-documents/prs/693/tps-docs`.
+Host algebra failures use OPALX's `OpalException` hierarchy: `CLRangeError` for
+indices/orders, `LogicalError` for incompatible dimensions/preconditions, and the
+existing divide/domain/format categories. `SingularMatrixError` derives from
+`ArithmeticError` and identifies singular or rejected-pivot LU factorizations.
+Catch `OpalException` explicitly; it does not derive from `std::exception`.
+Map/context validation retains standard exceptions and device evaluation returns
+status values. `TPS::tps` links the shared `opalx_exceptions` implementation.
+Original TPS attribution and license terms are retained in root `NOTICE` and `LICENSE`.
 The historical baseline remains in the standalone test bed; it is not built here.
 
 With `OPALX_ENABLE_UNIT_TESTS=ON`, run `ctest --test-dir <build> -L tps

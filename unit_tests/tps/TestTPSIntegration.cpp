@@ -1,5 +1,8 @@
-#include "Ippl.h"
+#include "Utilities/CLRangeError.h"
+#include "Utilities/DomainError.h"
 #include "Utilities/DivideError.h"
+#include "Utilities/OpalException.h"
+#include "Ippl.h"
 #include <tps/tps.hpp>
 #include <gtest/gtest.h>
 #include <array>
@@ -106,8 +109,18 @@ TEST_F(TPSIntegration, HostCompositionAndPreparedTrackingPerRank) {
     EXPECT_EQ(globalFailures, 0);
 }
 
-TEST_F(TPSIntegration, ExceptionFamiliesCoexist) {
-    EXPECT_THROW(throw ::DivideError("OPALX integration"), ::ArithmeticError);
-    EXPECT_THROW(throw tps::DivideError("TPS integration"), tps::Error);
+TEST_F(TPSIntegration, AlgebraFailuresUseOpalExceptions) {
+    const auto x = tps::Tps<double>::makeVariable(1, 0);
+    EXPECT_THROW((void)(x / 0.0), ::DivideError);
+    EXPECT_THROW((void)(x / 0.0), ::OpalException);
+    EXPECT_THROW((void)x[-1], ::CLRangeError);
+    EXPECT_THROW((void)tps::sqrt(x - 1.0), ::DomainError);
+    try {
+        (void)x[-1];
+        FAIL() << "Invalid coefficient index was accepted";
+    } catch (const ::OpalException& error) {
+        EXPECT_EQ(error.where(), "Tps::getCoefficients()");
+        EXPECT_EQ(error.what(), "Monomial index out of range.");
+    }
 }
 } // namespace
