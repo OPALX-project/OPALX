@@ -5,13 +5,13 @@
 
 #include "PartBunch/PartBunch.h"
 #include <algorithm>
-#include <cmath>
-#include <sstream>
-#include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 #include "Track/RunDescription.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
+
+extern Inform* gmsg;
 
 /**
  * @copybrief PartBunch::PartBunch
@@ -76,8 +76,7 @@ PartBunch<T, Dim>::PartBunch(
     const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
     m << level5 << "* Initial Cartesian domain set to isAllPeriodic = " << isAllPeriodic << endl;
 
-    /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
-    /// But I think it could also make sense to only have one global handler.
+    // All containers share one BunchStateHandler.
     for (size_t i = 0; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasPolarization,
@@ -90,7 +89,7 @@ PartBunch<T, Dim>::PartBunch(
     pcActive_m.resize(num_containers);
     pcAtSStop_m.resize(num_containers);
     for (size_t i = 0; i < num_containers; ++i) {
-        pcRoot_m[i] = i;  // independent until TrackRun links decay chains
+        pcRoot_m[i] = i;  // buildTracking() links decay chains with setPcRoot()
     }
     for (size_t i = 0; i < num_containers; ++i) {
         pcontainers_m[i]->setQ(qi[i]);
@@ -101,8 +100,8 @@ PartBunch<T, Dim>::PartBunch(
                 static_cast<short>(ParticleProperties::getParticleType(beams[i].particleName));
     }
 
-    // Pre-allocate per-rank capacity without bumping localNum_m. Subsequent emission /
-    // distribution loaders call createParticles() to fill the buffer non-destructively.
+    // Reserve room for each beam's particles on this rank; the containers stay empty. Samplers
+    // and emission add particles later with createParticles(), which keeps existing particles.
     const double nRanks = static_cast<double>(ippl::Comm->size());
     for (size_t i = 0; i < num_containers; ++i) {
         const size_t maxLocalNum =
@@ -176,6 +175,8 @@ void PartBunch<T, Dim>::kickAndPushParticles() {
             pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
         }
         pc->pushParticles();
+        // Emitted particles start with a fraction of a step as their dt; from here on they use
+        // the bunch dt. CheckpointFile writes the particle dt and Decay copies it to daughters.
         pc->dt = this->getdT();
     }
 }
@@ -326,5 +327,5 @@ Inform& PartBunch<T, Dim>::print(
     return os;
 }
 
-/** Explicit instantiation for 3D double (OPAL-T). */
+/** Explicit instantiation for 3D double. */
 template class PartBunch<double, 3>;

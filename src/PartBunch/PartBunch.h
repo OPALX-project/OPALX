@@ -1,40 +1,43 @@
 /**
  * @file PartBunch.h
- * @brief Particle bunch state and multiple particle containers.
+ * @brief All beams of one RUN: one particle container per BEAM and what they share.
  */
 
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
-#include <cstdint>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
-#include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/PartData.h"
 #include "Moments/BeamMoments.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "PartBunch/ParticleContainer.hpp"
-#include "Physics/Physics.h"
-#include "Random/Distribution.h"
-#include "Random/InverseTransformSampling.h"
-#include "Random/NormalDistribution.h"
-#include "Random/Randn.h"
-#include "Utilities/OpalException.h"
 
 namespace opalx::run {
     struct BeamDescription;
 }  // namespace opalx::run
 
-extern Inform* gmsg;
-
 /**
- * @brief OPAL particle bunch with one or more particle containers.
+ * @brief All beams of one RUN.
+ *
+ * PartBunch owns one ParticleContainer per BEAM and what the beams share: the mesh and field
+ * layout (CartesianDomain), one time, one time step and one step counter. Per container it keeps
+ * whether the container is active, whether its beam has passed its ZSTOP, which container's
+ * reference particle it follows (a decay daughter follows the first container of its decay
+ * chain), and the macro charge and mass.
+ *
+ * The particles, the reference particle, the path length and the bunch-to-lab transform are not
+ * held here; they live in each ParticleContainer.
+ *
+ * The step functions (pushParticles(), kickAndPushParticles(), ...) loop over the containers and
+ * skip those that are not active.
  *
  * @tparam T   Floating-point type for positions/fields (typically double).
  * @tparam Dim Spatial dimension (3 for OPALX).
@@ -54,7 +57,7 @@ public:
      * @param beams                  One beam per container: reference particle, PARTICLE name
      *                               and whether it tracks spin (POLARIZATION).
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
-     * @param lbt                    Load-balancer timescale.
+     * @param lbt                    OPTION LOADBALANCINGTHRESHOLD; only printed by print().
      * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
      * @param qmAttributes           Store Q and M per particle (OPTION QM_MODE = ATTRIBUTES).
      * @param aggressiveStateSync    OPTION AGGRESSIVE_STATE_SYNC, see BunchStateHandler.
@@ -77,7 +80,10 @@ public:
         return total;
     }
 
-    /// @brief At segment start: active if container is non-empty; inactive if empty.
+    /// @brief Make every non-empty container active and every empty one inactive, and clear the
+    ///        ZSTOP flag of every container (see pcAtSStop()). Called at the start of each DT
+    ///        segment; BeamStops::keepDoneBeamsStopped() then sets the flag again for beams that
+    ///        are done.
     void resetPcActive();
 
     /// @param i Container index.
@@ -90,15 +96,17 @@ public:
     void setPcActive(size_t i) { pcActive_m.at(i) = true; }
 
     /// @param i Container index.
-    /// @return Whether container @p i is frozen at the current s-stop.
+    /// @return Whether the beam of container @p i has passed its ZSTOP.
     /// @throws std::out_of_range if @p i is not a container index.
     bool pcAtSStop(size_t i) const { return pcAtSStop_m.at(i); }
 
-    /// @brief Deactivate container @p i until the next step-size segment (s-stop reached).
+    /// @brief Mark the beam of container @p i as past its ZSTOP and make the container inactive.
+    ///        Called by BeamStops and by a checkpoint restore.
     /// @throws std::out_of_range if @p i is not a container index.
     void setPcAtSStop(size_t i);
 
-    /// @brief After emission: reactivate non-empty containers not marked at s-stop.
+    /// @brief Make every non-empty container active whose beam has not passed its ZSTOP. Called
+    ///        after emission and after a decay.
     void refreshPcActiveAfterEmit();
 
     /// @brief Make container @p i use the reference particle of container @p root.
@@ -258,10 +266,12 @@ public:
     /// @throws std::out_of_range if @p i is not a container index.
     std::string getParticleName(size_t i) const { return particleNames_m.at(i); }
 
-    /// @brief Set the global time step.
+    /// @brief Set the time step of the bunch only; the particle dt in the containers is not
+    ///        changed (see setTimeStep()).
     void setdT(double dt) { dt_m = dt; }
 
-    /// @brief Set the global time step [s] and the particle dt of every container to @p dt.
+    /// @brief Set the time step of the bunch and the particle dt of every particle in every
+    ///        container to @p dt (s).
     void setTimeStep(double dt);
 
     /// @brief Get the global time step.
@@ -287,10 +297,10 @@ public:
 
 private:
     double dt_m;   ///< Global time step @f$\Delta t@f$ (s).
-    double lbt_m;  ///< Load-balancer timescale parameter.
+    double lbt_m;  ///< OPTION LOADBALANCINGTHRESHOLD; only printed by print().
 
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
-    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
+    std::vector<bool> pcAtSStop_m;  ///< Per-container: the beam has passed its ZSTOP.
     std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
     /// Per-container index of the container whose reference particle it uses: its own index,
     /// or for a decay daughter container the first container of its decay chain.
@@ -304,9 +314,9 @@ private:
 
     std::unique_ptr<CartesianDomain_t>
             cartesianDomain_m;  ///< Outlives every particle layout that borrows it.
-    std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;
+    std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;  ///< One per BEAM.
 
-    double boundingBoxIncreasePercent_m;
+    double boundingBoxIncreasePercent_m;  ///< Domain bounding-box increase (%); only printed.
 
     double t_m;  ///< Current simulation time (s).
 
