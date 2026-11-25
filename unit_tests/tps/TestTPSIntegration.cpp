@@ -147,4 +147,26 @@ namespace {
         }
         Series::setGlobalTruncOrder(Series::EXACT);
     }
+    TEST_F(TPSIntegration, ScalarDivisionPreservesSharedMapAndAliasedDivisor) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        const auto original = tps::identityMap<double>(chart("division"), 2);
+        auto component      = original.polynomial()[0];
+        component /= 2.0;
+        tps::Vector<double> point(2, 0.0);
+        point[0] = 2.0;
+        EXPECT_DOUBLE_EQ(component.evaluate(point), 1.0);
+        EXPECT_DOUBLE_EQ(original.evaluate(std::array<double, 2>{2.0, 0.0})[0], 2.0);
+        const auto divided = original.polynomial()[0] / 2.0;
+        EXPECT_DOUBLE_EQ(divided.evaluate(point), 1.0);
+        EXPECT_DOUBLE_EQ(original.evaluate(std::array<double, 2>{2.0, 0.0})[0], 2.0);
+        auto value            = 2.0 + 4.0 * Series::makeVariable(2, 0);
+        const double& divisor = static_cast<const Series&>(value)[0];
+        value /= divisor;
+        EXPECT_DOUBLE_EQ(value.getCoefficient(0), 1.0);
+        EXPECT_DOUBLE_EQ(value.getCoefficient(1), 2.0);
+        const auto unchanged = value;
+        EXPECT_THROW(value /= 0.0, ::DivideError);
+        EXPECT_EQ(value, unchanged);
+    }
 }  // namespace

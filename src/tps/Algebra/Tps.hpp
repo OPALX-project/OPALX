@@ -442,9 +442,12 @@ namespace tps {
     template <class T>
     Tps<T>& Tps<T>::operator/=(const T& rhs) {
         if (rhs == T(0)) throw ::DivideError("Tps::operator/()");
+        // rhs may refer to one of our coefficients; freeze it before detaching/writing.
+        const T divisor(rhs);
+        unique();
         T* x = rep->data();
-        std::transform(x, x + rep->len, x, [&rhs](const T& value) {
-            return value / rhs;
+        std::transform(x, x + rep->len, x, [&divisor](const T& value) {
+            return value / divisor;
         });
         return *this;
     }
