@@ -8,10 +8,17 @@
 #include <KokkosBlas1_nrm2.hpp>
 #include <KokkosBlas1_scal.hpp>
 #include "tps/Algebra/Array1D.h"
+#include "tps/KernelScalar.hpp"
 namespace tps {
-    /** @brief Checked host vector; numerical operations delegate to Kokkos Kernels. */
+    /** @brief Checked host vector; numerical operations delegate to Kokkos Kernels.
+     * @details Use Kokkos::complex for complex scalars; std::complex is rejected.
+     * Dot products are bilinear; euclidean_norm uses complex magnitudes.
+     */
     template <class T>
     class Vector : public Array1D<T> {
+        static_assert(
+                LinearAlgebraScalar<T>, "TPS Vector complex scalars must use Kokkos::complex");
+
     public:
         using Array1D<T>::Array1D;
         Vector() = default;

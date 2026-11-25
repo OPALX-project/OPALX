@@ -11,6 +11,7 @@ namespace tps {
     /** @brief Small host-side LU factorization using Kokkos Kernels partial pivoting.
      * @details No hand-written elimination or triangular solve is retained. INFO
      * is checked, and the original matrix is not modified. Not an eigensolver.
+     * Complex matrices use Kokkos::complex; transpose solves use A^T, not A^H.
      */
     template <class T>
     class LUFactorization {
@@ -20,20 +21,21 @@ namespace tps {
         /// LU rounding/pivot ties may differ from other elimination algorithms.
         explicit LUFactorization(const Matrix<T>& matrix, double minimumPivot = 0)
             : factors_(matrix), pivots_(matrix.nrows()) {
+            using std::abs;
             if (matrix.nrows() != matrix.ncols())
                 throw ::LogicalError("LUFactorization", "Matrix must be square");
             if (!std::isfinite(minimumPivot) || minimumPivot < 0)
                 throw std::invalid_argument("LU minimum pivot must be finite and nonnegative");
             for (int i = 0; i < matrix.nrows(); ++i)
                 for (int j = 0; j < matrix.ncols(); ++j)
-                    if (!std::isfinite(std::abs(matrix(i, j))))
+                    if (!std::isfinite(abs(matrix(i, j))))
                         throw std::invalid_argument("LU matrix must be finite");
             int info = KokkosBatched::SerialGetrf<KokkosBatched::Algo::Getrf::Unblocked>::invoke(
                     factors_.view(), pivots_.view());
             if (info > 0) throw ::SingularMatrixError("Kokkos Getrf");
             if (info < 0) throw std::runtime_error("Kokkos Getrf invalid argument");
             for (int i = 0; i < factors_.nrows(); ++i) {
-                const auto magnitude = std::abs(factors_(i, i));
+                const auto magnitude = abs(factors_(i, i));
                 if (!std::isfinite(magnitude)) throw std::runtime_error("Nonfinite LU factor");
                 if (magnitude == 0 || magnitude < minimumPivot)
                     throw ::SingularMatrixError("LU minimum pivot");
@@ -107,12 +109,13 @@ namespace tps {
     /** @brief Maximum absolute row sum, including the original matrix's physical scaling. */
     template <class T>
     auto infinityNorm(const Matrix<T>& matrix) {
-        using Magnitude = decltype(std::abs(T{}));
+        using std::abs;
+        using Magnitude = decltype(abs(T{}));
         Magnitude maximum(0);
         for (int i = 0; i < matrix.nrows(); ++i) {
             Magnitude sum(0);
             for (int j = 0; j < matrix.ncols(); ++j)
-                sum += std::abs(matrix(i, j));
+                sum += abs(matrix(i, j));
             // Propagate NaN as well as overflow instead of reporting a smaller finite norm.
             if (!std::isfinite(sum)) return sum;
             maximum = std::max(maximum, sum);

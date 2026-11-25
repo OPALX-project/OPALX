@@ -49,6 +49,19 @@ namespace {
         Kokkos::fence("TPS OPALX rank tracking complete");
     }
 
+    TEST_F(TPSIntegration, ComplexDotAndNormKeepDistinctSemanticsPerRank) {
+        using C = Kokkos::complex<double>;
+        tps::Vector<C> x(2), y(2);
+        x[0]           = C(1, 2);
+        x[1]           = C(-3, 4);
+        y[0]           = C(2, -1);
+        y[1]           = C(5, 2);
+        const auto dot = x * y;
+        EXPECT_NEAR(dot.real(), -19.0, 2e-13);
+        EXPECT_NEAR(dot.imag(), 17.0, 2e-13);
+        EXPECT_NEAR(tps::euclidean_norm(x), std::sqrt(30.0), 2e-13);
+    }
+
     TEST_F(TPSIntegration, HostCompositionAndPreparedTrackingPerRank) {
         using Series = tps::Tps<double>;
         // Production use configures the order before serialized host construction.

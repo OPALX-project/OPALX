@@ -11,9 +11,14 @@ namespace tps {
     /** @brief Checked row-major host matrix backed by Kokkos storage.
      * @details Matrix(r,c,value) fills ALL entries with value. Use identity(n) for
      * an identity matrix. This replaces the old constructor that ignored value.
+     * Complex scalars use Kokkos::complex; std::complex is rejected. transpose()
+     * and both matrix-vector products do not conjugate their inputs.
      */
     template <class T>
     class Matrix : public Array2D<T> {
+        static_assert(
+                LinearAlgebraScalar<T>, "TPS Matrix complex scalars must use Kokkos::complex");
+
     public:
         using Array2D<T>::Array2D;
         Matrix() = default;
