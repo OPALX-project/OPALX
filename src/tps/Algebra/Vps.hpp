@@ -179,26 +179,21 @@ namespace tps {
 
     template <class T>
     std::istream& Vps<T>::get(std::istream& is) {
-        char head[4];
-        is.flags(std::ios::skipws);
-        is.get(head, 4);
-
-        if (std::strcmp(head, "Vps") != 0) {
-            throw ::FormatError("Vps::get()", "Flag word \"Vps\" missing.");
+        std::string head;
+        if (!(is >> head)) return is;
+        if (head != "Vps") throw ::FormatError("Vps::get()", "Flag word \"Vps\" missing.");
+        int dimension;
+        if (!(is >> dimension)) return is;
+        if (dimension <= 0) throw ::FormatError("Vps::get()", "Positive Vps dimension required.");
+        Vps<T> temporary(dimension);
+        for (int i = 0; i < dimension; ++i) {
+            if (!(is >> temporary.data[i])) return is;
         }
+        temporary.check();
+        // Default-constructed and differently sized destinations are supported;
+        // no partial component updates escape on failed extraction/validation.
+        *this = temporary;
 
-        int nDim;
-        is >> nDim;
-
-        if (nDim == 0) {
-            throw ::FormatError("Vps::get()", "Zero Vps dimension");
-        }
-
-        Vps<T> temp(nDim);
-        for (int i = 0; i < nDim; i++)
-            is >> data[i];
-        temp.check();
-        *this = temp;
         return is;
     }
 

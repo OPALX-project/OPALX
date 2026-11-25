@@ -255,4 +255,48 @@ namespace {
         EXPECT_THROW(invalid >> unchanged, ::FormatError);
         EXPECT_DOUBLE_EQ(unchanged.getCoefficient(0), 7);
     }
+    TEST_F(TPSIntegration, VectorSeriesStreamsReadIntoTemporaryBeforeCommit) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        const auto x = Series::makeVariable(2, 0), y = Series::makeVariable(2, 1);
+        tps::Vps<double> source(3, 2);
+        source[0] = Series(2.5);
+        source[1] = x * x + 3.0 * y;
+        source[2] = Series(0.0);
+        for (int size : {0, 1, 3}) {
+            tps::Vps<double> destination(size, 2);
+            std::stringstream stream;
+            stream << " \n" << source;
+            stream >> destination;
+            ASSERT_FALSE(stream.fail());
+            ASSERT_EQ(destination.getDimension(), 3);
+            for (int i = 0; i < 3; ++i)
+                EXPECT_EQ(destination[i], source[i]);
+        }
+        // Nested scalar parsing must leave the next component/vector header intact.
+        std::stringstream concatenated;
+        concatenated << source << source;
+        tps::Vps<double> first, second;
+        concatenated >> first >> second;
+        ASSERT_FALSE(concatenated.fail());
+        EXPECT_EQ(first[1], source[1]);
+        EXPECT_EQ(second[1], source[1]);
+        for (const auto* input : {"Vps", "Vps 2\nTps 0 0 0\n1\n", "Vps 2\nTps 0 0 0\n1\nTps 1"}) {
+            auto destination = source;
+            std::istringstream incomplete(input);
+            incomplete >> destination;
+            EXPECT_TRUE(incomplete.fail());
+            ASSERT_EQ(destination.getDimension(), 3);
+            for (int i = 0; i < 3; ++i)
+                EXPECT_EQ(destination[i], source[i]);
+        }
+        for (const auto* input : {"Vps -1", "Vps 0", "Vps 2\nTps 0 0 0\n1\nBAD"}) {
+            auto destination = source;
+            std::istringstream invalid(input);
+            EXPECT_THROW(invalid >> destination, ::FormatError);
+            ASSERT_EQ(destination.getDimension(), 3);
+            for (int i = 0; i < 3; ++i)
+                EXPECT_EQ(destination[i], source[i]);
+        }
+    }
 }  // namespace
