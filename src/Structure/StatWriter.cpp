@@ -9,7 +9,7 @@
 //   DataSink::diagnosticStemForContainer. Each write() call must use the same
 //   particleContainerIndex as that writer's slot so row data comes from
 //   beam->getParticleContainer(particleContainerIndex). Shared beam-level quantities
-//   (e.g. time t, dt, rmsDensity) still come from PartBunch_t regardless of index. The tracker
+//   (e.g. time t, dt) still come from PartBunch_t regardless of index. The tracker
 //   supplies nBins from the configured self-field system.
 //
 // Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -271,7 +271,8 @@ void StatWriter::write(
     columns_m.addColumnValue("temperature_x", temperature(0));
     columns_m.addColumnValue("temperature_y", temperature(1));
     columns_m.addColumnValue("temperature_s", temperature(2));
-    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
+    // RMS density is not computed; the column keeps the file layout.
+    columns_m.addColumnValue("rmsDensity", 0.0);  // 45 RMS number density
     columns_m.addColumnValue("nBins", reportedBinCount);
 
     if (pc->hasSpin()) {

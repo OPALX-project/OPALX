@@ -262,13 +262,9 @@ void DataSink::dumpSDDS(
             continue;
         }
 
-        size_t npOutside = 0;
-        if (pc->getTotalNum() > 0 && options_m.beamHaloBoundary > 0) {
-            npOutside = beam.calcNumPartsOutside(options_m.beamHaloBoundary * moments[i].rmsR());
-        }
-
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(beam, moments[i], fd, reportedBinCount, npOutside, i);
+        // Particles outside BEAMHALOBOUNDARY are not counted; partsOutside keeps the file layout.
+        statWriters_m[i]->write(beam, moments[i], fd, reportedBinCount, 0, i);
     }
 
     IpplTimings::stopTimer(StatMarkerTimer_m);

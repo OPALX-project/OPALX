@@ -33,8 +33,6 @@ namespace opalx::run {
 
 extern Inform* gmsg;
 
-using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 /**
  * @brief OPAL particle bunch with one or more particle containers.
  *
@@ -47,17 +45,13 @@ public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     using CartesianDomain_t   = opalx::spacecharge::CartesianDomain<T, Dim>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
-    using Base                = ippl::ParticleBase<
-                           ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
-                           Kokkos::DefaultExecutionSpace::memory_space>;
 
 public:
     // --- Shared state (all containers / mesh) ---
 
-    double dt_m;                     ///< Global time step @f$\Delta t@f$ (s).
-    Vector_t<int, Dim> nr_m;         ///< Mesh cell count per dimension.
-    Vector_t<double, Dim> origin_m;  ///< Mesh origin (lab coordinates).
-    Vector_t<double, Dim> hr_m;      ///< Mesh spacing (m).
+    double dt_m;                 ///< Global time step @f$\Delta t@f$ (s).
+    Vector_t<int, Dim> nr_m;     ///< Mesh cell count per dimension.
+    Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
 
     double lbt_m;  ///< Load-balancer timescale parameter.
 
@@ -86,8 +80,6 @@ private:
     double t_m;  ///< Current simulation time (s).
 
     long long globalTrackStep_m;  ///< Global integration step counter.
-
-    double rmsDensity_m;  ///< Legacy RMS density placeholder (may still appear in stats).
 
 public:
     /**
@@ -299,123 +291,6 @@ public:
     }
 
     /**
-     * @brief Get the total charge for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `qi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match, or if
-     *       `containerIndex` is out of range.
-     */
-    double getCharge(size_t containerIndex = 0) const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException(
-                    "PartBunch::getCharge",
-                    "Number of particle containers and qi values do not match.");
-        }
-        if (containerIndex >= containers.size()) {
-            throw OpalException("PartBunch::getCharge", "Container index out of range.");
-        }
-        return qi_m[containerIndex] * containers[containerIndex]->getTotalNum();
-    }
-
-    /**
-     * @brief Get the charge per particle for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `qi_m[containerIndex]`.
-     * @note Throws if `containerIndex` is out of range.
-     */
-    double getChargePerParticle(size_t containerIndex = 0) const {
-        if (containerIndex >= qi_m.size()) {
-            throw OpalException("PartBunch::getChargePerParticle", "Container index out of range.");
-        }
-        return qi_m[containerIndex];
-    }
-
-    /**
-     * @brief Get the mass per particle for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `mi_m[containerIndex]`.
-     * @note Throws if `containerIndex` is out of range.
-     */
-    double getMassPerParticle(size_t containerIndex = 0) const {
-        if (containerIndex >= mi_m.size()) {
-            throw OpalException("PartBunch::getMassPerParticle", "Container index out of range.");
-        }
-        return mi_m[containerIndex];
-    }
-
-    /**
-     * @brief Alias for `getCharge(containerIndex)`.
-     * @param containerIndex Index of the particle container.
-     * @returns Equivalent to `getCharge(containerIndex)`.
-     */
-    double getQ(size_t containerIndex = 0) const { return this->getCharge(containerIndex); }
-
-    /**
-     * @brief Get the total mass for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `mi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match, or if
-     *       `containerIndex` is out of range.
-     */
-    double getM(size_t containerIndex = 0) const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException(
-                    "PartBunch::getM", "Number of particle containers and mi values do not match.");
-        }
-        if (containerIndex >= containers.size()) {
-            throw OpalException("PartBunch::getM", "Container index out of range.");
-        }
-        return mi_m[containerIndex] * containers[containerIndex]->getTotalNum();
-    }
-
-    /**
-     * @brief Get the total charge across all particle containers.
-     * @returns `sum_i(qi_m[i] * containers[i]->getTotalNum())`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match.
-     */
-    double getTotalCharge() const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException(
-                    "PartBunch::getTotalCharge",
-                    "Number of particle containers and qi values do not match.");
-        }
-        double charge = 0.0;
-        for (size_t i = 0; i < containers.size(); ++i) {
-            charge += qi_m[i] * containers[i]->getTotalNum();
-        }
-        return charge;
-    }
-
-    /**
-     * @brief Get the total mass across all particle containers.
-     * @returns `sum_i(mi_m[i] * containers[i]->getTotalNum())`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match.
-     */
-    double getTotalMass() const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException(
-                    "PartBunch::getTotalMass",
-                    "Number of particle containers and mi values do not match.");
-        }
-        double mass = 0.0;
-        for (size_t i = 0; i < containers.size(); ++i) {
-            mass += mi_m[i] * containers[i]->getTotalNum();
-        }
-        return mass;
-    }
-
-    /// @brief Stub; logs and returns 0.
-    size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-        return 0;
-    }
-
-    /**
      * @brief Human-readable dump of each container to @p os.
      * @param moments One snapshot per container holding at least printedMoments.
      */
@@ -460,9 +335,6 @@ public:
 
     /// @brief Increment @c globalTrackStep_m by one.
     void incTrackSteps() { globalTrackStep_m++; }
-
-    /// @brief Legacy RMS density field (may be unused).
-    double get_rmsDensity() const { return rmsDensity_m; }
 };
 
 extern template class PartBunch<double, 3>;  ///< Explicit instantiation for 3D double-precision.

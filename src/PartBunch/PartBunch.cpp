@@ -13,8 +13,6 @@
 #include "Track/RunDescription.h"
 #include "Utilities/Util.h"
 
-#undef doDEBUG
-
 /**
  * @copybrief PartBunch::PartBunch
  */
@@ -25,18 +23,12 @@ PartBunch<T, Dim>::PartBunch(
         std::vector<size_t> totalParticlesPerBeam, double lbt,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
-    : dt_m(0),
-      lbt_m(lbt),
-      boundingBoxIncreasePercent_m(0.0),
-      t_m(0.0),
-      globalTrackStep_m(0),
-      rmsDensity_m(0.0) {
+    : dt_m(0), lbt_m(lbt), boundingBoxIncreasePercent_m(0.0), t_m(0.0), globalTrackStep_m(0) {
     qi_m         = qi;
     mi_m         = mi;
     bunchState_m = std::make_shared<BunchStateHandler>(aggressiveStateSync);
 
     Inform m("PartBunch::PartBunch");
-    m << level4 << "PartBunch Constructor" << endl;
 
     const size_t num_containers = beams.size();
     if (num_containers == 0) {
@@ -83,9 +75,8 @@ PartBunch<T, Dim>::PartBunch(
     const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
     m << level5 << "* Initial Cartesian domain set to isAllPeriodic = " << isAllPeriodic << endl;
 
-    this->hr_m     = cartesianDomain_m->spacing();
-    this->origin_m = cartesianDomain_m->origin();
-    this->dt_m     = 0.5 / this->nr_m[2];
+    this->hr_m = cartesianDomain_m->spacing();
+    this->dt_m = 0.5 / this->nr_m[2];
 
     std::ostringstream fieldLayout;
     fieldLayout << cartesianDomain_m->layout();
@@ -132,8 +123,6 @@ PartBunch<T, Dim>::PartBunch(
     }
 
     resetPcActive();
-
-    m << level5 << "* PartBunch constructor done." << endl;
 }
 
 /**
@@ -277,11 +266,7 @@ size_t PartBunch<T, Dim>::applyGlobalProcesses(double dt) {
         }
         // Decay writes daughters in the shared reference frame of parent and daughter.
         pc->requireReferenceFrame("PartBunch::applyGlobalProcesses");
-        const auto& processes = pc->getGlobalProcesses();
-        if (processes.empty()) {
-            continue;
-        }
-        for (const auto& process : processes) {
+        for (const auto& process : pc->getGlobalProcesses()) {
             if (process) {
                 nMarked += process->apply(*pc, dt, globalTrackStep, ci);
             }
