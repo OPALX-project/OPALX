@@ -299,7 +299,7 @@ public:
     void incTrackSteps() { globalTrackStep_m++; }
 
 private:
-    double dt_m;   ///< Global time step @f$\Delta t@f$ (s).
+    double dt_m;   ///< Global time step @f$\Delta t@f$ (s); 0 until setdT() or setTimeStep().
     double lbt_m;  ///< OPTION LOADBALANCINGTHRESHOLD; only printed by print().
 
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.

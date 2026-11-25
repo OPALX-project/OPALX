@@ -763,22 +763,24 @@ namespace opalx::run {
         }
         bunch.print(*gmsg, initialMoments);
 
-        // Set ZStart, ZStop, and dT
+        // A fresh run starts at ZSTART, or at 0 if the first beam has no particles yet, with the
+        // DT of the segment that holds the start. A restart takes its time step from the
+        // checkpoint.
         double sStart = track.zStart;
-        if (!isRestart && bunch.getParticleContainer()->getTotalNum() > 0) {
-            double spos       = track.zStart;
+        if (!isRestart) {
+            if (bunch.getParticleContainer()->getTotalNum() == 0) {
+                sStart = 0.0;
+            }
             const auto& zstop = track.zStop;
             auto it           = track.dT.begin();
 
             unsigned int i = 0;
-            while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
+            while (i + 1 < zstop.size() && zstop[i + 1] < sStart) {
                 ++i;
                 ++it;
             }
 
             bunch.setdT(*it);
-        } else if (!isRestart) {
-            sStart = 0.0;
         }
 
         const auto& maxSteps = track.maxSteps;

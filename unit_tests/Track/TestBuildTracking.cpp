@@ -127,6 +127,28 @@ TEST_F(BuildTrackingTest, RunNeedsOnlyTheDescription) {
     EXPECT_EQ(setup.bunch->getParticleContainer()->getTotalNum(), 10u);
 }
 
+// With NPARTDIST = 0 the GAUSS beam samples no particles, so the first container is empty at the
+// start. The bunch must still get the DT of the TRACK (1e-12 s), not a placeholder such as
+// 0.5 / NZ = 0.0625.
+TEST_F(BuildTrackingTest, EmptyFirstBeam_GetsFirstDT) {
+    std::string emptyBeam = definitions;
+    emptyBeam.replace(emptyBeam.find("NPARTDIST = 10"), 14, "NPARTDIST = 0");
+    parse(emptyBeam);
+    const opalx::run::RunDescription description = describeRun();
+    ASSERT_TRUE(opalx::run::validate(description).empty());
+
+    std::vector<std::string> errors;
+    std::vector<std::shared_ptr<ElementBase>> elements =
+            opalx::run::buildElements(description.line, description.context.p0, errors);
+    ASSERT_TRUE(errors.empty());
+    opalx::run::RunObjects objects;
+    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+
+    ASSERT_NE(setup.bunch, nullptr);
+    ASSERT_EQ(setup.bunch->getParticleContainer()->getTotalNum(), 0u);
+    EXPECT_EQ(setup.bunch->getdT(), 1e-12);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ippl::initialize(argc, argv);

@@ -254,6 +254,10 @@ namespace {
         EXPECT_EQ(calls, 1);
     }
 
+    TEST_F(MultiContainerPartBunchTest, Constructor_TimeStepStartsAtZero) {
+        EXPECT_EQ(bunch->getdT(), 0.0);
+    }
+
     TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsWithoutBeams) {
         EXPECT_THROW(
                 static_cast<void>(std::make_shared<PartBunch_t>(

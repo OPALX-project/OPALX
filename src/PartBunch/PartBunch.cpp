@@ -20,11 +20,7 @@ PartBunch<T, Dim>::PartBunch(
         const std::vector<BunchBeam>& beams, double lbt,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
-    : dt_m(0.5 / domainConfig.meshSize[2]),
-      lbt_m(lbt),
-      boundingBoxIncreasePercent_m(0.0),
-      t_m(0.0),
-      globalTrackStep_m(0) {
+    : dt_m(0.0), lbt_m(lbt), boundingBoxIncreasePercent_m(0.0), t_m(0.0), globalTrackStep_m(0) {
     bunchState_m = std::make_shared<BunchStateHandler>(aggressiveStateSync);
 
     Inform m("PartBunch::PartBunch");
