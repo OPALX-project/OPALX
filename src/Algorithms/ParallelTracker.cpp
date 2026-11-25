@@ -58,9 +58,21 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       restartPosition_m(setup.restartPosition),
       checkpointPath_m(std::move(setup.checkpointPath)),
       emFieldDumps_m(std::move(setup.emFieldDumps)),
-      timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
-      timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
-      fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
+      trackStartTimer_m(IpplTimings::getTimer("Track: start")),
+      stepTimeStepTimer_m(IpplTimings::getTimer("Step: time step")),
+      stepSpaceChargeTimer_m(IpplTimings::getTimer("Step: space charge")),
+      stepFirstPushTimer_m(IpplTimings::getTimer("Step: first push")),
+      stepEmissionTimer_m(IpplTimings::getTimer("Step: emission")),
+      stepExternalFieldsTimer_m(IpplTimings::getTimer("Step: ext. fields")),
+      stepSpinTimer_m(IpplTimings::getTimer("Step: spin")),
+      stepKickAndPushTimer_m(IpplTimings::getTimer("Step: kick and push")),
+      stepProcessesTimer_m(IpplTimings::getTimer("Step: processes")),
+      stepReferenceTimer_m(IpplTimings::getTimer("Step: reference")),
+      stepRemoveLostTimer_m(IpplTimings::getTimer("Step: remove lost")),
+      stepOutputTimer_m(IpplTimings::getTimer("Step: output")),
+      stepStopRulesTimer_m(IpplTimings::getTimer("Step: stop rules")),
+      stepCheckpointTimer_m(IpplTimings::getTimer("Step: checkpoint")),
+      trackFinishTimer_m(IpplTimings::getTimer("Track: finish")),
       references_m(
               *setup.bunch, itsOpalBeamline_m, std::move(setup.beamReferenceMomenta),
               options_m.autoPhase, std::move(setup.cavityPhases)) {
@@ -75,7 +87,10 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
 // --- execute() ---
 
 void ParallelTracker::execute() {
-    if (startTracking()) trackSteps();
+    IpplTimings::startTimer(trackStartTimer_m);
+    const bool started = startTracking();
+    IpplTimings::stopTimer(trackStartTimer_m);
+    if (started) trackSteps();
 }
 
 bool ParallelTracker::startTracking() {
@@ -179,27 +194,42 @@ void ParallelTracker::trackSteps() {
 
     bool stopRun = false;
     while (!stepSizes_m.reachedEnd()) {
+        IpplTimings::startTimer(stepTimeStepTimer_m);
         const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
         startSegment(stepsCompletedInSegment);
 
         while (stepsCompletedInSegment < stepsInSegment) {
+            // In the first pass the timer still runs from startSegment(); starting a running
+            // timer does nothing.
+            IpplTimings::startTimer(stepTimeStepTimer_m);
             // Resolve emission-dependent dt before the step so the reference, particle
             // transport and self-field evaluation share the same duration.
             changeDT();
             if (!itsBunch_m->anyPcActive()) {
                 m << level4 << "No active particle containers; ending inner track segment." << endl;
+                IpplTimings::stopTimer(stepTimeStepTimer_m);
                 break;
             }
+            IpplTimings::stopTimer(stepTimeStepTimer_m);
 
             advanceParticles();
-            advanceReference();
 
+            IpplTimings::startTimer(stepReferenceTimer_m);
+            advanceReference();
+            IpplTimings::stopTimer(stepReferenceTimer_m);
+
+            IpplTimings::startTimer(stepRemoveLostTimer_m);
             const auto due         = itsDataSink_m->outputsDue(itsBunch_m->getGlobalTrackStep());
             const auto stepMoments = removeLostParticles(due);
+            IpplTimings::stopTimer(stepRemoveLostTimer_m);
+
+            IpplTimings::startTimer(stepOutputTimer_m);
             itsDataSink_m->writeStep(
                     *itsBunch_m, due, stepMoments, referenceFields(),
                     spaceChargeSolver_m->reportedBinCount());
+            IpplTimings::stopTimer(stepOutputTimer_m);
 
+            IpplTimings::startTimer(stepStopRulesTimer_m);
             itsBunch_m->incTrackSteps();
             ++stepsCompletedInSegment;
 
@@ -208,6 +238,7 @@ void ParallelTracker::trackSteps() {
             const bool segmentComplete = !itsBunch_m->anyPcActive()
                                          || stepsCompletedInSegment == stepsInSegment
                                          || stop.switchSegment;
+            IpplTimings::stopTimer(stepStopRulesTimer_m);
             writeCheckpointIfDue(segmentComplete, segmentIndex, stepsCompletedInSegment);
 
             if (stop.runFinished) {
@@ -222,13 +253,17 @@ void ParallelTracker::trackSteps() {
                 break;
             }
         }
+        // Still running if the inner loop body never ran.
+        IpplTimings::stopTimer(stepTimeStepTimer_m);
 
         if (stopRun) break;
         ++stepSizes_m;
         ++segmentIndex;
         stepsCompletedInSegment = 0;
     }
+    IpplTimings::startTimer(trackFinishTimer_m);
     finishTracking();
+    IpplTimings::stopTimer(trackFinishTimer_m);
 }
 
 void ParallelTracker::startSegment(unsigned long long stepsCompletedInSegment) {
@@ -259,35 +294,50 @@ void ParallelTracker::advanceParticles() {
     // through the first half drift. Keep this as an explicit compatibility mode; the default
     // evaluates the field at R_{n+1/2} below.
     if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
+        IpplTimings::startTimer(stepSpaceChargeTimer_m);
         itsBunch_m->resetFields();
         computeSpaceChargeFields();
+        IpplTimings::stopTimer(stepSpaceChargeTimer_m);
     }
 
     // First half of the time integration
+    IpplTimings::startTimer(stepFirstPushTimer_m);
     timeIntegration1();
     m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+    IpplTimings::stopTimer(stepFirstPushTimer_m);
 
     if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
+        IpplTimings::startTimer(stepSpaceChargeTimer_m);
         itsBunch_m->resetFields();
         computeSpaceChargeFields();
+        IpplTimings::stopTimer(stepSpaceChargeTimer_m);
     }
 
     // Emit particles in the reference frame with their own fractional timesteps.
     // They experience external fields in their creation step, but no space charge.
+    IpplTimings::startTimer(stepEmissionTimer_m);
     emittingSamplers_m.emit(
             *itsBunch_m, itsOpalBeamline_m, itsBunch_m->getT(), itsBunch_m->getdT());
+    IpplTimings::stopTimer(stepEmissionTimer_m);
 
+    IpplTimings::startTimer(stepExternalFieldsTimer_m);
     computeExternalFields();
+    IpplTimings::stopTimer(stepExternalFieldsTimer_m);
 
     // First half of the Thomas-BMT spin rotation (momentum before the kick);
     // timeIntegration2 does the second half after the kick.
     // No-op for containers that have not registered the Pol attribute.
+    IpplTimings::startTimer(stepSpinTimer_m);
     itsBunch_m->evolveSpinHalfStep();
+    IpplTimings::stopTimer(stepSpinTimer_m);
 
     // Second half of the time integration
+    IpplTimings::startTimer(stepKickAndPushTimer_m);
     timeIntegration2();
+    IpplTimings::stopTimer(stepKickAndPushTimer_m);
 
     // Apply global processes (e.g. decay) and mark affected particles for deletion
+    IpplTimings::startTimer(stepProcessesTimer_m);
     const size_t nProcessMarked = itsBunch_m->applyGlobalProcesses(itsBunch_m->getdT());
     if (nProcessMarked > 0) {
         // Decay-like global processes may have created daughters and marked parents
@@ -301,6 +351,7 @@ void ParallelTracker::advanceParticles() {
         m << level5 << "WARNING: No particles in the bunch at step " << step << " on rank "
           << ippl::Comm->rank() << ". This has no effect on the simulation." << endl;
     }
+    IpplTimings::stopTimer(stepProcessesTimer_m);
 }
 
 void ParallelTracker::advanceReference() {
@@ -349,6 +400,7 @@ void ParallelTracker::writeCheckpointIfDue(
         unsigned long long stepsCompletedInSegment) {
     if (options_m.checkpointFreq > 0
         && itsBunch_m->getGlobalTrackStep() % options_m.checkpointFreq == 0) {
+        IpplTimings::startTimer(stepCheckpointTimer_m);
         Inform m("ParallelTracker::writeCheckpointIfDue");
         const std::size_t nextSegment = segmentComplete ? segmentIndex + 1 : segmentIndex;
         const unsigned long long nextSegmentSteps = segmentComplete ? 0 : stepsCompletedInSegment;
@@ -357,6 +409,7 @@ void ParallelTracker::writeCheckpointIfDue(
                 references_m.cavityPhases());
         m << level2 << "Wrote checkpoint '" << checkpointPath_m << "' after global step "
           << itsBunch_m->getGlobalTrackStep() << "." << endl;
+        IpplTimings::stopTimer(stepCheckpointTimer_m);
     }
 }
 
@@ -386,20 +439,15 @@ void ParallelTracker::finishTracking() {
 
 void ParallelTracker::timeIntegration1() {
     Inform m("ParallelTracker::timeIntegration1");
-    IpplTimings::startTimer(timeIntegrationTimer1_m);
     itsBunch_m->pushParticles();
-    IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
 }
 
 void ParallelTracker::timeIntegration2() {
     Inform m("ParallelTracker::timeIntegration2");
 
-    IpplTimings::startTimer(timeIntegrationTimer2_m);
     itsBunch_m->kickAndPushParticles();
     m << level4 << "Kick/push particles done for all containers." << endl;
-
-    IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
 void ParallelTracker::computeSpaceChargeFields() {
@@ -410,7 +458,6 @@ void ParallelTracker::computeSpaceChargeFields() {
 }
 
 void ParallelTracker::computeExternalFields() {
-    IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
     // Source-plane loss has to be handled here, before external fields are evaluated. Deferring it
@@ -429,8 +476,6 @@ void ParallelTracker::computeExternalFields() {
     }
 
     itsOpalBeamline_m.applyExternalFields(*itsBunch_m);
-
-    IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
 
 // --- Time step ---
