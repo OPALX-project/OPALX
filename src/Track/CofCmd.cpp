@@ -1,12 +1,17 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Track/CofCmd.h"
+#include <unistd.h>
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <set>
 #include <sstream>
 #include "AbstractObjects/BeamSequence.h"
@@ -56,6 +61,40 @@ namespace {
     void require(bool ok, const std::string& message) {
         if (!ok) throw OpalException("COF", message);
     }
+    // Keep the previous result intact until a complete replacement is closed.
+    // A unique sibling file also avoids collisions between independent runs.
+    void writeResult(const std::string& output, const std::string& json) {
+        std::string temporary = output + ".tmp.XXXXXX";
+        const int fd          = ::mkstemp(temporary.data());
+        if (fd < 0)
+            throw OpalException(
+                    "COF", "Cannot create temporary COF OUTPUT for " + output + ": "
+                                   + std::strerror(errno));
+        struct Cleanup {
+            const std::string& path;
+            ~Cleanup() {
+                std::error_code ignored;
+                std::filesystem::remove(path, ignored);
+            }
+        } cleanup{temporary};
+        std::unique_ptr<FILE, decltype(&std::fclose)> file(::fdopen(fd, "w"), &std::fclose);
+        if (!file) {
+            const std::string message = std::strerror(errno);
+            ::close(fd);
+            throw OpalException(
+                    "COF", "Cannot open temporary COF OUTPUT for " + output + ": " + message);
+        }
+        require(std::fwrite(json.data(), 1, json.size(), file.get()) == json.size(),
+                "Error writing COF OUTPUT: " + output);
+        require(std::fclose(file.release()) == 0, "Error closing COF OUTPUT: " + output);
+        std::error_code error;
+        std::filesystem::rename(temporary, output, error);
+        require(!error, "Cannot replace COF OUTPUT " + output + ": " + error.message());
+    }
+    struct Report {
+        std::string details;
+        std::string optics;
+    };
     /** Squared distance to a finite design centreline, independent of aperture.
      * Straight/RBEND bodies use their box axis; SBEND bodies use the circular
      * design arc including both endpoints. Selecting the nearest segment avoids
@@ -240,12 +279,7 @@ namespace {
         out << "\nResidual: ";
         for (double v : result.residual)
             out << v << ' ';
-        out << "\nMatrix:\n";
-        for (const auto& row : result.matrix) {
-            for (double v : row)
-                out << v << ' ';
-            out << '\n';
-        }
+        out << '\n';
     }
     void setLaunchState(
             ClosedOrbitInitialState& state, const Controls& c,
@@ -355,15 +389,13 @@ namespace {
                 },
                 c.section, c.tracking, tracker.maximumTimeStep());
     }
-    std::string solveAndReport(
+    Report solveAndReport(
             BeamSequence& sequence, Beam& beam, OpalBeamline& lattice,
             const std::vector<std::shared_ptr<ElementBase>>& ordered, const Controls& c,
             const RunSettings& s, ClosedOrbitInitialState& state) {
         require(!ordered.empty(), "RING must contain magnetic/transport elements.");
         std::ostringstream out;
         validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
-        if (!s.output.empty())
-            require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
         ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
         auto map          = makeReturnMap(lattice, tracker, c);
         const auto result = ClosedOrbitSolver::solve(map, s.initial, s.solver);
@@ -381,7 +413,35 @@ namespace {
         LinearMapEigenAnalysis::Settings ev;
         ev.scales           = s.solver.scales;
         const auto spectrum = LinearMapEigenAnalysis::analyze(result.matrix, ev);
-        LinearMapEigenAnalysis::writeReport(out, spectrum);
+        std::ostringstream optics;
+        optics << std::setprecision(17) << "COF matrix and tunes: ring=" << sequence.getOpalName()
+               << " beam=" << beam.getOpalName()
+               << " Near-integer warning: " << (spectrum.nearInteger ? "yes" : "no")
+               << "\nOne-turn-matrix (x, px, y, py):\n";
+        const char* coordinates[] = {"x", "px", "y", "py"};
+        std::ostringstream matrix;
+        matrix << "     ";
+        for (const auto* coordinate : coordinates)
+            matrix << std::setw(16) << coordinate;
+        matrix << '\n' << std::scientific << std::setprecision(8);
+        for (unsigned i = 0; i < 4; ++i) {
+            matrix << std::setw(3) << coordinates[i] << " [";
+            for (double v : result.matrix[i])
+                matrix << std::setw(16) << v;
+            matrix << " ]\n";
+        }
+        optics << matrix.str();
+        std::ostringstream eigenanalysis;
+        LinearMapEigenAnalysis::writeReport(eigenanalysis, spectrum);
+        std::istringstream lines(eigenanalysis.str());
+        for (std::string line; std::getline(lines, line);) {
+            if (line.rfind("Near-integer warning:", 0) == 0
+                || line.rfind("Matrix eigenanalysis alone:", 0) == 0)
+                continue;
+            // Keep the shared report API unchanged; route its eigenvalue rows
+            // to the detailed COF report rather than the level-4 optics summary.
+            (line.rfind("lambda[", 0) == 0 ? out : optics) << line << '\n';
+        }
         OneTurnMap::FullTunes fullTunes;
         if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)
             fullTunes = map.fullTunes(
@@ -389,23 +449,18 @@ namespace {
         else
             fullTunes.diagnostic = "One-turn eigenanalysis is not numerically stable.";
         if (fullTunes.available)
-            out << "Full tunes (uncoupled planar): horizontal/radial=" << fullTunes.tunes[0]
-                << " vertical=" << fullTunes.tunes[1] << '\n';
+            optics << "Full tunes (uncoupled planar):\n"
+                   << "  " << std::left << std::setw(22) << "horizontal/radial"
+                   << "nur=" << fullTunes.tunes[0] << '\n'
+                   << "  " << std::setw(22) << "vertical" << "nuy=" << fullTunes.tunes[1] << '\n';
         else
-            out << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
+            optics << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
         out << "Phase samples=" << fullTunes.samples
             << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
-        out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
-               "convergence.\n";
         setLaunchState(state, c, result.coordinates);
         state.json = serializeResult(state, c, result, reference, spectrum, fullTunes, drift);
-        if (!s.output.empty()) {
-            std::ofstream file(s.output);
-            file << state.json;
-            file.flush();
-            require(bool(file), "Error writing COF OUTPUT: " + s.output);
-        }
-        return out.str();
+        if (!s.output.empty()) writeResult(s.output, state.json);
+        return {out.str(), optics.str()};
     }
 
     // All ranks build the empty reference container once; scalar ray work and files
@@ -430,7 +485,8 @@ namespace {
         state.chargeE = beam.getReference().getQ();
         state.line    = sequence.getOpalName();
         state.species = beam.getParticleName();
-        std::string error, report;
+        std::string error;
+        Report report;
         if (rank == 0) try {
                 report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, state);
             } catch (const OpalException& ex) {
@@ -445,7 +501,6 @@ namespace {
             MPI_Bcast(value.data(), length, MPI_CHAR, 0, MPI_COMM_WORLD);
         };
         broadcast(error);
-        broadcast(report);
         require(error.empty(), error);
         broadcast(state.json);
         double values[6]{};
@@ -459,7 +514,10 @@ namespace {
             state.position[d] = values[d];
             state.momentum[d] = values[d + 3];
         }
-        if (rank == 0) *gmsg << report << endl;
+        if (rank == 0) {
+            *gmsg << level5 << report.details << endl;
+            *gmsg << level4 << report.optics << endl;
+        }
         return state;
     }
 }  // namespace
@@ -499,7 +557,7 @@ CofCmd::CofCmd()
     itsAttr[JACOBIAN] = Attributes::makePredefinedString(
             "JACOBIAN", "Differentiation.", {"CENTRAL"}, "CENTRAL");
     itsAttr[OUTPUT] = Attributes::makeString(
-            "OUTPUT", "Optional exact JSON filename (existing files rejected).");
+            "OUTPUT", "Optional exact JSON filename (replaced after a successful solve).");
     registerOwnership(AttributeHandler::COMMAND);
 }
 CofCmd::CofCmd(const std::string& name, CofCmd* parent) : Action(name, parent) {}

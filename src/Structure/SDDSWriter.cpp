@@ -36,9 +36,9 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        *gmsg << "* Appending data to existing data file: '" << fname_m << "'" << endl;
+        *gmsg << level5 << "* Appending data to existing data file: '" << fname_m << "'" << endl;
     } else {
-        *gmsg << "* Creating new file for data: '" << fname_m << "'" << endl;
+        *gmsg << level5 << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
 }
 
