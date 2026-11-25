@@ -627,62 +627,48 @@ namespace tps {
 
     template <class T>
     std::istream& Tps<T>::get(std::istream& is) {
-        is.flags(std::ios::skipws);
-        char head[4];
-        is.get(head, 4);
-        if (strcmp(head, "Tps") != 0) {
-            throw ::FormatError("Tps::get()", "Flag word \"Tps\" missing.");
-        }
-
+        // Formatted header extraction accepts the writer's trailing newlines and
+        // leading whitespace when several series are serialized consecutively.
+        std::string head;
+        if (!(is >> head)) return is;
+        if (head != "Tps") throw ::FormatError("Tps::get()", "Flag word \"Tps\" missing.");
         int maxOrder, truncOrder, nVar;
-        is >> maxOrder >> truncOrder >> nVar;
-        Tps<T> z(TpsRep<T>::create(maxOrder, truncOrder, nVar));
-        T coeff;
-
-        if (nVar <= 0 || truncOrder == 0) {
-            is >> coeff;
-            z[0] = coeff;
-
-            if (coeff != T(0)) {
-                z[0] = coeff;
-                is >> coeff;
-            }
+        if (!(is >> maxOrder >> truncOrder >> nVar)) return is;
+        if (maxOrder < 0 || truncOrder < 0 || nVar < 0)
+            throw ::FormatError("Tps::get()", "Negative header dimension or order.");
+        Tps<T> temporary(TpsRep<T>::create(maxOrder, truncOrder, nVar));
+        T coefficient;
+        if (nVar == 0) {
+            // Scalar output has exactly one coefficient and no sentinel record.
+            if (!(is >> coefficient)) return is;
+            temporary[0] = coefficient;
         } else {
             TpsMonomial monomial(nVar);
-            maxOrder  = 0;
-            bool done = false;
-            bool fail = false;
-
-            while (true) {
-                is >> coeff;
-                fail = is.fail();
-
-                int order = 0;
-                for (int var = 0; var < nVar; var++) {
-                    int p;
-                    is >> p;
-                    fail |= is.fail();
-                    if (p < 0) done = true;
-                    monomial[var] = p;
-                    order += monomial[var];
+            int observedOrder = 0;
+            for (;;) {
+                if (!(is >> coefficient)) return is;
+                bool terminator = true;
+                bool negative   = false;
+                long long order = 0;
+                for (int variable = 0; variable < nVar; ++variable) {
+                    int exponent;
+                    if (!(is >> exponent)) return is;
+                    terminator &= exponent == -1;
+                    negative |= exponent < 0;
+                    monomial[variable] = exponent;
+                    order += exponent;
                 }
-
-                if (done) break;
-                if (fail) throw ::FormatError("Tps::get()", "File read error");
-                int index = monomial.getIndex();
-
-                if (coeff != T(0)) {
-                    maxOrder = order;
-                } else if (index == 0) {
-                    break;
-                }
-
-                z[index] = coeff;
+                if (terminator && coefficient == T(0)) break;
+                if (negative || order > maxOrder)
+                    throw ::FormatError("Tps::get()", "Invalid monomial or terminator.");
+                temporary[monomial.getIndex()] = coefficient;
+                if (coefficient != T(0))
+                    observedOrder = std::max(observedOrder, static_cast<int>(order));
             }
-
-            z.setMaxOrder(maxOrder);
-            *this = z;
+            temporary.setMaxOrder(observedOrder);
         }
+        // Commit only a completely extracted scalar or terminated polynomial.
+        *this = temporary;
 
         return is;
     }

@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include <array>
 #include <cmath>
+#include <sstream>
 #include <tps/tps.hpp>
 #include "Ippl.h"
 #include "Utilities/CLRangeError.h"
 #include "Utilities/DivideError.h"
 #include "Utilities/DomainError.h"
+#include "Utilities/FormatError.h"
 #include "Utilities/OpalException.h"
 
 namespace {
@@ -211,5 +213,46 @@ namespace {
         const auto truncated = outer.substitute(inner);
         EXPECT_LE(truncated[0].getMaxOrder(), 2);
         Series::setGlobalTruncOrder(Series::EXACT);
+    }
+    TEST_F(TPSIntegration, ScalarSeriesStreamsRoundTripTransactionally) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        for (double value : {0.0, 2.5, -3.0}) {
+            std::stringstream stream;
+            stream << "  \n" << Series(value) << Series(-value);
+            Series first(99.0), second(88.0);
+            stream >> first >> second;
+            ASSERT_FALSE(stream.fail());
+            EXPECT_DOUBLE_EQ(first.getCoefficient(0), value);
+            EXPECT_DOUBLE_EQ(second.getCoefficient(0), -value);
+        }
+        const auto x = Series::makeVariable(2, 0), y = Series::makeVariable(2, 1);
+        const auto polynomial = 2.0 + x * x + 3.0 * y;
+        std::stringstream stream;
+        stream << polynomial;
+        Series restored;
+        stream >> restored;
+        ASSERT_FALSE(stream.fail());
+        EXPECT_EQ(restored, polynomial);
+        // A zero-order polynomial with a retained variable count still uses monomial records.
+        Series constant(0, 2);
+        constant[0] = 4;
+        std::stringstream constantStream;
+        constantStream << constant;
+        constantStream >> restored;
+        ASSERT_FALSE(constantStream.fail());
+        EXPECT_EQ(restored.getVariables(), 2);
+        EXPECT_DOUBLE_EQ(restored.getCoefficient(0), 4);
+        for (const auto* input : {"Tps 0 0 0", "Tps 2 2 2\n 1 0", "Tps 2 2 2\n 1 0 0\n"}) {
+            Series destination(7.0);
+            std::istringstream incomplete(input);
+            incomplete >> destination;
+            EXPECT_TRUE(incomplete.fail());
+            EXPECT_DOUBLE_EQ(destination.getCoefficient(0), 7);
+        }
+        Series unchanged(7.0);
+        std::istringstream invalid("Tps 1 1 2\n 1 2 0\n");
+        EXPECT_THROW(invalid >> unchanged, ::FormatError);
+        EXPECT_DOUBLE_EQ(unchanged.getCoefficient(0), 7);
     }
 }  // namespace
