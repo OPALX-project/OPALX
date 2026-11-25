@@ -1,5 +1,6 @@
 #ifndef TPS_VpsMap_HH
 #define TPS_VpsMap_HH
+#include "Utilities/CLRangeError.h"
 #include "Utilities/DivideError.h"
 #include "Utilities/LogicalError.h"
 // Copyright: see LICENSE
@@ -20,7 +21,9 @@ namespace tps {
     // Template class VpsMap<T>, declaration.
     /** @brief Vector-valued polynomial map with component-wise TPS storage.
      * @details Input and output dimensions may differ. F.substitute(G,p) computes
-     * the degree-p projection of F composed with G: G acts first.
+     * the degree-p projection of F composed with G: G acts first. The default
+     * EXACT precision resolves to a finite stored-polynomial composition degree,
+     * capped by available input precision; it is never used as a cache size.
      * @test tps.workflow_algebra checks ordered composition, analytic values and Jacobians.
      * @snippet workflow_algebra.cpp raw map composition
      */
@@ -296,14 +299,24 @@ namespace tps {
             throw ::LogicalError("VpsMap::substitute()", "Inconsistent dimensions.");
         }
 
-        // This statement makes sure that the substitution table exists.
-        // Own the traversal: coefficient arithmetic can grow/rebuild the shared cache.
+        const int topOrder = this->getTopOrder();
+        if (trunc < 0) throw ::CLRangeError("VpsMap::substitute()", "Negative truncation order.");
+        if (trunc == Tps<T>::EXACT) {
+            // EXACT is a precision sentinel, never a cache-allocation order.
+            // A stored polynomial of degree p composed with degree q has degree <= p*q.
+            const auto degree = static_cast<long long>(topOrder) * y.getTopOrder();
+            if (degree > Tps<T>::EXACT - 2)
+                throw ::CLRangeError(
+                        "VpsMap::substitute()", "Composition degree exceeds cache range.");
+            trunc = static_cast<int>(degree);
+        }
+        trunc       = std::min({trunc, this->getTruncOrder(), y.getTruncOrder()});
+        VpsMap<T> z = constantTerm();
+        if (!topOrder) return z;
+        // Traverse the outer polynomial, not the requested output order. The
+        // owned snapshot also survives growth of the inner-variable product cache.
         const Array1D<TpsSubstitution> table =
-                TpsData::getTpsData(trunc, this->getVariables())->getSubTable();
-
-        // Highest order present in this Vps.
-        int topOrder = this->getTopOrder();
-        VpsMap<T> z  = constantTerm();
+                TpsData::getTpsData(topOrder, this->getVariables())->getSubTable();
 
         if (topOrder) {
             Array1D<Tps<T>> product(topOrder + 1);

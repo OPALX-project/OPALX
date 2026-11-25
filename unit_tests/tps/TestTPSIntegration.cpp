@@ -169,4 +169,47 @@ namespace {
         EXPECT_THROW(value /= 0.0, ::DivideError);
         EXPECT_EQ(value, unchanged);
     }
+    TEST_F(TPSIntegration, DefaultMapSubstitutionResolvesExactToFiniteDegree) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        const auto x = Series::makeVariable(2, 0), y = Series::makeVariable(2, 1);
+        tps::VpsMap<double> identity(2, 2);
+        identity[0]     = x;
+        identity[1]     = y;
+        const auto same = identity.substitute(identity);
+        EXPECT_EQ(same[0], x);
+        EXPECT_EQ(same[1], y);
+        tps::VpsMap<double> outer(2, 2), inner(2, 2);
+        outer[0]                 = x * x + y;
+        outer[1]                 = y;
+        inner[0]                 = x * x;
+        inner[1]                 = y;
+        const auto composed      = outer.substitute(inner);
+        const auto explicitOrder = outer.substitute(inner, 4);
+        EXPECT_EQ(composed[0], explicitOrder[0]);
+        tps::Vector<double> point(2, .2);
+        point[0] = .5;
+        EXPECT_NEAR(composed.constantTerm(point)[0], std::pow(.5, 4) + .2, 2e-13);
+        // A rectangular inner map has two outputs and three independent inputs.
+        const auto u = Series::makeVariable(3, 0), v = Series::makeVariable(3, 1);
+        tps::VpsMap<double> rectangular(2, 3);
+        rectangular[0]       = u * u;
+        rectangular[1]       = v;
+        const auto rectangle = outer.substitute(rectangular);
+        tps::Vector<double> point3(3, .2);
+        point3[0] = .5;
+        EXPECT_NEAR(rectangle.constantTerm(point3)[0], std::pow(.5, 4) + .2, 2e-13);
+        tps::VpsMap<double> constant(2, 2);
+        constant[0][0]   = 3;
+        constant[1][0]   = -1;
+        const auto value = outer.substitute(constant);
+        EXPECT_DOUBLE_EQ(value[0].getCoefficient(0), 8);
+        const auto constantOuter = constant.substitute(identity);
+        EXPECT_DOUBLE_EQ(constantOuter[0].getCoefficient(0), 3);
+        EXPECT_THROW(identity.substitute(identity, -1), ::CLRangeError);
+        Series::setGlobalTruncOrder(2);
+        const auto truncated = outer.substitute(inner);
+        EXPECT_LE(truncated[0].getMaxOrder(), 2);
+        Series::setGlobalTruncOrder(Series::EXACT);
+    }
 }  // namespace
