@@ -3,20 +3,20 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestDecayChain USE_GTEST_MAIN)
 
-find_package(Python3 COMPONENTS Interpreter QUIET)
-if(BUILD_TESTING AND Python3_Interpreter_FOUND)
-  set(_cof_mpi_flags)
-  foreach(_flag IN LISTS MPIEXEC_PREFLAGS)
-    list(APPEND _cof_mpi_flags "--mpi-preflag=${_flag}")
-  endforeach()
-  foreach(_flag IN LISTS MPIEXEC_POSTFLAGS)
-    list(APPEND _cof_mpi_flags "--mpi-postflag=${_flag}")
-  endforeach()
+if(BUILD_TESTING)
+  set(_cof_config "${CMAKE_CURRENT_BINARY_DIR}/CofHousekeeping-$<CONFIG>.cmake")
+  file(GENERATE OUTPUT "${_cof_config}" CONTENT
+"set(COF_EXECUTABLE [==[$<TARGET_FILE:opalx_exe>]==])
+set(COF_MPIEXEC [==[${MPIEXEC_EXECUTABLE}]==])
+set(COF_NUMPROC_FLAG [==[${MPIEXEC_NUMPROC_FLAG}]==])
+set(COF_MPI_PREFLAGS [==[${MPIEXEC_PREFLAGS}]==])
+set(COF_MPI_POSTFLAGS [==[${MPIEXEC_POSTFLAGS}]==])
+set(COF_WORK_ROOT [==[${CMAKE_CURRENT_BINARY_DIR}]==])
+")
   foreach(_ranks IN ITEMS 1 2)
     add_test(NAME TestCofHousekeeping${_ranks}Rank
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_cof_housekeeping.py
-        --executable $<TARGET_FILE:opalx_exe> --mpiexec ${MPIEXEC_EXECUTABLE}
-        --numproc-flag=${MPIEXEC_NUMPROC_FLAG} --ranks ${_ranks} ${_cof_mpi_flags})
+      COMMAND ${CMAKE_COMMAND} "-DCOF_CONFIG=${_cof_config}" "-DCOF_RANKS=${_ranks}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckCofHousekeeping.cmake)
     set_tests_properties(TestCofHousekeeping${_ranks}Rank PROPERTIES
       TIMEOUT 300 PROCESSORS ${_ranks} LABELS "integration;cof")
   endforeach()
