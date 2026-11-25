@@ -46,42 +46,6 @@ public:
     using CartesianDomain_t   = opalx::spacecharge::CartesianDomain<T, Dim>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
-public:
-    // --- Shared state (all containers / mesh) ---
-
-    double dt_m;                 ///< Global time step @f$\Delta t@f$ (s).
-    Vector_t<int, Dim> nr_m;     ///< Mesh cell count per dimension.
-    Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
-
-    double lbt_m;  ///< Load-balancer timescale parameter.
-
-private:
-    std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
-    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
-    std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
-    /// Per-container index of the container whose reference particle it uses: its own index,
-    /// or for a decay daughter container the first container of its decay chain.
-    std::vector<size_t> pcRoot_m;
-
-    std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
-    std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
-
-    std::shared_ptr<BunchStateHandler>
-            bunchState_m;  ///< Shared per-container coordinate state and fixed bounds.
-
-    std::unique_ptr<CartesianDomain_t>
-            cartesianDomain_m;  ///< Outlives every particle layout that borrows it.
-    std::shared_ptr<ParticleContainer_t> pcontainer_m;
-    std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;
-
-    double boundingBoxIncreasePercent_m;
-    std::string initialFieldLayout_m;
-
-    double t_m;  ///< Current simulation time (s).
-
-    long long globalTrackStep_m;  ///< Global integration step counter.
-
-public:
     /**
      * @brief Construct a multi-beam bunch and its initial Cartesian particle layout.
      *
@@ -107,10 +71,8 @@ public:
      */
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
-        for (const auto& pc : this->getParticleContainers()) {
-            if (pc) {
-                total += pc->getTotalNum();
-            }
+        for (const auto& pc : pcontainers_m) {
+            total += pc->getTotalNum();
         }
         return total;
     }
@@ -120,35 +82,38 @@ public:
 
     /// @param i Container index.
     /// @return Whether container @p i participates in the current segment.
-    bool isPcActive(size_t i) const { return i < pcActive_m.size() && pcActive_m[i]; }
+    /// @throws std::out_of_range if @p i is not a container index.
+    bool isPcActive(size_t i) const { return pcActive_m.at(i); }
 
     /// @brief Force container @p i active (e.g. for containers with pending emission).
-    void setPcActive(size_t i) {
-        if (i < pcActive_m.size()) {
-            pcActive_m[i] = true;
-        }
-    }
+    /// @throws std::out_of_range if @p i is not a container index.
+    void setPcActive(size_t i) { pcActive_m.at(i) = true; }
 
     /// @param i Container index.
     /// @return Whether container @p i is frozen at the current s-stop.
-    bool pcAtSStop(size_t i) const { return i < pcAtSStop_m.size() && pcAtSStop_m[i]; }
+    /// @throws std::out_of_range if @p i is not a container index.
+    bool pcAtSStop(size_t i) const { return pcAtSStop_m.at(i); }
 
     /// @brief Deactivate container @p i until the next step-size segment (s-stop reached).
+    /// @throws std::out_of_range if @p i is not a container index.
     void setPcAtSStop(size_t i);
 
     /// @brief After emission: reactivate non-empty containers not marked at s-stop.
     void refreshPcActiveAfterEmit();
 
     /// @brief Make container @p i use the reference particle of container @p root.
+    /// @throws std::out_of_range if @p i or @p root is not a container index.
     void setPcRoot(size_t i, size_t root) {
-        if (i < pcRoot_m.size() && root < pcRoot_m.size()) {
-            pcRoot_m[i] = root;
+        if (root >= pcRoot_m.size()) {
+            throw std::out_of_range("PartBunch::setPcRoot: root index out of range");
         }
+        pcRoot_m.at(i) = root;
     }
 
     /// @param i Container index.
     /// @return Index of the container whose reference particle container @p i uses.
-    size_t getPcRoot(size_t i) const { return i < pcRoot_m.size() ? pcRoot_m[i] : i; }
+    /// @throws std::out_of_range if @p i is not a container index.
+    size_t getPcRoot(size_t i) const { return pcRoot_m.at(i); }
 
     /// @param i Container index.
     /// @return Whether container @p i is a decay daughter container that uses another
@@ -173,8 +138,9 @@ public:
     /// @throws OpalException from @p where if a container's particles are not in its reference
     ///         frame.
     void requireReferenceFrame(const std::string& where) const {
-        for (const auto& pc : pcontainers_m)
-            if (pc) pc->requireReferenceFrame(where);
+        for (const auto& pc : pcontainers_m) {
+            pc->requireReferenceFrame(where);
+        }
     }
 
     // --- Particle push, fields and loss over the containers ---
@@ -196,10 +162,11 @@ public:
     /// @brief Zero E and B on every active container.
     void resetFields();
 
-    /// @brief Apply the global processes of every container (e.g. decay) over @p dt [s] and
-    ///        switch on daughter containers that received particles. Collective.
+    /// @brief Apply the global processes of every container (e.g. decay) over the bunch time
+    ///        step getdT() and switch on daughter containers that received particles.
+    ///        Collective.
     /// @return Global number of particles the processes marked invalid.
-    size_t applyGlobalProcesses(double dt);
+    size_t applyGlobalProcesses();
 
     /**
      * @brief Mark the particles of each active, non-empty container outside the box of
@@ -238,15 +205,15 @@ public:
     [[nodiscard]] CartesianDomain_t& cartesianDomain() { return *cartesianDomain_m; }
     [[nodiscard]] const CartesianDomain_t& cartesianDomain() const { return *cartesianDomain_m; }
 
+    /// @return The first particle container.
     [[nodiscard]] std::shared_ptr<ParticleContainer_t> getParticleContainer() const {
-        return pcontainer_m;
+        return pcontainers_m.front();
     }
 
+    /// @return Particle container @p index.
+    /// @throws std::out_of_range if @p index is not a container index.
     [[nodiscard]] std::shared_ptr<ParticleContainer_t> getParticleContainer(size_t index) const {
-        if (index >= pcontainers_m.size()) {
-            throw std::out_of_range("PartBunch::getParticleContainer: index out of range");
-        }
-        return pcontainers_m[index];
+        return pcontainers_m.at(index);
     }
 
     [[nodiscard]] const std::vector<std::shared_ptr<ParticleContainer_t>>& getParticleContainers()
@@ -259,34 +226,20 @@ public:
     /**
      * @brief Set the per-particle charge for each particle container.
      * @note Copies values from `qi_m` into each particle container via `setQ`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match.
      */
     void setCharge() {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException(
-                    "PartBunch::setCharge",
-                    "Number of particle containers and qi values do not match.");
-        }
-        for (size_t i = 0; i < containers.size(); ++i) {
-            containers[i]->setQ(qi_m[i]);
+        for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+            pcontainers_m[i]->setQ(qi_m[i]);
         }
     }
 
     /**
      * @brief Set the per-particle mass for each particle container.
      * @note Copies values from `mi_m` into each particle container via `setM`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match.
      */
     void setMass() {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException(
-                    "PartBunch::setMass",
-                    "Number of particle containers and mi values do not match.");
-        }
-        for (size_t i = 0; i < containers.size(); ++i) {
-            containers[i]->setM(mi_m[i]);
+        for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+            pcontainers_m[i]->setM(mi_m[i]);
         }
     }
 
@@ -294,7 +247,7 @@ public:
      * @brief Human-readable dump of each container to @p os.
      * @param moments One snapshot per container holding at least printedMoments.
      */
-    Inform& print(Inform& os, std::span<const opalx::moments::BeamMoments> moments);
+    Inform& print(Inform& os, std::span<const opalx::moments::BeamMoments> moments) const;
 
     /// Moment groups print() reads.
     static constexpr opalx::moments::Request printedMoments =
@@ -302,12 +255,8 @@ public:
             | opalx::moments::Moment::MeanMomentum | opalx::moments::Moment::Spread;
 
     /// @brief Particle species name for container @p i (from BEAM PARTICLE input).
-    std::string getParticleName(size_t i) const {
-        if (i >= particleNames_m.size()) {
-            return "";
-        }
-        return particleNames_m[i];
-    }
+    /// @throws std::out_of_range if @p i is not a container index.
+    std::string getParticleName(size_t i) const { return particleNames_m.at(i); }
 
     /// @brief Set the global time step.
     void setdT(double dt) { dt_m = dt; }
@@ -335,6 +284,33 @@ public:
 
     /// @brief Increment @c globalTrackStep_m by one.
     void incTrackSteps() { globalTrackStep_m++; }
+
+private:
+    double dt_m;   ///< Global time step @f$\Delta t@f$ (s).
+    double lbt_m;  ///< Load-balancer timescale parameter.
+
+    std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
+    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
+    std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
+    /// Per-container index of the container whose reference particle it uses: its own index,
+    /// or for a decay daughter container the first container of its decay chain.
+    std::vector<size_t> pcRoot_m;
+
+    std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
+    std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
+
+    std::shared_ptr<BunchStateHandler>
+            bunchState_m;  ///< Shared per-container coordinate state and fixed bounds.
+
+    std::unique_ptr<CartesianDomain_t>
+            cartesianDomain_m;  ///< Outlives every particle layout that borrows it.
+    std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;
+
+    double boundingBoxIncreasePercent_m;
+
+    double t_m;  ///< Current simulation time (s).
+
+    long long globalTrackStep_m;  ///< Global integration step counter.
 };
 
 extern template class PartBunch<double, 3>;  ///< Explicit instantiation for 3D double-precision.

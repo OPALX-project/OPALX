@@ -23,7 +23,11 @@ PartBunch<T, Dim>::PartBunch(
         std::vector<size_t> totalParticlesPerBeam, double lbt,
         opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig, bool qmAttributes,
         bool aggressiveStateSync)
-    : dt_m(0), lbt_m(lbt), boundingBoxIncreasePercent_m(0.0), t_m(0.0), globalTrackStep_m(0) {
+    : dt_m(0.5 / domainConfig.meshSize[2]),
+      lbt_m(lbt),
+      boundingBoxIncreasePercent_m(0.0),
+      t_m(0.0),
+      globalTrackStep_m(0) {
     qi_m         = qi;
     mi_m         = mi;
     bunchState_m = std::make_shared<BunchStateHandler>(aggressiveStateSync);
@@ -50,9 +54,6 @@ PartBunch<T, Dim>::PartBunch(
     // the mesh and FieldLayout object addresses remain stable for every borrowing container.
     cartesianDomain_m            = std::make_unique<CartesianDomain_t>(domainConfig);
     boundingBoxIncreasePercent_m = domainConfig.boundingBoxIncreasePercent;
-    for (unsigned dimension = 0; dimension < Dim; ++dimension) {
-        nr_m[dimension] = static_cast<int>(domainConfig.meshSize[dimension]);
-    }
 
     const bool useOverlap =
             domainConfig.layoutType == opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
@@ -75,39 +76,28 @@ PartBunch<T, Dim>::PartBunch(
     const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
     m << level5 << "* Initial Cartesian domain set to isAllPeriodic = " << isAllPeriodic << endl;
 
-    this->hr_m = cartesianDomain_m->spacing();
-    this->dt_m = 0.5 / this->nr_m[2];
-
-    std::ostringstream fieldLayout;
-    fieldLayout << cartesianDomain_m->layout();
-    initialFieldLayout_m = fieldLayout.str();
-
-    pcontainer_m = std::make_shared<ParticleContainer_t>(
-            cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[0].hasPolarization,
-            layoutType, overlapCutoff, particleBoundary, qmAttributes);
-    pcontainers_m.push_back(pcontainer_m);
-    pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
-    for (size_t i = 1; i < num_containers; ++i) {
+    for (size_t i = 0; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i].hasPolarization,
                 layoutType, overlapCutoff, particleBoundary, qmAttributes);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
     }
-    const auto& containers = this->getParticleContainers();
-    particleNames_m.resize(containers.size());
-    pcRoot_m.resize(containers.size());
-    for (size_t i = 0; i < containers.size(); ++i) {
+    particleNames_m.resize(num_containers);
+    pcRoot_m.resize(num_containers);
+    pcActive_m.resize(num_containers);
+    pcAtSStop_m.resize(num_containers);
+    for (size_t i = 0; i < num_containers; ++i) {
         pcRoot_m[i] = i;  // independent until TrackRun links decay chains
     }
-    for (size_t i = 0; i < containers.size(); ++i) {
-        containers[i]->setQ(qi[i]);
-        containers[i]->setM(mi[i]);
-        containers[i]->setReference(beams[i].reference);
+    for (size_t i = 0; i < num_containers; ++i) {
+        pcontainers_m[i]->setQ(qi[i]);
+        pcontainers_m[i]->setM(mi[i]);
+        pcontainers_m[i]->setReference(beams[i].reference);
         particleNames_m[i] = beams[i].particleName;
-        containers[i]->Sp =
+        pcontainers_m[i]->Sp =
                 static_cast<short>(ParticleProperties::getParticleType(beams[i].particleName));
     }
 
@@ -117,7 +107,7 @@ PartBunch<T, Dim>::PartBunch(
     for (size_t i = 0; i < num_containers; ++i) {
         const size_t maxLocalNum =
                 static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
-        containers[i]->allocateParticles(maxLocalNum);
+        pcontainers_m[i]->allocateParticles(maxLocalNum);
         *gmsg << level3 << "* Container " << i << ": capacity for " << maxLocalNum
               << " particles allocated." << endl;
     }
@@ -130,18 +120,9 @@ PartBunch<T, Dim>::PartBunch(
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::resetPcActive() {
-    const auto& containers = this->getParticleContainers();
-    const size_t n         = containers.size();
-    pcActive_m.resize(n);
-    pcAtSStop_m.resize(n);
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
         pcAtSStop_m[i] = false;
-        const auto& pc = containers[i];
-        if (!pc || pc->getTotalNum() == 0) {
-            pcActive_m[i] = false;
-        } else {
-            pcActive_m[i] = true;
-        }
+        pcActive_m[i]  = pcontainers_m[i]->getTotalNum() > 0;
     }
 }
 
@@ -150,11 +131,8 @@ void PartBunch<T, Dim>::resetPcActive() {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setPcAtSStop(size_t i) {
-    if (i >= pcActive_m.size()) {
-        return;
-    }
-    pcActive_m[i]  = false;
-    pcAtSStop_m[i] = true;
+    pcActive_m.at(i)  = false;
+    pcAtSStop_m.at(i) = true;
 }
 
 /**
@@ -162,17 +140,8 @@ void PartBunch<T, Dim>::setPcAtSStop(size_t i) {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
-    const auto& containers = this->getParticleContainers();
-    const size_t n         = containers.size();
-    if (pcActive_m.size() != n) {
-        return;
-    }
-    for (size_t i = 0; i < n; ++i) {
-        if (pcAtSStop_m[i]) {
-            continue;
-        }
-        const auto& pc = containers[i];
-        if (pc && pc->getTotalNum() > 0) {
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        if (!pcAtSStop_m[i] && pcontainers_m[i]->getTotalNum() > 0) {
             pcActive_m[i] = true;
         }
     }
@@ -181,39 +150,27 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setTimeStep(double dt) {
     this->setdT(dt);
-    for (const auto& pc : this->getParticleContainers()) {
-        if (pc) {
-            pc->dt = dt;
-        }
+    for (const auto& pc : pcontainers_m) {
+        pc->dt = dt;
     }
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pushParticles() {
-    const size_t n = this->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!this->isPcActive(i)) {
-            continue;
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        if (pcActive_m[i]) {
+            pcontainers_m[i]->pushParticles();
         }
-        auto pc = this->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
-        pc->pushParticles();
     }
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::kickAndPushParticles() {
-    const size_t n = this->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!this->isPcActive(i)) {
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        if (!pcActive_m[i]) {
             continue;
         }
-        auto pc = this->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
+        const auto& pc = pcontainers_m[i];
         pc->kickParticles();
         if (pc->hasSpin()) {
             pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
@@ -225,50 +182,32 @@ void PartBunch<T, Dim>::kickAndPushParticles() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::evolveSpinHalfStep() {
-    const size_t n = this->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!this->isPcActive(i)) {
-            continue;
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        if (pcActive_m[i] && pcontainers_m[i]->hasSpin()) {
+            pcontainers_m[i]->evolveSpinHalfStep();
         }
-        auto pc = this->getParticleContainer(i);
-        if (!pc || !pc->hasSpin()) {
-            continue;
-        }
-        pc->evolveSpinHalfStep();
     }
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::resetFields() {
-    const size_t n = this->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
-        if (!this->isPcActive(i)) {
-            continue;
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        if (pcActive_m[i]) {
+            pcontainers_m[i]->zeroFields();
         }
-        auto pc = this->getParticleContainer(i);
-        if (!pc) {
-            continue;
-        }
-        pc->zeroFields();
     }
 }
 
 template <typename T, unsigned Dim>
-size_t PartBunch<T, Dim>::applyGlobalProcesses(double dt) {
-    const size_t nContainers        = this->getNumParticleContainers();
-    const long long globalTrackStep = this->getGlobalTrackStep();
-    size_t nMarked                  = 0;
-
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        auto pc = this->getParticleContainer(ci);
-        if (!pc) {
-            continue;
-        }
+size_t PartBunch<T, Dim>::applyGlobalProcesses() {
+    size_t nMarked = 0;
+    for (size_t ci = 0; ci < pcontainers_m.size(); ++ci) {
+        const auto& pc = pcontainers_m[ci];
         // Decay writes daughters in the shared reference frame of parent and daughter.
         pc->requireReferenceFrame("PartBunch::applyGlobalProcesses");
         for (const auto& process : pc->getGlobalProcesses()) {
             if (process) {
-                nMarked += process->apply(*pc, dt, globalTrackStep, ci);
+                nMarked += process->apply(*pc, dt_m, globalTrackStep_m, ci);
             }
         }
     }
@@ -287,12 +226,14 @@ std::vector<opalx::moments::BeamMoments> PartBunch<T, Dim>::markOutliers(
         const std::function<opalx::moments::Request(const ParticleContainer_t&)>& request,
         size_t& nMarked) {
     using opalx::moments::Moment;
+    std::vector<opalx::moments::BeamMoments> moments(pcontainers_m.size());
+    if (sigmas <= 0.0) {
+        return moments;
+    }
     Inform m("PartBunch::markOutliers");
-    const auto& particleContainers = this->getParticleContainers();
-    std::vector<opalx::moments::BeamMoments> moments(particleContainers.size());
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        const auto& pc = particleContainers[i];
-        if (!pc || !this->isPcActive(i) || sigmas <= 0.0 || pc->getTotalNum() == 0) {
+    for (size_t i = 0; i < pcontainers_m.size(); ++i) {
+        const auto& pc = pcontainers_m[i];
+        if (!pcActive_m[i] || pc->getTotalNum() == 0) {
             continue;
         }
         moments[i] =
@@ -312,17 +253,11 @@ std::vector<opalx::moments::BeamMoments> PartBunch<T, Dim>::markOutliers(
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::deleteInvalidParticles(
         bool activeOnly, Inform& m, const std::string& reason) {
-    const size_t nContainers = this->getNumParticleContainers();
-
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (activeOnly && !this->isPcActive(ci)) {
+    for (size_t ci = 0; ci < pcontainers_m.size(); ++ci) {
+        if (activeOnly && !pcActive_m[ci]) {
             continue;
         }
-        auto pc = this->getParticleContainer(ci);
-        if (!pc) {
-            continue;
-        }
-
+        const auto& pc                 = pcontainers_m[ci];
         const size_t nContainerDeleted = pc->deleteInvalidParticles();
         if (nContainerDeleted > 0) {
             m << level2 << "Deleted " << nContainerDeleted << " particles marked by " << reason
@@ -335,15 +270,15 @@ void PartBunch<T, Dim>::deleteInvalidParticles(
  * @copybrief PartBunch::print
  */
 template <typename T, unsigned Dim>
-Inform& PartBunch<T, Dim>::print(Inform& os, std::span<const opalx::moments::BeamMoments> moments) {
+Inform& PartBunch<T, Dim>::print(
+        Inform& os, std::span<const opalx::moments::BeamMoments> moments) const {
     Inform::FmtFlags_t ff = os.flags();
 
-    const auto& containers = this->getParticleContainers();
-    if (moments.size() != containers.size()) {
+    if (moments.size() != pcontainers_m.size()) {
         throw OpalException("PartBunch::print", "Expected one moment snapshot per container.");
     }
-    for (size_t ci = 0; ci < containers.size(); ++ci) {
-        const auto& pc = containers[ci];
+    for (size_t ci = 0; ci < pcontainers_m.size(); ++ci) {
+        const auto& pc = pcontainers_m[ci];
         const auto& m  = moments[ci];
 
         // ParticleContainer tracks charge/mass storage mode for QM attributes.
@@ -369,9 +304,10 @@ Inform& PartBunch<T, Dim>::print(Inform& os, std::span<const opalx::moments::Bea
            << "* RMS P           = " << m.rmsP() << " [beta gamma]\n"
            << "* Mean R          = " << m.meanR() << " [m]\n"
            << "* Mean P          = " << m.meanP() << " [beta gamma]\n"
-           << "* MESH SPACING    = " << Util::getLengthString(hr_m, 5) << "\n"
+           << "* MESH SPACING    = " << Util::getLengthString(cartesianDomain_m->spacing(), 5)
+           << "\n"
            << "* COMPDOM INCR    = " << boundingBoxIncreasePercent_m << " (%) \n"
-           << "* FIELD LAYOUT    = " << initialFieldLayout_m << "\n"
+           << "* FIELD LAYOUT    = " << cartesianDomain_m->layout() << "\n"
            << "* Cov Matrix : \n* ";
         for (unsigned int i = 0; i < 2 * Dim; i++) {
             for (unsigned int j = 0; j < 2 * Dim; j++) {

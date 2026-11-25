@@ -288,7 +288,7 @@ void ParallelTracker::advanceParticles() {
     timeIntegration2();
 
     // Apply global processes (e.g. decay) and mark affected particles for deletion
-    const size_t nProcessMarked = itsBunch_m->applyGlobalProcesses(itsBunch_m->getdT());
+    const size_t nProcessMarked = itsBunch_m->applyGlobalProcesses();
     if (nProcessMarked > 0) {
         // Decay-like global processes may have created daughters and marked parents
         // invalid. Delete the parents before time/reference updates so they do not

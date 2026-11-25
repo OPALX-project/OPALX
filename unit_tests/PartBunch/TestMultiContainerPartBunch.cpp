@@ -214,6 +214,12 @@ namespace {
         EXPECT_THROW(static_cast<void>(bunch->getParticleContainer(2)), std::out_of_range);
     }
 
+    TEST_F(MultiContainerPartBunchTest, ActiveFlag_IndexOutOfRangeThrows) {
+        EXPECT_THROW(static_cast<void>(bunch->isPcActive(2)), std::out_of_range);
+        EXPECT_THROW(static_cast<void>(bunch->pcAtSStop(2)), std::out_of_range);
+        EXPECT_THROW(static_cast<void>(bunch->getPcRoot(2)), std::out_of_range);
+    }
+
     TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnQiSizeMismatch) {
         EXPECT_THROW(
                 static_cast<void>(std::make_shared<PartBunch_t>(

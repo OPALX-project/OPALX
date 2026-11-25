@@ -473,9 +473,13 @@ namespace opalx::run {
             IpplTimings::startTimer(samplingTime);
 
             // Common containers / parameters used by all samplers.
-            auto pc               = bunch.getParticleContainer(index);
-            Vector_t<int, Dim> nr = bunch.nr_m;
-            const double avrgpz   = beam.reference.getP() * Units::eV2GeV / beam.mass;
+            auto pc             = bunch.getParticleContainer(index);
+            const auto meshSize = bunch.cartesianDomain().layoutExtents();
+            Vector_t<int, Dim> nr;
+            for (unsigned d = 0; d < Dim; ++d) {
+                nr[d] = static_cast<int>(meshSize[d]);
+            }
+            const double avrgpz = beam.reference.getP() * Units::eV2GeV / beam.mass;
 
             emittingSamplers.clear();
             bool hasFileSource = false;
