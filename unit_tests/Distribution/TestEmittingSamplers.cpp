@@ -177,4 +177,32 @@ namespace {
                 EXPECT_NEAR(R(i)(d), expected(d), 1e-14);
         }
     }
+
+    // With per-particle charge and mass (QM_MODE = ATTRIBUTES) the particles emitted into an
+    // empty container get the container's charge and mass.
+    TEST_F(EmittingSamplersTest, Attributes_EmittedParticlesKeepCharge) {
+        const auto beam = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
+        PartBunch_t bunch(
+                std::vector{opalx::test::bunchBeam(*beam, 8, 2.0, 3.0)}, 1.0,
+                opalx::spacecharge::CartesianDomainConfig3D{}, /*qmAttributes=*/true);
+        auto pc = bunch.getParticleContainer(0);
+        ASSERT_EQ(pc->getQMStorageMode(), ParticleContainer_t::QMStorageMode::Attributes);
+        ASSERT_EQ(pc->getTotalNum(), 0u);
+
+        // Each stub appends one particle per emit().
+        EmittingSamplers samplers(
+                {{std::make_shared<StubSampler>(pc, 0.5, 1e-9),
+                  std::make_shared<StubSampler>(pc, 0.5, 1e-9)}});
+        bunch.resetPcActive();
+        samplers.emit(bunch, OpalBeamline(), 1e-12, 1e-12);
+        ASSERT_EQ(pc->getTotalNum(), 2u);
+
+        EXPECT_DOUBLE_EQ(pc->getTotalCharge(), 2.0 * 2.0);
+        auto q = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        auto m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getMView());
+        for (size_t i = 0; i < 2; ++i) {
+            EXPECT_DOUBLE_EQ(q(i), 2.0) << "particle " << i;
+            EXPECT_DOUBLE_EQ(m(i), 3.0) << "particle " << i;
+        }
+    }
 }  // namespace

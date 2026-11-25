@@ -65,11 +65,14 @@ using size_type = ippl::detail::size_type;
  * B  - Magnetic field
  *
  * Charge (Q) and mass (M):
+ * - In both modes the container keeps one charge and one mass per particle of its own, set with
+ *   setQ() / setM() and read with getChargePerParticle() / getMassPerParticle().
  * - Default: QM_MODE="SINGLE" -> QMStorageMode=SingleValue
- *   * Q and M are stored as a single shared value per container (memory-efficient).
- *   * Access via `getQView()` / `getMView()` returns the shared views.
+ *   * Only that one value is stored (memory-efficient).
+ *   * Access via `getQView()` / `getMView()` returns the one-entry views that hold it.
  * - Alternative: QM_MODE="ATTRIBUTES" -> QMStorageMode=Attributes
- *   * Q and M are stored as per-particle attributes.
+ *   * Each particle also stores Q and M. setQ() / setM() assign the value to every local
+ *     particle, and createParticles() gives it to the new particles.
  *   * Access via `getQView()` / `getMView()` returns the per-particle attribute views.
  *
  * Access to Q/M should be done with `getQView()` / `getMView()`.
@@ -359,39 +362,27 @@ public:
     }
 
     /**
-     * @brief Set particle charge for the active Q storage mode.
+     * @brief Set the charge per particle of this container.
      * @param q Charge value in [Cb].
      *
-     * In `QMStorageMode::Attributes`, this assigns `q` to every local particle.
-     * In `QMStorageMode::SingleValue`, this updates the shared scalar charge view.
+     * The container keeps @p q in both storage modes. In `QMStorageMode::Attributes` it is also
+     * assigned to every local particle; particles created later get it in createParticles().
      */
     void setQ(double q) {
+        Kokkos::deep_copy(QView_m, q);
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view         = QAttr.getView();
             const size_type n = this->getLocalNum();
-            if (n == 0) {
-                return;
-            }
             Kokkos::parallel_for(
                     "ParticleContainer::setQ", n,
                     KOKKOS_LAMBDA(const size_type i) { view(i) = q; });
             Kokkos::fence();
-        } else {
-            Kokkos::deep_copy(QView_m, q);
         }
     }
 
-    /// @brief Get charge per particle [Cb].
+    /// @brief Charge per particle [Cb] of this container, as set with setQ(), in both storage
+    ///        modes.
     double getChargePerParticle() const {
-        if (qmStorageMode_m == QMStorageMode::Attributes) {
-            auto view = QAttr.getView();
-            if (view.extent(0) == 0) {
-                return 0.0;
-            }
-            double q = 0.0;
-            Kokkos::deep_copy(q, Kokkos::subview(view, 0));
-            return q;
-        }
         double q = 0.0;
         Kokkos::deep_copy(q, Kokkos::subview(QView_m, 0));
         return q;
@@ -401,37 +392,27 @@ public:
     double getTotalCharge() const { return getChargePerParticle() * this->getTotalNum(); }
 
     /**
-     * @brief Set particle mass for the active M storage mode.
+     * @brief Set the mass per particle of this container.
      * @param m Mass value in [GeV].
      *
-     * In `QMStorageMode::Attributes`, this assigns `m` to every local particle.
-     * In `QMStorageMode::SingleValue`, this updates the shared scalar mass view.
+     * The container keeps @p m in both storage modes. In `QMStorageMode::Attributes` it is also
+     * assigned to every local particle; particles created later get it in createParticles().
      */
     void setM(double m) {
+        Kokkos::deep_copy(MView_m, m);
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view         = MAttr.getView();
-            const size_type n = view.extent(0);
-
+            const size_type n = this->getLocalNum();
             Kokkos::parallel_for(
                     "ParticleContainer::setM", n,
                     KOKKOS_LAMBDA(const size_type i) { view(i) = m; });
             Kokkos::fence();
-        } else {
-            Kokkos::deep_copy(MView_m, m);
         }
     }
 
-    /// @brief Get mass per particle [GeV].
+    /// @brief Mass per particle [GeV] of this container, as set with setM(), in both storage
+    ///        modes.
     double getMassPerParticle() const {
-        if (qmStorageMode_m == QMStorageMode::Attributes) {
-            auto view = MAttr.getView();
-            if (view.extent(0) == 0) {
-                return 0.0;
-            }
-            double m = 0.0;
-            Kokkos::deep_copy(m, Kokkos::subview(view, 0));
-            return m;
-        }
         double m = 0.0;
         Kokkos::deep_copy(m, Kokkos::subview(MView_m, 0));
         return m;
@@ -822,7 +803,8 @@ public:
      * This function creates a given number of particles in the container. It's a wrapper around the
      * non destructive IPPL particle create function, but will print out a warning if the create
      * call led to unnecessary reallocation (i.e. if the new total number of particles exceeds the
-     * previous capacity).
+     * previous capacity). With per-particle storage (`QMStorageMode::Attributes`) the new
+     * particles get the charge and mass per particle of the container.
      *
      * @note The underlying `create` is a collective call, so all MPI ranks must call this function.
      * IPPL automatically handles the short-circuit if internal capacity is sufficient.
@@ -865,6 +847,19 @@ public:
                     "ParticleContainer::createParticles::resetPol", numParticles,
                     KOKKOS_LAMBDA(const size_type i) {
                         polView(oldLocalNum + i) = spin_vector_type(0.0);
+                    });
+        }
+        // With per-particle storage the new particles get the charge and mass of the container.
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            const double q = getChargePerParticle();
+            const double m = getMassPerParticle();
+            auto qView     = QAttr.getView();
+            auto mView     = MAttr.getView();
+            Kokkos::parallel_for(
+                    "ParticleContainer::createParticles::setQM", numParticles,
+                    KOKKOS_LAMBDA(const size_type i) {
+                        qView(oldLocalNum + i) = q;
+                        mView(oldLocalNum + i) = m;
                     });
         }
         Kokkos::fence();

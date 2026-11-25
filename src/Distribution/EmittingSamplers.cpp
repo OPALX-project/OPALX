@@ -75,9 +75,6 @@ void EmittingSamplers::emit(PartBunch_t& bunch, const OpalBeamline& beamline, do
         }
         pc->adoptParticles(beamline.beamlineFrame(*pc), nBefore);
 
-        pc->setM(pc->getMassPerParticle());
-        pc->setQ(pc->getChargePerParticle());
-
         // Sanity guard: the total number of macroparticles in the bunch must
         // never exceed the globally configured BEAM::NALLOC value. Overshooting
         // this limit would trigger internal reallocations in the particle

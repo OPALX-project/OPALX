@@ -174,6 +174,51 @@ namespace {
         }
     }
 
+    // A container without particles keeps the charge and mass per particle it is given.
+    TEST_F(ParticleContainerTest, ChargeMass_AttributeMode_EmptyContainerKeepsValues) {
+        Options::useQMAttributes = true;
+        auto pc                  = makeContainer();
+        ASSERT_EQ(pc->getQMStorageMode(), PC_t::QMStorageMode::Attributes);
+        ASSERT_EQ(pc->getLocalNum(), 0u);
+
+        const double q = -1.6e-19;
+        const double m = 0.000511;
+        pc->setQ(q);
+        pc->setM(m);
+
+        EXPECT_DOUBLE_EQ(pc->getChargePerParticle(), q);
+        EXPECT_DOUBLE_EQ(pc->getMassPerParticle(), m);
+    }
+
+    // Particles created after setQ() and setM() get the container's charge and mass.
+    TEST_F(ParticleContainerTest, ChargeMass_AttributeMode_NewParticlesGetValues) {
+        Options::useQMAttributes = true;
+        auto pc                  = makeContainer();
+        ASSERT_EQ(pc->getQMStorageMode(), PC_t::QMStorageMode::Attributes);
+
+        const double q = -1.6e-19;
+        const double m = 0.000511;
+        pc->setQ(q);
+        pc->setM(m);
+
+        pc->createParticles(8);
+        auto qHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        auto mHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getMView());
+        for (size_t i = 0; i < 8; ++i) {
+            EXPECT_DOUBLE_EQ(qHost(i), q) << "particle " << i;
+            EXPECT_DOUBLE_EQ(mHost(i), m) << "particle " << i;
+        }
+        EXPECT_DOUBLE_EQ(pc->getTotalCharge(), 8.0 * ippl::Comm->size() * q);
+
+        pc->createParticles(4);
+        qHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        mHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getMView());
+        for (size_t i = 8; i < 12; ++i) {
+            EXPECT_DOUBLE_EQ(qHost(i), q) << "particle " << i;
+            EXPECT_DOUBLE_EQ(mHost(i), m) << "particle " << i;
+        }
+    }
+
     // ================================================================
     // dt scaling round-trip – SingleValue mode
     // ================================================================

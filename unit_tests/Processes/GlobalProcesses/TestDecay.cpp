@@ -42,8 +42,10 @@ namespace {
             Options::useQMAttributes = oldUseQMAttributes_m;
         }
 
+        /// @param qmAttributes Store charge and mass per particle (QM_MODE = ATTRIBUTES).
         std::shared_ptr<PC_t> makeContainer(
-                ParticleType species = ParticleType::UNNAMED, bool spin = false) {
+                ParticleType species = ParticleType::UNNAMED, bool spin = false,
+                bool qmAttributes = false) {
             ippl::Vector<int, 3> nr        = 8;
             ippl::Vector<double, 3> rmin   = -4.0;
             ippl::Vector<double, 3> rmax   = 4.0;
@@ -58,8 +60,10 @@ namespace {
 
             Mesh_t<3> mesh(domain, hr, origin);
             FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
-            auto pc = std::make_shared<PC_t>(mesh, fl, spin);
-            pc->Sp  = static_cast<short>(species);
+            auto pc = std::make_shared<PC_t>(
+                    mesh, fl, spin, PC_t::LayoutType::Spatial, 0.0, ippl::BC::PERIODIC,
+                    qmAttributes);
+            pc->Sp = static_cast<short>(species);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
             return pc;
         }
@@ -239,6 +243,35 @@ namespace {
         EXPECT_EQ(destroyed, 256u);
         EXPECT_EQ(muons->getTotalNum(), 0u);
         EXPECT_EQ(electrons->getTotalNum(), 256u);
+    }
+
+    // With per-particle charge and mass (QM_MODE = ATTRIBUTES) every daughter gets the charge and
+    // mass per particle of the daughter container, which starts empty. A lifetime of 1 ps and
+    // a time step of 1 s decay every muon at rest.
+    TEST_F(DecayTest, Decay_AttributeMode_DaughtersGetChargeAndMass) {
+        auto muons     = makeContainer(ParticleType::UNNAMED, false, true);
+        auto electrons = makeContainer(ParticleType::ELECTRON, false, true);
+        ASSERT_EQ(electrons->getQMStorageMode(), PC_t::QMStorageMode::Attributes);
+        const double qElectron = -2.0e-15;
+        const double mElectron = 3.0e-6;
+        muons->setQ(-4.0e-15);
+        muons->setM(Physics::m_mu);
+        electrons->setQ(qElectron);
+        electrons->setM(mElectron);
+        createParticles(muons, 32, 0.0);
+
+        Options::seed = 1234;
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1, Options::seed);
+        decay.setDaughterContainer(electrons, Physics::m_e);
+        ASSERT_EQ(decay.apply(*muons, 1.0, 0, 0), 32u);
+        ASSERT_EQ(electrons->getLocalNum(), 32u);
+
+        auto q = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), electrons->getQView());
+        auto m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), electrons->getMView());
+        for (size_t i = 0; i < 32; ++i) {
+            EXPECT_DOUBLE_EQ(q(i), qElectron) << "daughter " << i;
+            EXPECT_DOUBLE_EQ(m(i), mElectron) << "daughter " << i;
+        }
     }
 
     TEST_F(DecayTest, DaughterPositionMatchesParent) {
