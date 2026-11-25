@@ -264,21 +264,17 @@ field-tail segments; element attachments share segment handles with separate
 local ordinals. Reporting matrices are derived Jacobians. Finite-difference ray
 construction and Richardson refinement retain their existing algorithms. The 6D
 input solve and diagnostics use TPS/Kokkos host kernels with the existing pivot
-and condition policies; see [numerical contracts](src/tps/docs/linear-map-algebra.md).
+and condition policies.
 COF retains its existing Newton QR, LAPACK spectrum and full-tune winding policies.
-The [Part 1 completion audit](src/tps/docs/part1-completion-audit.md) records the
-implemented scope, retained backends and pending CI regression acceptance.
 
 Host map construction, composition and analysis are serialized per MPI rank.
 Retained snapshots survive recalculation, but polynomial use ends at explicit
 `releaseTransferMapStorage()` or Kokkos finalization. Call the release function
 before IPPL finalization; a Kokkos hook also revokes payloads in retained handles.
-See [persistent storage](src/tps/docs/persistent-storage.md) for lifecycle contracts.
 Prepared maps can be evaluated in parallel with separate workspace per particle.
 Coordinate/reference conversion, tracking orchestration, apertures and space-charge
-splitting remain OPALX integration tasks. See
-[src/tps/docs/mathematics.dox](src/tps/docs/mathematics.dox) and
-[src/tps/docs/code-review.md](src/tps/docs/code-review.md) for contracts and limits.
+splitting remain OPALX integration tasks. Design reports and mathematical documentation
+are archived separately in `opalx-documents/prs/693/tps-docs`.
 The historical baseline remains in the standalone test bed; it is not built here.
 
 With `OPALX_ENABLE_UNIT_TESTS=ON`, run `ctest --test-dir <build> -L tps

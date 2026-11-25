@@ -167,8 +167,8 @@ message(STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
 message(STATUS "H5HUT libraries: ${H5HUT_LIBRARIES}")
 message(STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 
-# API and mathematical documentation, including the TPS host/device boundary.
-option(OPALX_BUILD_DOCS "Enable OPALX and focused TPS Doxygen targets" OFF)
+# API documentation from source comments.
+option(OPALX_BUILD_DOCS "Enable OPALX and focused TPS API Doxygen targets" OFF)
 if(OPALX_BUILD_DOCS)
   find_package(Doxygen REQUIRED)
   configure_file(Doxyfile.in ${PROJECT_BINARY_DIR}/Doxyfile @ONLY)
@@ -177,10 +177,10 @@ if(OPALX_BUILD_DOCS)
     COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Generating OPALX API documentation")
-  configure_file(src/tps/docs/Doxyfile.in ${PROJECT_BINARY_DIR}/Doxyfile.tps @ONLY)
+  configure_file(cmake/Doxyfile.tps.in ${PROJECT_BINARY_DIR}/Doxyfile.tps @ONLY)
   add_custom_target(tps_docs
     COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/docs/tps
     COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile.tps
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMENT "Generating TPS mathematics and API documentation")
+    COMMENT "Generating TPS API documentation")
 endif()
