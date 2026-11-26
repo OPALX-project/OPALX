@@ -203,8 +203,10 @@ namespace tps {
 
         // Construct filtered TpsRep.
         TpsRep<T>* p = TpsRep<T>::create(maxOrder, trcOrder, variables);
-        int bot      = getSize(minOrder - 1);
-        int top      = getSize(maxOrder);
+        // There are no coefficients below order zero. Scalar getSize() always
+        // returns one, even for -1, so it cannot provide this lower bound.
+        int bot = minOrder <= 0 ? 0 : getSize(minOrder - 1);
+        int top = getSize(maxOrder);
         std::copy(rep->data() + bot, rep->data() + top, p->data() + bot);
         return Tps<T>(p);
     }

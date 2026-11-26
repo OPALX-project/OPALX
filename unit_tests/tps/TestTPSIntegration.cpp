@@ -300,6 +300,32 @@ namespace {
         }
     }
 
+    TEST_F(TPSIntegration, ScalarFilteringAndConstantSubstitutionKeepOrderZero) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        for (double value : {0., 2., -3.}) {
+            Series scalar(value);
+            EXPECT_DOUBLE_EQ(scalar.filter(0, 0)[0], value);
+            EXPECT_DOUBLE_EQ(scalar.filter(0, 3)[0], value);
+            EXPECT_DOUBLE_EQ(scalar.truncate(0)[0], value);
+            EXPECT_DOUBLE_EQ(scalar.truncate(3)[0], value);
+            EXPECT_DOUBLE_EQ(scalar.filter(1, 3)[0], 0.);
+            EXPECT_DOUBLE_EQ(scalar[0], value);
+            const auto x = Series::makeVariable(1, 0);
+            tps::VpsMap<double> outer(2, 1), inner(1, 0);
+            outer[0] = x * x;
+            outer[1] = 5. + 2. * x;
+            inner[0] = scalar;
+            for (int order : {0, 1, 2, Series::EXACT}) {
+                const auto result = outer.substitute(inner, order);
+                EXPECT_EQ(result.getDimension(), 2);
+                EXPECT_EQ(result.getVariables(), 0);
+                EXPECT_DOUBLE_EQ(result[0][0], value * value);
+                EXPECT_DOUBLE_EQ(result[1][0], 5. + 2. * value);
+            }
+        }
+    }
+
     TEST_F(TPSIntegration, VectorSeriesStreamsReadIntoTemporaryBeforeCommit) {
         using Series = tps::Tps<double>;
         Series::setGlobalTruncOrder(Series::EXACT);

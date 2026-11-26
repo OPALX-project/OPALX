@@ -63,7 +63,7 @@ namespace tps {
 
         /// Extract orders.
         ///  Return the orders `lowOrder` through `highOrder`,
-        ///  both included.
+        ///  both included. A scalar is retained when the range includes order zero.
         Tps<T> filter(int lowOrder, int highOrder) const;
 
         /// Truncate.
