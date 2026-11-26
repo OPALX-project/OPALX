@@ -44,13 +44,13 @@ namespace endfieldmodel {
                 });
     }
 
-    template <class C>
-    KOKKOS_INLINE_FUNCTION void Enge::functionDevice(
-            const EngeConfig& config, double x, int n, C values) {
+    template <class Config, class C>
+    KOKKOS_INLINE_FUNCTION void Enge::functionPoint(
+            const Config& config, double x, int n, C values) {
         EngeWorkspace wsLow;
-        getEnge(config, x - config.x0_m, n, wsLow);
+        getEngeImpl(config, x - config.x0_m, n, wsLow);
         EngeWorkspace wsHigh;
-        getEnge(config, -x - config.x0_m, n, wsHigh);
+        getEngeImpl(config, -x - config.x0_m, n, wsHigh);
         double* engeLow  = wsLow.enge;
         double* engeHigh = wsHigh.enge;
         values(0)        = -1 + (engeLow[0] + engeHigh[0]);
@@ -62,26 +62,28 @@ namespace endfieldmodel {
         }
     }
 
-    KOKKOS_INLINE_FUNCTION void Enge::setupWorkspace(
-            const EngeConfig& config, double x, int n, EngeWorkspace& ws) {
+    template <class Config>
+    KOKKOS_INLINE_FUNCTION void Enge::setupWorkspaceImpl(
+            const Config& config, double x, int n, EngeWorkspace& ws) {
         // Establish the complete prefix before getEnge or functionDevice reads it.
         if (n < 0 || n > EngeWorkspace::max_derivative)
             Kokkos::abort("Enge: derivative order must be between 0 and 12");
         for (int i = 0; i <= n; i++) {
-            ws.hNVec[i] = hN(config, x, i);
+            ws.hNVec[i] = hNImpl(config, x, i);
         }
         ws.exp_h0 = exp(ws.hNVec[0]);
         for (int i = 0; i <= n; ++i) {
-            ws.gNVec[i] = gN(config, i, ws);
+            ws.gNVec[i] = gNImpl(config, i, ws);
         }
     }
 
     // Use
     // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
     // where
-    KOKKOS_INLINE_FUNCTION double Enge::getEnge(
-            const EngeConfig& config, double x, int n, EngeWorkspace& ws) {
-        setupWorkspace(config, x, n, ws);
+    template <class Config>
+    KOKKOS_INLINE_FUNCTION double Enge::getEngeImpl(
+            const Config& config, double x, int n, EngeWorkspace& ws) {
+        setupWorkspaceImpl(config, x, n, ws);
         for (int k = 0; k <= n; ++k) {
             const auto& qt = config.gIndices[k];
             double e       = 0;
@@ -101,7 +103,8 @@ namespace endfieldmodel {
 
     // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
     // h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
-    KOKKOS_INLINE_FUNCTION double Enge::hN(const EngeConfig& config, double x, int n) {
+    template <class Config>
+    KOKKOS_INLINE_FUNCTION double Enge::hNImpl(const Config& config, double x, int n) {
         // Common linear Enge polynomial: retain the same arithmetic without
         // general powers for exponents zero and one. Higher derivatives vanish.
         if (config.a_m.size() == 2) {
@@ -119,7 +122,8 @@ namespace endfieldmodel {
 
     // g     = 1+exp(h)
     // g^(n) = d^ng/dx^n
-    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, int n, EngeWorkspace& ws) {
+    template <class Config>
+    KOKKOS_INLINE_FUNCTION double Enge::gNImpl(const Config& config, int n, EngeWorkspace& ws) {
         if (n == 0) return 1 + ws.exp_h0;  // special case
         double gn = 0;
         for (size_t i = 0; i < config.hIndices[n].extent(0); ++i) {
@@ -129,6 +133,26 @@ namespace endfieldmodel {
             gn += gnj;
         }
         return gn;
+    }
+
+    template <class C>
+    KOKKOS_INLINE_FUNCTION void Enge::functionDevice(
+            const EngeConfig& config, double x, int n, C values) {
+        functionPoint(config, x, n, values);
+    }
+    KOKKOS_INLINE_FUNCTION void Enge::setupWorkspace(
+            const EngeConfig& config, double x, int n, EngeWorkspace& ws) {
+        setupWorkspaceImpl(config, x, n, ws);
+    }
+    KOKKOS_INLINE_FUNCTION double Enge::getEnge(
+            const EngeConfig& config, double x, int n, EngeWorkspace& ws) {
+        return getEngeImpl(config, x, n, ws);
+    }
+    KOKKOS_INLINE_FUNCTION double Enge::hN(const EngeConfig& config, double x, int n) {
+        return hNImpl(config, x, n);
+    }
+    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, int n, EngeWorkspace& ws) {
+        return gNImpl(config, n, ws);
     }
 
 }  // namespace endfieldmodel

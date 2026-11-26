@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include <algorithm>
 #include <array>
 #include <climits>
+#include <memory>
 #include <type_traits>
 
 #include "AbsBeamline/EndFieldModel/Enge.h"
@@ -197,7 +199,9 @@ TEST_F(TestEnge, HighestSupportedOrderFitsWorkspaceAndIsReleased) {
     EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
     std::array<double, order + 1> output;
     model.function(.3, order, output.data());
-    for (int n = 0; n <= order; ++n)
+    // Host/device exp can round differently; retain the existing analytic bound.
+    EXPECT_NEAR(output[0], 2. / (1. + std::exp(.2)) - 1., 1e-14);
+    for (int n = 1; n <= order; ++n)
         EXPECT_DOUBLE_EQ(output[n], host(0, n));
     auto config = model.getConfig();
     Enge::releaseEngeConfig(config);
@@ -230,4 +234,49 @@ TEST_F(TestEnge, InvalidOrdersAndOutputShapesAreRejectedBeforeEvaluation) {
     const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
     EXPECT_DOUBLE_EQ(host(0, 0), 99.);
     EXPECT_DOUBLE_EQ(host(1, 0), 99.);
+}
+
+TEST_F(TestEnge, HostPointsMatchBatchedValuesAfterModelUpdates) {
+    using namespace endfieldmodel;
+    Enge model({.1, 1.2, -.05}, .2, .15);
+    model.initialise();
+    const auto check = [](const Enge& current) {
+        constexpr int n = 6;
+        Kokkos::View<double*> points("host comparison points", 3);
+        auto hostPoints = Kokkos::create_mirror_view(points);
+        hostPoints(0)   = -.31;
+        hostPoints(1)   = .02;
+        hostPoints(2)   = .27;
+        Kokkos::deep_copy(points, hostPoints);
+        Kokkos::View<double**> derivatives("batched comparison", 3, n + 1);
+        current.function(points, n, derivatives);
+        const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
+        for (int point = 0; point < 3; ++point) {
+            std::array<double, n + 1> values;
+            current.function(hostPoints(point), n, values.data());
+            for (int order = 0; order <= n; ++order) {
+                const double tolerance = 1e-12 * std::max(1., std::abs(host(point, order)));
+                EXPECT_NEAR(values[order], host(point, order), tolerance);
+                EXPECT_NEAR(
+                        current.function(hostPoints(point), order), host(point, order), tolerance);
+            }
+        }
+    };
+    check(model);
+    model.setCoefficients({-.1, .8});
+    check(model);
+    model.setLambda(.21);
+    model.setX0(.13);
+    check(model);
+    model.rescale(1.3);
+    check(model);
+    model.setMaximumDerivative(6);
+    check(model);
+    std::unique_ptr<Enge> copy(model.clone());
+    copy->initialise();
+    check(*copy);
+    model.finalise();
+    model.setCoefficients({.2, 1.});
+    model.initialise();
+    check(model);
 }

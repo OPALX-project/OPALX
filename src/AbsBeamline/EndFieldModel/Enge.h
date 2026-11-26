@@ -31,7 +31,9 @@
 #include <iostream>
 #include <vector>
 
+#include <mutex>
 #include "AbsBeamline/EndFieldModel/CompactVector.h"
+
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "Utilities/OpalException.h"
 
@@ -95,18 +97,10 @@ namespace endfieldmodel {
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
         double function(double x, int n) const override;
 
-        void function(double x, int n, double* values) const override {
-            validateDerivativeOrder(n);
-            if constexpr (Kokkos::SpaceAccessibility<
-                                  Kokkos::HostSpace,
-                                  Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
-                Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-                        output(values, n + 1);
-                functionDevice(config_m, x, n, output);
-            } else {
-                EndFieldModel::function(x, n, values);
-            }
-        }
+        /** Evaluate a host point without allocating device work buffers.
+         * Configuration mirrors are cached until coefficients/indices change.
+         */
+        void function(double x, int n, double* values) const override;
 
         /** GPU-aware version of function
          *
@@ -161,6 +155,7 @@ namespace endfieldmodel {
         /** Sets the enge polynomial coefficients (a_i) */
         void setCoefficients(std::vector<double> a) {
             config_m.a_m = makeView(a, "efm::Enge::a_m");
+            invalidateHostConfig();
         }
 
         /** Returns the value of lambda */
@@ -246,6 +241,37 @@ namespace endfieldmodel {
         Enge(const Enge& enge);
         Enge& operator=(const Enge& enge);
         EngeConfig config_m;
+
+        struct HostConfig {
+            using HostCoefficients = decltype(Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace{}, Kokkos::View<double*>{}));
+            using HostIndices      = decltype(Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace{}, Kokkos::View<int**>{}));
+            HostCoefficients a_m;
+            double lambda_m = 0.0, x0_m = 0.0;
+            HostIndices gIndices[EngeConfig::max_derivative + 1];
+            HostIndices hIndices[EngeConfig::max_derivative + 1];
+        };
+        mutable HostConfig host_config_m;
+        mutable int host_derivative_m    = -1;
+        mutable bool host_coefficients_m = false;
+        mutable std::mutex host_mutex_m;
+        void invalidateHostConfig() const;
+        void prepareHostConfig(int n) const;  // Caller holds host_mutex_m.
+
+        template <class Config, class Values>
+        static KOKKOS_INLINE_FUNCTION void functionPoint(
+                const Config& config, double x, int n, Values values);
+        template <class Config>
+        static KOKKOS_INLINE_FUNCTION void setupWorkspaceImpl(
+                const Config& config, double x, int n, EngeWorkspace& ws);
+        template <class Config>
+        static KOKKOS_INLINE_FUNCTION double getEngeImpl(
+                const Config& config, double x, int n, EngeWorkspace& ws);
+        template <class Config>
+        static KOKKOS_INLINE_FUNCTION double hNImpl(const Config& config, double x, int n);
+        template <class Config>
+        static KOKKOS_INLINE_FUNCTION double gNImpl(const Config& config, int n, EngeWorkspace& ws);
 
         static void setEngeDiffIndicesQM(size_t n);
         static void setEngeDiffIndicesHM(size_t n);

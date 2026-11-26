@@ -39,26 +39,59 @@ namespace endfieldmodel {
     //              j indexes the element in f derivative
     //              k indexes the derivative of g
     // this will quickly become grotesque
-    std::vector<std::vector<std::vector<int> > > Enge::q_m;
-    std::vector<std::vector<std::vector<int> > > Enge::h_m;
+    std::vector<std::vector<std::vector<int>>> Enge::q_m;
+    std::vector<std::vector<std::vector<int>>> Enge::h_m;
 
     Enge::~Enge() { finalise(); }
 
     double Enge::function(double x, int n) const {
         validateDerivativeOrder(n);
-        Kokkos::View<double*> xView("efm::Enge::tmpX", 1);
-        Kokkos::deep_copy(xView, x);
-        Kokkos::View<double**> valueView("efm::Enge::tmpY", 1, n + 1);
-        function(xView, n, valueView);
-        Kokkos::fence("Enge::function Function calculation");
-        double value(0);
-        auto element = Kokkos::subview(valueView, 0, n);
-        Kokkos::deep_copy(value, element);
-        return value;
+        double values[EngeConfig::max_derivative + 1];
+        function(x, n, values);
+        return values[n];
+    }
+
+    void Enge::function(double x, int n, double* values) const {
+        validateDerivativeOrder(n);
+        Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> output(
+                values, n + 1);
+        if constexpr (Kokkos::SpaceAccessibility<
+                              Kokkos::HostSpace,
+                              Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
+            functionPoint(config_m, x, n, output);
+        } else {
+            std::lock_guard<std::mutex> lock(host_mutex_m);
+            prepareHostConfig(n);
+            functionPoint(host_config_m, x, n, output);
+        }
+    }
+
+    void Enge::prepareHostConfig(int n) const {
+        if (!host_coefficients_m) {
+            host_config_m.a_m =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), config_m.a_m);
+            host_coefficients_m = true;
+        }
+        for (int order = host_derivative_m + 1; order <= n; ++order) {
+            host_config_m.gIndices[order] = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), config_m.gIndices[order]);
+            host_config_m.hIndices[order] = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), config_m.hIndices[order]);
+        }
+        host_derivative_m      = std::max(host_derivative_m, n);
+        host_config_m.lambda_m = config_m.lambda_m;
+        host_config_m.x0_m     = config_m.x0_m;
+    }
+
+    void Enge::invalidateHostConfig() const {
+        std::lock_guard<std::mutex> lock(host_mutex_m);
+        host_config_m       = HostConfig{};
+        host_derivative_m   = -1;
+        host_coefficients_m = false;
     }
 
     void Enge::copyVectorToView(
-            const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
+            const std::vector<std::vector<int>>& src, Kokkos::View<int**>& dest) {
         // find the size of src
         size_t row = src.size();
         // number of columns can be different for each row - but dest must be square
@@ -103,7 +136,10 @@ namespace endfieldmodel {
         return a;
     }
 
-    void Enge::setEngeDiffIndices(size_t n) { setEngeDiffIndices(n, config_m); }
+    void Enge::setEngeDiffIndices(size_t n) {
+        setEngeDiffIndices(n, config_m);
+        invalidateHostConfig();
+    }
 
     void Enge::setEngeDiffIndices(size_t n, EngeConfig& config) {
         if (n > config.max_derivative) {
@@ -118,13 +154,13 @@ namespace endfieldmodel {
     void Enge::setEngeDiffIndicesQM(size_t n) {
         size_t preset = q_m.size();
         if (preset == 0) {
-            q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
+            q_m.push_back(std::vector<std::vector<int>>(1, std::vector<int>(3)));
             q_m[0][0][0] = +1;  // f_0 = 1*g^(-1)
             q_m[0][0][1] = -1;
             q_m[0][0][2] = 0;
         }
         for (size_t i = q_m.size(); i < n + 1; ++i) {
-            q_m.push_back(std::vector<std::vector<int> >());
+            q_m.push_back(std::vector<std::vector<int>>());
             for (size_t j = 0; j < q_m[i - 1].size(); ++j) {
                 size_t k_max = q_m[i - 1][j].size();
                 std::vector<int> new_vec(q_m[i - 1][j]);
@@ -151,13 +187,13 @@ namespace endfieldmodel {
     void Enge::setEngeDiffIndicesHM(size_t n) {
         if (h_m.size() == 0) {
             // first one is special case (1+e^h dealt with explicitly)
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             // second is (1*e^h h'^1)
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             h_m[1].push_back(std::vector<int>(2, 1));
         }
         for (size_t i = h_m.size(); i < n + 1; ++i) {
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             for (size_t j = 0; j < h_m[i - 1].size(); ++j) {
                 // d/dx k0 e^g g(1)^k1 ... g(n)^kn ... = k0 e^g g(1)^(k1+1) ... g(n)^kn
                 //                              + SUM_n k0 kn e^g ... g(n)^(kn-1) g(n-1)
@@ -226,7 +262,10 @@ namespace endfieldmodel {
 
     void Enge::initialise() { setEngeDiffIndices(EngeConfig::max_derivative); }
 
-    void Enge::finalise() { releaseEngeConfig(config_m); }
+    void Enge::finalise() {
+        invalidateHostConfig();
+        releaseEngeConfig(config_m);
+    }
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
         config.a_m = Kokkos::View<double*>();
