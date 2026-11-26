@@ -16,7 +16,9 @@
 
 #include <array>
 #include <climits>
+#include <limits>
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "EngeDerivativeReference.h"
 #include "gtest/gtest.h"
 
 class TestAsymmetricEnge : public testing::Test {
@@ -124,7 +126,9 @@ TEST_F(TestAsymmetricEnge, HighestSupportedOrderAndInvalidRequests) {
     EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
     std::array<double, order + 1> output;
     model.function(.3, order, output.data());
-    for (int n = 0; n <= order; ++n)
+    // Match the constant-value oracle tolerance across host/device math paths.
+    EXPECT_NEAR(output[0], host(0, 0), 1e-14);
+    for (int n = 1; n <= order; ++n)
         EXPECT_DOUBLE_EQ(output[n], host(0, n));
     output.fill(99.);
     Kokkos::deep_copy(values, 99.);
@@ -142,4 +146,37 @@ TEST_F(TestAsymmetricEnge, HighestSupportedOrderAndInvalidRequests) {
     for (int i = 0; i < 2; ++i)
         for (int n = 0; n <= order; ++n)
             EXPECT_DOUBLE_EQ(unchanged(i, n), 99.);
+}
+
+TEST_F(TestAsymmetricEnge, NonlinearCompactedEndsMatchProductRuleReferenceThroughOrderTwelve) {
+    const std::vector<double> start{.2, .8, -.1}, end{-.3, .5, .04, -.01};
+    endfieldmodel::AsymmetricEnge model(start, .3, .7, end, .4, .9);
+    model.initialise();
+    constexpr std::array<double, 5> x{-1., -.2, 0., .4, 1.1};
+    Kokkos::View<double*> points("asymmetric equivalence points", x.size());
+    const auto input = Kokkos::create_mirror_view(points);
+    for (size_t i = 0; i < x.size(); ++i)
+        input(i) = x[i];
+    Kokkos::deep_copy(points, input);
+    Kokkos::View<double**> values(
+            "asymmetric compacted derivatives", x.size(), enge_test::maxOrder + 1);
+    model.function(points, enge_test::maxOrder, values);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (size_t i = 0; i < x.size(); ++i) {
+        const auto left  = enge_test::referenceEnd(start, -x[i] - .3L, .7);
+        const auto right = enge_test::referenceEnd(end, x[i] - .4L, .9);
+        for (int n = 0; n <= enge_test::maxOrder; ++n) {
+            SCOPED_TRACE(::testing::Message() << "x=" << x[i] << " n=" << n);
+            const auto [unusedLeft, scaleLeft] =
+                    enge_test::evaluateTable(endfieldmodel::Enge::getQIndex(n), left.g);
+            const auto [unusedRight, scaleRight] =
+                    enge_test::evaluateTable(endfieldmodel::Enge::getQIndex(n), right.g);
+            const long double expected =
+                    (n % 2 ? -1 : 1) * left.reciprocal[n] + right.reciprocal[n] - (n == 0 ? 1 : 0);
+            // Same cancellation-aware bound as the symmetric equivalence test.
+            const long double tolerance =
+                    128 * std::numeric_limits<double>::epsilon() * (1 + scaleLeft + scaleRight);
+            EXPECT_NEAR(host(i, n), expected, tolerance);
+        }
+    }
 }

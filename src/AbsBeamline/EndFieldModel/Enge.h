@@ -28,6 +28,7 @@
 #ifndef ENDFIELDMODEL_ENGE_H_
 #define ENDFIELDMODEL_ENGE_H_
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
@@ -36,6 +37,9 @@
 #include "Utilities/OpalException.h"
 
 namespace endfieldmodel {
+
+    /// Rows contain an integer coefficient followed by derivative powers.
+    using EngeDerivativeTable = std::vector<std::vector<std::int64_t>>;
 
     /** Enge class is a symmetric Enge function for analytical field models
      *
@@ -62,8 +66,13 @@ namespace endfieldmodel {
         Kokkos::View<double*> a_m;
         double lambda_m = 0.0;
         double x0_m     = 0.0;
-        /** gIndices is used for calculating derivatives. */
-        Kokkos::View<int**> gIndices[max_derivative + 1];
+        /** Compacted derivatives of 1/g in terms of g and its derivatives.
+         * Identical monomials are combined exactly before transfer to the device.
+         * Order 12 needs 64-bit coefficients (the largest is 5388768000).
+         * All supported coefficients are exactly representable as doubles.
+         * Combining terms changes floating-point summation order, not the formula.
+         */
+        Kokkos::View<std::int64_t**> gIndices[max_derivative + 1];
         Kokkos::View<int**> hIndices[max_derivative + 1];
     };
 
@@ -217,8 +226,13 @@ namespace endfieldmodel {
         void setEngeDiffIndices(size_t n);
         static void setEngeDiffIndices(size_t n, EngeConfig& config);
 
-        /** Return the indices for calculating the nth derivative of Enge ito g(x) */
-        inline static std::vector<std::vector<int>> getQIndex(int n);
+        /** Return compact terms for the nth derivative of 1/g, orders 0..12.
+         * A row is [coefficient, power of g, power of g', ...]. For multiplicities
+         * m_j of derivatives g^(j), k=sum(m_j), sum(j*m_j)=n, the coefficient is
+         * \f$(-1)^k n! k! / \prod_j(m_j! (j!)^{m_j})\f$ and the power of g is -k-1.
+         * Coefficients use 64-bit integers to include order 12 without overflow.
+         */
+        inline static EngeDerivativeTable getQIndex(int n);
 
         /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
         inline static std::vector<std::vector<int>> getHIndex(int n);
@@ -226,6 +240,8 @@ namespace endfieldmodel {
         /** Helper function for making 2D view from stl vectors */
         static void copyVectorToView(
                 const std::vector<std::vector<int>>& src, Kokkos::View<int**>& dest);
+        static void copyVectorToView(
+                const EngeDerivativeTable& src, Kokkos::View<std::int64_t**>& dest);
 
         /** Helper function for making from stl vector */
         static Kokkos::View<double*> makeView(
@@ -252,7 +268,7 @@ namespace endfieldmodel {
         static void setEngeDiffIndicesKokkos(size_t n, EngeConfig& config);
 
         /** Indexes the derivatives of enge in terms of g */
-        static std::vector<std::vector<std::vector<int>>> q_m;
+        static std::vector<EngeDerivativeTable> q_m;
         /** Indexes the derivatives of g in terms of h */
         static std::vector<std::vector<std::vector<int>>> h_m;
     };

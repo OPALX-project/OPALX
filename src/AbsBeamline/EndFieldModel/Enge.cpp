@@ -26,6 +26,7 @@
  */
 
 #include <cmath>
+#include <map>
 #include <sstream>
 
 #include "Utilities/OpalException.h"
@@ -34,13 +35,9 @@
 
 namespace endfieldmodel {
 
-    // q_m[i][j][k]; urk, 3d vector
-    //              i indexes the derivative of f;
-    //              j indexes the element in f derivative
-    //              k indexes the derivative of g
-    // this will quickly become grotesque
-    std::vector<std::vector<std::vector<int> > > Enge::q_m;
-    std::vector<std::vector<std::vector<int> > > Enge::h_m;
+    // q_m[n] stores compact monomials for (1/g)^(n), with coefficient first.
+    std::vector<EngeDerivativeTable> Enge::q_m;
+    std::vector<std::vector<std::vector<int>>> Enge::h_m;
 
     Enge::~Enge() { finalise(); }
 
@@ -57,26 +54,38 @@ namespace endfieldmodel {
         return value;
     }
 
+    namespace {
+        template <class Integer>
+        void copyIndexTable(
+                const std::vector<std::vector<Integer>>& src, Kokkos::View<Integer**>& dest) {
+            size_t row = src.size();
+            // Pad shorter rows with zero powers in the rectangular device table.
+            size_t col = 0;
+            for (size_t i = 0; i < src.size(); ++i) {
+                col = std::max(col, src[i].size());
+            }
+            Kokkos::resize(dest, row, col);
+            auto host = Kokkos::create_mirror_view(dest);
+            for (size_t i = 0; i < row; ++i) {
+                for (size_t j = 0; j < src[i].size(); ++j) {
+                    host(i, j) = src[i][j];  // copy across data
+                }
+                for (size_t j = src[i].size(); j < col; ++j) {
+                    host(i, j) = 0;  // pad with 0s
+                }
+            }
+            Kokkos::deep_copy(dest, host);
+        }
+    }  // namespace
+
     void Enge::copyVectorToView(
-            const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
-        // find the size of src
-        size_t row = src.size();
-        // number of columns can be different for each row - but dest must be square
-        size_t col = 0;
-        for (size_t i = 0; i < src.size(); ++i) {
-            col = std::max(col, src[i].size());
-        }
-        Kokkos::resize(dest, row, col);
-        auto host = Kokkos::create_mirror_view(dest);
-        for (size_t i = 0; i < row; ++i) {
-            for (size_t j = 0; j < src[i].size(); ++j) {
-                host(i, j) = src[i][j];  // copy across data
-            }
-            for (size_t j = src[i].size(); j < col; ++j) {
-                host(i, j) = 0;  // pad with 0s
-            }
-        }
-        Kokkos::deep_copy(dest, host);
+            const std::vector<std::vector<int>>& src, Kokkos::View<int**>& dest) {
+        copyIndexTable(src, dest);
+    }
+
+    void Enge::copyVectorToView(
+            const EngeDerivativeTable& src, Kokkos::View<std::int64_t**>& dest) {
+        copyIndexTable(src, dest);
     }
 
     Kokkos::View<double*> Enge::makeView(const std::vector<double>& src, const std::string& label) {
@@ -118,16 +127,16 @@ namespace endfieldmodel {
     void Enge::setEngeDiffIndicesQM(size_t n) {
         size_t preset = q_m.size();
         if (preset == 0) {
-            q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
+            q_m.push_back(EngeDerivativeTable(1, std::vector<std::int64_t>(3)));
             q_m[0][0][0] = +1;  // f_0 = 1*g^(-1)
             q_m[0][0][1] = -1;
             q_m[0][0][2] = 0;
         }
         for (size_t i = q_m.size(); i < n + 1; ++i) {
-            q_m.push_back(std::vector<std::vector<int> >());
+            q_m.push_back(EngeDerivativeTable());
             for (size_t j = 0; j < q_m[i - 1].size(); ++j) {
                 size_t k_max = q_m[i - 1][j].size();
-                std::vector<int> new_vec(q_m[i - 1][j]);
+                std::vector<std::int64_t> new_vec(q_m[i - 1][j]);
                 // derivative of g^-n0 = -n0*g^(-n0-1)*g(1)
                 new_vec[0] *= new_vec[1];  //  alpha *= g(0) power
                 new_vec[1] -= 1;           // g(0) power -= 1
@@ -136,7 +145,7 @@ namespace endfieldmodel {
                 for (size_t k = 2; k < k_max; ++k) {  //  0 is alpha; 1 is g(0)
                     // derivative of g(k)^nk = nk g(k+1) g(k)^(nk-1)
                     if (q_m[i - 1][j][k] > 0) {
-                        std::vector<int> new_vec(q_m[i - 1][j]);
+                        std::vector<std::int64_t> new_vec(q_m[i - 1][j]);
                         if (k == k_max - 1) new_vec.push_back(0);  // need enough coefficients
                         new_vec[0] *= new_vec[k];
                         new_vec[k] -= 1;
@@ -145,19 +154,31 @@ namespace endfieldmodel {
                     }
                 }
             }
+            // Combine equal powers after every order, so later orders are generated
+            // from compact terms too. The integer sums are exact through order 12.
+            std::map<std::vector<std::int64_t>, std::int64_t> coefficients;
+            for (const auto& term : q_m[i]) {
+                coefficients[{term.begin() + 1, term.end()}] += term[0];
+            }
+            q_m[i].clear();
+            for (const auto& [powers, coefficient] : coefficients) {
+                auto term = powers;
+                term.insert(term.begin(), coefficient);
+                q_m[i].push_back(std::move(term));
+            }
         }
     }
 
     void Enge::setEngeDiffIndicesHM(size_t n) {
         if (h_m.size() == 0) {
             // first one is special case (1+e^h dealt with explicitly)
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             // second is (1*e^h h'^1)
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             h_m[1].push_back(std::vector<int>(2, 1));
         }
         for (size_t i = h_m.size(); i < n + 1; ++i) {
-            h_m.push_back(std::vector<std::vector<int> >());
+            h_m.push_back(std::vector<std::vector<int>>());
             for (size_t j = 0; j < h_m[i - 1].size(); ++j) {
                 // d/dx k0 e^g g(1)^k1 ... g(n)^kn ... = k0 e^g g(1)^(k1+1) ... g(n)^kn
                 //                              + SUM_n k0 kn e^g ... g(n)^(kn-1) g(n-1)
@@ -181,7 +202,7 @@ namespace endfieldmodel {
 
     void Enge::setEngeDiffIndicesKokkos(size_t n, EngeConfig& config) {
         for (size_t i = 0; i < n + 1; ++i) {
-            config.gIndices[i] = Kokkos::View<int**>("efm::Enge::gIndex", 1, 1);
+            config.gIndices[i] = Kokkos::View<std::int64_t**>("efm::Enge::gIndex", 1, 1);
             copyVectorToView(q_m[i], config.gIndices[i]);
         }
         for (size_t i = 0; i < n + 1; ++i) {
@@ -231,7 +252,7 @@ namespace endfieldmodel {
     void Enge::releaseEngeConfig(EngeConfig& config) {
         config.a_m = Kokkos::View<double*>();
         for (size_t i = 0; i <= config.max_derivative; ++i) {
-            config.gIndices[i] = Kokkos::View<int**>();
+            config.gIndices[i] = Kokkos::View<std::int64_t**>();
             config.hIndices[i] = Kokkos::View<int**>();
         }
     }

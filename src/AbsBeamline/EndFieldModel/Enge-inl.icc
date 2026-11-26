@@ -11,7 +11,7 @@ namespace endfieldmodel {
 
     void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
 
-    std::vector<std::vector<int> > Enge::getQIndex(int n) { return q_m[n]; }
+    EngeDerivativeTable Enge::getQIndex(int n) { return q_m[n]; }
 
     std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
 
@@ -88,7 +88,7 @@ namespace endfieldmodel {
             for (size_t i = 0; i < qt.extent(0); ++i) {
                 double ei(qt(i, 0));
                 for (size_t j = 1; j < qt.extent(1); ++j) {
-                    double de = Kokkos::pow(ws.gNVec[j - 1], qt(i, j));
+                    double de = Kokkos::pow(ws.gNVec[j - 1], static_cast<int>(qt(i, j)));
                     ei *= de;
                 }
                 if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
