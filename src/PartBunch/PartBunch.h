@@ -36,12 +36,12 @@ struct BunchBeam {
  *
  * PartBunch owns one ParticleContainer per BEAM and what the beams share: the mesh and field
  * layout (CartesianDomain), one time, one time step and one step counter. Per container it keeps
- * whether the container is active, whether its beam has passed its ZSTOP, which container's
+ * whether the container is active, whether its beam has passed its ZSTOP, and which container's
  * reference particle it follows (a decay daughter follows the first container of its decay
- * chain), and the macro charge and mass.
+ * chain).
  *
- * The particles, the reference particle, the path length and the bunch-to-lab transform are not
- * held here; they live in each ParticleContainer.
+ * The particles, the macro charge and mass, the reference particle, the path length and the
+ * bunch-to-lab transform are not held here; they live in each ParticleContainer.
  *
  * The step functions (pushParticles(), kickAndPushParticles(), ...) loop over the containers and
  * skip those that are not active.
@@ -235,26 +235,6 @@ public:
     [[nodiscard]] size_t getNumParticleContainers() const { return pcontainers_m.size(); }
 
     /**
-     * @brief Set the per-particle charge for each particle container.
-     * @note Copies values from `qi_m` into each particle container via `setQ`.
-     */
-    void setCharge() {
-        for (size_t i = 0; i < pcontainers_m.size(); ++i) {
-            pcontainers_m[i]->setQ(qi_m[i]);
-        }
-    }
-
-    /**
-     * @brief Set the per-particle mass for each particle container.
-     * @note Copies values from `mi_m` into each particle container via `setM`.
-     */
-    void setMass() {
-        for (size_t i = 0; i < pcontainers_m.size(); ++i) {
-            pcontainers_m[i]->setM(mi_m[i]);
-        }
-    }
-
-    /**
      * @brief Human-readable dump of each container to @p os.
      * @param moments One snapshot per container holding at least printedMoments.
      */
@@ -308,9 +288,6 @@ private:
     /// Per-container index of the container whose reference particle it uses: its own index,
     /// or for a decay daughter container the first container of its decay chain.
     std::vector<size_t> pcRoot_m;
-
-    std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
-    std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
 
     std::shared_ptr<BunchStateHandler>
             bunchState_m;  ///< Shared per-container coordinate state and fixed bounds.

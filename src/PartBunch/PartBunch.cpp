@@ -29,10 +29,6 @@ PartBunch<T, Dim>::PartBunch(
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
     }
-    for (const BunchBeam& beam : beams) {
-        qi_m.push_back(beam.chargePerParticle);
-        mi_m.push_back(beam.massPerParticle);
-    }
 
     // The initial geometry only provides a valid mesh and layout while particles are sampled or
     // restored. CartesianPIC3D replaces the physical bounds before its first runtime solve, while

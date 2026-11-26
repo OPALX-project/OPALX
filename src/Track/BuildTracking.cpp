@@ -751,12 +751,6 @@ namespace opalx::run {
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(
                 std::move(spaceChargeConfig), bunch, dataSink);
 
-        if (!isRestart) {
-            // Refresh the initial particle statistics after distribution setup.
-            bunch.setCharge();
-            bunch.setMass();
-        }
-
         std::vector<opalx::moments::BeamMoments> initialMoments;
         for (const auto& pc : bunch.getParticleContainers()) {
             initialMoments.push_back(opalx::moments::compute(*pc, PartBunch_t::printedMoments));
