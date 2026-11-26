@@ -262,7 +262,7 @@ namespace tps {
             z.data[i] = data[i].truncate(trunc);
         }
 
-        return *this;
+        return z;
     }
 
 }  // namespace tps

@@ -117,7 +117,8 @@ namespace tps {
         /// Extract range of orders, set others to zero.
         Vps<T> filter(int lowOrder, int highOrder) const;
 
-        /// Truncate, may also increase truncation order.
+        /// Return components projected to at most `trunc`; leave this vector unchanged.
+        /// Component precision/truncation metadata is retained.
         Vps<T> truncate(int trunc);
 
     protected:

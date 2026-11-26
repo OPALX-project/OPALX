@@ -326,6 +326,38 @@ namespace {
         }
     }
 
+    TEST_F(TPSIntegration, VectorTruncationReturnsProjectionWithoutChangingInput) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        const auto x = Series::makeVariable(2, 0), y = Series::makeVariable(2, 1);
+        tps::Vps<double> source(3, 2);
+        source[0]           = 2. + 3. * x + 4. * x * x;
+        source[1]           = -1. + y - x * y;
+        source[2]           = Series(7.);
+        const auto original = source;
+        tps::Vector<double> point(2);
+        point[0] = .25;
+        point[1] = -.5;
+        for (int order : {0, 1, 2, 3}) {
+            const auto projected = source.truncate(order);
+            EXPECT_EQ(projected.getDimension(), 3);
+            EXPECT_EQ(projected.getVariables(), 2);
+            for (int i = 0; i < 3; ++i) {
+                EXPECT_LE(projected[i].getMaxOrder(), order);
+                EXPECT_EQ(projected[i].getTruncOrder(), source[i].getTruncOrder());
+                EXPECT_EQ(source[i], original[i]);
+            }
+            EXPECT_DOUBLE_EQ(
+                    projected[0].evaluate(point),
+                    2. + (order >= 1 ? 3. * point[0] : 0.)
+                            + (order >= 2 ? 4. * point[0] * point[0] : 0.));
+            EXPECT_DOUBLE_EQ(
+                    projected[1].evaluate(point),
+                    -1. + (order >= 1 ? point[1] : 0.) - (order >= 2 ? point[0] * point[1] : 0.));
+            EXPECT_DOUBLE_EQ(projected[2][0], 7.);
+        }
+    }
+
     TEST_F(TPSIntegration, VectorSeriesStreamsReadIntoTemporaryBeforeCommit) {
         using Series = tps::Tps<double>;
         Series::setGlobalTruncOrder(Series::EXACT);
