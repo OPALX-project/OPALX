@@ -178,9 +178,24 @@ private:
     std::string checkpointPath_m;  ///< File the CHECKPOINTFREQ checkpoints are written to.
     std::vector<opalx::run::EMFieldDumpDescription> emFieldDumps_m;  ///< DUMPEMFIELDS requests.
 
-    IpplTimings::TimerRef timeIntegrationTimer1_m;
-    IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef fieldEvaluationTimer_m;
+    /// Timers of execute() and its parts. They do not overlap and, with the timers of main() and
+    /// TrackRun::execute(), add up to mainTimer. Timers started inside them (for example
+    /// computeMoments and Write Stat) are detail and not part of that sum.
+    IpplTimings::TimerRef trackStartTimer_m;
+    IpplTimings::TimerRef stepTimeStepTimer_m;
+    IpplTimings::TimerRef stepSpaceChargeTimer_m;
+    IpplTimings::TimerRef stepFirstPushTimer_m;
+    IpplTimings::TimerRef stepEmissionTimer_m;
+    IpplTimings::TimerRef stepExternalFieldsTimer_m;
+    IpplTimings::TimerRef stepSpinTimer_m;
+    IpplTimings::TimerRef stepKickAndPushTimer_m;
+    IpplTimings::TimerRef stepProcessesTimer_m;
+    IpplTimings::TimerRef stepReferenceTimer_m;
+    IpplTimings::TimerRef stepRemoveLostTimer_m;
+    IpplTimings::TimerRef stepOutputTimer_m;
+    IpplTimings::TimerRef stepStopRulesTimer_m;
+    IpplTimings::TimerRef stepCheckpointTimer_m;
+    IpplTimings::TimerRef trackFinishTimer_m;
 
     /// Reference particles; borrows the bunch and the beamline. Constructed after the timers
     /// above, so the timing report lists its ReferencePass timer after them.

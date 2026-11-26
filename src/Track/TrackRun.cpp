@@ -27,6 +27,7 @@
 #include "Track/ValidateRun.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
+#include "Utility/IpplTimings.h"
 
 #include <fstream>
 #include <memory>
@@ -74,6 +75,12 @@ TrackRun::TrackRun()
 TrackRun::~TrackRun() {}
 
 void TrackRun::execute() {
+    // Parser timer is stopped during RUN
+    static IpplTimings::TimerRef parseTimer  = IpplTimings::getTimer("Parse input");
+    static IpplTimings::TimerRef freezeTimer = IpplTimings::getTimer("Run: freeze, check");
+    IpplTimings::stopTimer(parseTimer);
+    IpplTimings::startTimer(freezeTimer);
+
     const opalx::run::TrackDescription* track = TrackCmd::openTrack();
     if (track == nullptr) {
         throw OpalException("TrackRun::execute", "RUN is only valid inside TRACK.");
@@ -109,25 +116,42 @@ void TrackRun::execute() {
     }
 
     // --check run ends here
-    if (opal->checkOnly){
+    if (opal->checkOnly) {
+        IpplTimings::stopTimer(freezeTimer);
+        IpplTimings::startTimer(parseTimer);
         return;
-    } 
+    }
+    IpplTimings::stopTimer(freezeTimer);
 
-    /**
-     * @brief Builds tracking objects
-     * Tracking objects:
-     *  - PartBunch
-     *  - Containers
-     *  - Solver
-     *  - Beamline
-     *  - Global Processes: decay, ...
-     */
-    opalx::run::RunObjects objects;
-    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+    IpplTimings::TimerRef tearDownTimer;
+    {
+        static IpplTimings::TimerRef buildTimer = IpplTimings::getTimer("Run: build tracking");
+        IpplTimings::startTimer(buildTimer);
 
-    // Build tracker
-    auto tracker = std::make_unique<ParallelTracker>(std::move(setup));
+        /**
+         * @brief Builds tracking objects
+         * Tracking objects:
+         *  - PartBunch
+         *  - Containers
+         *  - Solver
+         *  - Beamline
+         *  - Global Processes: decay, ...
+         */
+        opalx::run::RunObjects objects;
+        TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
 
-    // Run tracker -> Start simulation
-    tracker->execute();
+        // Build tracker
+        auto tracker = std::make_unique<ParallelTracker>(std::move(setup));
+
+        IpplTimings::stopTimer(buildTimer);
+
+        // Run tracker -> Start simulation
+        tracker->execute();
+
+        // Tear down timer starts where scope ends
+        tearDownTimer = IpplTimings::getTimer("Run: tear down");
+        IpplTimings::startTimer(tearDownTimer);
+    }
+    IpplTimings::stopTimer(tearDownTimer);
+    IpplTimings::startTimer(parseTimer);
 }

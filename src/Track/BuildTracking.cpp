@@ -468,10 +468,6 @@ namespace opalx::run {
                 const std::vector<ObjectDescription>& distributions, const BeamDescription& beam,
                 std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers, size_t index,
                 double& globalPhaseShift, int seed, const std::string& inputDirectory) {
-            static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
-
-            IpplTimings::startTimer(samplingTime);
-
             // Common containers / parameters used by all samplers.
             auto pc             = bunch.getParticleContainer(index);
             const auto meshSize = bunch.cartesianDomain().layoutExtents();
@@ -578,7 +574,6 @@ namespace opalx::run {
 
             *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done."
                   << endl;
-            IpplTimings::stopTimer(samplingTime);
 
             if (!hasFileSource || !beam.hasExplicitEnergy) {
                 return std::nullopt;
