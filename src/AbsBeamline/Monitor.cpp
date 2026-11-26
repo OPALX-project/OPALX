@@ -163,7 +163,7 @@ void Monitor::driftToCorrectPositionAndSave(
             refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0.0, 0.0, 1.0)));
 
     const CoordinateSystemTrafo refToLocalCSTrafo =
-            update * (getCSTrafoGlobal2Local() * pc->getToLabTrafo());
+            update * (misalignment_m * (getCSTrafoGlobal2Local() * pc->getToLabTrafo()));
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
@@ -260,9 +260,11 @@ void Monitor::recordReference(
         const Vector_t<double, 3> dsVec = dR + 0.5 * singleStep;
         const double ds                 = euclidean_norm(dsVec);
 
+        // R and P come in the monitor frame with its misalignment.
+        const CoordinateSystemTrafo labToMonitor = misalignment_m * csTrafoGlobal2Local_m;
         lossDs_m->addReferenceParticle(
-                csTrafoGlobal2Local_m.transformFrom(R + dR), csTrafoGlobal2Local_m.rotateFrom(P),
-                time, pc->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
+                labToMonitor.transformFrom(R + dR), labToMonitor.rotateFrom(P), time,
+                pc->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
 
         if (type_m == CollectionType::TEMPORAL) {
             driftToCorrectPositionAndSave(R, P);

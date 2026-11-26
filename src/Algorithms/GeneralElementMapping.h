@@ -42,11 +42,10 @@
  * bunch that reaches into the box of a neighbouring branch's element receives that element
  * entirely.
  *
- * The reference particle sees each element at its nominal placement, without misalignment.
- * The point lookups for the reference, elementsAt() and checkReferencePoint(), therefore test
- * the same local boxes placed by the placement alone.
+ * The reference particle sees each element in the same frame, so the point lookups for the
+ * reference, elementsAt() and checkReferencePoint(), test the same boxes.
  *
- * The grid covers the lab bounding box of all element boxes, misaligned and nominal, with
+ * The grid covers the lab bounding box of all element boxes with
  * Nx x Ny x Nz cells. Each cell lists the elements one of whose boxes intersects it, as
  * compressed rows in the order of the element list passed to the constructor. A query visits
  * only the cells under the bunch's lab bounding box, so its cost depends on the number of
@@ -85,10 +84,10 @@ public:
             const CoordinateSystemTrafo& toLab) const;
 
     /**
-     * @brief Elements one of whose boxes at the nominal placement contains a lab point.
+     * @brief Elements one of whose boxes contains a lab point.
      *
      * Only the elements listed in the point's cell are tested. The caller still applies the
-     * element's own isInside() test in the nominal frame.
+     * element's own isInside() test in the element frame.
      * @param position Lab position [m].
      */
     ElementSet elementsAt(const Vector_t<double, 3>& position) const;
@@ -101,7 +100,7 @@ public:
      *
      * Throws when the point lies in the loss region of an element that deletes particles
      * (ElementRegions::inLossRegion(): inside its body window and reach, outside its aperture),
-     * with the element at its nominal placement, where the reference sees it. Either the
+     * with the element placed with its misalignment, where the reference sees it. Either the
      * element belongs to another branch and its reach is too large, or the orbit hits the
      * aperture.
      * @param position Reference position in the lab [m].
@@ -116,12 +115,10 @@ public:
 private:
     struct Entry {
         std::shared_ptr<ElementBase> element;
-        CoordinateSystemTrafo labToLocal;         ///< Misalignment after placement.
-        CoordinateSystemTrafo nominalLabToLocal;  ///< Placement only.
-        double reach;                             ///< Reach used for the boxes [m].
-        std::vector<SupportBox> localBoxes;       ///< ElementBase::getLocalSupportBoxes().
-        std::vector<SupportBox> boxes;            ///< The same boxes in the lab, via labToLocal.
-        std::vector<SupportBox> nominalBoxes;     ///< Via nominalLabToLocal.
+        CoordinateSystemTrafo labToLocal;    ///< Misalignment after placement.
+        double reach;                        ///< Reach used for the boxes [m].
+        std::vector<SupportBox> localBoxes;  ///< ElementBase::getLocalSupportBoxes().
+        std::vector<SupportBox> boxes;       ///< The same boxes in the lab, via labToLocal.
     };
 
     static SupportBox placeInLab(const SupportBox& local, const CoordinateSystemTrafo& labToLocal);

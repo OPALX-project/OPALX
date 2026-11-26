@@ -121,7 +121,7 @@ protected:
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
 };
 
-TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndKeepsNominalLocalFrames) {
+TEST_F(OpalBeamlinePlacementTest, LocalFramesIncludeTheMisalignment) {
     OpalBeamline beamline;
     auto drift = std::make_shared<Drift>("D2");
     drift->getGeometry().setElementLength(2.0);
@@ -129,14 +129,16 @@ TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndKeepsNominalL
             CoordinateSystemTrafo(Vector3(0.5, -1.0, 4.0), rotationAroundY(M_PI / 8.0)));
     drift->setMisalignment(CoordinateSystemTrafo(Vector3(0.25, 0.0, 0.0), Quaternion()));
 
-    // The local-frame helpers use the nominal placement, where the reference sees the element.
+    // The local-frame helpers use placement and misalignment, where bunch and reference see the
+    // element; getCSTrafoLab2Local() and the entry and exit transforms stay nominal.
     const CoordinateSystemTrafo nominal = drift->getCSTrafoGlobal2Local();
+    const CoordinateSystemTrafo placed  = drift->getMisalignment() * nominal;
     const Vector3 point(1.0, 2.0, 3.0);
 
-    expectVectorNear(beamline.transformToLocalCS(drift, point), nominal.transformTo(point));
-    expectVectorNear(beamline.transformFromLocalCS(drift, point), nominal.transformFrom(point));
-    expectVectorNear(beamline.rotateToLocalCS(drift, point), nominal.rotateTo(point));
-    expectVectorNear(beamline.rotateFromLocalCS(drift, point), nominal.rotateFrom(point));
+    expectVectorNear(beamline.transformToLocalCS(drift, point), placed.transformTo(point));
+    expectVectorNear(beamline.transformFromLocalCS(drift, point), placed.transformFrom(point));
+    expectVectorNear(beamline.rotateToLocalCS(drift, point), placed.rotateTo(point));
+    expectVectorNear(beamline.rotateFromLocalCS(drift, point), placed.rotateFrom(point));
     expectVectorNear(beamline.getCSTrafoLab2Local(drift).getOrigin(), nominal.getOrigin());
     // entry edge is identity for a straight element ⇒ entry origin equals nominal origin
     expectVectorNear(beamline.getNominalEntryTransform(drift).getOrigin(), nominal.getOrigin());

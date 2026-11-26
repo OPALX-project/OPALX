@@ -169,7 +169,7 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
         EXPECT_EQ(snapshots[0][i], snapshots[1][i]) << "field/end-state component " << i;
 }
 
-TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
+TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForBunchAndReference) {
     auto beamObject = opalx::test::makeKeywordObject<Beam>("BEAM", "BEAM");
     PartBunch_t bunch(
             {opalx::test::bunchBeam(*beamObject, 2)}, 1.,
@@ -187,29 +187,32 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
     lattice.addElement(quad, bunch);
     lattice.prepareSections();
     lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
+    const CoordinateSystemTrafo misaligned =
+            quad->getMisalignment() * quad->getCSTrafoGlobal2Local();
 
-    // Reference side: the element at its nominal place. At z = 0.15 m only the nominal body is
-    // there; at x = -2 mm the nominal bore holds the point and the misaligned one does not.
+    // Reference side: the misaligned element too. At z = 0.15 m only the nominal body would be
+    // there; at x = -2 mm the nominal bore would hold the point, the misaligned one does not.
     const Vector forward(0., 0., 1.);
-    for (const Vector& point : {Vector(1e-3, 0., 0.15), Vector(-2e-3, 0., 0.5)}) {
+    EXPECT_TRUE(lattice.getElements(Vector(1e-3, 0., 0.15)).empty());
+    for (const Vector& point : {Vector(0., 0., 0.5), Vector(1e-3, 0., 1.2)}) {
         EXPECT_EQ(lattice.getElements(point).size(), 1u);
         Vector electric(0.), magnetic(0.), expectedE(0.), expectedB(0.);
         lattice.applyOnHost(point, 0., electric, magnetic);
-        quad->applyOnHost(point, 0., expectedE, expectedB);
+        quad->applyOnHost(misaligned.transformTo(point), 0., expectedE, expectedB);
         EXPECT_NE(expectedB(1), 0.);
         for (unsigned d = 0; d < 3; ++d)
             EXPECT_NEAR(magnetic(d), expectedB(d), 1e-15) << d;
     }
-    EXPECT_NO_THROW(lattice.getElementMapping().checkReferencePoint(Vector(-2e-3, 0., 0.5), 0.5));
+    EXPECT_NO_THROW(lattice.getElementMapping().checkReferencePoint(Vector(1e-3, 0., 0.5), 0.5));
     EXPECT_THROW(
-            lattice.getElementMapping().checkReferencePoint(Vector(5e-3, 0., 0.5), 0.5),
+            lattice.getElementMapping().checkReferencePoint(Vector(-2e-3, 0., 0.5), 0.5),
             OpalException);
-    // On the nominal axis the reference feels no quadrupole field.
+    // On the nominal axis the reference is 3 mm off the misaligned axis and gets a kick.
     const PartData reference(1., 9.382720813e8, 1e6);
     const auto end = track_reference::advanceInBeamline(
             lattice, reference, State{Vector(0., 0., 0.5), forward}, 1e-10, 1e-10, false);
     EXPECT_FALSE(end.hitMaterial);
-    EXPECT_EQ(end.momentum(0), 0.);
+    EXPECT_NE(end.momentum(0), 0.);
     EXPECT_EQ(end.momentum(1), 0.);
 
     // Bunch side: the misaligned element. The particle on the nominal axis gets the field at
@@ -230,13 +233,12 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
 
     lattice.applyExternalFields(bunch);
     const auto B = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
-    const CoordinateSystemTrafo misaligned =
-            quad->getMisalignment() * quad->getCSTrafoGlobal2Local();
-    Vector expectedE(0.), expectedB(0.);
-    quad->applyOnHost(misaligned.transformTo(positions[0]), 0., expectedE, expectedB);
-    EXPECT_NE(expectedB(1), 0.);
+    // The same field as the reference gets at that point.
+    Vector referenceE(0.), referenceB(0.);
+    lattice.applyOnHost(positions[0], 0., referenceE, referenceB);
+    EXPECT_NE(referenceB(1), 0.);
     for (unsigned d = 0; d < 3; ++d)
-        EXPECT_NEAR(B(0)(d), expectedB(d), 1e-15) << d;
+        EXPECT_NEAR(B(0)(d), referenceB(d), 1e-15) << d;
 
     EXPECT_EQ(lattice.applyElementApertures(bunch), 1u);
     const auto invalid =
