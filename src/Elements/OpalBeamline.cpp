@@ -57,6 +57,24 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
       referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
 
+OpalBeamline::OpalBeamline(const OpalBeamline& rhs)
+    : transferMapPass_m(rhs.transferMapPass_m),
+      elements_m(rhs.elements_m),
+      elementsMayBeShared_m(!elements_m.empty()),
+      prepared_m(rhs.prepared_m),
+      referencePathPlacementCompiled_m(rhs.referencePathPlacementCompiled_m),
+      coordTransformationTo_m(rhs.coordTransformationTo_m) {
+    if (elementsMayBeShared_m) rhs.elementsMayBeShared_m = true;
+}
+
+OpalBeamline& OpalBeamline::operator=(const OpalBeamline& rhs) {
+    if (this != &rhs) {
+        OpalBeamline copy(rhs);
+        swap(copy);
+    }
+    return *this;
+}
+
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
@@ -215,14 +233,25 @@ void OpalBeamline::publishTransferMapPass(
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(transferMapPass_m, rhs.transferMapPass_m);
     std::swap(elements_m, rhs.elements_m);
+    std::swap(elementsMayBeShared_m, rhs.elementsMayBeShared_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
 }
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
+    if (this == &rhs) {
+        OpalBeamline copy(rhs);
+        merge(copy);  // Avoid inserting from the list being modified.
+        return;
+    }
     clearTransferMaps();
     rhs.clearTransferMaps();
+    if (!rhs.elements_m.empty()) {
+        // Set before insertion so allocation failure can only leave conservative
+        // false positives, never untracked sharing.
+        elementsMayBeShared_m = rhs.elementsMayBeShared_m = true;
+    }
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;

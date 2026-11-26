@@ -33,6 +33,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <set>
 
 extern Inform* gmsg;
@@ -2023,6 +2024,98 @@ TEST_F(OrbitThreaderTest, AppendInvalidatesOwnerlessPassAndSupportsUnmappedConst
     EXPECT_FALSE(beamline.getTransferMapPass());
     for (const auto& owner : beamline.getElements())
         EXPECT_FALSE(owner->hasLinearTransferMaps());
+}
+
+TEST_F(OrbitThreaderTest, SharedOwnersInvalidateOnAppendAfterCopyAssignmentMergeAndSwap) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    DriftRep drift("SHARED");
+    drift.getGeometry().setElementLength(.1);
+    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.), Quaternion()));
+    drift.fixPosition();
+    for (int sharing = 0; sharing < 7; ++sharing)
+        for (bool reverse : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "sharing=" << sharing << " reverse=" << reverse);
+            OpalBeamline original;
+            original.visit(drift, visitor, *bunch);
+            original.prepareSections();
+            std::unique_ptr<OpalBeamline> alias;
+            switch (sharing) {
+                case 0:
+                    alias = std::make_unique<OpalBeamline>(original);
+                    break;
+                case 1:
+                    alias = std::make_unique<OpalBeamline>();
+                    alias->visit(drift, visitor, *bunch);
+                    *alias = original;  // Assignment replaces an existing element list.
+                    break;
+                case 2:
+                    alias = std::make_unique<OpalBeamline>();
+                    alias->merge(original);
+                    break;
+                case 3: {
+                    OpalBeamline copy(original);
+                    alias = std::make_unique<OpalBeamline>();
+                    alias->swap(copy);  // Sharing follows the swapped occurrences.
+                    break;
+                }
+                case 4: {
+                    const OpalBeamline intermediate(original);
+                    alias = std::make_unique<OpalBeamline>(intermediate);
+                    break;  // The intermediate alias dies before publication.
+                }
+                case 5:
+                    alias = std::make_unique<OpalBeamline>();
+                    alias->visit(drift, visitor, *bunch);
+                    alias->merge(original);  // A shared subset plus an independent owner.
+                    break;
+                default:
+                    alias = std::make_unique<OpalBeamline>(original);
+                    alias->merge(*alias);  // Self-merge must not iterate its growing list.
+            }
+            auto& mapped  = reverse ? original : *alias;
+            auto& changed = reverse ? *alias : original;
+            mapped.prepareSections();
+            PartData particle(1, 9.382720813e8, 1e6);
+            auto entrance     = LinearTransferMapBuilder::initialFrame(mapped, {0, 0, 1});
+            entrance.momentum = {0, 0, 1};
+            auto exit         = entrance;
+            exit.position(2) = exit.pathLength = .1;
+            exit.time                          = .1 * std::sqrt(2.) / Physics::c;
+            LinearTransferMapBuilder builder(mapped, particle, 1e-11);
+            const auto result = builder.build({{entrance}, {exit}}, 0);
+            ASSERT_TRUE(result.pass);
+            std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>
+                    attachments;
+            std::map<
+                    std::shared_ptr<ElementBase>, std::size_t,
+                    std::owner_less<std::shared_ptr<ElementBase>>>
+                    ordinals;
+            for (const auto& segment : result.segments)
+                for (const auto& owner : segment.owners)
+                    attachments.push_back({owner, {segment.map, ordinals[owner]++}});
+            ASSERT_FALSE(attachments.empty());
+            mapped.publishTransferMapPass(result.pass, attachments);
+            ASSERT_FALSE(changed.getTransferMapPass());
+            bool attached = false;
+            for (const auto& owner : changed.getElements())
+                attached |= owner->hasLinearTransferMaps();
+            ASSERT_TRUE(attached);
+            changed.visit(drift, visitor, *bunch);
+            for (const auto& owner : changed.getElements())
+                EXPECT_FALSE(owner->hasLinearTransferMaps());
+            EXPECT_FALSE(changed.getTransferMapPass());
+            EXPECT_TRUE(result.pass->available());  // Retained snapshots remain readable.
+            EXPECT_EQ(mapped.getTransferMapPass(), result.pass);
+            // Clearing must not forget potential aliases: later publication can
+            // attach maps again while the changed lattice still has no local pass.
+            mapped.clearTransferMaps();
+            mapped.publishTransferMapPass(result.pass, attachments);
+            changed.visit(drift, visitor, *bunch);
+            for (const auto& owner : changed.getElements())
+                EXPECT_FALSE(owner->hasLinearTransferMaps());
+        }
 }
 
 TEST_F(OrbitThreaderTest, PersistentPassDoesNotKeepNominalOwnersAlive) {
