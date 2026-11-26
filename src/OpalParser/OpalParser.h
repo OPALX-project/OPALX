@@ -71,7 +71,7 @@ public:
 
 protected:
     /// Execute or check the current command.
-    void execute(Object*, const std::string&) const;
+    virtual void execute(Object*, const std::string&) const;
 
     /// Find object by name in the main directory.
     virtual Object* find(const std::string&) const;
