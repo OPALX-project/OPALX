@@ -261,9 +261,9 @@ namespace endfieldmodel {
         struct HostConfig {
             using HostCoefficients = decltype(Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace{}, Kokkos::View<double*>{}));
-            using HostGIndices = decltype(Kokkos::create_mirror_view_and_copy(
+            using HostGIndices     = decltype(Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace{}, Kokkos::View<std::int64_t**>{}));
-            using HostHIndices = decltype(Kokkos::create_mirror_view_and_copy(
+            using HostHIndices     = decltype(Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace{}, Kokkos::View<int**>{}));
             HostCoefficients a_m;
             double lambda_m = 0.0, x0_m = 0.0;
