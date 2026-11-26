@@ -304,7 +304,9 @@ namespace {
             } else if (rank == 1) {
                 MPI_Recv(&completed, 1, MPI_INT, 0, 817, comm, MPI_STATUS_IGNORE);
             }
-            if (rank < 2) EXPECT_EQ(completed, 1);
+            if (rank < 2) {
+                EXPECT_EQ(completed, 1);
+            }
         }
     }
 
@@ -329,7 +331,9 @@ namespace {
                 // token without entering a destructor or cleanup collective.
                 MPI_Recv(&caught, 1, MPI_INT, 0, 818, comm, MPI_STATUS_IGNORE);
             }
-            if (rank < 2) EXPECT_EQ(caught, 1);
+            if (rank < 2) {
+                EXPECT_EQ(caught, 1);
+            }
         }
     }
 

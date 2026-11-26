@@ -14,10 +14,36 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include <array>
+#include <climits>
+#include <type_traits>
+
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "gtest/gtest.h"
+
+static_assert(
+        std::extent_v<decltype(endfieldmodel::EngeWorkspace::enge)>
+        == endfieldmodel::EngeConfig::max_derivative + 1);
+
+namespace {
+    void evaluateHighestOrderWithGuard(
+            endfieldmodel::EngeConfig config, Kokkos::View<double*> result) {
+        Kokkos::parallel_for(
+                "Enge workspace boundary", 1, KOKKOS_LAMBDA(int) {
+                    struct Guarded {
+                        endfieldmodel::EngeWorkspace workspace;
+                        double guard;
+                    } guarded;
+                    guarded.guard = 12345.0;
+                    result(0)     = endfieldmodel::Enge::getEnge(
+                            config, .3, endfieldmodel::EngeConfig::max_derivative,
+                            guarded.workspace);
+                    result(1) = guarded.guard;
+                });
+    }
+}  // namespace
 
 class TestEnge : public testing::Test {
 public:
@@ -147,4 +173,61 @@ TEST_F(TestEnge, LinearPolynomialMatchesGeneralPolynomialThroughSixDerivatives) 
             EXPECT_DOUBLE_EQ(linear.function(x, n), general.function(x, n));
         }
     }
+}
+
+TEST_F(TestEnge, HighestSupportedOrderFitsWorkspaceAndIsReleased) {
+    using namespace endfieldmodel;
+    Enge model({.2}, 1., .5);
+    model.initialise();
+    constexpr int order = EngeConfig::max_derivative;
+    Kokkos::View<double*> points("points", 2), result("guarded result", 2);
+    Kokkos::deep_copy(points, .3);
+    Kokkos::View<double**> values("derivatives", 2, order + 1);
+    model.function(points, order, values);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_NEAR(host(i, 0), 2. / (1. + std::exp(.2)) - 1., 1e-14);
+        for (int n = 1; n <= order; ++n)
+            EXPECT_DOUBLE_EQ(host(i, n), 0.);
+    }
+    evaluateHighestOrderWithGuard(model.getConfig(), result);
+    const auto checked = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), result);
+    EXPECT_DOUBLE_EQ(checked(0), 0.);
+    EXPECT_DOUBLE_EQ(checked(1), 12345.);
+    EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
+    std::array<double, order + 1> output;
+    model.function(.3, order, output.data());
+    for (int n = 0; n <= order; ++n)
+        EXPECT_DOUBLE_EQ(output[n], host(0, n));
+    auto config = model.getConfig();
+    Enge::releaseEngeConfig(config);
+    for (int n = 0; n <= order; ++n) {
+        EXPECT_EQ(config.gIndices[n].size(), 0u);
+        EXPECT_EQ(config.hIndices[n].size(), 0u);
+    }
+}
+
+TEST_F(TestEnge, InvalidOrdersAndOutputShapesAreRejectedBeforeEvaluation) {
+    using namespace endfieldmodel;
+    Enge model({0., 1.}, 1., .5);
+    model.initialise();
+    Kokkos::View<double*> points("points", 2);
+    Kokkos::View<double**> values("unchanged output", 2, 1);
+    Kokkos::deep_copy(values, 99.);
+    std::array<double, EngeConfig::max_derivative + 1> output;
+    output.fill(99.);
+    for (int order : {-1, EngeConfig::max_derivative + 1, INT_MAX}) {
+        EXPECT_THROW(model.function(.3, order), OpalException);
+        EXPECT_THROW(model.function(.3, order, output.data()), OpalException);
+        EXPECT_THROW(model.function(points, order, values), OpalException);
+    }
+    EXPECT_THROW(model.function(points, 1, values), OpalException);
+    Kokkos::View<double**> wrongRows("wrong rows", 1, 1);
+    EXPECT_THROW(model.function(points, 0, wrongRows), OpalException);
+    EXPECT_THROW(model.setMaximumDerivative(EngeConfig::max_derivative + 1), OpalException);
+    for (double value : output)
+        EXPECT_DOUBLE_EQ(value, 99.);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    EXPECT_DOUBLE_EQ(host(0, 0), 99.);
+    EXPECT_DOUBLE_EQ(host(1, 0), 99.);
 }

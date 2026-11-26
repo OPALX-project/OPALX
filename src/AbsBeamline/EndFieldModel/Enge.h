@@ -46,17 +46,19 @@ namespace endfieldmodel {
      *  where h is a polynomial in x/lambda with polynomial coefficients a
      */
 
-    /** workspace for derivative calculation */
+    /** Workspace for orders 0..max_derivative, including both endpoints.
+     * Only the requested prefix is written/read during evaluation.
+     */
     struct EngeWorkspace {
         static constexpr int max_derivative = 12;
         double exp_h0;
-        double gNVec[max_derivative];
-        double hNVec[max_derivative];
-        double enge[max_derivative];
+        double gNVec[max_derivative + 1];
+        double hNVec[max_derivative + 1];
+        double enge[max_derivative + 1];
     };
     /** GPU-ready configuration data */
     struct EngeConfig {
-        static constexpr int max_derivative = 12;
+        static constexpr int max_derivative = EngeWorkspace::max_derivative;
         Kokkos::View<double*> a_m;
         double lambda_m = 0.0;
         double x0_m     = 0.0;
@@ -94,6 +96,7 @@ namespace endfieldmodel {
         double function(double x, int n) const override;
 
         void function(double x, int n, double* values) const override {
+            validateDerivativeOrder(n);
             if constexpr (Kokkos::SpaceAccessibility<
                                   Kokkos::HostSpace,
                                   Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
@@ -110,7 +113,8 @@ namespace endfieldmodel {
          *  @param xView: list of x values
          *  @param n: order of the derivative
          *  @param values: fill values with the derivatives. Should have same
-         *         number of rows as xView and number of columns should be n
+         *         number of rows as xView and n+1 columns. Orders 0..12 are supported;
+         *         invalid orders or extents throw OpalException before launching work.
          */
         inline void function(
                 const Kokkos::View<double*>& xView, const int n,
@@ -121,12 +125,20 @@ namespace endfieldmodel {
                 const EngeConfig& config, const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values);
 
+        /// Validate a host request before computing n+1 or constructing output views.
+        static inline void validateDerivativeOrder(int n) {
+            if (n < 0 || n > EngeConfig::max_derivative)
+                throw OpalException("Enge::function", "Derivative order must be between 0 and 12.");
+        }
+
         /** Potentially device-side function call
          *
          *  @param config: configuration
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: order of derivative
          *  @param values: Kokkos::View<double*> of length n+1
+         *  @pre Order n is in 0..12 and coefficient/index tables have been initialized.
+         *  Invalid device orders abort; host entry points throw before launching work.
          *
          *  I couldn't figure out the type of values so I just make it a template
          */

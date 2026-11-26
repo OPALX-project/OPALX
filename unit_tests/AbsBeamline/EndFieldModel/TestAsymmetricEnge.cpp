@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include <array>
+#include <climits>
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "gtest/gtest.h"
 
@@ -102,4 +104,42 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
             EXPECT_NEAR(yHost(i, n), dyRef, 1e-6) << " at x " << x << " n " << n;
         }
     }
+}
+
+TEST_F(TestAsymmetricEnge, HighestSupportedOrderAndInvalidRequests) {
+    using namespace endfieldmodel;
+    AsymmetricEnge model({.2}, 1., .5, {-.3}, 2., .7);
+    model.initialise();
+    constexpr int order = EngeConfig::max_derivative;
+    Kokkos::View<double*> points("points", 2);
+    Kokkos::deep_copy(points, .3);
+    Kokkos::View<double**> values("derivatives", 2, order + 1);
+    model.function(points, order, values);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_NEAR(host(i, 0), 1. / (1. + std::exp(.2)) + 1. / (1. + std::exp(-.3)) - 1., 1e-14);
+        for (int n = 1; n <= order; ++n)
+            EXPECT_DOUBLE_EQ(host(i, n), 0.);
+    }
+    EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
+    std::array<double, order + 1> output;
+    model.function(.3, order, output.data());
+    for (int n = 0; n <= order; ++n)
+        EXPECT_DOUBLE_EQ(output[n], host(0, n));
+    output.fill(99.);
+    Kokkos::deep_copy(values, 99.);
+    for (int bad : {-1, order + 1, INT_MAX}) {
+        EXPECT_THROW(model.function(.3, bad), OpalException);
+        EXPECT_THROW(model.function(.3, bad, output.data()), OpalException);
+        EXPECT_THROW(model.function(points, bad, values), OpalException);
+    }
+    Kokkos::View<double**> wrongRows("wrong rows", 1, 1), wrongColumns("wrong columns", 2, 2);
+    EXPECT_THROW(model.function(points, 0, wrongRows), OpalException);
+    EXPECT_THROW(model.function(points, 0, wrongColumns), OpalException);
+    for (double value : output)
+        EXPECT_DOUBLE_EQ(value, 99.);
+    const auto unchanged = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (int i = 0; i < 2; ++i)
+        for (int n = 0; n <= order; ++n)
+            EXPECT_DOUBLE_EQ(unchanged(i, n), 99.);
 }

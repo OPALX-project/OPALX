@@ -45,6 +45,7 @@ namespace endfieldmodel {
     Enge::~Enge() { finalise(); }
 
     double Enge::function(double x, int n) const {
+        validateDerivativeOrder(n);
         Kokkos::View<double*> xView("efm::Enge::tmpX", 1);
         Kokkos::deep_copy(xView, x);
         Kokkos::View<double**> valueView("efm::Enge::tmpY", 1, n + 1);
@@ -229,7 +230,7 @@ namespace endfieldmodel {
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
         config.a_m = Kokkos::View<double*>();
-        for (size_t i = 0; i < config.max_derivative; ++i) {
+        for (size_t i = 0; i <= config.max_derivative; ++i) {
             config.gIndices[i] = Kokkos::View<int**>();
             config.hIndices[i] = Kokkos::View<int**>();
         }
