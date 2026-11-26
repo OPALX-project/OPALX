@@ -1,14 +1,22 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Track/CofCmd.h"
+#include <unistd.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <cerrno>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <limits>
+#include <locale>
+#include <memory>
 #include <set>
 #include <sstream>
+#include <vector>
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
@@ -57,6 +65,135 @@ namespace {
     void require(bool ok, const std::string& message) {
         if (!ok) throw OpalException("COF", message);
     }
+    // Small streaming writer for the COF export: JSON escaping, finite numbers,
+    // classic-locale round-trip precision and two-space indentation.
+    class CofJsonWriter {
+        std::ostringstream out;
+        std::vector<bool> first;
+
+        void quoted(const std::string& text) {
+            constexpr char hex[] = "0123456789abcdef";
+            out << '"';
+            for (unsigned char c : text) {
+                if (c == '"' || c == '\\')
+                    out << '\\' << c;
+                else if (c < 0x20)
+                    out << "\\u00" << hex[c >> 4] << hex[c & 15];
+                else
+                    out << c;
+            }
+            out << '"';
+        }
+        void prefix(const char* key) {
+            if (!first.empty()) {
+                if (!first.back()) out << ',';
+                out << '\n' << std::string(2 * first.size(), ' ');
+                first.back() = false;
+            }
+            if (key) {
+                quoted(key);
+                out << ": ";
+            }
+        }
+        void finite(double value) {
+            require(std::isfinite(value), "Cannot serialize a nonfinite COF result.");
+            out << value;
+        }
+        template <class F>
+        void container(const char* key, char open, char close, F contents) {
+            prefix(key);
+            out << open;
+            first.push_back(true);
+            contents();
+            const bool empty = first.back();
+            first.pop_back();
+            if (!empty) out << '\n' << std::string(2 * first.size(), ' ');
+            out << close;
+        }
+
+    public:
+        CofJsonWriter() {
+            out.imbue(std::locale::classic());
+            out << std::setprecision(std::numeric_limits<double>::max_digits10);
+        }
+        template <class F>
+        void object(const char* key, F contents) {
+            container(key, '{', '}', contents);
+        }
+        template <class F>
+        void array(const char* key, F contents) {
+            container(key, '[', ']', contents);
+        }
+        void text(const char* key, const std::string& value) {
+            prefix(key);
+            quoted(value);
+        }
+        void number(const char* key, double value) {
+            prefix(key);
+            finite(value);
+        }
+        void boolean(const char* key, bool value) {
+            prefix(key);
+            out << (value ? "true" : "false");
+        }
+        void null(const char* key) {
+            prefix(key);
+            out << "null";
+        }
+        template <class Values>
+        void numbers(const char* key, const Values& values) {
+            prefix(key);
+            out << '[';
+            bool comma = false;
+            for (double value : values) {
+                if (comma) out << ", ";
+                finite(value);
+                comma = true;
+            }
+            out << ']';
+        }
+        std::string str() const { return out.str() + '\n'; }
+    };
+    std::string lowerCase(std::string text) {
+        std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+        return text;
+    }
+    // Keep the previous result intact until a complete replacement is closed.
+    // A unique sibling file also avoids collisions between independent runs.
+    void writeResult(const std::string& output, const std::string& json) {
+        std::string temporary = output + ".tmp.XXXXXX";
+        const int fd          = ::mkstemp(temporary.data());
+        if (fd < 0)
+            throw OpalException(
+                    "COF", "Cannot create temporary COF OUTPUT for " + output + ": "
+                                   + std::strerror(errno));
+        struct Cleanup {
+            const std::string& path;
+            ~Cleanup() {
+                std::error_code ignored;
+                std::filesystem::remove(path, ignored);
+            }
+        } cleanup{temporary};
+        std::unique_ptr<FILE, decltype(&std::fclose)> file(::fdopen(fd, "w"), &std::fclose);
+        if (!file) {
+            const std::string message = std::strerror(errno);
+            ::close(fd);
+            throw OpalException(
+                    "COF", "Cannot open temporary COF OUTPUT for " + output + ": " + message);
+        }
+        require(std::fwrite(json.data(), 1, json.size(), file.get()) == json.size(),
+                "Error writing COF OUTPUT: " + output);
+        require(std::fclose(file.release()) == 0, "Error closing COF OUTPUT: " + output);
+        std::error_code error;
+        std::filesystem::rename(temporary, output, error);
+        require(!error, "Cannot replace COF OUTPUT " + output + ": " + error.message());
+    }
+    struct Report {
+        std::string details;
+        std::string optics;
+    };
     /** Squared distance to a finite design centreline, independent of aperture.
      * Straight/RBEND bodies use their box axis; SBEND bodies use the circular
      * design arc including both endpoints. Selecting the nearest segment avoids
@@ -104,6 +241,7 @@ namespace {
         ClosedOrbitSolver::Coordinates initial{};
         ClosedOrbitSolver::Settings solver;
         std::string output;
+        std::string commandName;
     };
 
     class LatticeVisitor : public DefaultVisitor {
@@ -241,12 +379,7 @@ namespace {
         out << "\nResidual: ";
         for (double v : result.residual)
             out << v << ' ';
-        out << "\nMatrix:\n";
-        for (const auto& row : result.matrix) {
-            for (double v : row)
-                out << v << ' ';
-            out << '\n';
-        }
+        out << '\n';
     }
     void setLaunchState(
             ClosedOrbitInitialState& state, const Controls& c,
@@ -260,82 +393,149 @@ namespace {
                                 - u[3] * u[3])));
     }
     std::string serializeResult(
-            const ClosedOrbitInitialState& state, const Controls& c,
-            const ClosedOrbitSolver::Result& result, const PartData& reference,
-            const LinearMapEigenAnalysis::Result& spectrum, const OneTurnMap::FullTunes& fullTunes,
+            const ClosedOrbitInitialState& state, const Controls& c, const RunSettings& s,
+            const std::string& beamName, const ClosedOrbitSolver::Result& result,
+            const PartData& reference, const LinearMapEigenAnalysis::Result& spectrum,
+            const OneTurnMap::FullTunes& fullTunes, const OneTurnMap::Result& returned,
             double drift) {
-        std::ostringstream json;
-        json << std::setprecision(17) << "{\"converged\":true,\"dt_s\":" << c.tracking.dt
-             << ",\"energy_MeV\":" << (reference.getE() - reference.getM()) / 1e6
-             << ",\"coordinates\":[";
-        auto array = [&](const auto& values) {
-            bool comma = false;
-            for (double v : values) {
-                if (comma) json << ',';
-                json << v;
-                comma = true;
-            }
-        };
-        array(result.coordinates);
-        json << "],\"residual\":[";
-        array(result.residual);
-        json << "],\"matrix\":[";
-        for (unsigned i = 0; i < 4; ++i) {
-            if (i) json << ',';
-            json << '[';
-            array(result.matrix[i]);
-            json << ']';
-        }
-        json << "],\"eigenvalues\":[";
-        for (unsigned i = 0; i < 4; ++i) {
-            if (i) json << ',';
-            json << '[' << spectrum.eigenvalues[i].real() << ',' << spectrum.eigenvalues[i].imag()
-                 << ']';
-        }
-        const char* stability = "MARGINAL";
-        using Stability       = LinearMapEigenAnalysis::Stability;
+        const std::string speciesId = lowerCase(state.species);
+        const char* stability       = "MARGINAL";
+        using Stability             = LinearMapEigenAnalysis::Stability;
         if (spectrum.stability == Stability::Stable) stability = "STABLE";
         if (spectrum.stability == Stability::Unstable) stability = "UNSTABLE";
         if (spectrum.stability == Stability::NonUnitCircle) stability = "NON_UNIT_CIRCLE";
-        json << "],\"stability\":\"" << stability
-             << "\",\"near_integer\":" << (spectrum.nearInteger ? "true" : "false")
-             << ",\"fractional_modes\":[";
-        for (size_t i = 0; i < spectrum.modes.size(); ++i) {
-            if (i) json << ',';
-            const auto& mode = spectrum.modes[i];
-            json << "{\"tune\":";
-            if (mode.tune)
-                json << *mode.tune;
-            else
-                json << "null";
-            json << ",\"complement\":";
-            if (mode.complementaryTune)
-                json << *mode.complementaryTune;
-            else
-                json << "null";
-            json << '}';
-        }
-        json << "],\"full_tunes\":";
-        if (fullTunes.available)
-            json << "{\"horizontal\":" << fullTunes.tunes[0]
-                 << ",\"vertical\":" << fullTunes.tunes[1] << '}';
-        else
-            json << "null";
-        json << ",\"full_tunes_diagnostic\":" << std::quoted(fullTunes.diagnostic)
-             << ",\"phase_samples\":" << fullTunes.samples
-             << ",\"maximum_phase_step_rad\":" << fullTunes.maximumPhaseStep;
-        json << ",\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
-             << ",\"position_m\":[";
-        array(state.position);
-        json << "],\"momentum_mc\":[";
-        array(state.momentum);
-        json << "],\"line\":" << std::quoted(state.line)
-             << ",\"species\":" << std::quoted(state.species) << ",\"mass_eV\":" << state.massEV
-             << ",\"charge_e\":" << state.chargeE << ",\"section_origin_m\":[";
-        array(c.section.transformFrom(Vector_t<double, 3>(0.0)));
-        json << "],\"section_rotation_wxyz\":[";
-        array(c.section.getRotation());
-        json << "]}\n";
+        CofJsonWriter json;
+        json.object(nullptr, [&] {
+            json.text("schema", "opalx.closed_orbits");
+            json.number("schema_version", 1);
+            json.array("species", [&] {
+                json.object(nullptr, [&] {
+                    json.text("id", speciesId);
+                    json.text("name", state.species);
+                    json.number("rest_energy_eV", state.massEV);
+                    json.number("charge_e", state.chargeE);
+                });
+            });
+            json.array("orbits", [&] {
+                json.object(nullptr, [&] {
+                    json.text("id", "orbit_" + lowerCase(beamName));
+                    json.text("beam_id", beamName);
+                    json.text("cof_id", s.commandName);
+                    json.text("line_id", state.line);
+                    json.object("reference", [&] {
+                        json.text("species_id", speciesId);
+                        json.number(
+                                "kinetic_energy_MeV", (reference.getE() - reference.getM()) / 1e6);
+                    });
+                    json.object("section", [&] {
+                        json.numbers("origin_m", c.section.transformFrom(Vector_t<double, 3>(0.0)));
+                        json.numbers("lab_to_section_quaternion_wxyz", c.section.getRotation());
+                        json.array("coordinate_order", [&] {
+                            for (const auto* name : {"x", "px", "y", "py"})
+                                json.text(nullptr, name);
+                        });
+                        json.array("coordinate_units", [&] {
+                            for (const auto* unit : {"m", "p/(mc)", "m", "p/(mc)"})
+                                json.text(nullptr, unit);
+                        });
+                    });
+                    json.object("solution", [&] {
+                        json.numbers("section_coordinates", result.coordinates);
+                        json.numbers("closure_residual", result.residual);
+                        json.object("launch", [&] {
+                            json.text("frame", "laboratory");
+                            json.number("time_s", state.time);
+                            json.numbers("position_m", state.position);
+                            json.numbers("momentum_mc", state.momentum);
+                        });
+                    });
+                    json.object("solver", [&] {
+                        json.text("status", "converged");
+                        json.text("method", "NEWTON");
+                        json.text(
+                                "integrator",
+                                ExternalFieldRayTracker::integrationMethodName(c.integrator));
+                        json.number("dt_s", c.tracking.dt);
+                        json.object("settings", [&] {
+                            json.number("position_tolerance_m", s.solver.positionTolerance);
+                            json.number("momentum_tolerance_mc", s.solver.momentumTolerance);
+                            json.number("max_iterations", s.solver.maxIterations);
+                            json.number("max_steps", c.tracking.maxSteps);
+                            json.number("max_path_m", c.tracking.maxPath);
+                            json.numbers("initial_coordinates", s.initial);
+                            json.numbers("finite_difference_steps", s.solver.finiteDifferenceSteps);
+                            json.numbers("coordinate_scales", s.solver.scales);
+                            json.boolean("damping", s.solver.damping);
+                            json.number("rank_tolerance", s.solver.rankTolerance);
+                            json.number("max_backtracks", s.solver.maxBacktracks);
+                            json.number("geometry_tolerance_m", c.geometryTolerance);
+                            json.number("angle_tolerance_rad", c.angleTolerance);
+                        });
+                        json.number("iterations", result.iterations.size());
+                        json.number("map_evaluations", result.evaluations);
+                        json.text("diagnostic", result.message);
+                    });
+                    json.object("optics", [&] {
+                        json.array("one_turn_matrix", [&] {
+                            for (const auto& row : result.matrix)
+                                json.numbers(nullptr, row);
+                        });
+                        json.text("stability", stability);
+                        json.boolean("near_integer", spectrum.nearInteger);
+                        json.array("eigenvalues", [&] {
+                            for (const auto& value : spectrum.eigenvalues)
+                                json.object(nullptr, [&] {
+                                    json.number("real", value.real());
+                                    json.number("imag", value.imag());
+                                });
+                        });
+                        json.number(
+                                "maximum_relative_eigenpair_residual", spectrum.maximumResidual);
+                        json.number(
+                                "basis_reciprocal_condition", spectrum.basisReciprocalCondition);
+                        json.array("fractional_modes", [&] {
+                            for (const auto& mode : spectrum.modes)
+                                json.object(nullptr, [&] {
+                                    if (mode.tune)
+                                        json.number("tune", *mode.tune);
+                                    else
+                                        json.null("tune");
+                                    if (mode.complementaryTune)
+                                        json.number("complement", *mode.complementaryTune);
+                                    else
+                                        json.null("complement");
+                                });
+                        });
+                        json.object("full_tunes", [&] {
+                            json.text("status", fullTunes.available ? "available" : "unavailable");
+                            json.text("method", "uncoupled_planar_phase_winding");
+                            if (fullTunes.available) {
+                                json.number("horizontal_radial", fullTunes.tunes[0]);
+                                json.number("vertical", fullTunes.tunes[1]);
+                                json.number("phase_samples", fullTunes.samples);
+                                json.number("maximum_phase_step_rad", fullTunes.maximumPhaseStep);
+                            } else {
+                                json.null("horizontal_radial");
+                                json.null("vertical");
+                                json.null("phase_samples");
+                                json.null("maximum_phase_step_rad");
+                            }
+                            json.text("diagnostic", fullTunes.diagnostic);
+                        });
+                    });
+                    json.object("diagnostics", [&] {
+                        json.number("relative_energy_drift", drift);
+                        json.number(
+                                "return_duration_s",
+                                returned.ray.time - state.time - returned.ray.timeCorrection);
+                        json.number(
+                                "path_length_m",
+                                returned.ray.pathLength - returned.ray.pathLengthCorrection);
+                        json.number("section_residual_m", returned.sectionResidual);
+                    });
+                });
+            });
+        });
         return json.str();
     }
     OneTurnMap makeReturnMap(
@@ -356,15 +556,13 @@ namespace {
                 },
                 c.section, c.tracking, tracker.maximumTimeStep());
     }
-    std::string solveAndReport(
+    Report solveAndReport(
             BeamSequence& sequence, Beam& beam, OpalBeamline& lattice,
             const std::vector<std::shared_ptr<ElementBase>>& ordered, const Controls& c,
             const RunSettings& s, ClosedOrbitInitialState& state) {
         require(!ordered.empty(), "RING must contain magnetic/transport elements.");
         std::ostringstream out;
         validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
-        if (!s.output.empty())
-            require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
         ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
         auto map          = makeReturnMap(lattice, tracker, c);
         const auto result = ClosedOrbitSolver::solve(map, s.initial, s.solver);
@@ -384,7 +582,35 @@ namespace {
         const auto opticsMap =
                 opalx::maps::toTpsClosedOrbitMap(result, c.section, c.tracking.momentum);
         const auto spectrum = LinearMapEigenAnalysis::analyze(opticsMap, ev);
-        LinearMapEigenAnalysis::writeReport(out, spectrum);
+        std::ostringstream optics;
+        optics << std::setprecision(17) << "COF matrix and tunes: ring=" << sequence.getOpalName()
+               << " beam=" << beam.getOpalName()
+               << " Near-integer warning: " << (spectrum.nearInteger ? "yes" : "no")
+               << "\nOne-turn-matrix (x, px, y, py):\n";
+        const char* coordinates[] = {"x", "px", "y", "py"};
+        std::ostringstream matrix;
+        matrix << "     ";
+        for (const auto* coordinate : coordinates)
+            matrix << std::setw(16) << coordinate;
+        matrix << '\n' << std::scientific << std::setprecision(8);
+        for (unsigned i = 0; i < 4; ++i) {
+            matrix << std::setw(3) << coordinates[i] << " [";
+            for (double v : result.matrix[i])
+                matrix << std::setw(16) << v;
+            matrix << " ]\n";
+        }
+        optics << matrix.str();
+        std::ostringstream eigenanalysis;
+        LinearMapEigenAnalysis::writeReport(eigenanalysis, spectrum);
+        std::istringstream lines(eigenanalysis.str());
+        for (std::string line; std::getline(lines, line);) {
+            if (line.rfind("Near-integer warning:", 0) == 0
+                || line.rfind("Matrix eigenanalysis alone:", 0) == 0)
+                continue;
+            // Keep the shared report API unchanged; route its eigenvalue rows
+            // to the detailed COF report rather than the level-4 optics summary.
+            (line.rfind("lambda[", 0) == 0 ? out : optics) << line << '\n';
+        }
         OneTurnMap::FullTunes fullTunes;
         if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)
             fullTunes = map.fullTunes(
@@ -392,23 +618,20 @@ namespace {
         else
             fullTunes.diagnostic = "One-turn eigenanalysis is not numerically stable.";
         if (fullTunes.available)
-            out << "Full tunes (uncoupled planar): horizontal/radial=" << fullTunes.tunes[0]
-                << " vertical=" << fullTunes.tunes[1] << '\n';
+            optics << "Full tunes (uncoupled planar):\n"
+                   << "  " << std::left << std::setw(22) << "horizontal/radial"
+                   << "nur=" << fullTunes.tunes[0] << '\n'
+                   << "  " << std::setw(22) << "vertical" << "nuy=" << fullTunes.tunes[1] << '\n';
         else
-            out << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
+            optics << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
         out << "Phase samples=" << fullTunes.samples
             << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
-        out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
-               "convergence.\n";
         setLaunchState(state, c, result.coordinates);
-        state.json = serializeResult(state, c, result, reference, spectrum, fullTunes, drift);
-        if (!s.output.empty()) {
-            std::ofstream file(s.output);
-            file << state.json;
-            file.flush();
-            require(bool(file), "Error writing COF OUTPUT: " + s.output);
-        }
-        return out.str();
+        state.json = serializeResult(
+                state, c, s, beam.getOpalName(), result, reference, spectrum, fullTunes, returned,
+                drift);
+        if (!s.output.empty()) writeResult(s.output, state.json);
+        return {out.str(), optics.str()};
     }
 
     // All ranks build the empty reference container once; scalar ray work and files
@@ -433,7 +656,8 @@ namespace {
         state.chargeE = beam.getReference().getQ();
         state.line    = sequence.getOpalName();
         state.species = beam.getParticleName();
-        std::string error, report;
+        std::string error;
+        Report report;
         if (rank == 0) try {
                 report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, state);
             } catch (const OpalException& ex) {
@@ -448,7 +672,6 @@ namespace {
             MPI_Bcast(value.data(), length, MPI_CHAR, 0, MPI_COMM_WORLD);
         };
         broadcast(error);
-        broadcast(report);
         require(error.empty(), error);
         broadcast(state.json);
         double values[6]{};
@@ -462,7 +685,10 @@ namespace {
             state.position[d] = values[d];
             state.momentum[d] = values[d + 3];
         }
-        if (rank == 0) *gmsg << report << endl;
+        if (rank == 0) {
+            *gmsg << level5 << report.details << endl;
+            *gmsg << level4 << report.optics << endl;
+        }
         return state;
     }
 }  // namespace
@@ -502,7 +728,7 @@ CofCmd::CofCmd()
     itsAttr[JACOBIAN] = Attributes::makePredefinedString(
             "JACOBIAN", "Differentiation.", {"CENTRAL"}, "CENTRAL");
     itsAttr[OUTPUT] = Attributes::makeString(
-            "OUTPUT", "Optional exact JSON filename (existing files rejected).");
+            "OUTPUT", "Optional exact JSON filename (replaced after a successful solve).");
     registerOwnership(AttributeHandler::COMMAND);
 }
 CofCmd::CofCmd(const std::string& name, CofCmd* parent) : Action(name, parent) {}
@@ -553,6 +779,7 @@ void CofCmd::execute() {
     }
     require(Attributes::getReal(itsAttr[DIMENSION]) == 4, "Only DIMENSION=4 is supported.");
     RunSettings s;
+    s.commandName = getOpalName();
     for (unsigned i = 0; i < 4; ++i)
         s.initial[i] = Attributes::getReal(itsAttr[X + i]);
     s.solver.maxIterations     = count(Attributes::getReal(itsAttr[MAXIT]), "MAXIT");

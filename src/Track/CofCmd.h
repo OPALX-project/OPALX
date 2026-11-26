@@ -8,6 +8,8 @@
 /** Named, single-statement static-magnetic 4D closed-orbit solve.
  * A successful execution stores an independent launch snapshot on this object.
  * OUTPUT optionally names one JSON file; no orbit or text sidecars are produced.
+ * The version-1 opalx.closed_orbits export contains species metadata and one
+ * beam-identified orbit with section, launch, solver, optics and return diagnostics.
  * Numerical stability diagnostics do not certify map convergence or confinement.
  */
 class CofCmd : public Action {
