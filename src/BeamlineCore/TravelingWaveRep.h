@@ -27,6 +27,7 @@ public:
     explicit TravelingWaveRep(const std::string& name);
 
     TravelingWaveRep();
+    /// Copy the cavity state and its independently owned geometry.
     TravelingWaveRep(const TravelingWaveRep&);
     virtual ~TravelingWaveRep();
 
