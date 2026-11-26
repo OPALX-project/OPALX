@@ -149,10 +149,11 @@ namespace opalx::spacecharge {
                                     Kokkos::HostSpace(), solver.getRho()->getView());
                             const auto field = Kokkos::create_mirror_view_and_copy(
                                     Kokkos::HostSpace(), solver.getEField()->getView());
-                            for (int k = 0; k < local[2].length(); ++k)
+                            for (size_t k = 0; k < local[2].length(); ++k)
                                 for (int i = 0; i < nx; ++i)
                                     for (int j = 0; j < nx; ++j) {
-                                        const int n = index(i, j, k + local[2].first());
+                                        const int n =
+                                                index(i, j, static_cast<int>(k) + local[2].first());
                                         EXPECT_NEAR(density(i + 1, j + 1, k + 1), rho[n], 1.e-21);
                                         EXPECT_NEAR(field(i + 1, j + 1, k + 1)[0], ex[n], 1.e-11);
                                         EXPECT_NEAR(field(i + 1, j + 1, k + 1)[1], ey[n], 1.e-11);
