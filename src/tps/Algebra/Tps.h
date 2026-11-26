@@ -276,9 +276,6 @@ namespace tps {
         // Internal constructor.
         Tps(TpsRep<T>*);
 
-        // Set maximum order.
-        void setMaxOrder(int);
-
         // Make representation unique.
         void unique();
 

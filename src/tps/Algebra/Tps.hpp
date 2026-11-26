@@ -30,11 +30,6 @@ namespace tps {
     // Helper functions.
 
     template <class T>
-    inline void Tps<T>::setMaxOrder(int order) {
-        rep->maxOrd = order;
-    }
-
-    template <class T>
     inline void Tps<T>::unique() {
         if (rep->ref > 1) {
             auto* copy = rep->clone();
@@ -644,7 +639,6 @@ namespace tps {
             temporary[0] = coefficient;
         } else {
             TpsMonomial monomial(nVar);
-            int observedOrder = 0;
             for (;;) {
                 if (!(is >> coefficient)) return is;
                 bool terminator = true;
@@ -662,10 +656,9 @@ namespace tps {
                 if (negative || order > maxOrder)
                     throw ::FormatError("Tps::get()", "Invalid monomial or terminator.");
                 temporary[monomial.getIndex()] = coefficient;
-                if (coefficient != T(0))
-                    observedOrder = std::max(observedOrder, static_cast<int>(order));
             }
-            temporary.setMaxOrder(observedOrder);
+            // Keep the declared order and its matching allocation, including
+            // trailing zero coefficients. Arithmetic sizes storage by this order.
         }
         // Commit only a completely extracted scalar or terminated polynomial.
         *this = temporary;

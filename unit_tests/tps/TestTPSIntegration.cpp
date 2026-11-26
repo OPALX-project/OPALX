@@ -268,6 +268,38 @@ namespace {
         EXPECT_THROW(invalid >> unchanged, ::FormatError);
         EXPECT_DOUBLE_EQ(unchanged.getCoefficient(0), 7);
     }
+    TEST_F(TPSIntegration, SparseStreamsPreserveDeclaredOrderAndSafeArithmetic) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        for (int variables : {1, 2, 6}) {
+            for (int nonzeroOrder : {0, 1, -1}) {
+                Series source(3, variables);
+                if (nonzeroOrder >= 0) source[nonzeroOrder] = 2.5;
+                std::stringstream stream;
+                stream << source;
+                Series restored;
+                stream >> restored;
+                ASSERT_FALSE(stream.fail());
+                // Stop before arithmetic if metadata is inconsistent: the old
+                // reader could otherwise make unary minus overrun its output.
+                ASSERT_EQ(restored.getMaxOrder(), source.getMaxOrder());
+                ASSERT_EQ(restored.getSize(), source.getSize());
+                EXPECT_EQ(restored.getTruncOrder(), source.getTruncOrder());
+                EXPECT_EQ(restored.getVariables(), variables);
+                const auto negative = -restored;
+                const auto doubled  = restored + restored;
+                for (int i = 0; i < source.getSize(); ++i) {
+                    EXPECT_DOUBLE_EQ(restored[i], source[i]);
+                    EXPECT_DOUBLE_EQ(negative[i], -source[i]);
+                    EXPECT_DOUBLE_EQ(doubled[i], 2 * source[i]);
+                }
+                std::stringstream repeated;
+                repeated << restored;
+                EXPECT_EQ(repeated.str(), stream.str());
+            }
+        }
+    }
+
     TEST_F(TPSIntegration, VectorSeriesStreamsReadIntoTemporaryBeforeCommit) {
         using Series = tps::Tps<double>;
         Series::setGlobalTruncOrder(Series::EXACT);
