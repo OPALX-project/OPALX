@@ -1,0 +1,89 @@
+name: GPU Simulator
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# OPALX for gfx90a with the HIP backend and runs the `unit_tests/` ctest suite on
+# a simulated AMD Instinct MI250X (https://github.com/pantheongpu/pantheonsim).
+# A simulator cannot reproduce hardware-specific behavior or timing, so it
+# complements real-GPU testing and does not replace it.
+#
+# Like the other GPU workflows, it runs only on non-draft pull requests with the
+# smoke-compile-checks label, and it can also be started by hand.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "unit_tests/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: unit tests (ROCm 7.1 and simulated MI250X)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    if: >
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.draft == false &&
+       contains(github.event.pull_request.labels.*.name, 'smoke-compile-checks'))
+
+    steps:
+      # persist-credentials is left at its default: with `false` the checkout
+      # action runs `git submodule foreach`, which fails here because the
+      # repository has a submodule entry (tools/vim/start/vim-localrc) but no
+      # .gitmodules.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up the simulated GPU and ROCm
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        with:
+          gpu: amd/mi250x
+          cuda-toolkit: none
+          rocm: "7.1"
+
+      # The action installs only the compiler side of ROCm. Kokkos (through
+      # IPPL) and heFFTe need rocFFT, rocThrust and rocPRIM.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran libopenmpi-dev openmpi-bin ninja-build \
+            rocfft-dev rocthrust-dev rocprim-dev
+
+      # Release, not the Debug of gpu-hip.yml: unoptimized HIP code is very slow
+      # on the simulator. IPPL, Kokkos and heFFTe are fetched and built by CMake.
+      - name: Configure
+        run: |
+          cmake -S . -B build_hip -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=/opt/rocm \
+            -DCMAKE_CXX_COMPILER=hipcc \
+            -DPLATFORMS=HIP \
+            -DARCH=AMD_GFX90A \
+            -DAMDGPU_TARGETS=gfx90a \
+            -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
+
+      - name: Build
+        run: cmake --build build_hip -j3
+
+      # TestMultipoleTStraight and TestMultipoleTCurvedConstRadius are excluded:
+      # the simulator stops on a buffer_load_dword whose address adds the lane id
+      # (VirtualGPU error [unsupported]), which is a simulator gap, not an OPALX
+      # failure. The other 130 tests of the 132 run.
+      # No -j: TestFFT2D5Numerics has a 300 s ctest timeout and took 227 s with
+      # two tests in parallel, then timed out on a slower runner.
+      - name: Test
+        run: |
+          vgpu run ctest --test-dir build_hip --output-on-failure --no-tests=error \
+            -E '^TestMultipoleT(Straight|CurvedConstRadius)$'
