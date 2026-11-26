@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include "Algorithms/MatchedCovariance.h"
 #include "Ippl.h"
@@ -189,4 +191,36 @@ TEST_F(MatchedCovarianceTest, RejectsUnsupportedMapsAndInvalidInputs) {
     MatchedCovariance::Settings settings;
     settings.periodicTolerance = 0;
     EXPECT_THROW(MatchedCovariance::compute(valid, {2e-6, 7e-6}, settings), OpalException);
+}
+
+TEST_F(MatchedCovarianceTest, CovarianceDisplayUsesSixSignificantDigitsAndZeroesSubEpsilonEntries) {
+    Matrix matrix{};
+    const double epsilon = std::numeric_limits<double>::epsilon();
+    matrix[0]            = {1.23456789, -123456789., epsilon, epsilon / 2};
+    matrix[1]            = {-epsilon / 2, -0.0, 1e-30, -1e-30};
+    const auto original  = matrix;
+    std::ostringstream output;
+    output << std::fixed << std::setprecision(2);
+    const auto flags     = output.flags();
+    const auto precision = output.precision();
+    MatchedCovariance::writeCovariance(output, matrix);
+    EXPECT_EQ(matrix, original);
+    EXPECT_EQ(output.flags(), flags);
+    EXPECT_EQ(output.precision(), precision);
+    std::istringstream lines(output.str());
+    std::string first, second;
+    std::getline(lines, first);
+    std::getline(lines, second);
+    std::istringstream fields(first);
+    std::array<std::string, 4> values;
+    for (auto& value : values)
+        fields >> value;
+    EXPECT_EQ(
+            values, (std::array<std::string, 4>{
+                            "1.23457e+00", "-1.23457e+08", "2.22045e-16", "0.00000e+00"}));
+    std::istringstream zeros(second);
+    for (auto& value : values) {
+        zeros >> value;
+        EXPECT_EQ(value, "0.00000e+00");
+    }
 }

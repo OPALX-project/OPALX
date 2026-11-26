@@ -2,7 +2,9 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 #include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/TpsClosedOrbitMap.h"
 #include "Physics/Physics.h"
@@ -191,4 +193,17 @@ MatchedCovariance::Result MatchedCovariance::compute(
             "Matched covariance is not positive definite.");
     result.covariance = stored(sigma);
     return result;
+}
+
+void MatchedCovariance::writeCovariance(std::ostream& output, const Matrix& covariance) {
+    std::ostringstream formatted;
+    // Scientific precision counts digits after the decimal point.
+    formatted << std::scientific << std::setprecision(5);
+    for (const auto& row : covariance) {
+        for (double value : row)
+            formatted << std::setw(15)
+                      << (std::abs(value) < std::numeric_limits<double>::epsilon() ? 0.0 : value);
+        formatted << '\n';
+    }
+    output << formatted.str();
 }

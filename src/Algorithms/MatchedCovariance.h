@@ -1,6 +1,7 @@
 #ifndef OPAL_MATCHED_COVARIANCE_H
 #define OPAL_MATCHED_COVARIANCE_H
 
+#include <iosfwd>
 #include "Algorithms/ClosedOrbitOptics.h"
 
 /** Host-only zero-current transverse matching of a static magnetic RING.
@@ -58,6 +59,9 @@ public:
         std::array<double, 2> emittances{}, tunes{};
         double symplecticResidual = 0, periodicResidual = 0, normalizationResidual = 0;
     };
+    /// Display covariance with six significant digits; |entry| < double epsilon
+    /// prints as zero. Does not change the matrix, stream formatting or JSON.
+    static void writeCovariance(std::ostream&, const Matrix&);
     /// Local mechanical-to-canonical tangent matrix; validates finite species/field data.
     static Matrix canonicalTransform(double normalFieldTesla, double chargeE, double massEV);
     /// Throws OpalException for invalid inputs or unsupported/uncertified matching.

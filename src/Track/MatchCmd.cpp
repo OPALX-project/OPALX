@@ -93,12 +93,8 @@ namespace {
         for (unsigned k = 0; k < 2; ++k)
             out << "  mode " << k + 1 << " phase=" << match.tunes[k]
                 << " emittance=" << match.emittances[k] << '\n';
-        out << "Covariance (entries have products of coordinate units):\n" << std::scientific;
-        for (const auto& row : match.covariance) {
-            for (double value : row)
-                out << std::setw(25) << value;
-            out << '\n';
-        }
+        out << "Covariance (entries have products of coordinate units):\n";
+        MatchedCovariance::writeCovariance(out, match.covariance);
         out << "Symplectic residual=" << match.symplecticResidual
             << " periodic residual=" << match.periodicResidual
             << " normalization residual=" << match.normalizationResidual
