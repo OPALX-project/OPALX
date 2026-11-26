@@ -17,11 +17,14 @@
 #include <algorithm>
 #include <array>
 #include <climits>
+#include <limits>
 #include <memory>
+#include <set>
 #include <type_traits>
 
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbstractObjects/OpalData.h"
+#include "EngeDerivativeReference.h"
 #include "Physics/Physics.h"
 #include "gtest/gtest.h"
 
@@ -199,8 +202,9 @@ TEST_F(TestEnge, HighestSupportedOrderFitsWorkspaceAndIsReleased) {
     EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
     std::array<double, order + 1> output;
     model.function(.3, order, output.data());
-    // Host/device exp can round differently; retain the existing analytic bound.
-    EXPECT_NEAR(output[0], 2. / (1. + std::exp(.2)) - 1., 1e-14);
+    // Separate host/device paths can differ by a few ULP after subtracting one.
+    // Use the same absolute tolerance as the independent constant-value oracle.
+    EXPECT_NEAR(output[0], host(0, 0), 1e-14);
     for (int n = 1; n <= order; ++n)
         EXPECT_DOUBLE_EQ(output[n], host(0, n));
     auto config = model.getConfig();
@@ -234,6 +238,111 @@ TEST_F(TestEnge, InvalidOrdersAndOutputShapesAreRejectedBeforeEvaluation) {
     const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
     EXPECT_DOUBLE_EQ(host(0, 0), 99.);
     EXPECT_DOUBLE_EQ(host(1, 0), 99.);
+}
+
+TEST_F(TestEnge, CompactedTablesHaveExactCoefficientsThroughOrderTwelve) {
+    using namespace endfieldmodel;
+    using enge_test::factorial;
+    Enge model({.2, .8, -.1}, .3, .7);
+    model.initialise();
+    const auto config = model.getConfig();
+    // Number of integer partitions of n: one monomial for each partition.
+    constexpr std::array<size_t, 13> partitions{1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77};
+    std::int64_t largestCoefficient = 0;
+    for (int n = 0; n <= enge_test::maxOrder; ++n) {
+        SCOPED_TRACE(n);
+        const auto table = Enge::getQIndex(n);
+        ASSERT_EQ(table.size(), partitions[n]);
+        const auto deviceTable =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), config.gIndices[n]);
+        ASSERT_EQ(deviceTable.extent(0), table.size());
+        std::set<std::vector<std::int64_t>> uniquePowers;
+        for (size_t row = 0; row < table.size(); ++row) {
+            const auto& term = table[row];
+            EXPECT_TRUE(uniquePowers.insert({term.begin() + 1, term.end()}).second);
+            int count = 0, weight = 0;
+            std::int64_t denominator = 1;
+            for (size_t j = 2; j < term.size(); ++j) {
+                ASSERT_GE(term[j], 0);
+                count += term[j];
+                weight += (j - 1) * term[j];
+                denominator *= factorial(term[j]);
+                for (int k = 0; k < term[j]; ++k)
+                    denominator *= factorial(j - 1);
+            }
+            EXPECT_EQ(weight, n);
+            EXPECT_EQ(term[1], -count - 1);
+            // Faa di Bruno for (1/g)^(n): (-1)^k n! k! / prod(m_j! (j!)^m_j).
+            const auto coefficient =
+                    (count % 2 ? -1 : 1) * factorial(n) * factorial(count) / denominator;
+            EXPECT_EQ(term[0], coefficient);
+            largestCoefficient = std::max(largestCoefficient, std::abs(term[0]));
+            for (size_t j = 0; j < term.size(); ++j)
+                EXPECT_EQ(deviceTable(row, j), term[j]);
+        }
+        // h tables were already compact; check their coefficients independently too.
+        if (n == 0) continue;
+        const auto h = Enge::getHIndex(n);
+        ASSERT_EQ(h.size(), partitions[n]);
+        for (const auto& term : h) {
+            int weight               = 0;
+            std::int64_t denominator = 1;
+            for (size_t j = 1; j < term.size(); ++j) {
+                weight += j * term[j];
+                denominator *= factorial(term[j]);
+                for (int k = 0; k < term[j]; ++k)
+                    denominator *= factorial(j);
+            }
+            EXPECT_EQ(weight, n);
+            EXPECT_EQ(term[0], factorial(n) / denominator);
+        }
+    }
+    EXPECT_EQ(largestCoefficient, INT64_C(5388768000));
+    EXPECT_GT(largestCoefficient, std::numeric_limits<int>::max());
+}
+
+TEST_F(TestEnge, CompactedDerivativesMatchExpandedAndProductRuleReferences) {
+    using namespace endfieldmodel;
+    const auto expanded = enge_test::expandedTables();
+    ASSERT_EQ(expanded.back().size(), 140152u);
+    constexpr std::array<double, 5> x{-1., -.2, 0., .4, 1.1};
+    for (const auto& coefficients : std::vector<std::vector<double>>{
+                 {.2, .8}, {.2, .8, -.1}, {-.3, .5, -.1, .08, -.02, .01, .003}}) {
+        Enge model(coefficients, .3, .7);
+        model.initialise();
+        Kokkos::View<double*> points("equivalence points", x.size());
+        const auto input = Kokkos::create_mirror_view(points);
+        for (size_t i = 0; i < x.size(); ++i)
+            input(i) = x[i];
+        Kokkos::deep_copy(points, input);
+        Kokkos::View<double**> values("compacted derivatives", x.size(), enge_test::maxOrder + 1);
+        model.function(points, enge_test::maxOrder, values);
+        const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+        for (size_t i = 0; i < x.size(); ++i) {
+            const auto left  = enge_test::referenceEnd(coefficients, x[i] - .3L, .7);
+            const auto right = enge_test::referenceEnd(coefficients, -x[i] - .3L, .7);
+            for (int n = 0; n <= enge_test::maxOrder; ++n) {
+                SCOPED_TRACE(
+                        ::testing::Message()
+                        << "degree=" << coefficients.size() - 1 << " x=" << x[i] << " n=" << n);
+                const auto [legacyLeft, scaleLeft] = enge_test::evaluateTable(expanded[n], left.g);
+                const auto [legacyRight, scaleRight] =
+                        enge_test::evaluateTable(expanded[n], right.g);
+                const int sign = n % 2 ? -1 : 1;
+                const long double expected =
+                        left.reciprocal[n] + sign * right.reciprocal[n] - (n == 0 ? 1 : 0);
+                const long double legacy = legacyLeft + sign * legacyRight - (n == 0 ? 1 : 0);
+                // Cancellation can amplify relative error near zeros. Bound absolute
+                // roundoff by 128 epsilon times the L1 monomial sum, including unity
+                // for the final subtraction. This is a new equivalence-test bound.
+                const long double tolerance =
+                        128 * std::numeric_limits<double>::epsilon() * (1 + scaleLeft + scaleRight);
+                EXPECT_NEAR(legacy, expected, tolerance);
+                EXPECT_NEAR(host(i, n), legacy, tolerance);
+                EXPECT_NEAR(host(i, n), expected, tolerance);
+            }
+        }
+    }
 }
 
 TEST_F(TestEnge, HostPointsMatchBatchedValuesAfterModelUpdates) {
