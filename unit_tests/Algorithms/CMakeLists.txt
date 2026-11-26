@@ -38,7 +38,7 @@ add_opalx_test(TestCyclotronProbeMPI SOURCES TestCyclotronProbe.cpp NUM_PROCS 2 
 add_opalx_test(TestTransferMapStorageLifecycle NUM_PROCS 1 LABELS tps)
 add_opalx_test(TestTransferMapStorageMPI SOURCES TestOrbitThreader.cpp NUM_PROCS 2
                USE_GTEST_MAIN LABELS tps
-               ARGS --gtest_filter=OrbitThreaderTest.TpsCompositionKeepsSharedOverlapAndNonzeroOwnerlessTail:OrbitThreaderTest.CompleteOwnerlessPassSurvivesBuilderAndFailedRecalculation:OrbitThreaderTest.NearCoincidentMapBoundariesShareReferenceStates)
+               ARGS --gtest_filter=OrbitThreaderTest.TpsCompositionKeepsSharedOverlapAndNonzeroOwnerlessTail:OrbitThreaderTest.CompleteOwnerlessPassSurvivesBuilderAndFailedRecalculation:OrbitThreaderTest.NearCoincidentMapBoundariesShareReferenceStates:OrbitThreaderTest.AppendInvalidatesOwnerlessPassAndSupportsUnmappedConstruction)
 
 add_opalx_test(TestTpsLinearMapAlgebra USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsLinearMapAlgebraMPI SOURCES TestTpsLinearMapAlgebra.cpp

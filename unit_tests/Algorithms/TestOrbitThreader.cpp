@@ -1993,6 +1993,38 @@ TEST_F(OrbitThreaderTest, CompleteOwnerlessPassSurvivesBuilderAndFailedRecalcula
     EXPECT_TRUE(snapshot->available());
 }
 
+TEST_F(OrbitThreaderTest, AppendInvalidatesOwnerlessPassAndSupportsUnmappedConstruction) {
+    OpalBeamline beamline;
+    PartData particle(1, 9.382720813e8, 1e6);
+    auto entrance     = LinearTransferMapBuilder::initialFrame(beamline, {0, 0, 1});
+    entrance.momentum = {0, 0, 1};
+    auto exit         = entrance;
+    exit.position(2) = exit.pathLength = .1;
+    exit.time                          = .1 * std::sqrt(2.) / Physics::c;
+    LinearTransferMapBuilder builder(beamline, particle, 1e-11);
+    const auto result = builder.build({{entrance}, {exit}}, 0);
+    beamline.publishTransferMapPass(result.pass, {});
+    const auto snapshot = beamline.getTransferMapPass();
+    ASSERT_TRUE(snapshot);
+    EXPECT_TRUE(beamline.getLinearTransferMapsInReferenceOrder().empty());
+    auto bunch = makeBunch(0);
+    DummyBeamline visitorLine;
+    DefaultVisitor visitor(visitorLine, false, false);
+    DriftRep drift("APPEND");
+    drift.getGeometry().setElementLength(.01);
+    // A complete ownerless pass must be invalidated even without attachments.
+    beamline.visit(drift, visitor, *bunch);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    EXPECT_TRUE(snapshot->available());
+    // Ordinary construction with maps disabled requires no invalidation scan.
+    for (unsigned i = 1; i < 64; ++i)
+        beamline.visit(drift, visitor, *bunch);
+    EXPECT_EQ(beamline.getElements().size(), 64u);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    for (const auto& owner : beamline.getElements())
+        EXPECT_FALSE(owner->hasLinearTransferMaps());
+}
+
 TEST_F(OrbitThreaderTest, PersistentPassDoesNotKeepNominalOwnersAlive) {
     std::weak_ptr<ElementBase> weakOwner;
     std::shared_ptr<const TransferMapPass> retained;

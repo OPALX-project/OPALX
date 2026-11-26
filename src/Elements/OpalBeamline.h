@@ -183,7 +183,9 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
     elements_m.push_back(elptr);
-    clearTransferMaps();
+    // Publication owns the pass and all attachments together. Once invalidated,
+    // later appends need no all-element scan (ordinary construction stays linear).
+    if (transferMapPass_m) clearTransferMaps();
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }
