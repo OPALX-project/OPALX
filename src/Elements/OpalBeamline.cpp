@@ -130,7 +130,8 @@ void OpalBeamline::recordReference(
 std::vector<std::array<Vector_t<double, 3>, 2>> OpalBeamline::getReferenceFields(
         const PartBunch_t& bunch) {
     Inform m("OpalBeamline::getReferenceFields");
-    const double t = bunch.getT() - 0.5 * bunch.getdT();
+    // The reference position is the one at the end of the step, and so is the time.
+    const double t = bunch.getT();
     std::vector<std::array<Vector_t<double, 3>, 2>> fields(bunch.getNumParticleContainers());
     for (size_t i = 0; i < fields.size(); ++i) {
         const auto pc = bunch.getParticleContainer(i);

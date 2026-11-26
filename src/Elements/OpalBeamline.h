@@ -161,7 +161,7 @@ public:
 
     /**
      * @brief The external fields {B (T), E (V/m)} at the reference particle of each container of
-     *        @p bunch, at the middle of the last time step; zero for an empty container.
+     *        @p bunch, at the end of the last time step; zero for an empty container.
      */
     std::vector<std::array<Vector_t<double, 3>, 2>> getReferenceFields(const PartBunch_t& bunch);
 

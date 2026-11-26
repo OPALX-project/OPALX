@@ -7,6 +7,7 @@
  * aperture. The kernel runs at StepTime{t, dt}; applyOnHost() gets time.fieldTime(). Error
  * terms (DVOLT, DLAG, DKS) are set where an element has them, so both callers must include
  * them. Both start from the same nonzero E and B, so both must add rather than overwrite.
+ * Wherever there is a field, isInside() must select the element, as the reference needs it.
  */
 
 #include "AbsBeamline/ConstantEFieldCavity.h"
@@ -148,6 +149,9 @@ protected:
             for (unsigned d = 0; d < 3; ++d)
                 changed = changed || hostE(d) != initialE(d) || hostB(d) != initialB(d);
             if (changed) ++withField;
+            // The reference gets a field only from elements whose isInside() holds
+            // (OpalBeamline::getElements()), so it must hold wherever the field is.
+            if (changed) EXPECT_TRUE(element.isInside(points[i]));
             for (unsigned d = 0; d < 3; ++d) {
                 EXPECT_NEAR(E(i)(d), hostE(d), 1e-12 * std::max(1.0, std::abs(hostE(d))));
                 EXPECT_NEAR(B(i)(d), hostB(d), 1e-12 * std::max(1.0, std::abs(hostB(d))));

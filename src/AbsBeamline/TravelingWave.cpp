@@ -316,8 +316,9 @@ double TravelingWave::getAutoPhaseEstimate(
 }
 
 bool TravelingWave::isInside(const Vector_t<double, 3>& r) const {
-    return getRegions().aperture.contains(r(0), r(1)) && r(2) >= -0.5 * periodLength_m
-           && r(2) < startExitField_m;
+    // The field window [startField_m, endField_m) that apply(pc) uses. Not RFCavity::isInside():
+    // the cells are mapped onto the field map, so a local z is not a position in the map.
+    return ElementBase::isInside(r);
 }
 
 std::optional<ApertureShape> TravelingWave::getFieldMapRange() const {
