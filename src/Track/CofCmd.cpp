@@ -1,18 +1,11 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Track/CofCmd.h"
-#include <unistd.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cerrno>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
 #include <iomanip>
 #include <limits>
-#include <locale>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -31,10 +24,15 @@
 #include "PartBunch/CartesianDomainConfig.h"
 #include "Structure/Beam.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/ResultJson.h"
 #include "Utility/Inform.h"
 
 extern Inform* gmsg;
 namespace {
+    using opalx::report::ResultJsonWriter;
+    // Parser actions and host optics are serialized. Keep identity across named
+    // object replacement/cloning, not just repeated calls on the same object.
+    std::uint64_t cofGeneration = 0;
     enum Outer {
         LINE,
         BEAM,
@@ -65,130 +63,11 @@ namespace {
     void require(bool ok, const std::string& message) {
         if (!ok) throw OpalException("COF", message);
     }
-    // Small streaming writer for the COF export: JSON escaping, finite numbers,
-    // classic-locale round-trip precision and two-space indentation.
-    class CofJsonWriter {
-        std::ostringstream out;
-        std::vector<bool> first;
-
-        void quoted(const std::string& text) {
-            constexpr char hex[] = "0123456789abcdef";
-            out << '"';
-            for (unsigned char c : text) {
-                if (c == '"' || c == '\\')
-                    out << '\\' << c;
-                else if (c < 0x20)
-                    out << "\\u00" << hex[c >> 4] << hex[c & 15];
-                else
-                    out << c;
-            }
-            out << '"';
-        }
-        void prefix(const char* key) {
-            if (!first.empty()) {
-                if (!first.back()) out << ',';
-                out << '\n' << std::string(2 * first.size(), ' ');
-                first.back() = false;
-            }
-            if (key) {
-                quoted(key);
-                out << ": ";
-            }
-        }
-        void finite(double value) {
-            require(std::isfinite(value), "Cannot serialize a nonfinite COF result.");
-            out << value;
-        }
-        template <class F>
-        void container(const char* key, char open, char close, F contents) {
-            prefix(key);
-            out << open;
-            first.push_back(true);
-            contents();
-            const bool empty = first.back();
-            first.pop_back();
-            if (!empty) out << '\n' << std::string(2 * first.size(), ' ');
-            out << close;
-        }
-
-    public:
-        CofJsonWriter() {
-            out.imbue(std::locale::classic());
-            out << std::setprecision(std::numeric_limits<double>::max_digits10);
-        }
-        template <class F>
-        void object(const char* key, F contents) {
-            container(key, '{', '}', contents);
-        }
-        template <class F>
-        void array(const char* key, F contents) {
-            container(key, '[', ']', contents);
-        }
-        void text(const char* key, const std::string& value) {
-            prefix(key);
-            quoted(value);
-        }
-        void number(const char* key, double value) {
-            prefix(key);
-            finite(value);
-        }
-        void boolean(const char* key, bool value) {
-            prefix(key);
-            out << (value ? "true" : "false");
-        }
-        void null(const char* key) {
-            prefix(key);
-            out << "null";
-        }
-        template <class Values>
-        void numbers(const char* key, const Values& values) {
-            prefix(key);
-            out << '[';
-            bool comma = false;
-            for (double value : values) {
-                if (comma) out << ", ";
-                finite(value);
-                comma = true;
-            }
-            out << ']';
-        }
-        std::string str() const { return out.str() + '\n'; }
-    };
     std::string lowerCase(std::string text) {
         std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
             return std::tolower(c);
         });
         return text;
-    }
-    // Keep the previous result intact until a complete replacement is closed.
-    // A unique sibling file also avoids collisions between independent runs.
-    void writeResult(const std::string& output, const std::string& json) {
-        std::string temporary = output + ".tmp.XXXXXX";
-        const int fd          = ::mkstemp(temporary.data());
-        if (fd < 0)
-            throw OpalException(
-                    "COF", "Cannot create temporary COF OUTPUT for " + output + ": "
-                                   + std::strerror(errno));
-        struct Cleanup {
-            const std::string& path;
-            ~Cleanup() {
-                std::error_code ignored;
-                std::filesystem::remove(path, ignored);
-            }
-        } cleanup{temporary};
-        std::unique_ptr<FILE, decltype(&std::fclose)> file(::fdopen(fd, "w"), &std::fclose);
-        if (!file) {
-            const std::string message = std::strerror(errno);
-            ::close(fd);
-            throw OpalException(
-                    "COF", "Cannot open temporary COF OUTPUT for " + output + ": " + message);
-        }
-        require(std::fwrite(json.data(), 1, json.size(), file.get()) == json.size(),
-                "Error writing COF OUTPUT: " + output);
-        require(std::fclose(file.release()) == 0, "Error closing COF OUTPUT: " + output);
-        std::error_code error;
-        std::filesystem::rename(temporary, output, error);
-        require(!error, "Cannot replace COF OUTPUT " + output + ": " + error.message());
     }
     struct Report {
         std::string details;
@@ -404,7 +283,7 @@ namespace {
         if (spectrum.stability == Stability::Stable) stability = "STABLE";
         if (spectrum.stability == Stability::Unstable) stability = "UNSTABLE";
         if (spectrum.stability == Stability::NonUnitCircle) stability = "NON_UNIT_CIRCLE";
-        CofJsonWriter json;
+        ResultJsonWriter json;
         json.object(nullptr, [&] {
             json.text("schema", "opalx.closed_orbits");
             json.number("schema_version", 1);
@@ -559,7 +438,8 @@ namespace {
     Report solveAndReport(
             BeamSequence& sequence, Beam& beam, OpalBeamline& lattice,
             const std::vector<std::shared_ptr<ElementBase>>& ordered, const Controls& c,
-            const RunSettings& s, ClosedOrbitInitialState& state) {
+            const RunSettings& s, ClosedOrbitOptics& snapshot) {
+        auto& state = snapshot.launch;
         require(!ordered.empty(), "RING must contain magnetic/transport elements.");
         std::ostringstream out;
         validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
@@ -627,16 +507,26 @@ namespace {
         out << "Phase samples=" << fullTunes.samples
             << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
         setLaunchState(state, c, result.coordinates);
-        state.json = serializeResult(
+        Vector_t<double, 3> electric(0.0), magnetic(0.0);
+        lattice.getFieldAt(state.position, state.momentum, state.time, electric, magnetic);
+        snapshot.normalMagneticField = c.section.rotateTo(magnetic)[2];
+        require(std::isfinite(snapshot.normalMagneticField),
+                "Nonfinite section-normal magnetic field.");
+        snapshot.coordinates         = result.coordinates;
+        snapshot.residual            = result.residual;
+        snapshot.matrix              = result.matrix;
+        snapshot.scales              = s.solver.scales;
+        snapshot.relativeEnergyDrift = drift;
+        state.json                   = serializeResult(
                 state, c, s, beam.getOpalName(), result, reference, spectrum, fullTunes, returned,
                 drift);
-        if (!s.output.empty()) writeResult(s.output, state.json);
+        if (!s.output.empty()) opalx::report::writeResult("COF", s.output, state.json);
         return {out.str(), optics.str()};
     }
 
     // All ranks build the empty reference container once; scalar ray work and files
     // are rank-zero only. Broadcast diagnostic text before throwing on solver failure.
-    ClosedOrbitInitialState calculate(
+    ClosedOrbitOptics calculate(
             BeamSequence& sequence, Beam& beam, const Controls& c, const RunSettings& s) {
         sequence.prepareForTracking();
         // COF needs only empty particle storage for element initialization, not a solver.
@@ -649,17 +539,20 @@ namespace {
         lattice.prepareSections();
         int rank = 0;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        ClosedOrbitInitialState state;
-        state.section = c.section;
-        state.time    = c.tracking.time;
-        state.massEV  = beam.getReference().getM();
-        state.chargeE = beam.getReference().getQ();
-        state.line    = sequence.getOpalName();
-        state.species = beam.getParticleName();
+        ClosedOrbitOptics snapshot;
+        auto& state      = snapshot.launch;
+        snapshot.command = s.commandName;
+        snapshot.scales  = s.solver.scales;
+        state.section    = c.section;
+        state.time       = c.tracking.time;
+        state.massEV     = beam.getReference().getM();
+        state.chargeE    = beam.getReference().getQ();
+        state.line       = sequence.getOpalName();
+        state.species    = beam.getParticleName();
         std::string error;
         Report report;
         if (rank == 0) try {
-                report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, state);
+                report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, snapshot);
             } catch (const OpalException& ex) {
                 error = ex.what();
             } catch (const std::exception& ex) {
@@ -689,7 +582,28 @@ namespace {
             *gmsg << level5 << report.details << endl;
             *gmsg << level4 << report.optics << endl;
         }
-        return state;
+        // Broadcast typed optics directly; MATCH never reconstructs data from JSON.
+        std::array<double, 26> optics{};
+        if (rank == 0) {
+            for (unsigned i = 0; i < 4; ++i) {
+                optics[i]     = snapshot.coordinates[i];
+                optics[4 + i] = snapshot.residual[i];
+                for (unsigned j = 0; j < 4; ++j)
+                    optics[8 + 4 * i + j] = snapshot.matrix[i][j];
+            }
+            optics[24] = snapshot.normalMagneticField;
+            optics[25] = snapshot.relativeEnergyDrift;
+        }
+        MPI_Bcast(optics.data(), optics.size(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        for (unsigned i = 0; i < 4; ++i) {
+            snapshot.coordinates[i] = optics[i];
+            snapshot.residual[i]    = optics[4 + i];
+            for (unsigned j = 0; j < 4; ++j)
+                snapshot.matrix[i][j] = optics[8 + 4 * i + j];
+        }
+        snapshot.normalMagneticField = optics[24];
+        snapshot.relativeEnergyDrift = optics[25];
+        return snapshot;
     }
 }  // namespace
 
@@ -735,6 +649,9 @@ CofCmd::CofCmd(const std::string& name, CofCmd* parent) : Action(name, parent) {
 CofCmd* CofCmd::clone(const std::string& name) { return new CofCmd(name, this); }
 void CofCmd::execute() {
     result_m.reset();
+    require(cofGeneration != std::numeric_limits<std::uint64_t>::max(),
+            "COF execution generation exhausted.");
+    const auto generation              = ++cofGeneration;
     OpalData::getInstance()->hasCofRun = true;
     require(!OpalData::getInstance()->inRestartRun(), "COF does not support restart mode.");
     auto* sequence = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
@@ -800,12 +717,20 @@ void CofCmd::execute() {
         s.output = Attributes::getString(itsAttr[OUTPUT]);
         require(!s.output.empty(), "Explicit OUTPUT must not be empty.");
     }
-    result_m = calculate(*sequence, *beam, c, s);
+    result_m             = calculate(*sequence, *beam, c, s);
+    result_m->generation = generation;
 }
 
 const ClosedOrbitInitialState& CofCmd::findResult(const std::string& name) {
     auto* command = dynamic_cast<CofCmd*>(OpalData::getInstance()->find(name));
     require(command && command->result_m.has_value(),
             "INITIALORBIT must name a successfully executed COF: " + name);
+    return command->result_m->launch;
+}
+
+const ClosedOrbitOptics& CofCmd::findOptics(const std::string& name) {
+    auto* command = dynamic_cast<CofCmd*>(OpalData::getInstance()->find(name));
+    require(command && command->result_m.has_value(),
+            "ORBIT must name a successfully executed COF: " + name);
     return *command->result_m;
 }

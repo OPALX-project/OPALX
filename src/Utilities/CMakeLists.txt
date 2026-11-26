@@ -36,6 +36,7 @@ set (HDRS
     PortableGraymapReader.h
     Util.h
     OpalException.h
+    ResultJson.h
     OpalFilter.h
     RegularExpression.h
     Timer.h

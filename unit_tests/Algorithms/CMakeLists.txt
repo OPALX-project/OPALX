@@ -24,6 +24,8 @@ add_opalx_test(TestPassiveRingProbe USE_GTEST_MAIN)
 add_opalx_test(TestBorisMidpoint USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitInitialState USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitSolver USE_GTEST_MAIN)
+add_opalx_test(TestMatchedCovariance USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestMatchedCovarianceMPI SOURCES TestMatchedCovariance.cpp NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestLinearMapEigenAnalysis USE_GTEST_MAIN)
 add_opalx_test(TestTpsClosedOrbitMap USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsClosedOrbitMapMPI SOURCES TestTpsClosedOrbitMap.cpp
