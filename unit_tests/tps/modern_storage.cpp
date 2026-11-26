@@ -1,17 +1,12 @@
 #include <Kokkos_Core.hpp>
-#include <algorithm>
 #include <complex>
-#include <concepts>
 #include <cstdint>
 #include <iostream>
-#include <ranges>
 #include <stdexcept>
 #include "Utilities/CLRangeError.h"
 #include "Utilities/OpalException.h"
 #include "tps/tps.hpp"
 using namespace tps;
-static_assert(std::random_access_iterator<SliceIterator<int>>);
-static_assert(std::random_access_iterator<ConstSliceIterator<int>>);
 struct alignas(64) Tracked {
     static inline int alive = 0;
     static inline bool fail = false;
@@ -114,22 +109,14 @@ int main() {
         auto nested = (outer + Inner(2.0)) * (outer + Inner(2.0));
         require(nested[0][0] == 4 && nested[1][0] == 4 && nested[2][0] == 1,
                 "nested coefficient arithmetic");
-        Array2D<int> matrix(4, 3, 0);
-        matrix(0, 2) = 4;
-        matrix(1, 2) = 1;
-        matrix(2, 2) = 3;
-        matrix(3, 2) = 2;
-        std::ranges::sort(matrix.col_begin(2), matrix.col_end(2));
-        for (int i = 0; i < 4; ++i)
-            require(matrix(i, 2) == i + 1, "C++20 ranges column sort");
         bool caught = false;
         try {
-            (void)matrix[-1];
+            (void)alias[-1];
         } catch (const ::OpalException&) {
             caught = true;
         }
         require(caught, "OPALX exception interoperability");
-        std::cout << "Modern storage and C++20 concepts passed\n";
+        std::cout << "Modern storage checks passed\n";
     } catch (const ::OpalException& e) {
         std::cerr << e.where() << ": " << e.what() << '\n';
         return 1;

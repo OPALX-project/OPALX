@@ -11,17 +11,19 @@
 #include <iosfwd>
 #include <utility>
 #include "tps/Algebra/Array1D.h"
-#include "tps/Algebra/SliceIterator.h"
 #include "tps/HostStorage.hpp"
 
 namespace tps {
 
-    // Template class Array2D<T>
-    /// Two-dimensional array.
-    ///  A templated representation for 2-dimensional arrays.
-    ///  This class implements storage management and component access,
-    ///  as well as access to rows and columns, but contains no arithmetic
-    ///  operations.
+    /** @brief Checked two-dimensional host array with row-major Kokkos storage.
+     * @details Column operations use a rank-one Kokkos::subview of view(). Columns
+     * are strided: do not treat their data pointers as contiguous arrays.
+     * Use Kokkos::deep_copy to transfer a column and Kokkos kernels for arithmetic.
+     * Custom column iterators and getColumn/putColumn/swapColumns are no longer
+     * provided; these legacy APIs had no remaining production callers.
+     * @test tps.column_views checks strided access, constness, copying and empty columns.
+     * @snippet column_views.cpp column access
+     */
 
     template <class T>
     class Array2D {
@@ -41,12 +43,6 @@ namespace tps {
 
         /// The iterator type for access by rows for a constant array.
         typedef const T* const_row_iterator;
-
-        /// The iterator type for access by columns.
-        typedef SliceIterator<T> col_iterator;
-
-        /// The iterator type for access by columns for a constant array.
-        typedef ConstSliceIterator<T> const_col_iterator;
 
         // Checked row views keep both subscripts of a[r][c] bounds checked.
         class row_view {
@@ -158,55 +154,15 @@ namespace tps {
         ///  Version for constant objects.
         const_row_view operator[](int r) const;
 
-        /// Get column iterator.
-        ///  Return pointer to beginning of column c.
-        ///  Throw ::CLRangeError if c is out of range.
-        ///  Version for non-constant objects.
-        col_iterator col_begin(int c);
-
-        /// Get column iterator.
-        ///  Return pointer past end of column c.
-        ///  Throw ::CLRangeError if c is out of range.
-        ///  Version for non-constant objects.
-        col_iterator col_end(int c);
-
-        /// Get column iterator.
-        ///  Return pointer to beginning of column c.
-        ///  Throw ::CLRangeError if c is out of range.
-        ///  Version for constant objects.
-        const_col_iterator col_begin(int c) const;
-
-        /// Get column iterator.
-        ///  Return pointer past end of column c.
-        ///  Throw ::CLRangeError if c is out of range.
-        ///  Version for constant objects.
-        const_col_iterator col_end(int c) const;
-
-        /// Fetch column.
-        ///  Store the column `c` into the array `toArray`.
-        ///  Throw ::CLRangeError if c is out of range.
-        void getColumn(Array1D<T>& toArray, int c) const;
-
         /// Fetch row.
         ///  Store the row `r` into the array `toArray`.
         ///  Throw ::CLRangeError if r is out of range.
         void getRow(Array1D<T>& toArray, int r) const;
 
-        /// Store column.
-        ///  Fill the column `c` from the array `fromArray`.
-        ///  Throw ::CLRangeError if c is out of range.
-        void putColumn(const Array1D<T>& fromArray, int c);
-
         /// Store row.
         ///  Fill the row `r` from the array `fromArray`.
         ///  Throw ::CLRangeError if r is out of range.
         void putRow(const Array1D<T>& fromArray, int r);
-
-        /// Exchange columns.
-        ///  Exchange the columns `c1` and `c2`.
-
-        //  Throw ::CLRangeError, if either index is out of range.
-        void swapColumns(int c1, int c2);
 
         /// Exchange rows.
         ///  Exchange the rows `r1` and `r2`.
@@ -216,6 +172,11 @@ namespace tps {
         /** @brief Borrow mutable HostSpace storage without transferring ownership.
          * @details The View is unmanaged; finish all uses before resize, assignment
          * or destruction of the owning array. Copies of the array own separate storage.
+         * A column is Kokkos::subview(view(), Kokkos::ALL(), c); validate c against
+         * ncols() before constructing it. Subviews inherit the borrowed lifetime
+         * and constness; they do not extend storage ownership. Kokkos indexing does
+         * not provide this class's CLRangeError checks; its bounds checks depend on
+         * the Kokkos build configuration.
          */
         auto view() {
             return Kokkos::View<
@@ -403,46 +364,6 @@ namespace tps {
     }
 
     template <class T>
-    typename Array2D<T>::col_iterator Array2D<T>::col_begin(int c) {
-        if (c < 0 || c >= cols) {
-            throw ::CLRangeError("Array2D::col_begin()", "Column index out of range.");
-        }
-        return col_iterator(rows ? data + c : data, cols);
-    }
-
-    template <class T>
-    typename Array2D<T>::col_iterator Array2D<T>::col_end(int c) {
-        if (c < 0 || c >= cols) {
-            throw ::CLRangeError("Array2D::col_end()", "Column index out of range.");
-        }
-        return col_iterator(rows ? data + c : data, cols, rows);
-    }
-
-    template <class T>
-    typename Array2D<T>::const_col_iterator Array2D<T>::col_begin(int c) const {
-        if (c < 0 || c >= cols) {
-            throw ::CLRangeError("Array2D::col_begin()", "Column index out of range.");
-        }
-        return const_col_iterator(rows ? data + c : data, cols);
-    }
-
-    template <class T>
-    typename Array2D<T>::const_col_iterator Array2D<T>::col_end(int c) const {
-        if (c < 0 || c >= cols) {
-            throw ::CLRangeError("Array2D::col_end()", "Column index out of range.");
-        }
-        return const_col_iterator(rows ? data + c : data, cols, rows);
-    }
-
-    template <class T>
-    void Array2D<T>::getColumn(Array1D<T>& toArray, int c) const {
-        if (c < 0 || c >= cols)
-            throw ::CLRangeError("Array2D::getColumn()", "Column index out of range.");
-        if (toArray.size() != rows) toArray = Array1D<T>(rows);
-        std::copy(col_begin(c), col_end(c), toArray.begin());
-    }
-
-    template <class T>
     void Array2D<T>::getRow(Array1D<T>& toArray, int r) const {
         if (r < 0 || r >= rows)
             throw ::CLRangeError("Array2D::getRow()", "Row index out of range.");
@@ -451,24 +372,11 @@ namespace tps {
     }
 
     template <class T>
-    void Array2D<T>::putColumn(const Array1D<T>& fromArray, int c) {
-        if (fromArray.size() != rows) {
-            throw ::LogicalError("Array2D::putColumn()", "Dimensions inconsistent.");
-        }
-        std::copy(fromArray.begin(), fromArray.end(), col_begin(c));
-    }
-
-    template <class T>
     void Array2D<T>::putRow(const Array1D<T>& fromArray, int r) {
         if (fromArray.size() != cols) {
             throw ::LogicalError("Array2D::putRow()", "Dimensions inconsistent.");
         }
         std::copy(fromArray.begin(), fromArray.end(), row_begin(r));
-    }
-
-    template <class T>
-    void Array2D<T>::swapColumns(int col1, int col2) {
-        std::swap_ranges(col_begin(col1), col_end(col1), col_begin(col2));
     }
 
     template <class T>

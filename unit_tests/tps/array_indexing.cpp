@@ -131,50 +131,25 @@ int main() {
             rejects([&] {
                 (void)cm(0, c);
             });
-            rejects([&] {
-                m.col_begin(c);
-            });
-            rejects([&] {
-                m.col_end(c);
-            });
-            rejects([&] {
-                cm.col_begin(c);
-            });
-            rejects([&] {
-                cm.col_end(c);
-            });
-            rejects([&] {
-                m.swapColumns(0, c);
-            });
         }
         require(m[0][0] == 1 && m[1][2] == 6, "rejected writes changed 2D array");
         Array1D<int> target(1, 42);
         rejects([&] {
             m.getRow(target, -1);
         });
-        rejects([&] {
-            m.getColumn(target, 3);
-        });
         require(target.size() == 1 && target[0] == 42, "invalid extraction changed target");
-        Array1D<int> row(3, 7), column(2, 8);
+        Array1D<int> row(3, 7);
         rejects([&] {
             m.putRow(row, -1);
         });
-        rejects([&] {
-            m.putColumn(column, 3);
-        });
         m.putRow(row, 0);
-        m.putColumn(column, 2);
         m.getRow(target, 0);
-        require(target.size() == 3 && target[2] == 8, "row transfer");
-        m.getColumn(target, 2);
-        require(target.size() == 2 && target[1] == 8, "column transfer");
+        require(target.size() == 3 && target[2] == 7, "row transfer");
         m.swapRows(0, 1);
-        m.swapColumns(0, 2);
-        require(m[0][0] == 8 && m[1][2] == 7, "valid swaps");
+        require(m[0][0] == 0 && m[1][2] == 7, "valid row swap");
         Array2D<int> matrixCopy = m;
         matrixCopy[0][0]        = 20;
-        require(cm[0][0] == 8, "2D copy independence");
+        require(cm[0][0] == 0, "2D copy independence");
         for (auto shape : {std::pair<int, int>{-1, 2}, {2, -1}, {INT_MAX, 2}, {2, INT_MAX}}) {
             rejects([&] {
                 Array2D<int> bad(shape.first, shape.second);
@@ -201,10 +176,6 @@ int main() {
             (void)static_cast<const Array2D<int>&>(noColumns)[0][0];
         });
         Array2D<int> noRows(0, 3);
-        require(noRows.col_begin(2) == noRows.col_end(2), "zero-row column range");
-        require(static_cast<const Array2D<int>&>(noRows).col_begin(2)
-                        == static_cast<const Array2D<int>&>(noRows).col_end(2),
-                "const empty column");
         rejects([&] {
             (void)noRows[0];
         });
