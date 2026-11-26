@@ -206,22 +206,20 @@ namespace opalx::run {
             return objects.dataSink.get();
         }
 
-        /// Attach the global processes of each beam to its particle container.
-        void setupGlobalProcesses(
-                PartBunch_t& bunch,
-                std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists) {
-            const auto& particleContainers = bunch.getParticleContainers();
-            if (particleContainers.size() != globalProcessesLists.size()) {
-                throw OpalException(
-                        "TrackRun::setupGlobalProcesses",
-                        "Mismatch between number of particle containers and global process lists.");
-            }
+        /// What buildTracking() prepares for one beam before the bunch exists.
+        struct BeamSetup {
+            std::size_t decayRoot = 0;  ///< The beam whose reference particle this one follows.
+            std::vector<ObjectValues>
+                    sources;  ///< Its emission sources; none for a decay daughter.
+            std::vector<std::unique_ptr<GlobalProcess>> processes;  ///< Its global processes.
+            BunchBeam bunchBeam;  ///< What PartBunch needs for the beam's container.
+        };
 
-            for (size_t i = 0; i < particleContainers.size(); ++i) {
-                if (!particleContainers[i]) {
-                    continue;
-                }
-                particleContainers[i]->setGlobalProcesses(std::move(globalProcessesLists[i]));
+        /// Give each container the global processes of its beam.
+        void setupGlobalProcesses(PartBunch_t& bunch, std::vector<BeamSetup>& beamSetups) {
+            for (std::size_t i = 0; i < beamSetups.size(); ++i) {
+                bunch.getParticleContainer(i)->setGlobalProcesses(
+                        std::move(beamSetups[i].processes));
             }
         }
 
@@ -277,7 +275,7 @@ namespace opalx::run {
         void wireDaughterContainers(
                 PartBunch_t& bunch, const std::vector<BeamDescription>& beams,
                 const std::vector<std::string>& beamNames,
-                const std::vector<std::size_t>& decayRoots) {
+                const std::vector<BeamSetup>& beamSetups) {
             const auto& containers = bunch.getParticleContainers();
 
             for (std::size_t i = 0; i < beams.size(); ++i) {
@@ -336,11 +334,12 @@ namespace opalx::run {
             // Decay daughter containers use the reference particle, frame, path length and orbit of
             // the first container of their decay chain.
             for (std::size_t i = 0; i < beams.size(); ++i) {
-                bunch.setPcRoot(i, decayRoots[i]);
-                if (decayRoots[i] != i) {
+                const std::size_t root = beamSetups[i].decayRoot;
+                bunch.setPcRoot(i, root);
+                if (root != i) {
                     *gmsg << level2 << "* Beam \"" << beamNames[i]
-                          << "\" uses the reference particle of beam \"" << beamNames[decayRoots[i]]
-                          << "\"." << endl;
+                          << "\" uses the reference particle of beam \"" << beamNames[root] << "\"."
+                          << endl;
                 }
             }
         }
@@ -582,83 +581,160 @@ namespace opalx::run {
             return Vector_t<double, 3>(avrgpz * dir[0], avrgpz * dir[1], avrgpz * dir[2]);
         }
 
+        /// Print the field solver with its boundary conditions, the binning and the beams of the
+        /// RUN.
+        void printRunSetup(
+                const RunDescription& description, const ObjectValues& fieldSolver,
+                const std::optional<ObjectValues>& binning) {
+            FieldSolverCmd::printInfo(*gmsg << level1, fieldSolver) << endl;
+            if (binning) {
+                BinningCmd::printInfo(*gmsg << level1, *binning) << endl;
+            }
+            *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
+
+            const std::vector<std::string>& beamNames = description.track.beamNames;
+            *gmsg << level1 << "* RUN resolved beams: ";
+            for (size_t i = 0; i < beamNames.size(); ++i) {
+                *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
+            }
+            *gmsg << endl;
+            for (const BeamDescription& beam : description.beams) {
+                *gmsg << level1 << beam.banner << endl;
+            }
+        }
+
+        /// For each beam: its decay root, emission sources, global processes and what the bunch
+        /// needs for its container, with the number of particles to reserve room for.
+        std::vector<BeamSetup> setupBeams(const RunDescription& description) {
+            const std::vector<BeamDescription>& beams = description.beams;
+            const std::vector<std::string>& beamNames = description.track.beamNames;
+            const std::vector<std::size_t> decayRoots = decayRootsOf(beams, beamNames);
+
+            std::vector<BeamSetup> beamSetups(beams.size());
+            for (size_t i = 0; i < beams.size(); ++i) {
+                const BeamDescription& beam = beams[i];
+                BeamSetup& setup            = beamSetups[i];
+
+                const double partsPerMacro = beam.chargePerParticle / (beam.charge * Physics::q_e);
+                *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
+                      << " macro charge per particle [C]: " << beam.chargePerParticle << endl;
+                *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
+                      << " macro mass per particle [GeV/c^2]: " << beam.massPerParticle << endl;
+                *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
+                      << " particles per macro particle: " << partsPerMacro << endl
+                      << endl;
+
+                setup.decayRoot = decayRoots[i];
+                // A decay daughter beam gets particles only from the decay.
+                if (setup.decayRoot == i) {
+                    for (const SourceDescription& source : beam.sources) {
+                        setup.sources.emplace_back(named(description.emissionSources, source.name));
+                    }
+                }
+                setup.processes = makeGlobalProcessesForBeam(beam, i, description.options.seed);
+
+                setup.bunchBeam.chargePerParticle = beam.chargePerParticle;
+                setup.bunchBeam.massPerParticle   = beam.massPerParticle;
+                setup.bunchBeam.reference         = beam.reference;
+                setup.bunchBeam.particleName      = beam.particleName;
+                setup.bunchBeam.hasSpin           = beam.hasPolarization;
+                setup.bunchBeam.numParticles      = computeTotalAllocationForBunch(
+                        beam, setup.sources, description.distributions);
+            }
+            return beamSetups;
+        }
+
+        /// Where the run starts and what each beam emits later.
+        struct StartState {
+            double sStart           = 0.0;  ///< Path length the run starts at [m].
+            double globalPhaseShift = 0.0;  ///< The run starts at minus this time [s].
+            std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers;
+            /// Reference momentum along REFDIRECTION of a beam with a file distribution.
+            std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta;
+            CheckpointFile::Metadata checkpoint;  ///< Empty for a fresh run.
+        };
+
+        /**
+         * @brief A restart: particles, reference particles, time and time step come from the
+         *        checkpoint, and the output files are rewound to it. Nothing is sampled.
+         */
+        StartState restoreCheckpoint(
+                const RunDescription& description, PartBunch_t& bunch, DataSink& dataSink) {
+            const RunContext& context = description.context;
+            StartState start;
+            start.sStart = description.track.zStart;
+            start.emittingSamplers.resize(bunch.getNumParticleContainers());
+            start.beamReferenceMomenta.resize(bunch.getNumParticleContainers());
+            start.checkpoint = CheckpointFile::read(context.restartFileName, bunch);
+            dataSink.rewindToCheckpoint(bunch);
+            *gmsg << level1 << "* Restored checkpoint '" << context.restartFileName
+                  << "' at global step " << start.checkpoint.globalTrackStep
+                  << ", t = " << Util::getTimeString(start.checkpoint.time) << "." << endl;
+            return start;
+        }
+
+        /**
+         * @brief A fresh run: sample the distributions of every beam. The run starts at ZSTART,
+         *        or at 0 if the first beam has no particles yet, and the bunch gets the DT of the
+         *        segment that holds the start.
+         */
+        StartState sampleBeams(
+                const RunDescription& description, PartBunch_t& bunch,
+                const std::vector<BeamSetup>& beamSetups) {
+            const TrackDescription& track = description.track;
+            StartState start;
+            start.emittingSamplers.resize(beamSetups.size());
+            start.beamReferenceMomenta.resize(beamSetups.size());
+            const std::string inputDirectory =
+                    std::filesystem::path(description.context.inputFileName).parent_path().string();
+            for (size_t i = 0; i < beamSetups.size(); ++i) {
+                start.beamReferenceMomenta[i] = setupDistributionsAndSamplers(
+                        bunch, beamSetups[i].sources, description.distributions,
+                        description.beams[i], start.emittingSamplers[i], i, start.globalPhaseShift,
+                        description.options.seed, inputDirectory);
+            }
+
+            start.sStart = track.zStart;
+            if (bunch.getParticleContainer()->getTotalNum() == 0) {
+                start.sStart = 0.0;
+            }
+            // The schedule as the tracker builds it; advanceToPos() moves to the first segment
+            // whose ZSTOP is at or past the start.
+            StepSizeConfig schedule;
+            for (std::size_t i = 0; i < track.zStop.size(); ++i) {
+                schedule.push_back(track.dT[i], track.zStop[i], track.maxSteps[i]);
+            }
+            schedule.sortAscendingSStop();
+            schedule.resetIterator();
+            bunch.setdT(schedule.advanceToPos(start.sStart).getdT());
+            return start;
+        }
+
     }  // namespace
 
     TrackingSetup buildTracking(
             const RunDescription& description, std::vector<std::shared_ptr<ElementBase>> elements,
             RunObjects& objects) {
-        const ObjectValues run(description.track.run);
+        // The steps are numbered as in the description of buildTracking() in BuildTracking.h.
+        const TrackDescription& track = description.track;
+        const RunContext& context     = description.context;
+        const OptionValues& options   = description.options;
 
-        // validate() checked that the RUN names a FIELDSOLVER.
+        // 1. Print the field solver, its boundary conditions, the binning and the beams.
         const ObjectValues fieldSolver(*description.fieldSolver);
         std::optional<ObjectValues> binning;
         if (description.binning) binning.emplace(*description.binning);
-        FieldSolverCmd::printInfo(*gmsg << level1, fieldSolver) << endl;
-        if (binning) {
-            BinningCmd::printInfo(*gmsg << level1, *binning) << endl;
-        }
+        printRunSetup(description, fieldSolver, binning);
 
-        // Copy run descritpion values
-        const TrackDescription& track             = description.track;
-        const RunContext& context                 = description.context;
-        const OptionValues& options               = description.options;
-        const std::vector<std::string>& beamNames = description.track.beamNames;
-        const std::vector<BeamDescription>& beams = description.beams;
+        // 2. Per beam: decay root, emission sources, global processes and BunchBeam.
+        std::vector<BeamSetup> beamSetups = setupBeams(description);
 
-        // Resolve daughter and partent containers for decay process
-        const std::vector<std::size_t> decayRoots = decayRootsOf(beams, beamNames);
-        *gmsg << level1 << "* RUN resolved beams: ";
-        for (size_t i = 0; i < beamNames.size(); ++i) {
-            *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
-        }
-        *gmsg << endl;
-        // Print the BEAM banner for each resolved beam.
-        for (const BeamDescription& b : beams) {
-            *gmsg << level1 << b.banner << endl;
-        }
-
-        // Quantities for each container (beam)
-        std::vector<std::vector<ObjectValues>> emissionSourcesLists;
-        std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists;
-        emissionSourcesLists.reserve(beams.size());
-        globalProcessesLists.resize(beams.size());
-
-        // Fill macro quantities and emissionSourceList per container (beam)
-        for (size_t i = 0; i < beams.size(); ++i) {
-            const BeamDescription& b = beams[i];
-
-            const double macrocharge = b.chargePerParticle;
-            const double macromass   = b.massPerParticle;
-
-            const double part_per_macro_ratio = macrocharge / (b.charge * Physics::q_e);
-            *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
-                  << " macro charge per particle [C]: " << macrocharge << endl;
-            *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
-                  << " macro mass per particle [GeV/c^2]: " << macromass << endl;
-            *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
-                  << " particles per macro particle: " << part_per_macro_ratio << endl
-                  << endl;
-
-            if (decayRoots[i] != i) {
-                // A decay daughter beam gets particles only from the decay.
-                emissionSourcesLists.emplace_back();
-            } else {
-                emissionSourcesLists.emplace_back();
-                for (const SourceDescription& source : b.sources) {
-                    emissionSourcesLists.back().emplace_back(
-                            named(description.emissionSources, source.name));
-                }
-            }
-
-            globalProcessesLists[i] = makeGlobalProcessesForBeam(b, i, options.seed);
-        }
-
-        // validate() refused emitting or delayed sources and DECAY for a restart.
-        const bool isRestart = context.restart;
-
+        // 3. Space-charge configuration from the FIELDSOLVER, the BINNING, all sources and all
+        //    distributions; the field-debug dumps are named after the input. The Dirichlet
+        //    plane goes to the tracker, the domain configuration to the bunch.
         std::vector<ObjectValues> allSources;
-        for (const auto& sources : emissionSourcesLists) {
-            allSources.insert(allSources.end(), sources.begin(), sources.end());
+        for (const BeamSetup& beam : beamSetups) {
+            allSources.insert(allSources.end(), beam.sources.begin(), beam.sources.end());
         }
         auto spaceChargeConfig = opalx::spacecharge::buildSpaceChargeConfig(
                 fieldSolver, binning, allSources,
@@ -666,145 +742,83 @@ namespace opalx::run {
                         description.distributions.begin(), description.distributions.end()),
                 options.repartFreq, options.loadBalancingThreshold,
                 options.loadBalancingPairWeight);
-        std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig).fieldDumpBasename =
-                context.inputBasename;
+        auto& cartesianConfig =
+                std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig);
+        cartesianConfig.fieldDumpBasename = context.inputBasename;
         const opalx::spacecharge::DirichletPlaneConfig dirichletPlane =
-                std::get<opalx::spacecharge::CartesianPIC3DConfig>(spaceChargeConfig)
-                        .dirichletPlane;
+                cartesianConfig.dirichletPlane;
         const auto cartesianDomainConfig =
                 opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
 
-        /*
-        Need the following units for mass and charge:
-        - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch.
-          This will be used for the field calculations.
-        - The pusher needs consistent units: eV for mass and elementary charges for charge.
-          This will (hopefully) be handled inside the pusher routines!
-        */
+        // 4. Output: the .stat writers and the .h5 files, one per beam.
+        DataSink* dataSink = initDataSink(beamSetups.size(), context, options, objects);
 
-        DataSink* dataSink = initDataSink(beams.size(), context, options, objects);
-
-        // What the bunch needs per container (beam), with the particle count to reserve room for
-        std::vector<BunchBeam> bunchBeams(beams.size());
-        for (size_t i = 0; i < beams.size(); ++i) {
-            bunchBeams[i].chargePerParticle = beams[i].chargePerParticle;
-            bunchBeams[i].massPerParticle   = beams[i].massPerParticle;
-            bunchBeams[i].reference         = beams[i].reference;
-            bunchBeams[i].particleName      = beams[i].particleName;
-            bunchBeams[i].hasSpin           = beams[i].hasPolarization;
-            bunchBeams[i].numParticles      = computeTotalAllocationForBunch(
-                    beams[i], emissionSourcesLists[i], description.distributions);
+        // 5. The bunch: one particle container per beam, with the global processes of its beam;
+        //    decay daughters are connected to their parents.
+        std::vector<BunchBeam> bunchBeams;
+        for (const BeamSetup& beam : beamSetups) {
+            bunchBeams.push_back(beam.bunchBeam);
         }
-
-        // Create PartBunch with multiple particle containers.
         objects.bunch = std::make_unique<PartBunch_t>(
-                bunchBeams,                      // One entry per container (beam)
-                options.loadBalancingThreshold,  // Load balancing threshold
-                cartesianDomainConfig,           // Cartesian domain and particle-layout setup
-                options.useQMAttributes,         // Per-particle Q and M (QM_MODE)
-                options.aggressiveStateSync);    // AGGRESSIVE_STATE_SYNC
+                bunchBeams, options.loadBalancingThreshold, cartesianDomainConfig,
+                options.useQMAttributes, options.aggressiveStateSync);
+        PartBunch_t& bunch = *objects.bunch;
+        setupGlobalProcesses(bunch, beamSetups);
+        wireDaughterContainers(bunch, description.beams, track.beamNames, beamSetups);
 
-        // Validate container setup produced by constructor
-        PartBunch_t& bunch             = *objects.bunch;
-        const auto& particleContainers = bunch.getParticleContainers();
-        if (particleContainers.size() != beams.size()) {
-            throw OpalException(
-                    "TrackRun::execute",
-                    "Mismatch between number of beams and particle containers.");
-        }
+        // 6. The start. A fresh run samples its distributions and sets the start position and
+        //    the bunch time step. A restart restores the exact saved particle state instead, so
+        //    sampling it again would duplicate particles and consume random numbers.
+        StartState start = context.restart ? restoreCheckpoint(description, bunch, *dataSink)
+                                           : sampleBeams(description, bunch, beamSetups);
 
-        // Global processes
-        setupGlobalProcesses(bunch, std::move(globalProcessesLists));
-        wireDaughterContainers(bunch, beams, beamNames, decayRoots);
-
-        // BC handler
-        *gmsg << level2 << FieldSolverCmd::constructBCHandler(fieldSolver) << endl;
-
-        // A fresh run samples its distributions. A restart restores the exact saved particle state
-        // instead, so sampling it again would duplicate particles and consume random numbers.
-        double globalPhaseShift = 0.0;
-        std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplersList(
-                particleContainers.size());
-        std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta(
-                particleContainers.size());
-        CheckpointFile::Metadata restartMetadata;
-        if (isRestart) {
-            restartMetadata = CheckpointFile::read(context.restartFileName, bunch);
-            dataSink->rewindToCheckpoint(bunch);
-            *gmsg << level1 << "* Restored checkpoint '" << context.restartFileName
-                  << "' at global step " << restartMetadata.globalTrackStep
-                  << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
-        } else {
-            const std::string inputDirectory =
-                    std::filesystem::path(context.inputFileName).parent_path().string();
-            for (size_t i = 0; i < particleContainers.size(); ++i) {
-                beamReferenceMomenta[i] = setupDistributionsAndSamplers(
-                        bunch, emissionSourcesLists[i], description.distributions, beams[i],
-                        emittingSamplersList[i], i, globalPhaseShift, options.seed, inputDirectory);
-            }
-        }
+        // 7. The space-charge solver: fields and a warmup solve, also for TYPE = NONE.
         objects.spaceChargeSolver = opalx::spacecharge::makeSpaceChargeSolver(
                 std::move(spaceChargeConfig), bunch, dataSink);
 
+        // 8. Start summary of each container.
         std::vector<opalx::moments::BeamMoments> initialMoments;
         for (const auto& pc : bunch.getParticleContainers()) {
             initialMoments.push_back(opalx::moments::compute(*pc, PartBunch_t::printedMoments));
         }
         bunch.print(*gmsg, initialMoments);
 
-        // A fresh run starts at ZSTART, or at 0 if the first beam has no particles yet, with the
-        // DT of the segment that holds the start. A restart takes its time step from the
-        // checkpoint.
-        double sStart = track.zStart;
-        if (!isRestart) {
-            if (bunch.getParticleContainer()->getTotalNum() == 0) {
-                sStart = 0.0;
-            }
-            const auto& zstop = track.zStop;
-            auto it           = track.dT.begin();
-
-            unsigned int i = 0;
-            while (i + 1 < zstop.size() && zstop[i + 1] < sStart) {
-                ++i;
-                ++it;
-            }
-
-            bunch.setdT(*it);
-        }
-
-        const auto& maxSteps = track.maxSteps;
-        const auto& sStop    = track.zStop;
-        // Everything the tracker reads, in one struct.
+        // 9. Everything the tracker reads, in one struct: schedule, start, emission, restart
+        //    values, OPTION values, field dumps, SCFIELDUPDATE and the stop rule of each beam.
+        const CheckpointFile::Metadata& checkpoint = start.checkpoint;
         TrackingSetup setup;
         setup.bunch                = &bunch;
         setup.spaceChargeSolver    = objects.spaceChargeSolver.get();
         setup.dirichletPlane       = dirichletPlane;
         setup.dataSink             = dataSink;
         setup.dt                   = track.dT;
-        setup.sStop                = sStop;
-        setup.maxSteps             = maxSteps;
-        setup.sStart               = sStart;
-        setup.globalPhaseShift     = globalPhaseShift;
-        setup.emittingSamplers     = EmittingSamplers(std::move(emittingSamplersList));
-        setup.beamReferenceMomenta = std::move(beamReferenceMomenta);
-        setup.restarting           = isRestart;
-        setup.restartGlobalStep = static_cast<unsigned long long>(restartMetadata.globalTrackStep);
-        setup.restartDt         = restartMetadata.dt;
-        setup.restartPosition   = StepSizeConfig::ResumePosition{
-                restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment};
-        setup.cavityPhases   = restartMetadata.cavityPhases;
+        setup.sStop                = track.zStop;
+        setup.maxSteps             = track.maxSteps;
+        setup.sStart               = start.sStart;
+        setup.globalPhaseShift     = start.globalPhaseShift;
+        setup.emittingSamplers     = EmittingSamplers(std::move(start.emittingSamplers));
+        setup.beamReferenceMomenta = std::move(start.beamReferenceMomenta);
+        setup.restarting           = context.restart;
+        setup.restartGlobalStep    = static_cast<unsigned long long>(checkpoint.globalTrackStep);
+        setup.restartDt            = checkpoint.dt;
+        setup.restartPosition      = StepSizeConfig::ResumePosition{
+                checkpoint.stepSizeSegment, checkpoint.stepsCompletedInSegment};
+        setup.cavityPhases   = checkpoint.cavityPhases;
         setup.checkpointPath = CheckpointFile::defaultPath(context.inputBasename);
-        setup.options        = description.options;
+        setup.options        = options;
         setup.emFieldDumps   = description.emFieldDumps;
+        setup.spaceChargeFieldUpdate =
+                ObjectValues(track.run).getString("SCFIELDUPDATE") == "PRESTEP"
+                        ? SpaceChargeFieldUpdate::PRESTEP
+                        : SpaceChargeFieldUpdate::MIDPOINT;
+        setup.beamStops = makeBeamStops(description.beams, track, checkpoint.beamStops);
 
-        // The tracker steps with a positive time step; elements read it in initialise().
+        // 10. The beamline: initialise, place and check the elements and build the element
+        //     grid. The tracker steps with a positive time step, and elements read it in
+        //     initialise().
         bunch.setdT(std::abs(bunch.getdT()));
         setup.beamline = buildBeamline(
-                description.line, elements, bunch, restartMetadata.cavityPhases, options, context);
-        setup.spaceChargeFieldUpdate = run.getString("SCFIELDUPDATE") == "PRESTEP"
-                                               ? SpaceChargeFieldUpdate::PRESTEP
-                                               : SpaceChargeFieldUpdate::MIDPOINT;
-        setup.beamStops              = makeBeamStops(beams, track, restartMetadata.beamStops);
+                description.line, elements, bunch, checkpoint.cavityPhases, options, context);
         return setup;
     }
 

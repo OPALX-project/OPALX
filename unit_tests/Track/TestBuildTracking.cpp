@@ -76,12 +76,8 @@ namespace {
             parser.run(new StringStream(line));
         }
 
-        /**
-         * Describe a RUN of L1 with beam B1 and field solver FS1, as TRACK and RUN would:
-         * TRACK, LINE = L1, BEAM = B1, MAXSTEPS = 5, DT = 1e-12, ZSTOP = 1;
-         * RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
-         */
-        static opalx::run::RunDescription describeRun() {
+        /// TRACK, LINE = L1, BEAM = B1, MAXSTEPS = 5, DT = 1e-12, ZSTOP = 1;
+        static opalx::run::TrackDescription defaultTrack() {
             opalx::run::TrackDescription track;
             track.line       = "L1";
             track.beamNames  = {"B1"};
@@ -89,6 +85,15 @@ namespace {
             track.maxSteps   = {5};
             track.zStop      = {1.0};
             track.zStopGiven = true;
+            return track;
+        }
+
+        /**
+         * Describe a RUN of @p track with field solver FS1, as RUN would:
+         * RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+         */
+        static opalx::run::RunDescription describeRun(
+                const opalx::run::TrackDescription& track = defaultTrack()) {
             TrackRun runCommand;
             Attributes::setPredefinedString(*runCommand.findAttribute("METHOD"), "PARALLEL");
             Attributes::setString(*runCommand.findAttribute("FIELDSOLVER"), "FS1");
@@ -147,6 +152,32 @@ TEST_F(BuildTrackingTest, EmptyFirstBeam_GetsFirstDT) {
     ASSERT_NE(setup.bunch, nullptr);
     ASSERT_EQ(setup.bunch->getParticleContainer()->getTotalNum(), 0u);
     EXPECT_EQ(setup.bunch->getdT(), 1e-12);
+}
+
+// ZSTART = 1.5 m lies in the second DT segment (ZSTOP = {1, 2} m), so the bunch starts with its
+// DT, 2e-12 s. The search for the segment used to stop one segment early and give 1e-12 s.
+TEST_F(BuildTrackingTest, StartBetweenTwoZStops_GetsDTOfItsSegment) {
+    parse(definitions);
+    opalx::run::TrackDescription track = defaultTrack();
+    track.dT                           = {1e-12, 2e-12};
+    track.maxSteps                     = {5, 5};
+    track.zStop                        = {1.0, 2.0};
+    track.zStart                       = 1.5;
+
+    const opalx::run::RunDescription description = describeRun(track);
+    ASSERT_TRUE(opalx::run::validate(description).empty());
+
+    std::vector<std::string> errors;
+    std::vector<std::shared_ptr<ElementBase>> elements =
+            opalx::run::buildElements(description.line, description.context.p0, errors);
+    ASSERT_TRUE(errors.empty());
+    opalx::run::RunObjects objects;
+    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+
+    ASSERT_NE(setup.bunch, nullptr);
+    ASSERT_GT(setup.bunch->getParticleContainer()->getTotalNum(), 0u);
+    EXPECT_EQ(setup.sStart, 1.5);
+    EXPECT_EQ(setup.bunch->getdT(), 2e-12);
 }
 
 int main(int argc, char** argv) {
