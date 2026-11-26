@@ -61,13 +61,13 @@ namespace tps {
         /// Convert and assign.
         Tps<T>& operator=(const T& y);
 
-        /// Extract orders.
-        ///  Return the orders `lowOrder` through `highOrder`,
-        ///  both included. A scalar is retained when the range includes order zero.
+        /// Return orders lowOrder..highOrder inclusive, leaving this series unchanged.
+        /// Requires 0 <= lowOrder <= highOrder; otherwise throws ::CLRangeError.
+        /// Retain variable count and precision; stored degree is min(highOrder, getMaxOrder()).
+        /// An empty intersection with stored orders returns zero; order zero includes scalars.
         Tps<T> filter(int lowOrder, int highOrder) const;
 
-        /// Truncate.
-        ///  Change the maximum order to `trunc`; may also reserve more space.
+        /// Return filter(0, trunc); reject negative trunc and leave this series unchanged.
         Tps<T> truncate(int trunc);
 
         /// Get coefficient.

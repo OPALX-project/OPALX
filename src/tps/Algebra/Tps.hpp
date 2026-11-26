@@ -196,19 +196,20 @@ namespace tps {
 
     template <class T>
     Tps<T> Tps<T>::filter(int minOrder, int maxOrder) const {
-        // Compute order limits.
-        maxOrder      = std::min(maxOrder, getMaxOrder());
-        int trcOrder  = getTruncOrder();
-        int variables = getVariables();
-
-        // Construct filtered TpsRep.
-        TpsRep<T>* p = TpsRep<T>::create(maxOrder, trcOrder, variables);
-        // There are no coefficients below order zero. Scalar getSize() always
-        // returns one, even for -1, so it cannot provide this lower bound.
-        int bot = minOrder <= 0 ? 0 : getSize(minOrder - 1);
-        int top = getSize(maxOrder);
-        std::copy(rep->data() + bot, rep->data() + top, p->data() + bot);
-        return Tps<T>(p);
+        if (minOrder < 0 || maxOrder < minOrder)
+            throw ::CLRangeError("Tps::filter()", "Requires 0 <= lowOrder <= highOrder.");
+        const int storedTop = std::min(maxOrder, getMaxOrder());
+        // The owning series releases its representation if coefficient copying throws.
+        Tps<T> result(TpsRep<T>::create(storedTop, getTruncOrder(), getVariables()));
+        if (minOrder <= storedTop) {
+            // Only query indices within this representation, never a larger shared
+            // cache. Scalars have one coefficient even when getSize(-1) says one.
+            const int begin = minOrder == 0 ? 0 : getSize(minOrder - 1);
+            const int end   = getSize(storedTop);
+            std::copy(rep->data() + begin, rep->data() + end, result.rep->data() + begin);
+        }
+        // An empty intersection leaves a zero series with the same variables and precision.
+        return result;
     }
 
     template <class T>

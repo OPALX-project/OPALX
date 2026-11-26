@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <sstream>
@@ -356,6 +357,90 @@ namespace {
                     -1. + (order >= 1 ? point[1] : 0.) - (order >= 2 ? point[0] * point[1] : 0.));
             EXPECT_DOUBLE_EQ(projected[2][0], 7.);
         }
+    }
+
+    TEST_F(TPSIntegration, FilterEmptyRangesAreIndependentOfCacheGrowth) {
+        using Series = tps::Tps<double>;
+        Series::setGlobalTruncOrder(Series::EXACT);
+        Series constant(0, 7), cold;
+        constant[0] = 3.;
+        // Stop on the old cold-cache exception before trying its unsafe warm path.
+        ASSERT_NO_THROW(cold = constant.filter(4, 5));
+        EXPECT_EQ(cold.getVariables(), 7);
+        EXPECT_DOUBLE_EQ(cold[0], 0.);
+        const Series growCache(5, 7);
+        const auto warm = constant.filter(4, 5);
+        EXPECT_EQ(warm, cold);
+        EXPECT_EQ(warm.getMaxOrder(), 0);
+        EXPECT_EQ(warm.getTruncOrder(), constant.getTruncOrder());
+        EXPECT_DOUBLE_EQ((-warm)[0], 0.);
+        EXPECT_DOUBLE_EQ(constant[0], 3.);
+
+        // Check complete coefficient projections over scalar/polynomial types,
+        // mixed stored degrees and ranges extending beyond their highest order.
+        for (int variables : {0, 1, 2, 6})
+            for (int degree : {0, 1, 3, 5}) {
+                Series source(degree, variables);
+                for (int i = 0; i < source.getSize(); ++i)
+                    source[i] = (i % 7 - 3) / 8.;
+                const auto original = source;
+                for (int low = 0; low <= 7; ++low)
+                    for (int high = low; high <= 7; ++high) {
+                        const auto projected = source.filter(low, high);
+                        EXPECT_EQ(projected.getVariables(), variables);
+                        EXPECT_EQ(projected.getMaxOrder(), std::min(high, degree));
+                        EXPECT_EQ(projected.getTruncOrder(), source.getTruncOrder());
+                        for (int i = 0; i < projected.getSize(); ++i) {
+                            const int order = source.getOrder(i);
+                            EXPECT_DOUBLE_EQ(
+                                    projected[i], order >= low && order <= high ? source[i] : 0.);
+                        }
+                    }
+                EXPECT_EQ(source, original);
+                const auto empty = source.filter(Series::EXACT, Series::EXACT);
+                for (int i = 0; i < empty.getSize(); ++i)
+                    EXPECT_DOUBLE_EQ(empty[i], 0.);
+                EXPECT_EQ(source.filter(0, Series::EXACT), source);
+            }
+        std::istringstream input("Tps 2 1 2\n3 0 0\n4 1 0\n0 -1 -1\n");
+        Series finite;
+        input >> finite;
+        ASSERT_FALSE(input.fail());
+        const auto empty = finite.filter(4, 5);
+        EXPECT_EQ(empty.getVariables(), 2);
+        EXPECT_EQ(empty.getTruncOrder(), 1);
+        EXPECT_DOUBLE_EQ(empty[0], 0.);
+    }
+
+    TEST_F(TPSIntegration, FilterBoundsAreValidatedForScalarAndEmptyVectors) {
+        using Series = tps::Tps<double>;
+        for (auto source : {Series(2.), Series(0, 2), Series(3, 2)}) {
+            EXPECT_THROW(source.filter(-1, 1), ::CLRangeError);
+            EXPECT_THROW(source.filter(0, -1), ::CLRangeError);
+            EXPECT_THROW(source.filter(3, 1), ::CLRangeError);
+            EXPECT_THROW(source.truncate(-1), ::CLRangeError);
+        }
+        for (int dimension : {0, 3}) {
+            tps::Vps<double> source(dimension, 2);
+            EXPECT_THROW(source.filter(-1, 1), ::CLRangeError);
+            EXPECT_THROW(source.filter(0, -1), ::CLRangeError);
+            EXPECT_THROW(source.filter(3, 1), ::CLRangeError);
+            EXPECT_THROW(source.truncate(-1), ::CLRangeError);
+        }
+        tps::Vps<double> source(4, 2);
+        const auto x         = Series::makeVariable(2, 0);
+        source[0]            = Series(3.);
+        source[1]            = Series(0, 2);
+        source[1][0]         = 4.;
+        source[2]            = 1. + x;
+        source[3]            = x * x * x * x;
+        const auto projected = source.filter(3, 5);
+        EXPECT_EQ(projected.getDimension(), 4);
+        EXPECT_EQ(projected.getVariables(), 2);
+        for (int component = 0; component < 3; ++component)
+            for (int i = 0; i < projected[component].getSize(); ++i)
+                EXPECT_DOUBLE_EQ(projected[component][i], 0.);
+        EXPECT_EQ(projected[3], source[3]);
     }
 
     TEST_F(TPSIntegration, VectorSeriesStreamsReadIntoTemporaryBeforeCommit) {

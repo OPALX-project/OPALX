@@ -114,11 +114,14 @@ namespace tps {
         /// Get number of variables (the same in all components).
         int getVariables() const;
 
-        /// Extract range of orders, set others to zero.
+        /// Project each component to lowOrder..highOrder; preserve dimensions and precision.
+        /// Requires 0 <= lowOrder <= highOrder, including for an empty vector.
+        /// Throws ::CLRangeError otherwise; components with no overlapping orders become zero.
         Vps<T> filter(int lowOrder, int highOrder) const;
 
         /// Return components projected to at most `trunc`; leave this vector unchanged.
         /// Component precision/truncation metadata is retained.
+        /// Negative trunc throws ::CLRangeError, including for an empty vector.
         Vps<T> truncate(int trunc);
 
     protected:
