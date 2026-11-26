@@ -78,7 +78,7 @@ namespace {
                     const double z = std::min(zmm * 1e-3, std::nextafter(kLength, 0.0));
                     const Vector_t<double, 3> R(xmm * 1e-3, ymm * 1e-3, z);
                     Vector_t<double, 3> E(0.0), B(0.0);
-                    element.apply(R, P, 0.0, E, B);
+                    element.applyOnHost(R, 0.0, E, B);
                     f << xmm << " " << ymm << " " << zmm << " " << B(0) << " " << B(1) << " "
                       << B(2) << "\n";
                 }
@@ -155,8 +155,8 @@ protected:
         const Vector_t<double, 3> P(0.0);
         for (const auto& R : samplePoints()) {
             Vector_t<double, 3> Ea(0.0), Ba(0.0), Ef(0.0), Bf(0.0);
-            analytic.apply(R, P, 0.0, Ea, Ba);
-            fromMap.apply(R, P, 0.0, Ef, Bf);
+            analytic.applyOnHost(R, 0.0, Ea, Ba);
+            fromMap.applyOnHost(R, 0.0, Ef, Bf);
 
             for (unsigned d = 0; d < 3; ++d) {
                 ASSERT_NEAR(Ba(d), Bf(d), tolerance) << "component " << d << " at (" << R(0) << ", "
@@ -196,7 +196,7 @@ TEST_F(FieldmapVsAnalyticTest, QuadrupoleMatchesToRoundOff) {
     const Vector_t<double, 3> R(0.02, 0.01, 0.1);
     const Vector_t<double, 3> P(0.0);
     Vector_t<double, 3> E(0.0), B(0.0);
-    mp->apply(R, P, 0.0, E, B);
+    mp->applyOnHost(R, 0.0, E, B);
     EXPECT_GT(std::abs(B(0)) + std::abs(B(1)), 1e-3);
 }
 

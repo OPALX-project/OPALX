@@ -3,8 +3,7 @@
  * \brief Unit tests for the ConstantEFieldCavity element.
  *
  * Covers: getType, the geometry length, getEx/Ey/Ez and setters, getFieldExtent,
- * apply(R,P,t,E,B) for various z-positions, full-vector application,
- * and applyToReferenceParticle (inside/outside).
+ * applyOnHost(R, t, E, B) for various z-positions and full-vector application.
  */
 
 #include <gtest/gtest.h>
@@ -74,7 +73,7 @@ namespace {
     }
 
     // ---------------------------------------------------------------------------
-    // apply(R, P, t, E, B): position-based, no bunch needed
+    // applyOnHost(R, t, E, B): position-based, no bunch needed
     // ---------------------------------------------------------------------------
     TEST_F(ConstantEFieldCavityTest, ApplyInside) {
         Vector_t<double, 3> R = {0.0, 0.0, 0.5};
@@ -82,7 +81,7 @@ namespace {
         Vector_t<double, 3> E = {1.0, 2.0, 3.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 1.0);
         EXPECT_DOUBLE_EQ(E(1), 2.0);
@@ -95,7 +94,7 @@ namespace {
         Vector_t<double, 3> E = {1.0, 2.0, 3.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 1.0);
         EXPECT_DOUBLE_EQ(E(1), 2.0);
@@ -108,7 +107,7 @@ namespace {
         Vector_t<double, 3> E = {1.0, 2.0, 3.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 1.0);
         EXPECT_DOUBLE_EQ(E(1), 2.0);
@@ -121,7 +120,7 @@ namespace {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 0.0);
         EXPECT_DOUBLE_EQ(E(1), 0.0);
@@ -135,7 +134,7 @@ namespace {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 0.0);
         EXPECT_DOUBLE_EQ(E(1), 0.0);
@@ -152,42 +151,11 @@ namespace {
         Vector_t<double, 3> E = {0.5, 0.5, 0.5};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        cavity_->apply(R, P, 0.0, E, B);
+        cavity_->applyOnHost(R, 0.0, E, B);
 
         EXPECT_DOUBLE_EQ(E(0), 0.5 + 1.0);
         EXPECT_DOUBLE_EQ(E(1), 0.5 - 2.0);
         EXPECT_DOUBLE_EQ(E(2), 0.5 + 3.0);
-    }
-
-    // ---------------------------------------------------------------------------
-    // applyToReferenceParticle
-    // ---------------------------------------------------------------------------
-    TEST_F(ConstantEFieldCavityTest, ApplyToReferenceParticleInside) {
-        Vector_t<double, 3> R = {0.0, 0.0, 0.5};
-        Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-        Vector_t<double, 3> E = {0.0, 0.0, 0.0};
-        Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-
-        bool out = cavity_->applyToReferenceParticle(R, P, 0.0, E, B);
-
-        EXPECT_FALSE(out);
-        EXPECT_DOUBLE_EQ(E(0), 0.0);
-        EXPECT_DOUBLE_EQ(E(1), 0.0);
-        EXPECT_DOUBLE_EQ(E(2), 10.0);
-    }
-
-    TEST_F(ConstantEFieldCavityTest, ApplyToReferenceParticleOutside) {
-        Vector_t<double, 3> R = {0.0, 0.0, -0.1};
-        Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-        Vector_t<double, 3> E = {0.0, 0.0, 0.0};
-        Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-
-        bool out = cavity_->applyToReferenceParticle(R, P, 0.0, E, B);
-
-        EXPECT_FALSE(out);
-        EXPECT_DOUBLE_EQ(E(0), 0.0);
-        EXPECT_DOUBLE_EQ(E(1), 0.0);
-        EXPECT_DOUBLE_EQ(E(2), 0.0);
     }
 
 }  // namespace

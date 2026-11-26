@@ -24,12 +24,10 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     double getEx() const;
     double getEy() const;

@@ -31,14 +31,6 @@ namespace {
 
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
         }
-        void apply(
-                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
-        bool applyToReferenceParticle(
-                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
         void initialise(PartBunch_t*) override {}
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = 0.0;

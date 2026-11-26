@@ -27,8 +27,9 @@
  * @brief Write the summed E and B fields of @p elements on the grid of each request, one file
  *        per request; an existing file is overwritten.
  *
- * Each element is evaluated in its local frame and its fields are rotated back to the global
- * frame. Along the rows t varies fastest and x slowest. File format:
+ * The fields are summed with OpalBeamline::applyOnHost(): each element is evaluated in its local
+ * frame and its fields are rotated back to the global frame. The grid time is in ns. Along the rows
+ * t varies fastest and x slowest. File format:
  *
  *     <number of grid points>
  *     1  x [m]

@@ -98,23 +98,25 @@ TEST_F(BendTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
     Vector3 B(0.0);
 
     // Just outside the entrance support: not selected, no field.
-    EXPECT_FALSE(bend.applyToReferenceParticle(pointAtArc(-0.21), Vector3(0.0), 0.0, E, B));
+    bend.applyOnHost(pointAtArc(-0.21), 0.0, E, B);
+    EXPECT_FALSE(bend.getRegions().inLossRegion(pointAtArc(-0.21)));
     EXPECT_NEAR(B(1), 0.0, 1.0e-12);
 
     B = Vector3(0.0);
-    bend.applyToReferenceParticle(pointAtArc(0.0), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(pointAtArc(0.0), 0.0, E, B);
     EXPECT_NEAR(B(1), -edgeScale, 1.0e-12);  // entrance face
 
     B = Vector3(0.0);
-    bend.applyToReferenceParticle(pointAtArc(0.5), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(pointAtArc(0.5), 0.0, E, B);
     EXPECT_NEAR(B(1), -1.0, 1.0e-12);  // body interior
 
     B = Vector3(0.0);
-    bend.applyToReferenceParticle(pointAtArc(bodyLength), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(pointAtArc(bodyLength), 0.0, E, B);
     EXPECT_NEAR(B(1), -edgeScale, 1.0e-12);  // exit face
 
     B = Vector3(0.0);
-    EXPECT_FALSE(bend.applyToReferenceParticle(pointAtArc(1.21), Vector3(0.0), 0.0, E, B));
+    bend.applyOnHost(pointAtArc(1.21), 0.0, E, B);
+    EXPECT_FALSE(bend.getRegions().inLossRegion(pointAtArc(1.21)));
     EXPECT_NEAR(B(1), 0.0, 1.0e-12);
 
     // The longitudinal field Bz = B0 F'(s) y at the entrance face (s = 0, where the
@@ -126,7 +128,7 @@ TEST_F(BendTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
     B                       = Vector3(0.0);
     Vector3 entryWithY      = pointAtArc(0.0);
     entryWithY(1)           = yOffset;
-    bend.applyToReferenceParticle(entryWithY, Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(entryWithY, 0.0, E, B);
     EXPECT_NEAR(B(2), -dFdz * yOffset, 1.0e-12);
 }
 
@@ -153,9 +155,9 @@ TEST_F(BendTest, SBendWithoutGapIsHardEdge) {
     const double phiMid = curvature * 0.5;
     Vector3 E(0.0);
     Vector3 B(0.0);
-    bend.applyToReferenceParticle(
-            Vector3((std::cos(phiMid) - 1.0) / curvature, 0.0, std::sin(phiMid) / curvature),
-            Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(
+            Vector3((std::cos(phiMid) - 1.0) / curvature, 0.0, std::sin(phiMid) / curvature), 0.0,
+            E, B);
     EXPECT_NEAR(B(1), -1.0, 1.0e-12);  // full dipole, no fringe scaling
 
     // Exit edge (arc length = bodyLength) is exclusive: not selected, no field.
@@ -163,7 +165,8 @@ TEST_F(BendTest, SBendWithoutGapIsHardEdge) {
     const Vector3 exitFace(
             (std::cos(phiExit) - 1.0) / curvature, 0.0, std::sin(phiExit) / curvature);
     B = Vector3(0.0);
-    EXPECT_FALSE(bend.applyToReferenceParticle(exitFace, Vector3(0.0), 0.0, E, B));
+    bend.applyOnHost(exitFace, 0.0, E, B);
+    EXPECT_FALSE(bend.getRegions().inLossRegion(exitFace));
     EXPECT_NEAR(B(1), 0.0, 1.0e-12);
 }
 
@@ -196,11 +199,11 @@ TEST_F(BendTest, RBendFringeSupportProjectsExitByFaceAngle) {
 
     Vector3 E(0.0);
     Vector3 B(0.0);
-    bend.applyToReferenceParticle(Vector3(0.0, 0.0, 0.0), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(Vector3(0.0, 0.0, 0.0), 0.0, E, B);
     EXPECT_NEAR(B(1), -edgeScale, 1.0e-12);  // entrance face (box z = 0)
 
     B = Vector3(0.0);
-    bend.applyToReferenceParticle(Vector3(0.0, 0.0, 0.5), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(Vector3(0.0, 0.0, 0.5), 0.0, E, B);
     EXPECT_NEAR(B(1), -1.0, 1.0e-12);  // body interior
 }
 
@@ -226,7 +229,7 @@ TEST_F(BendTest, SBendEntryFringeAddsHorizontalEdgeField) {
     // A point inside the entrance fringe (upstream of the body) with a vertical offset.
     Vector3 E(0.0);
     Vector3 B(0.0);
-    bend.applyToReferenceParticle(Vector3(0.0, yOffset, -0.05), Vector3(0.0), 0.0, E, B);
+    bend.applyOnHost(Vector3(0.0, yOffset, -0.05), 0.0, E, B);
     EXPECT_GT(std::abs(B(0)), 0.0);  // edge focusing present
 
     // With FINT = 0 and a perpendicular entrance face the edge angle is zero, so no Bx.
@@ -241,7 +244,7 @@ TEST_F(BendTest, SBendEntryFringeAddsHorizontalEdgeField) {
     straight.setB(-1.0);
 
     B = Vector3(0.0);
-    straight.applyToReferenceParticle(Vector3(0.0, yOffset, -0.05), Vector3(0.0), 0.0, E, B);
+    straight.applyOnHost(Vector3(0.0, yOffset, -0.05), 0.0, E, B);
     EXPECT_NEAR(B(0), 0.0, 1.0e-12);
 }
 
@@ -314,27 +317,23 @@ TEST_F(BendTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         for (unsigned i = 0; i < count; ++i) {
             SCOPED_TRACE(i);
             EXPECT_EQ(element.isInside(r(i)), inside[i]);
-            Vector3 hostE(initialE), hostB(initialB), refE(initialE), refB(initialB);
-            element.apply(r(i), Vector3(0, 0, 1), 0., hostE, hostB);
-            EXPECT_EQ(
-                    element.applyToReferenceParticle(r(i), Vector3(0, 0, 1), 0., refE, refB),
-                    i >= 7);
+            Vector3 hostE(initialE), hostB(initialB);
+            element.applyOnHost(r(i), 0., hostE, hostB);
+            EXPECT_EQ(element.getRegions().inLossRegion(r(i)), i >= 7);
             EXPECT_FALSE(invalid(i));
             const Vector3 expectedB = initialB + Vector3(0, inside[i] ? -1. : 0., 0);
             for (unsigned d = 0; d < 3; ++d) {
                 EXPECT_DOUBLE_EQ(e(i)(d), initialE(d));
                 EXPECT_NEAR(b(i)(d), expectedB(d), 1e-14);
                 EXPECT_NEAR(hostB(d), expectedB(d), 1e-14);
-                EXPECT_NEAR(refB(d), expectedB(d), 1e-14);
                 EXPECT_DOUBLE_EQ(hostE(d), initialE(d));
-                EXPECT_DOUBLE_EQ(refE(d), initialE(d));
             }
         }
     }
 }
 
 // Particles (Multipole::apply on a container) and the reference particle
-// (applyToReferenceParticle) must see the same MULTIPOLE field for every order up to decapole,
+// (applyOnHost) must see the same MULTIPOLE field for every order up to decapole,
 // normal and skew. The particle kernel used to handle only dipole and quadrupole.
 TEST_F(BendTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
     ippl::NDIndex<3> domain;
@@ -364,7 +363,8 @@ TEST_F(BendTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
         const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
 
         Vector3 refE(0.0), refB(0.0);
-        EXPECT_FALSE(multipole.applyToReferenceParticle(point, Vector3(0, 0, 1), 0., refE, refB));
+        multipole.applyOnHost(point, 0., refE, refB);
+        EXPECT_FALSE(multipole.getRegions().inLossRegion(point));
         EXPECT_GT(std::abs(refB(0)) + std::abs(refB(1)), 0.0);
         for (unsigned d = 0; d < 3; ++d) {
             EXPECT_NEAR(b(0)(d), refB(d), 1e-15) << "component " << d;
@@ -378,7 +378,7 @@ TEST_F(BendTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
     const double k2 = 4.0;
     sextupole.setNormalComponent(2, k2);
     Vector3 E(0.0), B(0.0);
-    sextupole.applyToReferenceParticle(point, Vector3(0, 0, 1), 0., E, B);
+    sextupole.applyOnHost(point, 0., E, B);
     const double x = point(0), y = point(1);
     EXPECT_NEAR(B(0), k2 * x * y, 1e-15);
     EXPECT_NEAR(B(1), 0.5 * k2 * (x * x - y * y), 1e-15);

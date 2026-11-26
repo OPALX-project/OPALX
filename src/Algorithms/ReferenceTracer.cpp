@@ -93,16 +93,7 @@ bool ReferenceTracer::step(const double dt, ElementSet& fields) {
 
     const auto result =
             rayTracker_m.step(ray_m, dt, [&](const RayState& ray, auto& electric, auto& magnetic) {
-                for (const auto& element : fields) {
-                    const auto localR = beamline_m.transformToLocalCS(element, ray.position);
-                    const auto localP = beamline_m.rotateToLocalCS(element, ray.momentum);
-                    Vector_t<double, 3> localE(0.0), localB(0.0);
-                    if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB))
-                        return true;
-                    electric += beamline_m.rotateFromLocalCS(element, localE);
-                    magnetic += beamline_m.rotateFromLocalCS(element, localB);
-                }
-                return false;
+                return beamline_m.applyOnHost(fields, ray.position, ray.time, electric, magnetic);
             });
     beamline_m.getElementMapping().checkReferencePoint(
             result.midpoint.position, result.midpoint.pathLength);

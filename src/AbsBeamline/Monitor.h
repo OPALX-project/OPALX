@@ -38,13 +38,17 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /**
+     * @brief Record the reference particle if it crosses the monitor plane in the next step.
+     *
+     * A monitor has no field. Called by OpalBeamline::recordReference() for the reference
+     * step of the step loop; does nothing while setRecordReference(false).
+     * @param R Position [m] in the monitor's local frame.
+     * @param P Momentum (beta gamma) in the monitor's local frame.
+     * @param t Time [s].
+     */
+    virtual void recordReference(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double t);
 
     /// Takes ASCIIDUMP, COMPUTEPERCENTILES, the restart flag and the open mode of the loss file.
     void setRunValues(

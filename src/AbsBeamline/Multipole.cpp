@@ -228,62 +228,15 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc, const Step
 }
 
 /**
- * @brief Applies the multipole field at position R to E and B
+ * @brief Adds the multipole field at local position R to B (host).
  *
- * @note Cannot be inside a kernel -> GPU incompatible
- *
- * @param R Position
- * @param E Electric field reference
- * @param B Magnetic field reference
+ * Same gate and formula as the kernel in apply(pc).
  */
-void Multipole::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+void Multipole::applyOnHost(
+        const Vector_t<double, 3>& R, double /*t*/, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) {
     if (!getRegions().fieldAppliesAt(R)) return;
-
-    // Compute field
     computeFieldHost(R, E, B);
-}
-
-/**
- * @brief Applies the multipole field at reference particle
- * position R to E and B
- *
- * @note Host-only function for the reference particle
- *
- * @param R Position
- * @param E Electric field reference
- * @param B Magnetic field reference
- * @returns true if particle is out-of-bounds (lost), false otherwise
- */
-bool Multipole::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const ElementRegions regions = getRegions();
-    if (!regions.fieldAppliesAt(R)) return regions.particleLostAt(R);
-
-    /*
-    for (int i = 0; i < max_NormalComponent_m; ++i) {
-        NormalComponents[i] -= NormalComponentErrors[i];
-    }
-    for (int i = 0; i < max_SkewComponent_m; ++i) {
-        SkewComponents[i] -= SkewComponentErrors[i];
-    }
-    */
-
-    // Compute field
-    computeFieldHost(R, E, B);
-
-    /*
-    for (int i = 0; i < max_NormalComponent_m; ++i) {
-        NormalComponents[i] += NormalComponentErrors[i];
-    }
-    for (int i = 0; i < max_SkewComponent_m; ++i) {
-        SkewComponents[i] += SkewComponentErrors[i];
-    }
-    */
-
-    return false;
 }
 /* ========================================================================== */
 /* ============================== Functions ================================= */

@@ -76,29 +76,14 @@ void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime
             });
 }
 
-void SBend::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+void SBend::applyOnHost(
+        const Vector_t<double, 3>& R, double /*t*/, Vector_t<double, 3>& /*E*/,
+        Vector_t<double, 3>& B) {
     if (!getRegions().fieldAppliesAt(bendCoords(R))) {
         return;
     }
 
     computeFieldHost(R, B);
-    (void)E;
-}
-
-bool SBend::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const ElementRegions regions  = getRegions();
-    const Vector_t<double, 3> arc = bendCoords(R);
-    if (!regions.fieldAppliesAt(arc)) {
-        return regions.particleLostAt(arc);
-    }
-
-    computeFieldHost(R, B);
-    (void)E;
-    return false;
 }
 
 void SBend::getFieldExtent(double& zBegin, double& zEnd) const {

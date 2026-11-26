@@ -26,7 +26,7 @@
  *
  * 4. Safe early-return behavior
  *    - apply(nullptr) returns false
- *    - applyToReferenceParticle() returns false without a reference bunch
+ *    - recordReference() does nothing without a reference bunch
  *    - goOffline() is safe before a LossDataSink is created
  *
  * ---------------------------------------------------------------------------
@@ -157,17 +157,15 @@ TEST_F(MonitorTest, ApplyNullParticleContainerIsSafe) {
     EXPECT_NO_THROW(monitor.apply(std::shared_ptr<ParticleContainer_t>(), StepTime{}));
 }
 
-TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
+TEST_F(MonitorTest, RecordReferenceWithoutReferenceBunchDoesNothing) {
     TestMonitor monitor;
 
     Vector_t<double, 3> R(0.0);
     Vector_t<double, 3> P(0.0);
-    Vector_t<double, 3> E(1.0);
-    Vector_t<double, 3> B(2.0);
 
     monitor.markOnline();
 
-    EXPECT_FALSE(monitor.applyToReferenceParticle(R, P, 0.0, E, B));
+    EXPECT_NO_THROW(monitor.recordReference(R, P, 0.0));
 }
 
 TEST_F(MonitorTest, FieldOnlyApplyOverloadLeavesFieldsUnchanged) {
@@ -186,7 +184,7 @@ TEST_F(MonitorTest, FieldOnlyApplyOverloadLeavesFieldsUnchanged) {
     B(1) = 5.0;
     B(2) = 6.0;
 
-    monitor.apply(R, P, 0.0, E, B);
+    monitor.applyOnHost(R, 0.0, E, B);
 
     EXPECT_DOUBLE_EQ(E(0), 1.0);
     EXPECT_DOUBLE_EQ(E(1), 2.0);

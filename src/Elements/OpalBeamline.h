@@ -75,19 +75,19 @@ public:
     /// Lab <-> element frame of the nominal placement, without misalignment: the frame in which
     /// the reference particle sees the element. The bunch sees the misaligned element in
     /// elementFrame().
-    Vector_t<double, 3> transformToLocalCS(
-            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> transformFromLocalCS(
-            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> rotateToLocalCS(
-            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
-    Vector_t<double, 3> rotateFromLocalCS(
-            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+    static Vector_t<double, 3> transformToLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r);
+    static Vector_t<double, 3> transformFromLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r);
+    static Vector_t<double, 3> rotateToLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r);
+    static Vector_t<double, 3> rotateFromLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r);
 
     /// Return the element's nominal body transform (global→local).
-    CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp) const;
+    static CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp);
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
-    CoordinateSystemTrafo getMisalignment(const std::shared_ptr<ElementBase>& comp) const;
+    static CoordinateSystemTrafo getMisalignment(const std::shared_ptr<ElementBase>& comp);
     CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<ElementBase>& comp) const;
     CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
@@ -128,9 +128,35 @@ public:
     size_t markBackwardParticlesAtSourcePlane(
             PartBunch_t& bunch, const opalx::spacecharge::DirichletPlaneConfig& plane) const;
 
-    unsigned long getFieldAt(
-            const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-            Vector_t<double, 3>&, Vector_t<double, 3>&);
+    /**
+     * @brief Add the fields of @p elements at one lab position to E and B, in lab coordinates.
+     *
+     * The one host loop over elements: each element gets the position in its frame
+     * (transformToLocalCS()), adds its field with ElementBase::applyOnHost(), and the field is
+     * rotated back. Elements are summed in line order.
+     * @param elements The elements to sum, e.g. getElements(r).
+     * @param r Lab position [m].
+     * @param t Time [s].
+     * @param E Electric field [V/m], added to.
+     * @param B Magnetic field [T], added to.
+     * @return Whether r is in the loss region of one of the elements, by the test of
+     *         ElementBase::markOutsideAperture().
+     */
+    static bool applyOnHost(
+            const ElementSet& elements, const Vector_t<double, 3>& r, double t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+
+    /// The same over getElements(r).
+    bool applyOnHost(
+            const Vector_t<double, 3>& r, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+
+    /**
+     * @brief Let every MONITOR in @p elements record the reference particle at lab position @p r
+     *        with lab momentum @p p and time @p t (Monitor::recordReference()).
+     */
+    void recordReference(
+            const ElementSet& elements, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
+            double t);
 
     /**
      * @brief The external fields {B (T), E (V/m)} at the reference particle of each container of
@@ -218,27 +244,27 @@ inline void OpalBeamline::addElement(std::shared_ptr<ElementBase> elptr, PartBun
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
-        const std::shared_ptr<ElementBase>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) {
     return comp->getCSTrafoGlobal2Local();
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
-        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) {
     return getCSTrafoLab2Local(comp).transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
-        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) {
     return getCSTrafoLab2Local(comp).transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
-        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) {
     return getCSTrafoLab2Local(comp).rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
-        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) {
     return getCSTrafoLab2Local(comp).rotateFrom(r);
 }
 
@@ -247,7 +273,7 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
-        const std::shared_ptr<ElementBase>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) {
     return comp->getMisalignment();
 }
 

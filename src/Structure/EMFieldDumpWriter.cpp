@@ -19,6 +19,7 @@
 
 #include <fstream>
 
+#include "Elements/OpalBeamline.h"
 #include "Fields/Interpolation/NDGrid.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
@@ -47,18 +48,8 @@ namespace {
             std::ofstream& fout) {
         Vector_t<double, 3> E{};
         Vector_t<double, 3> B{};
-        for (auto& element : elements) {
-            auto transform             = element->getCSTrafoGlobal2Local();
-            Vector_t<double, 3> localR = transform.transformTo(point);
-            Vector_t<double, 3> localB{};
-            Vector_t<double, 3> localE{};
-            element->apply(localR, {}, time, localE, localB);
-            transform.invert();
-            localB = transform.rotateTo(localB);
-            localE = transform.rotateTo(localE);
-            E += localE;
-            B += localB;
-        }
+        // The grid time is in ns; the elements take seconds.
+        OpalBeamline::applyOnHost(elements, point, time * Units::ns2s, E, B);
         fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";
         fout << B[0] << " " << B[1] << " " << B[2] << " ";
         fout << E[0] * Units::Vpm2MVpm << " " << E[1] * Units::Vpm2MVpm << " "

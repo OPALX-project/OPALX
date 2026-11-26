@@ -94,38 +94,37 @@ ElementSet OpalBeamline::getElements() {
     return elementSet;
 }
 
-unsigned long OpalBeamline::getFieldAt(
-        const Vector_t<double, 3>& position, const Vector_t<double, 3>& momentum, const double& t,
-        Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
-    unsigned long rtv = 0x00;
-
-    ElementSet elements = getElements(position);
-
-    ElementSet::const_iterator it        = elements.begin();
-    const ElementSet::const_iterator end = elements.end();
-
-    for (; it != end; ++it) {
-        ElementType type = (*it)->getType();
-        if (type == ElementType::MARKER || type == ElementType::MONITOR) continue;
-
-        Vector_t<double, 3> localR = transformToLocalCS(*it, position);
-        Vector_t<double, 3> localP = rotateToLocalCS(*it, momentum);
+bool OpalBeamline::applyOnHost(
+        const ElementSet& elements, const Vector_t<double, 3>& r, const double t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    bool lost = false;
+    for (const auto& element : elements) {
+        const Vector_t<double, 3> localR = transformToLocalCS(element, r);
         Vector_t<double, 3> localE(0.0), localB(0.0);
-
-        (*it)->applyToReferenceParticle(localR, localP, t, localE, localB);
-
-        Ef += rotateFromLocalCS(*it, localE);
-        Bf += rotateFromLocalCS(*it, localB);
+        element->applyOnHost(localR, t, localE, localB);
+        E += rotateFromLocalCS(element, localE);
+        B += rotateFromLocalCS(element, localB);
+        lost = lost
+               || (element->getFlagDeleteOnTransverseExit()
+                   && element->getRegions().inLossRegion(localR));
     }
+    return lost;
+}
 
-    //         if(section.hasWake()) {
-    //             rtv |= BEAMLINE_WAKE;
-    //         }
-    //         if(section.hasParticleMatterInteraction()) {
-    //             rtv |= BEAMLINE_PARTICLEMATTERINTERACTION;
-    //         }
+bool OpalBeamline::applyOnHost(
+        const Vector_t<double, 3>& r, const double t, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) {
+    return applyOnHost(getElements(r), r, t, E, B);
+}
 
-    return rtv;
+void OpalBeamline::recordReference(
+        const ElementSet& elements, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
+        const double t) {
+    for (const auto& element : elements) {
+        if (element->getType() != ElementType::MONITOR) continue;
+        static_cast<Monitor*>(element.get())
+                ->recordReference(transformToLocalCS(element, r), rotateToLocalCS(element, p), t);
+    }
 }
 
 std::vector<std::array<Vector_t<double, 3>, 2>> OpalBeamline::getReferenceFields(
@@ -141,7 +140,7 @@ std::vector<std::array<Vector_t<double, 3>, 2>> OpalBeamline::getReferenceFields
             continue;
         }
         Vector_t<double, 3> externalE(0.0), externalB(0.0);
-        getFieldAt(pc->getRefPartR(), pc->getRefPartP(), t, externalE, externalB);
+        applyOnHost(pc->getRefPartR(), t, externalE, externalB);
         fields[i][0] = externalB;
         fields[i][1] = externalE;
         m << level5 << "External fields (container " << i << "): externalE = " << externalE

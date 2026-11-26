@@ -33,6 +33,19 @@ void ConstantEFieldCavity::setEy(double ey) { Ey_m = ey; }
 
 void ConstantEFieldCavity::setEz(double ez) { Ez_m = ez; }
 
+namespace {
+    /// The field of the cavity, for the kernel and the host: (Ex, Ey, Ez) inside the field
+    /// window and the aperture, nothing elsewhere.
+    KOKKOS_INLINE_FUNCTION void addConstantField(
+            const ElementRegions& regions, const Vector_t<double, 3>& R, const double Ex,
+            const double Ey, const double Ez, Vector_t<double, 3>& E) {
+        if (!regions.fieldAppliesAt(R)) return;
+        E(0) += Ex;
+        E(1) += Ey;
+        E(2) += Ez;
+    }
+}  // namespace
+
 void ConstantEFieldCavity::apply(
         const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
     auto Rview          = pc->R.getView();
@@ -46,32 +59,12 @@ void ConstantEFieldCavity::apply(
 
     Kokkos::parallel_for(
             "ConstantEFieldCavity::apply()", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (regions.fieldAppliesAt(Rview(i))) {
-                    Eview(i)[0] += Ex;
-                    Eview(i)[1] += Ey;
-                    Eview(i)[2] += Ez;
-                }
+                addConstantField(regions, Rview(i), Ex, Ey, Ez, Eview(i));
             });
 }
 
-void ConstantEFieldCavity::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (!getRegions().fieldAppliesAt(R)) return;
-
-    E(0) += Ex_m;
-    E(1) += Ey_m;
-    E(2) += Ez_m;
-}
-
-bool ConstantEFieldCavity::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const ElementRegions regions = getRegions();
-    if (!regions.fieldAppliesAt(R)) return regions.particleLostAt(R);
-
-    E(0) += Ex_m;
-    E(1) += Ey_m;
-    E(2) += Ez_m;
-    return false;
+void ConstantEFieldCavity::applyOnHost(
+        const Vector_t<double, 3>& R, double /*t*/, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& /*B*/) {
+    addConstantField(getRegions(), R, Ex_m, Ey_m, Ez_m, E);
 }

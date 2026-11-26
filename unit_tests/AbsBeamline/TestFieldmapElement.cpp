@@ -192,14 +192,14 @@ TEST_F(FieldmapElementTest, FieldIsTheMapTimesBScale) {
     const Vector_t<double, 3> R(0.0, 0.0, 0.5);
     const Vector_t<double, 3> P(0.0);
     Vector_t<double, 3> E(0.0), B(0.0);
-    element.apply(R, P, 0.0, E, B);
+    element.applyOnHost(R, 0.0, E, B);
 
     EXPECT_NEAR(B(0), 0.0, 1e-12);
     EXPECT_NEAR(B(1), 0.0, 1e-12);
     EXPECT_NEAR(B(2), 0.5, 1e-12);  // 0.25 T x BSCALE 2
 
     // apply() accumulates, like every other element.
-    element.apply(R, P, 0.0, E, B);
+    element.applyOnHost(R, 0.0, E, B);
     EXPECT_NEAR(B(2), 1.0, 1e-12);
 }
 
@@ -219,17 +219,18 @@ TEST_F(FieldmapElementTest, OutsideTheMapMeansNoFieldAndNoLoss) {
     // Well inside the z range, past the map's radius.
     const Vector_t<double, 3> outside(0.1, 0.0, 0.5);
     Vector_t<double, 3> E(0.0), B(0.0);
-    element.apply(outside, P, 0.0, E, B);
+    element.applyOnHost(outside, 0.0, E, B);
     EXPECT_NEAR(B(2), 0.0, 1e-12);
     EXPECT_FALSE(element.isInside(outside));
-    EXPECT_FALSE(element.applyToReferenceParticle(outside, P, 0.0, E, B));
+    element.applyOnHost(outside, 0.0, E, B);
     EXPECT_FALSE(element.getRegions().inLossRegion(outside));
     EXPECT_NEAR(B(2), 0.0, 1e-12);
 
     // Inside, the same call gives the field and reports no loss.
     const Vector_t<double, 3> inside(0.0, 0.0, 0.5);
     B = 0.0;
-    EXPECT_FALSE(element.applyToReferenceParticle(inside, P, 0.0, E, B));
+    element.applyOnHost(inside, 0.0, E, B);
+    EXPECT_FALSE(element.getRegions().inLossRegion(inside));
     EXPECT_NEAR(B(2), 0.25, 1e-12);
 }
 
@@ -247,9 +248,10 @@ TEST_F(FieldmapElementTest, MapNarrowerThanTheApertureLeavesAFieldFreeGap) {
     const Vector_t<double, 3> P(0.0);
     const Vector_t<double, 3> gap(0.1, 0.0, 0.5);
     Vector_t<double, 3> E(0.0), B(0.0);
-    element.apply(gap, P, 0.0, E, B);
+    element.applyOnHost(gap, 0.0, E, B);
     EXPECT_NEAR(B(2), 0.0, 1e-12);
-    EXPECT_FALSE(element.applyToReferenceParticle(gap, P, 0.0, E, B));
+    element.applyOnHost(gap, 0.0, E, B);
+    EXPECT_FALSE(element.getRegions().inLossRegion(gap));
     EXPECT_NEAR(B(2), 0.0, 1e-12);
     EXPECT_FALSE(element.getRegions().inLossRegion(gap));
 
@@ -272,12 +274,12 @@ TEST_F(FieldmapElementTest, ApertureHitIsStillALoss) {
     Vector_t<double, 3> E(0.0), B(0.0);
 
     // Inside the field window in z, outside the 10 mm aperture.
-    EXPECT_TRUE(
-            element.applyToReferenceParticle(Vector_t<double, 3>(0.02, 0.0, 0.5), P, 0.0, E, B));
+    element.applyOnHost(Vector_t<double, 3>(0.02, 0.0, 0.5), 0.0, E, B);
+    EXPECT_TRUE(element.getRegions().inLossRegion(Vector_t<double, 3>(0.02, 0.0, 0.5)));
 
     // Outside the field window in z, the aperture is not enforced.
-    EXPECT_FALSE(
-            element.applyToReferenceParticle(Vector_t<double, 3>(0.02, 0.0, 5.0), P, 0.0, E, B));
+    element.applyOnHost(Vector_t<double, 3>(0.02, 0.0, 5.0), 0.0, E, B);
+    EXPECT_FALSE(element.getRegions().inLossRegion(Vector_t<double, 3>(0.02, 0.0, 5.0)));
 }
 
 // A configured aperture wins over the map extent, because it is the physical bore.

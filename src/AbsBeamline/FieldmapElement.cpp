@@ -94,9 +94,9 @@ void FieldmapElement::apply(
     fieldmap_m->applyField(pc, bscale_m, escale_m, getRegions());
 }
 
-void FieldmapElement::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+void FieldmapElement::applyOnHost(
+        const Vector_t<double, 3>& R, double /*t*/, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) {
     if (fieldmap_m == nullptr || !getRegions().inFieldRegion(R)) {
         return;
     }
@@ -113,28 +113,6 @@ void FieldmapElement::apply(
     // map carrying only one of them leaves the other temporary at zero.
     B += bscale_m * tmpB;
     E += escale_m * tmpE;
-}
-
-bool FieldmapElement::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (fieldmap_m == nullptr) {
-        return false;
-    }
-
-    // Outside the aperture inside the body is material. Inside the aperture but outside the
-    // map data is a field-free gap: no field, and not a loss.
-    const ElementRegions regions = getRegions();
-    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
-
-    Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
-    if (fieldmap_m->getFieldstrength(R, tmpE, tmpB)) {
-        return false;
-    }
-
-    B += bscale_m * tmpB;
-    E += escale_m * tmpE;
-    return false;
 }
 
 /* ============================== Functions ================================= */

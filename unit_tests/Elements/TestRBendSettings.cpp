@@ -70,7 +70,7 @@ namespace {
         }
         Vec field(RBend& bend, double x, double y, double z) {
             Vec e(0.0), b(0.0);
-            bend.apply(Vec(x, y, z), Vec(0.0), 0.0, e, b);
+            bend.applyOnHost(Vec(x, y, z), 0.0, e, b);
             return b;
         }
         void awaProfile() {

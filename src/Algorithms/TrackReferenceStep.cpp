@@ -10,18 +10,9 @@ track_reference::State track_reference::advanceInBeamline(
     return advance(
             state, dt, endTime, reference.getM(), reference.getQ(),
             [&](const auto& r, const auto& p, double t, auto& electric, auto& magnetic) {
-                bool hit = false;
-                for (const auto& element : beamline.getElements(r)) {
-                    if (!diagnostics && element->getType() == ElementType::MONITOR) continue;
-                    const auto& transform            = beamline.getCSTrafoLab2Local(element);
-                    const Vector_t<double, 3> localR = transform.transformTo(r);
-                    const Vector_t<double, 3> localP = transform.rotateTo(p);
-                    Vector_t<double, 3> localE(0), localB(0);
-                    hit = element->applyToReferenceParticle(localR, localP, t, localE, localB)
-                          || hit;
-                    electric += transform.rotateFrom(localE);
-                    magnetic += transform.rotateFrom(localB);
-                }
+                const ElementSet elements = beamline.getElements(r);
+                const bool hit = beamline.applyOnHost(elements, r, t, electric, magnetic);
+                if (diagnostics) beamline.recordReference(elements, r, p, t);
                 return hit;
             });
 }

@@ -58,31 +58,10 @@ public:
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    /** Calculate the field at a given position
-     *
-     *  @param R the position at which the field is calculated
-     *  @param P the momentum (not used)
-     *  @param t the time at which the field is calculated
-     *  @param E return value; filled with electric field strength
-     *  @param B return value; filled with magnetic field strength
-     */
-    void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    /** Calculate the field at a given position. This is identical to "apply".
-     *
-     *  @param R the position at which the field is calculated
-     *  @param P the momentum (not used)
-     *  @param t the time at which the field is calculated
-     *  @param E return value; filled with electric field strength
-     *  @param B return value; filled with magnetic field strength
-     *
-     *  @returns True if particle is outside the boundaries; else False
-     */
-    bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     /** Initialise ready for tracking
      *

@@ -80,25 +80,11 @@ public:
     ElementType getType() const override;
     /** Calculate the field for all particles */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
-    /** Calculate the field at some arbitrary position \n
-     *  \param R -> Position in the lab coordinate system of the multipole
-     *  \param P -> Not used
-     *  \param t -> Time at which the field is to be calculated
-     *  \param E -> Calculated electric field - always 0 (no E-field)
-     *  \param B -> Calculated magnetic field
-     */
-    void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-    /** Calculate the field at the position of the ith particle
-     *  \param i -> Index of the particle event; field is calculated at this
-     *  position
-     *  This overload is single-container only. In multi-container tracking,
-     *  use apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time).
-     *  \param t -> Time at which the field is to be calculated
-     *  \param E -> Calculated electric field - always 0 (no E-field)
-     *  \param B -> Calculated magnetic field
-     */
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
+
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
@@ -215,14 +201,6 @@ public:
     /// Chord-aligned arc segments when curved without ROTATION or EANGLE, with each width the
     /// larger of the isInside() band and the kernel gate; otherwise the single bounding box.
     std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
-    /** Apply the field to the reference particle.
-     *
-     *  @return true if the particle is outside the aperture inside the field extent.
-     */
-    bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
     void setScalingName(const std::string& name);
     std::string getScalingName() const { return scalingName_m; }
     void initialiseTimeDependencies() const;

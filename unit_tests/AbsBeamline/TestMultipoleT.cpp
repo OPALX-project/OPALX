@@ -82,7 +82,7 @@ public:
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
         Vector_t<double, 3> E{}, B{};
-        apply(pos, {}, t, E, B);
+        applyOnHost(pos, t, E, B);
         return std::hypot(B[0], B[1], B[2]);
     }
 };

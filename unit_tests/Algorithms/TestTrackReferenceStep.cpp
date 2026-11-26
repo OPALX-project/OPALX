@@ -23,11 +23,7 @@ namespace {
     public:
         CountingMonitor() : Monitor("M") { getGeometry().setElementLength(1); }
         void initialise(PartBunch_t*) override {}
-        bool applyToReferenceParticle(
-                const Vector&, const Vector&, const double&, Vector&, Vector&) override {
-            ++calls;
-            return false;
-        }
+        void recordReference(const Vector&, const Vector&, const double) override { ++calls; }
         int calls = 0;
     };
 
@@ -158,7 +154,7 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
         lattice.prepareSections();
         lattice.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
         Vector electric(0.), magnetic(0.);
-        lattice.getFieldAt(start.position, start.momentum, 0., electric, magnetic);
+        lattice.applyOnHost(start.position, 0., electric, magnetic);
         EXPECT_EQ(magnetic(1), (dipoles[0] + dipoles[1]) + dipoles[2]);
         const auto end =
                 track_reference::advanceInBeamline(lattice, reference, start, 1e-9, 1e-9, false);
@@ -198,8 +194,8 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
     for (const Vector& point : {Vector(1e-3, 0., 0.15), Vector(-2e-3, 0., 0.5)}) {
         EXPECT_EQ(lattice.getElements(point).size(), 1u);
         Vector electric(0.), magnetic(0.), expectedE(0.), expectedB(0.);
-        lattice.getFieldAt(point, forward, 0., electric, magnetic);
-        quad->applyToReferenceParticle(point, forward, 0., expectedE, expectedB);
+        lattice.applyOnHost(point, 0., electric, magnetic);
+        quad->applyOnHost(point, 0., expectedE, expectedB);
         EXPECT_NE(expectedB(1), 0.);
         for (unsigned d = 0; d < 3; ++d)
             EXPECT_NEAR(magnetic(d), expectedB(d), 1e-15) << d;
@@ -237,7 +233,7 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForTheBunchOnly) {
     const CoordinateSystemTrafo misaligned =
             quad->getMisalignment() * quad->getCSTrafoGlobal2Local();
     Vector expectedE(0.), expectedB(0.);
-    quad->apply(misaligned.transformTo(positions[0]), forward, 0., expectedE, expectedB);
+    quad->applyOnHost(misaligned.transformTo(positions[0]), 0., expectedE, expectedB);
     EXPECT_NE(expectedB(1), 0.);
     for (unsigned d = 0; d < 3; ++d)
         EXPECT_NEAR(B(0)(d), expectedB(d), 1e-15) << d;

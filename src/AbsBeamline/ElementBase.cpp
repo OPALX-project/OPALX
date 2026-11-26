@@ -386,12 +386,9 @@ void ElementBase::takeDesignParticle(const PartBunch_t* bunch) {
     if (std::abs(pc->getReference()->getQ()) > 1.0e-15) designCharge_m = pc->getReference()->getQ();
 }
 
-void ElementBase::apply(
-        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    // A bare element carries no field. The bounds/aperture test the previous
-    // bool overload performed here only produced the (unused) return value.
-}
+void ElementBase::applyOnHost(
+        const Vector_t<double, 3>& /*R*/, double /*t*/, Vector_t<double, 3>& /*E*/,
+        Vector_t<double, 3>& /*B*/) {}
 
 size_t ElementBase::markOutsideAperture(
         const std::shared_ptr<ParticleContainer_t>& pc, const RigidTransform& toLocal) {
@@ -423,9 +420,4 @@ size_t ElementBase::markOutsideAperture(
     return localMarked;
 }
 
-bool ElementBase::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    return getRegions().inLossRegion(R);
-}
 /* ========================================================================== */

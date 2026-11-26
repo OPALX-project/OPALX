@@ -23,13 +23,9 @@ public:
     ElementType getType() const override;
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 
+    /// @brief Add g (R - centroid) to E. There is no applyOnHost(): the field needs the centroid
+    /// of the whole container, so at a single point ElementBase::applyOnHost() adds nothing.
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
-    void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-    bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     double getGradient() const;
 

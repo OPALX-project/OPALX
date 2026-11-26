@@ -249,19 +249,7 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     const auto trial = step(initial, dt, [&](const State& ray, auto& electric, auto& magnetic) {
         const auto stageSet = beamline_m.getElements(ray.position);
         crossedSupport      = crossedSupport || stageSet != initialSet;
-        for (const auto& element : stageSet) {
-            if (element->getType() == ElementType::MARKER
-                || element->getType() == ElementType::MONITOR)
-                continue;
-            const auto localR = beamline_m.transformToLocalCS(element, ray.position);
-            const auto localP = beamline_m.rotateToLocalCS(element, ray.momentum);
-            Vector_t<double, 3> localE(0.0), localB(0.0);
-            if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB))
-                return true;
-            electric += beamline_m.rotateFromLocalCS(element, localE);
-            magnetic += beamline_m.rotateFromLocalCS(element, localB);
-        }
-        return false;
+        return beamline_m.applyOnHost(stageSet, ray.position, ray.time, electric, magnetic);
     });
     // Preserve the original query's short circuit. Only this trial's accepted
     // endpoint can become a sibling's start; a rejected trial follows another path.

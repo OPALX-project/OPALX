@@ -87,13 +87,20 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame, with DVOLT and DLAG; see
+    /// ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) final;
 
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /**
+     * @brief Add the field at one point in the local frame.
+     * @param includeErrors Whether DVOLT and DLAG are added to the amplitude and the phase.
+     *        Only trackOnAxisParticle() leaves them out, for autophase and DESIGNENERGY.
+     */
+    virtual void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            bool includeErrors);
 
     virtual void initialise(PartBunch_t* bunch) override;
 
@@ -163,6 +170,15 @@ protected:
     double endField_m;   /**< end point of field support(m)*/
 
 private:
+    /// Factors on the map's E and B at time t: scale cos(phi) and -scale sin(phi).
+    struct RFFactors {
+        double electric;
+        double magnetic;
+    };
+
+    /// The RF factors at time t [s], with or without DVOLT and DLAG.
+    RFFactors getRFFactors(double t, bool includeErrors) const;
+
     CavityType type_m;
 
     static const BiMap<CavityType, std::string> bmCavityTypeString_s;

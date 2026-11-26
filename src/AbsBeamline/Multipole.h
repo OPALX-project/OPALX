@@ -66,33 +66,11 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    /**
-     * @brief Apply to particle with position R and momentum P
-     *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     */
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
-    /**
-     * @brief Apply to reference particle with position R and momemtum P
-     *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /* ========================================================================== */
     /* ============================== Functions ================================= */
     /**

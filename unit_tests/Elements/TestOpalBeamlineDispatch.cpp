@@ -94,7 +94,7 @@ namespace {
             const Vector local = quadrupole_m->getCSTrafoGlobal2Local().transformTo(
                     toLab_m.transformTo(positions_m[i]));
             Vector expectedE(0.0), expectedB(0.0);
-            quadrupole_m->apply(local, Vector({0.0, 0.0, 1.0}), 0.0, expectedE, expectedB);
+            quadrupole_m->applyOnHost(local, 0.0, expectedE, expectedB);
             for (unsigned d = 0; d < 3; ++d) {
                 EXPECT_NEAR(R(i)(d), positions_m[i](d), 1e-15) << i;
                 EXPECT_EQ(E(i)(d), 0.0) << i;

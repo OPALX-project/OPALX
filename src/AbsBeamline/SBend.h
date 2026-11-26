@@ -46,26 +46,10 @@ public:
     /// @param pc The particle container.
     void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    /// @brief Apply the field to a particle with position R and momentum P.
-    /// @param R Position.
-    /// @param P Momentum.
-    /// @param t Time.
-    /// @param E Electric field.
-    /// @param B Magnetic field.
-    void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    /// @brief Apply the field to the reference particle with position R and momentum P.
-    /// @param R Position.
-    /// @param P Momentum.
-    /// @param t Time.
-    /// @param E Electric field.
-    /// @param B Magnetic field.
-    /// @return True if the particle is out-of-bounds (lost), false otherwise.
-    bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     /// @brief Calculate the SBend field extent in the element's coordinatesystem
     /// @param zBegin Where the field begins (negative for fringe fields)

@@ -50,6 +50,12 @@
 
 #include <gtest/gtest.h>
 
+#include "../TemporaryDirectory.h"
+#include "Fields/Astra1DDynamic.h"
+#include "Ippl.h"
+
+#include <fstream>
+
 #define private public
 #include "AbsBeamline/TravelingWave.h"
 #undef private
@@ -151,6 +157,41 @@ public:
 // ---------------------------------------------------------------------------
 class TravelingWaveTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite() {
+        int argc    = 0;
+        char** argv = nullptr;
+        ippl::initialize(argc, argv);
+    }
+    static void TearDownTestSuite() { ippl::finalize(); }
+
+    void TearDown() override {
+        Fieldmap::clearDictionary();
+        directory_m.reset();
+    }
+
+    /**
+     * Give the element an Astra map with a constant Ez over [0, 4] m, the map the kernel
+     * formula Astra1DDynamic::computeTravelingWaveField() reads. Returns its Ez on axis [V/m].
+     */
+    double useConstantAstraMap() {
+        directory_m.create("opalx-traveling-wave");
+        const std::string file = (directory_m.path() / "tw.astra").string();
+        {
+            std::ofstream f(file);
+            f << "AstraDynamic 8 TRUE\n1.0\n";
+            for (int i = 0; i <= 40; ++i)
+                f << 0.1 * i << " 1.0\n";
+        }
+        Fieldmap* map = Fieldmap::getFieldmap(file);
+        Fieldmap::readMap(file);
+        tw_->setFieldmap(map);
+        Vector_t<double, 3> e(0.0), b(0.0);
+        map->getFieldstrength({0.0, 0.0, 1.0}, e, b);
+        return e(2);
+    }
+
+    opalx::test::TemporaryDirectory directory_m;
+
     void SetUp() override {
         tw_   = std::make_unique<TestTravelingWave>();
         fmap_ = std::make_unique<FakeTWFieldmap>();
@@ -244,18 +285,19 @@ TEST_F(TravelingWaveTest, SetPhasemUpdatesInternalPhases) {
 // apply(): entry/core/exit/outside
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, ApplyEntryRegion) {
-    // Entry: tmpR(2) = R(2) + 1.0 < startCoreField_m (=1.0)
+    const double ez = useConstantAstraMap();
+    // Entry: R(2) + periodLength/2 = 0.5 < startCoreField_m (= 1.0)
     Vector_t<double, 3> R = {0.0, 0.0, -0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
     // entry scale = 1, phase = 0 => cos = 1, sin = 0
-    EXPECT_DOUBLE_EQ(E(0), 1.0);
+    // The Fourier sum of the map is constant to round-off.
+    EXPECT_DOUBLE_EQ(E(0), 0.0);
     EXPECT_DOUBLE_EQ(E(1), 0.0);
-    EXPECT_DOUBLE_EQ(E(2), 0.0);
+    EXPECT_NEAR(E(2), ez, 1e-9 * ez);
 
     EXPECT_DOUBLE_EQ(B(0), 0.0);
     EXPECT_DOUBLE_EQ(B(1), 0.0);
@@ -263,9 +305,9 @@ TEST_F(TravelingWaveTest, ApplyEntryRegion) {
 }
 
 TEST_F(TravelingWaveTest, ApplyCoreRegionAccumulatesTwoContributions) {
-    // Core: tmpR(2) = R(2) + 1.0 in [1.0, 3.0)
+    const double ez = useConstantAstraMap();
+    // Core: R(2) + periodLength/2 = 1.5 in [1.0, 3.0)
     Vector_t<double, 3> R = {0.0, 0.0, 0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
@@ -273,32 +315,25 @@ TEST_F(TravelingWaveTest, ApplyCoreRegionAccumulatesTwoContributions) {
     tw_->phaseCore1_m = 0.0;
     tw_->phaseCore2_m = 0.0;
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
-    // Fake fieldmap returns E=(1,0,0) each time, applied twice
-    EXPECT_DOUBLE_EQ(E(0), 2.0);
-    EXPECT_DOUBLE_EQ(E(1), 0.0);
-    EXPECT_DOUBLE_EQ(E(2), 0.0);
-
-    EXPECT_DOUBLE_EQ(B(0), 0.0);
+    // The constant map gives Ez at both core positions, added twice.
+    EXPECT_NEAR(E(2), 2.0 * ez, 1e-9 * ez);
     EXPECT_DOUBLE_EQ(B(1), 0.0);
-    EXPECT_DOUBLE_EQ(B(2), 0.0);
 }
 
 TEST_F(TravelingWaveTest, ApplyExitRegion) {
-    // Exit: tmpR(2) = R(2) + 1.0 >= startExitField_m (=3.0)
+    const double ez = useConstantAstraMap();
+    // Exit: R(2) + periodLength/2 = 3.2 >= startExitField_m (= 3.0); mapped to 3.2 - 1.0 = 2.2.
     Vector_t<double, 3> R = {0.0, 0.0, 2.2};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->phaseExit_m = 0.0;
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
-    EXPECT_DOUBLE_EQ(E(0), 1.0);
-    EXPECT_DOUBLE_EQ(E(1), 0.0);
-    EXPECT_DOUBLE_EQ(E(2), 0.0);
+    EXPECT_NEAR(E(2), ez, 1e-9 * ez);
 }
 
 TEST_F(TravelingWaveTest, ApplyOutsideBefore) {
@@ -307,7 +342,7 @@ TEST_F(TravelingWaveTest, ApplyOutsideBefore) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
     EXPECT_DOUBLE_EQ(E(0), 1.0);
     EXPECT_DOUBLE_EQ(E(1), 2.0);
@@ -323,7 +358,7 @@ TEST_F(TravelingWaveTest, ApplyOutsideAfter) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
     EXPECT_DOUBLE_EQ(E(0), 1.0);
     EXPECT_DOUBLE_EQ(E(1), 2.0);
@@ -337,54 +372,43 @@ TEST_F(TravelingWaveTest, ApplyOutsideAfter) {
 // RF phase behavior
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, ApplyPhasePiOverTwoGivesMagneticField) {
-    Vector_t<double, 3> R = {0.0, 0.0, -0.5};  // entry region
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
-    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+    const double ez = useConstantAstraMap();
+    // Entry region, 1 cm off axis, where the map has a magnetic field.
+    Vector_t<double, 3> R = {0.01, 0.0, -0.5};
+    Vector_t<double, 3> E0(0.0), B0(0.0), E(0.0), B(0.0);
+
+    tw_->applyOnHost(R, 0.0, E0, B0);  // phase 0: cos = 1, sin = 0
+    EXPECT_DOUBLE_EQ(B0(1), 0.0);
 
     tw_->setPhasem(Physics::pi / 2.0);
     tw_->phaseCore1_m = Physics::pi / 2.0;
     tw_->phaseCore2_m = Physics::pi / 2.0;
     tw_->phaseExit_m  = Physics::pi / 2.0;
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
-    EXPECT_NEAR(E(0), 0.0, 1e-12);
-    EXPECT_DOUBLE_EQ(B(1), -1.0);
-}
-
-// ---------------------------------------------------------------------------
-// applyToReferenceParticle
-// ---------------------------------------------------------------------------
-TEST_F(TravelingWaveTest, ApplyToReferenceParticleEntry) {
-    Vector_t<double, 3> R = {0.0, 0.0, -0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
-    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-
-    tw_->applyToReferenceParticle(R, P, 0.0, E, B);
-
-    EXPECT_DOUBLE_EQ(E(0), 1.0);
+    EXPECT_NEAR(E(2), 0.0, 1e-12 * ez);
+    EXPECT_NE(B(1), 0.0);
 }
 
 // ---------------------------------------------------------------------------
 // Fieldmap interaction / edge cases
 // ---------------------------------------------------------------------------
-TEST_F(TravelingWaveTest, FieldmapOutOfBounds) {
-    fmap_->setOutOfBounds(true);
-
-    Vector_t<double, 3> R = {0.0, 0.0, -0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+TEST_F(TravelingWaveTest, PointMappedOutsideTheMapGetsNoField) {
+    useConstantAstraMap();
+    // Exit: 3.2 - mappedStartExitField_m (= -1.5) = 4.7 lies past the map end at 4.0.
+    tw_->mappedStartExitField_m = -1.5;
+    Vector_t<double, 3> R       = {0.0, 0.0, 2.2};
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    tw_->apply(R, P, 0.0, E, B);
+    tw_->applyOnHost(R, 0.0, E, B);
 
-    // Out-of-bounds: no field is applied.
+    // No field, and inside the aperture this is a field-free gap, not material.
     EXPECT_DOUBLE_EQ(E(0), 0.0);
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
-    EXPECT_TRUE(tw_->applyToReferenceParticle(R, P, 0.0, E, B));
+    EXPECT_FALSE(tw_->getRegions().inLossRegion(R));
 }
 
 TEST_F(TravelingWaveTest, IsInside) {

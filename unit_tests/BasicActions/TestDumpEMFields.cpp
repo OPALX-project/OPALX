@@ -49,9 +49,9 @@ namespace {
         ~MockComponent() override = default;
         void apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/, const StepTime& /*time*/)
                 override {}
-        void apply(
-                const Vector_t<double, 3>& r, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-                Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
+        void applyOnHost(
+                const Vector_t<double, 3>& r, double /*t*/, Vector_t<double, 3>& E,
+                Vector_t<double, 3>& B) override {
             if (r(0) < 0. || r(0) > 1. || r(1) < -1. || r(1) > 0. || r(2) < 0. || r(2) > 1.) {
                 return;  // out of bounds: no field
             }
@@ -62,14 +62,11 @@ namespace {
             E(1) = -r(1);
             E(2) = -r(2);
         }
-        bool applyToReferenceParticle(
-                const Vector_t<double, 3>& /*r*/, const Vector_t<double, 3>& /*P*/,
-                const double& /*t*/, Vector_t<double, 3>& /*E*/,
-                Vector_t<double, 3>& /*B*/) override {
-            return false;
-        }
         void initialise(PartBunch_t*) override {}
-        void getFieldExtent(double&, double&) const override {}
+        void getFieldExtent(double& zBegin, double& zEnd) const override {
+            zBegin = 0.0;
+            zEnd   = 1.0;
+        }
     };
 
     void setOneAttribute(DumpEMFields* dump, const std::string& name, const double value) {

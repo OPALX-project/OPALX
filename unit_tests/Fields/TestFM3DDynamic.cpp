@@ -349,9 +349,8 @@ TEST_F(FM3DDynamicTest, RFCavityParticleAndPointEvaluationAgreeAtMidstepTime) {
         const auto magnetic =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles->B.getView());
         Vector expectedElectric(7.0), expectedMagnetic(-0.25);
-        cavity.apply(
-                position, Vector(0.0), bunch.getT() + 0.5 * bunch.getdT(), expectedElectric,
-                expectedMagnetic);
+        cavity.applyOnHost(
+                position, bunch.getT() + 0.5 * bunch.getdT(), expectedElectric, expectedMagnetic);
         for (unsigned component = 0; component < 3; ++component) {
             EXPECT_NEAR(electric(0)(component), expectedElectric(component), 2e-8);
             EXPECT_NEAR(magnetic(0)(component), expectedMagnetic(component), 1e-15);

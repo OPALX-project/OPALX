@@ -87,11 +87,11 @@ enum class ElementFrame : unsigned char {
  *
  * An element owns its identity (name, type), its placement (global-to-local
  * coordinate transform, ELEMEDGE position, misalignment), its transverse
- * aperture, and its field model (the apply() family, called by the tracker
- * every time step, and getFieldExtent(), the field-support interval used for
- * element selection). All geometric state — lengths, bend angle, pole-face
- * rotations, edge transforms — lives in the element's Geometry, accessed
- * through getGeometry().
+ * aperture, and its field model (apply(pc), called by the tracker every time
+ * step for the bunch, applyOnHost() for one point, and getFieldExtent(), the
+ * field-support interval used for element selection). All geometric state — lengths, bend angle,
+ * pole-face rotations, edge transforms — lives in the element's Geometry, accessed through
+ * getGeometry().
  */
 /**
  * @brief Time of the current tracking step, passed to ElementBase::apply().
@@ -102,6 +102,9 @@ struct StepTime {
     double t       = 0.0;  ///< Bunch time at the start of the step (s).
     double dt      = 0.0;  ///< Time step (s).
     long long step = 0;    ///< Global step number.
+
+    /// Time at the middle of the step, where the push evaluates the field (s).
+    double fieldTime() const { return t + 0.5 * dt; }
 };
 
 /// How ParallelTracker uses an element of the tracked line.
@@ -299,14 +302,16 @@ public:
 
     /* ===================== Field application & physics ======================= */
     /**
-     * Apply functions apply the element's electromagnetic field to the
-     * particles. They are called inside OpalBeamline::applyExternalFields().
+     * The element's field has one formula. apply(pc) adds it to every particle of the bunch in a
+     * kernel (called by OpalBeamline::applyExternalFields()); applyOnHost() adds it at one point
+     * (called by OpalBeamline::applyOnHost()). Both call the same inline formula.
      */
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
      * @param pc   The particles, in the frame fieldFrame() requests.
-     * @param time Bunch time, time step and step number of the current step.
+     * @param time Bunch time, time step and step number of the current step. A field is
+     *             evaluated at time.fieldTime().
      */
     virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time);
 
@@ -319,35 +324,20 @@ public:
     virtual ElementFrame fieldFrame() const { return ElementFrame::Local; }
 
     /**
-     * @brief Apply to particle with position R and momentum P
+     * @brief Add the element's field at one point to E and B. Host only; not callable in a kernel.
      *
-     * Fields are only applied to particles inside the element's field bounds
-     * and transverse aperture.
+     * Same formula, gates, errors and time dependence as apply(pc). Adds nothing outside the
+     * field region. Whether the point is lost is not decided here: callers use
+     * getRegions().inLossRegion(), the test of markOutsideAperture().
      *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
+     * @param R Position [m] in the element's local frame, misalignment included.
+     * @param t Time at which the field is evaluated [s].
+     * @param E Electric field [V/m], added to.
+     * @param B Magnetic field [T], added to.
+     * @note The default adds nothing: the element has no field.
      */
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
-
-    /**
-     * @brief Apply to reference particle with position R and momemtum P
-     *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+    virtual void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /**
      * @brief Mark local particles inside the element's longitudinal window but
@@ -499,7 +489,6 @@ public:
 /// and the transform.
 class FramelessElement : public ElementBase {
 public:
-    using ElementBase::apply;
     using ElementBase::ElementBase;
     ElementFrame fieldFrame() const final { return ElementFrame::None; }
     void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime&) final {}

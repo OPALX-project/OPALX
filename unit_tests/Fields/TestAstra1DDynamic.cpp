@@ -525,24 +525,16 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldEntryRegion) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    Astra1DDynamic::computeTravelingWaveField(
-            R, E, B, coefs,
-            0.0,       // zbegin
-            0.10,      // zend
-            0.20,      // length
-            1.0,       // xlrep
-            2,         // accuracy
-            2.0, 0.0,  // entry
-            0.0, 0.0,  // core1
-            0.0, 0.0,  // core2
-            0.0, 0.0,  // exit
-            0.05,      // startCoreField
-            0.20,      // startExitField
-            0.0,       // mappedStartExitField
-            0.10,      // periodLength
-            0.05,      // cellLength
-            0.30       // elementLength
-    );
+    Astra1DDynamic::TravelingWaveParameters tw;
+    tw.entryElectricScale   = 2.0;
+    tw.startCoreField       = 0.05;
+    tw.startExitField       = 0.20;
+    tw.mappedStartExitField = 0.0;
+    tw.periodLength         = 0.10;
+    tw.cellLength           = 0.05;
+    tw.elementLength        = 0.30;
+    // zbegin, zend, length, xlrep, accuracy of the map
+    Astra1DDynamic::computeTravelingWaveField(R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, tw);
 
     EXPECT_NEAR(E[2], 2.0, 1e-12);
 }
@@ -568,19 +560,17 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldCoreRegion) {
     const double mappedStartExit = 0.05;
     const double elementLength   = 0.175;
 
-    Astra1DDynamic::computeTravelingWaveField(
-            R, E, B, coefs,
-            0.0,       // zbegin
-            0.10,      // zend
-            0.20,      // length
-            1.0,       // xlrep
-            2,         // accuracy
-            0.0, 0.0,  // entry
-            1.5, 0.0,  // core1
-            2.5, 0.0,  // core2
-            0.0, 0.0,  // exit
-            startCoreField, startExitField, mappedStartExit, periodLength, cellLength,
-            elementLength);
+    Astra1DDynamic::TravelingWaveParameters tw;
+    tw.core1ElectricScale   = 1.5;
+    tw.core2ElectricScale   = 2.5;
+    tw.startCoreField       = startCoreField;
+    tw.startExitField       = startExitField;
+    tw.mappedStartExitField = mappedStartExit;
+    tw.periodLength         = periodLength;
+    tw.cellLength           = cellLength;
+    tw.elementLength        = elementLength;
+    // zbegin, zend, length, xlrep, accuracy of the map
+    Astra1DDynamic::computeTravelingWaveField(R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, tw);
 
     // Uniform constant coefficient => each core contribution gives Ez = 1
     EXPECT_NEAR(E[2], 4.0, 1e-12);
@@ -607,19 +597,16 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldExitRegion) {
     const double mappedStartExit = 0.05;
     const double elementLength   = 0.175;
 
-    Astra1DDynamic::computeTravelingWaveField(
-            R, E, B, coefs,
-            0.0,       // zbegin
-            0.10,      // zend
-            0.20,      // length
-            1.0,       // xlrep
-            2,         // accuracy
-            0.0, 0.0,  // entry
-            0.0, 0.0,  // core1
-            0.0, 0.0,  // core2
-            3.0, 0.0,  // exit
-            startCoreField, startExitField, mappedStartExit, periodLength, cellLength,
-            elementLength);
+    Astra1DDynamic::TravelingWaveParameters tw;
+    tw.exitElectricScale    = 3.0;
+    tw.startCoreField       = startCoreField;
+    tw.startExitField       = startExitField;
+    tw.mappedStartExitField = mappedStartExit;
+    tw.periodLength         = periodLength;
+    tw.cellLength           = cellLength;
+    tw.elementLength        = elementLength;
+    // zbegin, zend, length, xlrep, accuracy of the map
+    Astra1DDynamic::computeTravelingWaveField(R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, tw);
 
     EXPECT_NEAR(E[2], 3.0, 1e-12);
 }
@@ -637,9 +624,9 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldOutsideRange) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
-    Astra1DDynamic::computeTravelingWaveField(
-            R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.05,
-            0.20, 0.0, 0.10, 0.05, 0.30);
+    const Astra1DDynamic::TravelingWaveParameters tw{1.0, 1.0,  1.0,  1.0, 1.0,  1.0,  1.0,
+                                                     1.0, 0.05, 0.20, 0.0, 0.10, 0.05, 0.30};
+    Astra1DDynamic::computeTravelingWaveField(R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, tw);
 
     EXPECT_NEAR(E[0], 1.0, 1e-12);
     EXPECT_NEAR(E[1], 2.0, 1e-12);

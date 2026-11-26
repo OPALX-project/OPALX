@@ -96,9 +96,9 @@ void VariableRFCavity::setFrequencyModel(
     frequencyTD_m = frequency_td;
 }
 
-void VariableRFCavity::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
+void VariableRFCavity::applyOnHost(
+        const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& /*B*/) {
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
@@ -109,9 +109,7 @@ void VariableRFCavity::apply(
 void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     const auto R = pc->R.getView();
     const auto E = pc->E.getView();
-    // The ordinary Boris kick and host reference field both sample this
-    // physical midpoint. Match RFCavity's common-time convention.
-    const auto t           = time.t + 0.5 * time.dt;
+    const double t         = time.fieldTime();
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
@@ -124,16 +122,6 @@ void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, con
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
                 computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight, length);
             });
-}
-
-bool VariableRFCavity::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
-    const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
-    const double phi       = phaseTD_m->getValue(t);
-    return computeField(
-            R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 bool VariableRFCavity::isInside(const Vector_t<double, 3>& r) const {

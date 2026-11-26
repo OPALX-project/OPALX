@@ -67,20 +67,8 @@ namespace {
                     tracker.step(start, h, [&](const Ray& ray, auto& electric, auto& magnetic) {
                         const auto stageSet = beamline.getElements(ray.position);
                         crossed             = crossed || stageSet != initialSet;
-                        for (const auto& element : stageSet) {
-                            if (element->getType() == ElementType::MARKER
-                                || element->getType() == ElementType::MONITOR)
-                                continue;
-                            const auto localR = beamline.transformToLocalCS(element, ray.position);
-                            const auto localP = beamline.rotateToLocalCS(element, ray.momentum);
-                            Vector_t<double, 3> localE(0.0), localB(0.0);
-                            if (element->applyToReferenceParticle(
-                                        localR, localP, ray.time, localE, localB))
-                                return true;
-                            electric += beamline.rotateFromLocalCS(element, localE);
-                            magnetic += beamline.rotateFromLocalCS(element, localB);
-                        }
-                        return false;
+                        return OpalBeamline::applyOnHost(
+                                stageSet, ray.position, ray.time, electric, magnetic);
                     });
             if (!resolved && (crossed || initialSet != beamline.getElements(trial.end.position)))
                 return split();
@@ -130,19 +118,14 @@ namespace {
         void apply(const std::shared_ptr<ParticleContainer_t>&, const StepTime& /*time*/) override {
         }
 
-        void apply(
-                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
-
-        bool applyToReferenceParticle(
-                const Vector_t<double, 3>& position, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>& electric, Vector_t<double, 3>& magnetic) override {
+        void applyOnHost(
+                const Vector_t<double, 3>& position, double, Vector_t<double, 3>& electric,
+                Vector_t<double, 3>& magnetic) override {
             ++fieldCalls;
             if (position(2) >= fieldBegin_m && position(2) < fieldEnd_m) {
                 electric(2) += electricField_m;
                 magnetic(1) += magneticField_m;
             }
-            return false;
         }
 
         void initialise(PartBunch_t*) override {}

@@ -83,53 +83,53 @@ RFCavity::~RFCavity() {}
 
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
+namespace {
+    /// The field of an IDEAL cavity, for the kernel and the host: a uniform Ez inside the field
+    /// window and the aperture.
+    KOKKOS_INLINE_FUNCTION void addIdealField(
+            const ElementRegions& regions, const Vector_t<double, 3>& R, const double ez,
+            Vector_t<double, 3>& E) {
+        if (regions.fieldAppliesAt(R)) E(2) += ez;
+    }
+}  // namespace
+
+RFCavity::RFFactors RFCavity::getRFFactors(const double t, const bool includeErrors) const {
+    const double scale  = includeErrors ? scale_m + scaleError_m : scale_m;
+    const double phase  = includeErrors ? phase_m + phaseError_m : phase_m;
+    const double phi    = frequency_m * t + phase;
+    const double cosphi = std::cos(phi);
+    const double sinphi = std::sin(phi);
+    return {scale * cosphi, -scale * sinphi};
+}
+
 /**
- * @brief Applies the Standing Wave RF Cavity field to all particles inside the RF cavity
+ * @brief Applies the standing-wave RF cavity field to all particles inside the cavity.
  *
- * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
- * statement
+ * The map field times the RF factors of getRFFactors(), with DVOLT and DLAG.
  */
 void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
-    // RF parameters (copied to device)
-    double freq  = frequency_m;
-    double scale = scale_m + scaleError_m;
-    double phase = phase_m + phaseError_m;
-
-    const double startField = startField_m;
-    const double endField   = endField_m;
-
-    // Reference particle time
-    const double t = time.t + 0.5 * time.dt;  // To be consistent with OPAL
-
-    // RF phase for all particles at this step
-    const double phi    = freq * t + phase;
-    const double cosphi = Kokkos::cos(phi);
-    const double sinphi = Kokkos::sin(phi);
-
-    const double electricScale   = scale * cosphi;
-    const double magneticScale   = -scale * sinphi;
+    const RFFactors factors      = getRFFactors(time.fieldTime(), true);
     const ElementRegions regions = getRegions();
 
     if (isIdeal()) {
         const auto R    = pc->R.getView();
         const auto E    = pc->E.getView();
-        const double ez = electricScale * Units::MVpm2Vpm;
+        const double ez = factors.electric * Units::MVpm2Vpm;
         Kokkos::parallel_for(
-                "RFCavity::ideal", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
-                    if (regions.fieldAppliesAt(R(i))) E(i)[2] += ez;
-                });
+                "RFCavity::ideal", pc->getLocalNum(),
+                KOKKOS_LAMBDA(size_t i) { addIdealField(regions, R(i), ez, E(i)); });
         return;
     }
 
     if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
         dynamicFieldmap->applyRFField(
-                pc, electricScale, magneticScale, startField, endField, regions);
+                pc, factors.electric, factors.magnetic, startField_m, endField_m, regions);
     } else if (auto* dynamic3DFieldmap = dynamic_cast<FM3DDynamic*>(fieldmap_m)) {
         dynamic3DFieldmap->applyRFField(
-                pc, electricScale, magneticScale, startField, endField, regions);
+                pc, factors.electric, factors.magnetic, startField_m, endField_m, regions);
     } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
         astraFieldmap->applyRFField(
-                pc, electricScale, magneticScale, startField, endField, regions);
+                pc, factors.electric, factors.magnetic, startField_m, endField_m, regions);
     } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
@@ -138,47 +138,31 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepT
     }
 }
 
-void RFCavity::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (isIdeal()) {
-        if (isInside(R))
-            E[2] += (scale_m + scaleError_m) * Units::MVpm2Vpm
-                    * std::cos(frequency_m * t + phase_m + phaseError_m);
-        return;
-    }
-    if (R(2) >= startField_m && R(2) < endField_m && getRegions().inFieldRegion(R)) {
-        Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
-
-        bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return;
-
-        E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
-        B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
-    }
+void RFCavity::applyOnHost(
+        const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    applyOnHost(R, t, E, B, true);
 }
 
-bool RFCavity::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+void RFCavity::applyOnHost(
+        const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+        bool includeErrors) {
+    const RFFactors factors      = getRFFactors(t, includeErrors);
     const ElementRegions regions = getRegions();
-    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
     if (isIdeal()) {
-        // Reference tracking deliberately excludes DVOLT and DLAG, as for mapped cavities.
-        E[2] += scale_m * Units::MVpm2Vpm * std::cos(frequency_m * t + phase_m);
-        return false;
+        addIdealField(regions, R, factors.electric * Units::MVpm2Vpm, E);
+        return;
     }
-    if (R(2) >= startField_m && R(2) < endField_m) {
-        Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
-
-        // Outside the map data but inside the aperture is a field-free gap, not material.
-        bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return false;
-
-        E += scale_m * std::cos(frequency_m * t + phase_m) * tmpE;
-        B -= scale_m * std::sin(frequency_m * t + phase_m) * tmpB;
+    if (fieldmap_m == nullptr || R(2) < startField_m || R(2) >= endField_m
+        || !regions.inFieldRegion(R)) {
+        return;
     }
-    return false;
+
+    Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
+    // Outside the map data the map gives no field.
+    if (fieldmap_m->getFieldstrength(R, tmpE, tmpB)) return;
+
+    E += factors.electric * tmpE;
+    B += factors.magnetic * tmpB;
 }
 
 void RFCavity::validateIdeal() const {
@@ -492,7 +476,9 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
         Ef = 0.0;
         Bf = 0.0;
         if (z(2) >= zbegin && z(2) <= zend) {
-            applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
+            // Without DVOLT and DLAG: autophase and DESIGNENERGY set the phase and the amplitude
+            // of the cavity without errors, and the errors then act on top of them.
+            applyOnHost(z, t + 0.5 * dt, Ef, Bf, false);
         }
 
         integrator.kick(z, p, Ef, Bf, dt, designMass_m, designCharge_m);

@@ -63,162 +63,50 @@ TravelingWave::~TravelingWave() {}
  * relationship between the fields.
  */
 void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
-    // RF parameters (copied to device)
-    const double freq       = frequency_m;
-    const double scaleEntry = scale_m + scaleError_m;
-    const double scaleCore  = scaleCore_m + scaleCoreError_m;
-    const double phaseError = phaseError_m;
+    getAstraMap().applyTravelingWave(
+            pc, getTravelingWaveParameters(time.fieldTime(), true), getRegions());
+}
 
-    const double startField      = startField_m;
-    const double startCoreField  = startCoreField_m;
-    const double startExitField  = startExitField_m;
-    const double mappedStartExit = mappedStartExitField_m;
-    const double periodLength    = periodLength_m;
-    const double cellLength      = cellLength_m;
-    const double fieldLength     = endField_m - startField_m;
+void TravelingWave::applyOnHost(
+        const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+        bool includeErrors) {
+    if (fieldmap_m == nullptr || !getRegions().inFieldRegion(R)) return;
+    getAstraMap().getTravelingWaveField(R, getTravelingWaveParameters(t, includeErrors), E, B);
+}
 
-    // Reference particle time -> to be consistent with OPAL
-    const double t       = time.t + 0.5 * time.dt;
-    const double omega_t = freq * t;
-
-    const double cosEntry = std::cos(omega_t + phase_m + phaseError);
-    const double sinEntry = std::sin(omega_t + phase_m + phaseError);
-
-    const double cosCore1 = std::cos(omega_t + phaseCore1_m + phaseError);
-    const double sinCore1 = std::sin(omega_t + phaseCore1_m + phaseError);
-
-    const double cosCore2 = std::cos(omega_t + phaseCore2_m + phaseError);
-    const double sinCore2 = std::sin(omega_t + phaseCore2_m + phaseError);
-
-    const double cosExit = std::cos(omega_t + phaseExit_m + phaseError);
-    const double sinExit = std::sin(omega_t + phaseExit_m + phaseError);
-
-    auto* dynamicFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m);
-    if (dynamicFieldmap == nullptr) {
+Astra1DDynamic& TravelingWave::getAstraMap() const {
+    auto* map = dynamic_cast<Astra1DDynamic*>(fieldmap_m);
+    if (map == nullptr) {
         throw GeneralOpalException(
-                "TravelingWave::apply",
-                "TravelingWave particle application currently requires an Astra1DDynamic field "
-                "map.");
+                "TravelingWave::getAstraMap",
+                "TRAVELINGWAVE '" + getName() + "' requires an Astra1DDynamic field map.");
     }
-
-    dynamicFieldmap->applyTravelingWave(
-            pc, scaleEntry * cosEntry, -scaleEntry * sinEntry, scaleCore * cosCore1,
-            -scaleCore * sinCore1, scaleCore * cosCore2, -scaleCore * sinCore2,
-            scaleEntry * cosExit, -scaleEntry * sinExit, startField, startCoreField, startExitField,
-            mappedStartExit, periodLength, cellLength, fieldLength, getRegions());
+    return *map;
 }
 
-void TravelingWave::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const double omega_t = frequency_m * t;
-    if (R(2) < startField_m || R(2) >= endField_m || !getRegions().inFieldRegion(R)) return;
+Astra1DDynamic::TravelingWaveParameters TravelingWave::getTravelingWaveParameters(
+        const double t, const bool includeErrors) const {
+    const double scaleEntry = includeErrors ? scale_m + scaleError_m : scale_m;
+    const double scaleCore  = includeErrors ? scaleCore_m + scaleCoreError_m : scaleCore_m;
+    const double phaseError = includeErrors ? phaseError_m : 0.0;
+    const double omega_t    = frequency_m * t;
 
-    Vector_t<double, 3> tmpR({R(0), R(1), R(2) - startField_m});
-    Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
-    double tmpcos = 0.0, tmpsin = 0.0;
-
-    if (tmpR(2) < startCoreField_m) {
-        if (!fieldmap_m->isInside(tmpR)) return;
-
-        tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phase_m + phaseError_m);
-        tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phase_m + phaseError_m);
-
-    } else if (tmpR(2) < startExitField_m) {
-        tmpR(2) -= startCoreField_m;
-        const double z = tmpR(2);
-        tmpR(2)        = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        if (!fieldmap_m->isInside(tmpR)) return;
-
-        tmpcos = (scaleCore_m + scaleCoreError_m) * std::cos(omega_t + phaseCore1_m + phaseError_m);
-        tmpsin =
-                -(scaleCore_m + scaleCoreError_m) * std::sin(omega_t + phaseCore1_m + phaseError_m);
-
-        fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-        E += tmpcos * tmpE;
-        B += tmpsin * tmpB;
-
-        tmpE = 0.0;
-        tmpB = 0.0;
-
-        tmpR(2) = z + cellLength_m;
-        tmpR(2) = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        tmpcos = (scaleCore_m + scaleCoreError_m) * std::cos(omega_t + phaseCore2_m + phaseError_m);
-        tmpsin =
-                -(scaleCore_m + scaleCoreError_m) * std::sin(omega_t + phaseCore2_m + phaseError_m);
-
-    } else {
-        tmpR(2) -= mappedStartExitField_m;
-        if (!fieldmap_m->isInside(tmpR)) return;
-
-        tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phaseExit_m + phaseError_m);
-        tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phaseExit_m + phaseError_m);
-    }
-
-    fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-    E += tmpcos * tmpE;
-    B += tmpsin * tmpB;
-}
-
-bool TravelingWave::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const double omega_t = frequency_m * t;
-
-    if (R(2) < startField_m || R(2) >= endField_m) return false;
-
-    Vector_t<double, 3> tmpR({R(0), R(1), R(2) - startField_m});
-    Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
-    double tmpcos = 0.0, tmpsin = 0.0;
-
-    if (tmpR(2) < startCoreField_m) {
-        if (!fieldmap_m->isInside(tmpR)) return true;
-
-        tmpcos = scale_m * std::cos(omega_t + phase_m);
-        tmpsin = -scale_m * std::sin(omega_t + phase_m);
-
-    } else if (tmpR(2) < startExitField_m) {
-        tmpR(2) -= startCoreField_m;
-        const double z = tmpR(2);
-        tmpR(2)        = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        if (!fieldmap_m->isInside(tmpR)) return true;
-
-        tmpcos = scaleCore_m * std::cos(omega_t + phaseCore1_m);
-        tmpsin = -scaleCore_m * std::sin(omega_t + phaseCore1_m);
-
-        fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-        E += tmpcos * tmpE;
-        B += tmpsin * tmpB;
-
-        tmpE = 0.0;
-        tmpB = 0.0;
-
-        tmpR(2) = z + cellLength_m;
-        tmpR(2) = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        tmpcos = scaleCore_m * std::cos(omega_t + phaseCore2_m);
-        tmpsin = -scaleCore_m * std::sin(omega_t + phaseCore2_m);
-
-    } else {
-        tmpR(2) -= mappedStartExitField_m;
-        if (!fieldmap_m->isInside(tmpR)) return true;
-
-        tmpcos = scale_m * std::cos(omega_t + phaseExit_m);
-        tmpsin = -scale_m * std::sin(omega_t + phaseExit_m);
-    }
-
-    fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-    E += tmpcos * tmpE;
-    B += tmpsin * tmpB;
-
-    return false;
+    Astra1DDynamic::TravelingWaveParameters tw;
+    tw.entryElectricScale   = scaleEntry * std::cos(omega_t + phase_m + phaseError);
+    tw.entryMagneticScale   = -scaleEntry * std::sin(omega_t + phase_m + phaseError);
+    tw.core1ElectricScale   = scaleCore * std::cos(omega_t + phaseCore1_m + phaseError);
+    tw.core1MagneticScale   = -scaleCore * std::sin(omega_t + phaseCore1_m + phaseError);
+    tw.core2ElectricScale   = scaleCore * std::cos(omega_t + phaseCore2_m + phaseError);
+    tw.core2MagneticScale   = -scaleCore * std::sin(omega_t + phaseCore2_m + phaseError);
+    tw.exitElectricScale    = scaleEntry * std::cos(omega_t + phaseExit_m + phaseError);
+    tw.exitMagneticScale    = -scaleEntry * std::sin(omega_t + phaseExit_m + phaseError);
+    tw.startCoreField       = startCoreField_m;
+    tw.startExitField       = startExitField_m;
+    tw.mappedStartExitField = mappedStartExitField_m;
+    tw.periodLength         = periodLength_m;
+    tw.cellLength           = cellLength_m;
+    tw.elementLength        = endField_m - startField_m;
+    return tw;
 }
 
 void TravelingWave::initialise(PartBunch_t* bunch) {

@@ -60,69 +60,31 @@ Solenoid::~Solenoid() {
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
 /**
- * @brief apply the solenoid field to all particles in the bunch
- * @note currently not implemented
- * @returns true if at least one particle is lost, false otherwise
- * (not implemented, always returns false)
+ * @brief Apply the solenoid field to all particles in the bunch.
+ *
+ * The map gives B times KS + DKS, and its E unscaled if it has one.
  */
 void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& /*time*/) {
-    Inform m("Solenoid::apply");
-    m << level5 << "Solenoid::apply() called." << endl;
-
+    if (fieldmap_m == nullptr) return;
     fieldmap_m->applyField(pc, scale_m + scaleError_m, 1.0, getRegions());
 }
 
 /**
- * @brief Apply to particle with position R and momentum P
+ * @brief Add the solenoid field at local position R (host).
  *
- * @param R Position
- * @param P Momentum
- * @param t Time
- * @param E Electric Field
- * @param B Magnetic Field
+ * Same gate, map and scales as apply(pc).
  */
-void Solenoid::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < endField_m && getRegions().inFieldRegion(R)) {
-        Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+void Solenoid::applyOnHost(
+        const Vector_t<double, 3>& R, double /*t*/, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) {
+    if (fieldmap_m == nullptr || !getRegions().inFieldRegion(R)) return;
 
-        const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) {
-            return;
-        }
+    Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    // Outside the map data the map gives no field.
+    if (fieldmap_m->getFieldstrength(R, tmpE, tmpB)) return;
 
-        B += (scale_m + scaleError_m) * tmpB;
-    }
-}
-
-/**
- * @brief Apply to reference particle with position R and momemtum P
- *
- * @param R Position
- * @param P Momentum
- * @param t Time
- * @param E Electric Field
- * @param B Magnetic Field
- *
- * @returns true if particle is lost, false otherwise
- */
-bool Solenoid::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    const ElementRegions regions = getRegions();
-    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
-    if (R(2) >= startField_m && R(2) < endField_m) {
-        Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-
-        // Outside the map data but inside the aperture is a field-free gap, not material.
-        const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return false;
-
-        B += scale_m * tmpB;
-    }
-
-    return false;
+    B += (scale_m + scaleError_m) * tmpB;
+    E += tmpE;
 }
 /* ========================================================================== */
 /* ============================== Functions ================================= */
@@ -146,6 +108,22 @@ void Solenoid::initialise(PartBunch_t* bunch) {
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m, isZReversed_m);
 
     if (fieldmap_m != nullptr) {
+        switch (fieldmap_m->getType()) {
+            case T1DDynamic:
+            case TAstraDynamic:
+            case T2DDynamic:
+            case T2DDynamic_cspline:
+            case T3DDynamic:
+            case T3DDynamicH5Block:
+                // A time-dependent map needs a frequency and a phase, which a SOLENOID does not
+                // have; its readers would also ignore KS.
+                throw GeneralOpalException(
+                        "Solenoid::initialise",
+                        "SOLENOID '" + getName() + "': the field map '" + filename_m
+                                + "' is time dependent. Use RFCAVITY or FIELDMAP for it.");
+            default:
+                break;
+        }
         msg << level2 << getName() << " using file ";
         fieldmap_m->getInfo(&msg);
 

@@ -68,30 +68,10 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    /**
-     * @brief Add the map's field at a single position.
-     *
-     * @param R Position in the element's local frame, which is the map's frame.
-     * @param P Momentum (unused).
-     * @param t Time (unused, the map is static).
-     * @param E Electric field [V/m], accumulated into: the map's electric field times ESCALE.
-     *          Unchanged for a map that carries no electric field.
-     * @param B Magnetic field [T], accumulated into: the map's magnetic field times BSCALE.
-     */
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    /**
-     * @brief Add the map's field for the reference particle.
-     *
-     * @return true only for a genuine aperture hit. Being outside the map's transverse
-     *         extent is NOT a loss: the particle simply gets no field. Returning true there
-     *         would make the reference pass treat a benign miss as hitting material.
-     */
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see ElementBase::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     /* ============================== Functions ================================= */
     /**

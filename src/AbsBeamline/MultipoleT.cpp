@@ -49,13 +49,12 @@ double MultipoleT::getScaling(const double t) const {
 void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
     validateConfiguration();
     implementation_->getField(
-            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(time.t),
+            pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(time.fieldTime()),
             pc->getLocalNum(), getRegions());
 }
 
-void MultipoleT::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+void MultipoleT::applyOnHost(
+        const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     validateConfiguration();
     if (!getRegions().inFieldRegion(R)) return;
     implementation_->getField(R, E, B, getScaling(t));
@@ -233,18 +232,6 @@ std::optional<ApertureShape> MultipoleT::getFieldRange() const {
     range.halfX = 0.5 * config_m.horizontalAperture_m;
     range.halfY = 0.5 * config_m.verticalAperture_m;
     return range;
-}
-
-bool MultipoleT::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const ElementRegions regions = getRegions();
-    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
-
-    // The reference particle has to see the same field as every other particle. Without this
-    // the reference walks a straight line through a curved magnet and never leaves it.
-    apply(R, P, t, E, B);
-    return false;
 }
 
 void MultipoleT::validateConfiguration() const {

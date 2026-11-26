@@ -317,12 +317,8 @@ void Astra1DDynamic::applyRFField(
 }
 
 void Astra1DDynamic::applyTravelingWave(
-        std::shared_ptr<ParticleContainer_t> pc, double entryElectricScale,
-        double entryMagneticScale, double core1ElectricScale, double core1MagneticScale,
-        double core2ElectricScale, double core2MagneticScale, double exitElectricScale,
-        double exitMagneticScale, double /*startField*/, double startCoreField,
-        double startExitField, double mappedStartExitField, double periodLength, double cellLength,
-        double elementLength, const ElementRegions& regions) {
+        std::shared_ptr<ParticleContainer_t> pc, const TravelingWaveParameters& tw,
+        const ElementRegions& regions) {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
     const double length = length_m;
@@ -341,11 +337,15 @@ void Astra1DDynamic::applyTravelingWave(
                 if (!regions.inFieldRegion(Rview(i))) return;
                 computeTravelingWaveField(
                         Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
-                        accuracy, entryElectricScale, entryMagneticScale, core1ElectricScale,
-                        core1MagneticScale, core2ElectricScale, core2MagneticScale,
-                        exitElectricScale, exitMagneticScale, startCoreField, startExitField,
-                        mappedStartExitField, periodLength, cellLength, elementLength);
+                        accuracy, tw);
             });
+}
+
+void Astra1DDynamic::getTravelingWaveField(
+        const Vector_t<double, 3>& R, const TravelingWaveParameters& tw, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) const {
+    computeTravelingWaveField(
+            R, E, B, FourCoefs_m.view_host(), zbegin_m, zend_m, length_m, xlrep_m, accuracy_m, tw);
 }
 
 bool Astra1DDynamic::getFieldstrength(

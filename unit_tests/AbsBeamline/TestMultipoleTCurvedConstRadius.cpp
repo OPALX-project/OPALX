@@ -166,13 +166,13 @@ public:
             Vector_t<double, 3> Bzp;
             Vector_t<double, 3> Bzm;
             Vector_t<double, 3> E;
-            apply(R, {}, 0.0, E, B);
-            apply(R + Vector_t<double, 3>{dr, 0, 0}, {}, 0.0, E, Bxp);
-            apply(R - Vector_t<double, 3>{dr, 0, 0}, {}, 0.0, E, Bxm);
-            apply(R + Vector_t<double, 3>{0, dr, 0}, {}, 0.0, E, Byp);
-            apply(R - Vector_t<double, 3>{0, dr, 0}, {}, 0.0, E, Bym);
-            apply(R + Vector_t<double, 3>{0, 0, dr}, {}, 0.0, E, Bzp);
-            apply(R - Vector_t<double, 3>{0, 0, dr}, {}, 0.0, E, Bzm);
+            applyOnHost(R, 0.0, E, B);
+            applyOnHost(R + Vector_t<double, 3>{dr, 0, 0}, 0.0, E, Bxp);
+            applyOnHost(R - Vector_t<double, 3>{dr, 0, 0}, 0.0, E, Bxm);
+            applyOnHost(R + Vector_t<double, 3>{0, dr, 0}, 0.0, E, Byp);
+            applyOnHost(R - Vector_t<double, 3>{0, dr, 0}, 0.0, E, Bym);
+            applyOnHost(R + Vector_t<double, 3>{0, 0, dr}, 0.0, E, Bzp);
+            applyOnHost(R - Vector_t<double, 3>{0, 0, dr}, 0.0, E, Bzm);
             // Calculate the divergence and curl using central differences
             divLine[i]     = (Bxp[0] - Bxm[0] + Byp[1] - Bym[1] + Bzp[2] - Bzm[2]) / 2 / dr;
             curlLine[i][0] = (Byp[2] - Bym[2] - Bzp[1] + Bzm[1]) / 2 / dr;
@@ -485,7 +485,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, ArcCoordinatesAndEntranceFrameField) {
         const Vector_t<double, 3> R =
                 curvilinearToGlobal({0.0, y0, s - length / 2}, {}, length, bendAngle);
         Vector_t<double, 3> E{}, B{};
-        apply(R, {}, 0.0, E, B);
+        applyOnHost(R, 0.0, E, B);
         return B;
     };
 

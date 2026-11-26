@@ -243,7 +243,8 @@ TEST_F(TestVariableRFCavity, TestApplyField) {
         const double integralF = poly2->getIntegral(t) * Units::MHz2Hz;
         const double e_test =
                 amplitude * sin(Physics::two_pi * integralF + phase) * Units::MVpm2Vpm;
-        EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+        cav1.applyOnHost(R, t, E, B);
+        EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
         EXPECT_NEAR(0., E[0], 1.e-6);
         EXPECT_NEAR(0., E[1], 1.e-6);
         EXPECT_NEAR(e_test, E[2], 1.e-6);
@@ -264,32 +265,44 @@ TEST_F(TestVariableRFCavity, TestApplyBoundingBox) {
     cav1.setLength(2.);
     cav1.setHeight(3.);
     cav1.setWidth(4.);
+    cav1.setReach(10.);  // the outside samples sit 2 m off axis, inside the element
     Vector_t<double, 3> R({0., 0., 1.});
     Vector_t<double, 3> B({0., 0., 0.});
     Vector_t<double, 3> E({0., 0., 0.});
     double t = 0;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[2] = 2. - 1e-9;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[2] = 1.e-9;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[2] = -1.e-9;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[2] = 2. + 1.e-9;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[2] = 1.;
     R[1] = -1.5 - 1e-9;
-    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_TRUE(cav1.getRegions().inLossRegion(R));
     R[1] = +1.5 + 1e-9;
-    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_TRUE(cav1.getRegions().inLossRegion(R));
     R[1] = 0.;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
     R[0] = -2. - 1e-9;
-    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_TRUE(cav1.getRegions().inLossRegion(R));
     R[0] = +2. + 1e-9;
-    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_TRUE(cav1.getRegions().inLossRegion(R));
     R[0] = 0.;
-    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
+    cav1.applyOnHost(R, t, E, B);
+    EXPECT_FALSE(cav1.getRegions().inLossRegion(R));
 }
 
 TEST_F(TestVariableRFCavity, BunchFields) {
@@ -344,7 +357,8 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Vector_t<double, 3> singleE{}, singleB{};
     const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
     Kokkos::deep_copy(hostR0, pc->R.getView());
-    EXPECT_FALSE(applyToReferenceParticle(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
+    applyOnHost(hostR0(0), 0.0, singleE, singleB);
+    EXPECT_FALSE(getRegions().inLossRegion(hostR0(0)));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
 }
 
@@ -363,7 +377,8 @@ TEST_F(TestVariableRFCavity, ReferenceParticle) {
     const Vector_t<double, 3> R({0.0, 0.0, 5.0});
     Vector_t<double, 3> B({0.0, 0.0, 0.0});
     Vector_t<double, 3> E({0.0, 0.0, 0.0});
-    EXPECT_FALSE(applyToReferenceParticle(R, {}, 0.0, E, B));
+    applyOnHost(R, 0.0, E, B);
+    EXPECT_FALSE(getRegions().inLossRegion(R));
     EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }
 
@@ -408,9 +423,11 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
     EXPECT_DOUBLE_EQ(zEnd, 10.0);
 
     Vector_t<double, 3> E{}, B{};
-    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, -0.1}, {}, 0.0, E, B));
+    applyOnHost({0.0, 0.0, -0.1}, 0.0, E, B);
+    EXPECT_FALSE(getRegions().inLossRegion(Vector_t<double, 3>{0.0, 0.0, -0.1}));
     EXPECT_DOUBLE_EQ(E[2], 0.0);
-    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, 5.0}, {}, 0.0, E, B));
+    applyOnHost({0.0, 0.0, 5.0}, 0.0, E, B);
+    EXPECT_FALSE(getRegions().inLossRegion(Vector_t<double, 3>{0.0, 0.0, 5.0}));
     EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }
 
@@ -449,8 +466,9 @@ TEST_F(TestVariableRFCavity, DeviceSamplesAllTimeModelsAtBorisMidpoint) {
                 (1.25 + 2.e7 * tm) * 1.e6
                 * std::sin(Physics::two_pi * 1.e6 * (5. * tm + 0.5e8 * tm * tm) + 0.2 - 2.e6 * tm);
         auto hostE = initialE, refE = initialE, hostB = initialB, refB = initialB;
-        apply(r(0), {}, tm, hostE, hostB);
-        EXPECT_FALSE(applyToReferenceParticle(r(0), {}, tm, refE, refB));
+        applyOnHost(r(0), tm, hostE, hostB);
+        applyOnHost(r(0), tm, refE, refB);
+        EXPECT_FALSE(getRegions().inLossRegion(r(0)));
         EXPECT_NEAR(
                 e(0)[2], initialE[2] + expected,
                 16 * std::numeric_limits<double>::epsilon() * std::abs(expected));
@@ -482,14 +500,17 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
             {{0., 0., std::nextafter(0., -1.)}, false, false},
             {{0., 0., std::nextafter(0.5, 0.)}, true, false},
             {{0., 0., 0.5}, false, false},
-            {{0.125, 0.375, 0.25}, true, false},
-            {{-0.125, -0.375, 0.25}, true, false},
+            // On the WIDTH/HEIGHT edge: the field test is inclusive, the loss test of
+            // ElementBase::markOutsideAperture() exclusive, so the edge has both.
+            {{0.125, 0.375, 0.25}, true, true},
+            {{-0.125, -0.375, 0.25}, true, true},
             {{std::nextafter(0.125, 1.), 0., 0.25}, false, true},
             {{std::nextafter(-0.125, -1.), 0., 0.25}, false, true},
             {{0., std::nextafter(0.375, 1.), 0.25}, false, true},
             {{0., std::nextafter(-0.375, -1.), 0.25}, false, true},
-            // Another arm of a ring can have the same local z but be metres away.
-            {{8., 0., 0.25}, false, true},
+            // Another arm of a ring can have the same local z but be metres away: outside the
+            // reach, so not material (the loss test of ElementBase::markOutsideAperture()).
+            {{8., 0., 0.25}, false, false},
             {{8., 0., 0.5}, false, false}};
     const auto bunch = makeBunch(samples.size());
     const auto pc    = bunch->getParticleContainer();
@@ -514,17 +535,15 @@ TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
     for (size_t i = 0; i < samples.size(); ++i) {
         SCOPED_TRACE(i);
         EXPECT_EQ(isInside(samples[i].r), samples[i].field);
-        auto hostE = initialE, refE = initialE, hostB = initialB, refB = initialB;
-        apply(samples[i].r, {}, 0., hostE, hostB);
-        EXPECT_EQ(applyToReferenceParticle(samples[i].r, {}, 0., refE, refB), samples[i].material);
+        auto hostE = initialE, hostB = initialB;
+        applyOnHost(samples[i].r, 0., hostE, hostB);
+        EXPECT_EQ(getRegions().inLossRegion(samples[i].r), samples[i].material);
         const Vector_t<double, 3> expectedE{2., -3., samples[i].field ? 1000004. : 4.};
         for (unsigned d = 0; d < 3; ++d) {
             EXPECT_DOUBLE_EQ(e(i)[d], expectedE[d]);
             EXPECT_DOUBLE_EQ(hostE[d], expectedE[d]);
-            EXPECT_DOUBLE_EQ(refE[d], expectedE[d]);
             EXPECT_DOUBLE_EQ(b(i)[d], initialB[d]);
             EXPECT_DOUBLE_EQ(hostB[d], initialB[d]);
-            EXPECT_DOUBLE_EQ(refB[d], initialB[d]);
         }
     }
 }
@@ -566,7 +585,8 @@ TEST_F(TestVariableRFCavity, ParallelTrackerRegistersLiveCavity) {
     EXPECT_EQ(registered.begin()->get(), cavity.get());
     EXPECT_DOUBLE_EQ(cavity->getAmplitude(0.), 0.05);
     Vector_t<double, 3> hostE(0), hostB(0);
-    EXPECT_FALSE(cavity->applyToReferenceParticle({0., 0., 0.05}, {}, 0., hostE, hostB));
+    cavity->applyOnHost({0., 0., 0.05}, 0., hostE, hostB);
+    EXPECT_FALSE(cavity->getRegions().inLossRegion({0., 0., 0.05}));
     EXPECT_DOUBLE_EQ(hostE[2], 50000.);
     Kokkos::deep_copy(pc->R.getView(), Vector_t<double, 3>{0., 0., 0.05});
     Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));

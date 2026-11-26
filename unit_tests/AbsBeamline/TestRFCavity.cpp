@@ -205,10 +205,10 @@ TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
 
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-    cav_->apply({0.0, 0.0, 0.1}, {0.0, 0.0, 1.0}, 0.0, E, B);
+    cav_->applyOnHost({0.0, 0.0, 0.1}, 0.0, E, B);
     EXPECT_DOUBLE_EQ(E(0), 0.0);
 
-    cav_->apply({0.0, 0.0, 0.5}, {0.0, 0.0, 1.0}, 0.0, E, B);
+    cav_->applyOnHost({0.0, 0.0, 0.5}, 0.0, E, B);
     EXPECT_DOUBLE_EQ(E(0), 1.0);
 }
 
@@ -238,7 +238,7 @@ TEST_F(RFCavityTest, ApplyInside) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // cos(0) = 1 → E += scale * E_map
     EXPECT_DOUBLE_EQ(E(0), 1.0 + 1.0);
@@ -257,7 +257,7 @@ TEST_F(RFCavityTest, ApplyBefore) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // No expected contribution
     EXPECT_DOUBLE_EQ(E(0), 1.0);
@@ -275,7 +275,7 @@ TEST_F(RFCavityTest, ApplyAfter) {
     Vector_t<double, 3> E = {1.0, 2.0, 3.0};
     Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // No expected contribution
     EXPECT_DOUBLE_EQ(E(0), 1.0);
@@ -302,7 +302,7 @@ TEST_F(RFCavityTest, ApplyPhaseZero) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     EXPECT_NE(E(0), 0.0);  // x-component exists
     EXPECT_DOUBLE_EQ(E(1), 0.0);
@@ -323,7 +323,7 @@ TEST_F(RFCavityTest, ApplyPhaseShift) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // cos(pi/2) = 0 → no E
     EXPECT_NEAR(E(0), 0.0, 1e-12);
@@ -342,7 +342,7 @@ TEST_F(RFCavityTest, ApplyPhasePi) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // cos(π) = -1 → E flipped
     EXPECT_NEAR(E(0), -1.0, 1e-12);
@@ -365,13 +365,13 @@ TEST_F(RFCavityTest, PhaseIndependentOfFrequencyAtT0) {
     Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
 
     cav_->setFrequencym(1.0);
-    cav_->apply(R, P, 0.0, E1, B1);
+    cav_->applyOnHost(R, 0.0, E1, B1);
 
     Vector_t<double, 3> E2 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B2 = {0.0, 0.0, 0.0};
 
     cav_->setFrequencym(10.0);
-    cav_->apply(R, P, 0.0, E2, B2);
+    cav_->applyOnHost(R, 0.0, E2, B2);
 
     EXPECT_NEAR(E1(0), 0.0, 1e-12);
     EXPECT_NEAR(E2(0), 0.0, 1e-12);
@@ -389,12 +389,12 @@ TEST_F(RFCavityTest, ApplyScaling) {
 
     // Baseline
     Vector_t<double, 3> E1 = {0, 0, 0}, B1 = {0, 0, 0};
-    cav_->apply(R, P, 0.0, E1, B1);
+    cav_->applyOnHost(R, 0.0, E1, B1);
 
     // Scaled
     Vector_t<double, 3> E2 = {0, 0, 0}, B2 = {0, 0, 0};
     cav_->setScale(2.0);
-    cav_->apply(R, P, 0.0, E2, B2);
+    cav_->applyOnHost(R, 0.0, E2, B2);
 
     // compare
     EXPECT_NEAR(E2(0), 2.0 * E1(0), 1e-12);
@@ -415,12 +415,12 @@ TEST_F(RFCavityTest, TimeDependence) {
     Vector_t<double, 3> E0 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B0 = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E0, B0);  // phi = 0
+    cav_->applyOnHost(R, 0.0, E0, B0);  // phi = 0
 
     Vector_t<double, 3> E1 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, M_PI / 2.0, E1, B1);  // phi = pi/2
+    cav_->applyOnHost(R, M_PI / 2.0, E1, B1);  // phi = pi/2
 
     EXPECT_NEAR(E0(0), 1.0, 1e-12);  // cos(0)
     EXPECT_NEAR(E1(0), 0.0, 1e-12);  // cos(pi/2)
@@ -429,17 +429,6 @@ TEST_F(RFCavityTest, TimeDependence) {
 // ---------------------------------------------------------------------------
 // Fieldmap interaction
 // ---------------------------------------------------------------------------
-TEST_F(RFCavityTest, ApplyToReferenceParticle) {
-    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
-    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-
-    // Should behave like apply() for reference particle
-    cav_->applyToReferenceParticle(R, P, 0.0, E, B);
-
-    EXPECT_DOUBLE_EQ(E(0), 1.0);
-}
 
 TEST_F(RFCavityTest, FieldmapOutOfBounds) {
     // Make fake fieldmap return true
@@ -450,14 +439,14 @@ TEST_F(RFCavityTest, FieldmapOutOfBounds) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E, B);
+    cav_->applyOnHost(R, 0.0, E, B);
 
     // Out-of-bounds: no field is applied. Inside the aperture this is a field-free gap, not
     // material, so the reference particle is not lost either.
     EXPECT_DOUBLE_EQ(E(0), 0.0);
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
-    EXPECT_FALSE(cav_->applyToReferenceParticle(R, P, 0.0, E, B));
+    EXPECT_FALSE(cav_->getRegions().inLossRegion(R));
 }
 
 // Ideal (map-free) RF cavity behavior.
@@ -519,8 +508,8 @@ TEST_F(IdealRFCavityTest, GradientPhaseAndVariableRFConvention) {
     cavity.setPhasem(0.3);
     for (double time : {0.0, 1.e-9, 2.5e-9, 5.e-9}) {
         Vector_t<double, 3> e(0), b(0), v(0);
-        cavity.apply({0., 0., 0.1}, {}, time, e, b);
-        variable.apply({0., 0., 0.1}, {}, time, v, b);
+        cavity.applyOnHost({0., 0., 0.1}, time, e, b);
+        variable.applyOnHost({0., 0., 0.1}, time, v, b);
         EXPECT_NEAR(e[2], 5.e6 * std::cos(Physics::two_pi * 100.e6 * time + 0.3), 1.e-8);
         EXPECT_NEAR(e[2], v[2], 1.e-8);
         EXPECT_DOUBLE_EQ(e[0], 0.);
@@ -529,7 +518,7 @@ TEST_F(IdealRFCavityTest, GradientPhaseAndVariableRFConvention) {
     }
     cavity.setPhasem(0.);
     Vector_t<double, 3> e(0), b(0);
-    cavity.apply({0., 0., 0.1}, {}, 0., e, b);
+    cavity.applyOnHost({0., 0., 0.1}, 0., e, b);
     EXPECT_DOUBLE_EQ(e[2] * 0.2, 1.e6);
 }
 
@@ -552,31 +541,40 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
     const auto fields   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
     const auto magnetic = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
     for (size_t i = 0; i < positions.size(); ++i) {
-        Vector_t<double, 3> e{1., 2., 3.}, refE(e), b{4., 5., 6.}, refB(b);
-        cavity.apply(positions[i], {}, 2.e-9, e, b);
-        bool outside = cavity.applyToReferenceParticle(positions[i], {}, 2.e-9, refE, refB);
-        EXPECT_EQ(outside, i == 4 || i == 5);
+        Vector_t<double, 3> e{1., 2., 3.}, b{4., 5., 6.};
+        cavity.applyOnHost(positions[i], 2.e-9, e, b);
+        EXPECT_EQ(cavity.getRegions().inLossRegion(positions[i]), i == 4 || i == 5);
         const bool inside = i == 1 || i == 2 || i == 6;
         EXPECT_EQ(cavity.isInside(positions[i]), inside);
         EXPECT_NEAR(e[2], 3. + (inside ? 5.e6 * std::cos(0.4 * Physics::pi) : 0.), 1.e-8);
         for (unsigned d = 0; d < 3; ++d) {
             EXPECT_DOUBLE_EQ(fields(i)[d], e[d]);
-            EXPECT_DOUBLE_EQ(refE[d], e[d]);
             EXPECT_DOUBLE_EQ(magnetic(i)[d], b[d]);
-            EXPECT_DOUBLE_EQ(refB[d], b[d]);
         }
     }
     EXPECT_NO_THROW(cavity.goOffline());
 }
 
-TEST_F(IdealRFCavityTest, ReferenceExcludesErrors) {
+// The field at one point has DVOLT and DLAG, like the bunch's; only the on-axis tracking that
+// autophase and DESIGNENERGY use leaves them out, so they stay errors on top of the set phase.
+TEST_F(IdealRFCavityTest, OnlyOnAxisTrackingLeavesOutErrors) {
+    const auto bunch = makeBunch(1);
+    cavity.initialise(bunch.get());
+    const auto ref           = bunch->getParticleContainer()->getReference();
+    const double mass        = ref->getM() * Units::eV2MeV;
+    const double kinetic     = 10.;
+    const double p0          = std::sqrt(kinetic * (kinetic + 2. * mass)) / mass;
+    const auto withoutErrors = cavity.trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+
     cavity.setAmplitudeError(1.0);
     cavity.setPhaseError(Physics::pi);
-    Vector_t<double, 3> e(0), refE(0), b(0);
-    cavity.apply({0., 0., 0.1}, {}, 0., e, b);
-    cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b);
-    EXPECT_DOUBLE_EQ(e[2], -6.e6);
-    EXPECT_DOUBLE_EQ(refE[2], 5.e6);
+    Vector_t<double, 3> e(0), b(0);
+    cavity.applyOnHost({0., 0., 0.1}, 0., e, b);
+    EXPECT_DOUBLE_EQ(e[2], -6.e6);  // (5 + 1) MV/m cos(0 + pi)
+
+    const auto withErrors = cavity.trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+    EXPECT_DOUBLE_EQ(withErrors.first, withoutErrors.first);
+    EXPECT_DOUBLE_EQ(withErrors.second, withoutErrors.second);
 }
 
 TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
@@ -727,8 +725,9 @@ TEST_F(IdealRFCavityTest, FieldAmplitudeIndependentOfLength) {
         EXPECT_DOUBLE_EQ(begin, 0.);
         EXPECT_DOUBLE_EQ(end, length);
         Vector_t<double, 3> hostE(0), refE(0), b(0);
-        cavity.apply({0., 0., 0.1}, {}, 0., hostE, b);
-        EXPECT_FALSE(cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b));
+        cavity.applyOnHost({0., 0., 0.1}, 0., hostE, b);
+        cavity.applyOnHost({0., 0., 0.1}, 0., refE, b);
+        EXPECT_FALSE(cavity.getRegions().inLossRegion({0., 0., 0.1}));
         Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
         cavity.apply(pc, StepTime{bunch->getT(), bunch->getdT(), 0});
         const auto fields =

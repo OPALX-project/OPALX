@@ -136,14 +136,6 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTi
     }
 }
 
-void Monitor::apply(
-        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    // Monitor is field-free.
-    // This overload does not provide particle ID and may not provide the correct
-    // per-particle dt/q/m information, so it cannot safely save monitor hits.
-}
-
 void Monitor::driftToCorrectPositionAndSave(
         const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
     if (lossDs_m == nullptr || RefPartBunch_m == nullptr) {
@@ -231,16 +223,15 @@ void Monitor::driftToCorrectPositionAndSave(
     }
 }
 
-bool Monitor::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+void Monitor::recordReference(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double t) {
     if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr || !recordReference_m) {
-        return false;
+        return;
     }
 
     const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     if (!pc) {
-        return false;
+        return;
     }
 
     const double dt                      = RefPartBunch_m->getdT();
@@ -248,7 +239,7 @@ bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
     if (singleStep(2) == 0.0) {
-        return false;
+        return;
     }
 
     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
@@ -256,10 +247,10 @@ bool Monitor::applyToReferenceParticle(
         const double sPos          = pc->get_sPos();
 
         if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
-            Inform msg("Monitor::applyToReferenceParticle");
+            Inform msg("Monitor::recordReference");
             msg << level5 << "Ignoring pre-tracking reference crossing"
                 << " globalStep=" << globalStep << " pc_spos=" << sPos << endl;
-            return false;
+            return;
         }
 
         const double frac            = -R(2) / singleStep(2);
@@ -284,8 +275,6 @@ bool Monitor::applyToReferenceParticle(
 
         ++numPassages_m;
     }
-
-    return false;
 }
 
 void Monitor::setRunValues(

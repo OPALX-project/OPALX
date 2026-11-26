@@ -45,10 +45,9 @@ namespace track_reference {
         return state;
     }
 
-    /** Shared field sampling for committed TRACK steps and side-effect-free trials.
-     * diagnostics=false omits passive monitors; supported magnetic elements use
-     * their normal reference field and aperture predicates. diagnostics=true
-     * retains the existing monitor sampling, performed only for the committed step.
+    /** One reference step in the fields of the beamline (OpalBeamline::applyOnHost()).
+     * diagnostics=true also lets the monitors record the reference (committed steps only);
+     * diagnostics=false is for side-effect-free trials.
      */
     State advanceInBeamline(
             OpalBeamline&, const PartData&, State, double dt, double endTime, bool diagnostics);

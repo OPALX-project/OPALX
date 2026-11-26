@@ -10,6 +10,29 @@
 class Astra1DDynamic : public Fieldmap {
 public:
     /**
+     * @brief Scales and positions of the entry, core and exit parts of a traveling-wave
+     * structure, as TravelingWave computes them for one time.
+     *
+     * Positions are in the frame where the structure starts at -periodLength/2 [m].
+     */
+    struct TravelingWaveParameters {
+        double entryElectricScale   = 0.0;  ///< Factor on E in the entry region.
+        double entryMagneticScale   = 0.0;  ///< Factor on B in the entry region.
+        double core1ElectricScale   = 0.0;  ///< Factor on E of the first core contribution.
+        double core1MagneticScale   = 0.0;  ///< Factor on B of the first core contribution.
+        double core2ElectricScale   = 0.0;  ///< Factor on E of the second core contribution.
+        double core2MagneticScale   = 0.0;  ///< Factor on B of the second core contribution.
+        double exitElectricScale    = 0.0;  ///< Factor on E in the exit region.
+        double exitMagneticScale    = 0.0;  ///< Factor on B in the exit region.
+        double startCoreField       = 0.0;  ///< Start of the periodic core region.
+        double startExitField       = 0.0;  ///< Start of the exit region.
+        double mappedStartExitField = 0.0;  ///< Shift that maps the exit region onto the map.
+        double periodLength         = 0.0;  ///< Period length of the map cell.
+        double cellLength           = 0.0;  ///< Shift between the two core contributions.
+        double elementLength        = 0.0;  ///< Length of the whole field region.
+    };
+
+    /**
      * @brief Get the field strength at a given point.
      *
      * @param R Position [m] relative to the field map origin.
@@ -156,65 +179,62 @@ public:
     KOKKOS_INLINE_FUNCTION static void computeTravelingWaveField(
             const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             const ViewType& FourCoefs, double zbegin, double zend, double length, double xlrep,
-            int accuracy, double entryElectricScale, double entryMagneticScale,
-            double core1ElectricScale, double core1MagneticScale, double core2ElectricScale,
-            double core2MagneticScale, double exitElectricScale, double exitMagneticScale,
-            double startCoreField, double startExitField, double mappedStartExitField,
-            double periodLength, double cellLength, double elementLength) {
-        if (R(2) < -0.5 * periodLength || R(2) + 0.5 * periodLength >= elementLength) {
+            int accuracy, const TravelingWaveParameters& tw) {
+        const double periodLength = tw.periodLength;
+        if (R(2) < -0.5 * periodLength || R(2) + 0.5 * periodLength >= tw.elementLength) {
             return;
         }
 
         Vector_t<double, 3> tmpR({R(0), R(1), R(2) + 0.5 * periodLength});
         Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
 
-        if (tmpR(2) < startCoreField) {
+        if (tmpR(2) < tw.startCoreField) {
             if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
                 return;
             }
 
             computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
-            E += entryElectricScale * tmpE;
-            B += entryMagneticScale * tmpB;
-        } else if (tmpR(2) < startExitField) {
-            tmpR(2) -= startCoreField;
+            E += tw.entryElectricScale * tmpE;
+            B += tw.entryMagneticScale * tmpB;
+        } else if (tmpR(2) < tw.startExitField) {
+            tmpR(2) -= tw.startCoreField;
             const double z = tmpR(2);
 
             tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
-            tmpR(2) += startCoreField;
+            tmpR(2) += tw.startCoreField;
 
             if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
                 return;
             }
 
             computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
-            E += core1ElectricScale * tmpE;
-            B += core1MagneticScale * tmpB;
+            E += tw.core1ElectricScale * tmpE;
+            B += tw.core1MagneticScale * tmpB;
 
             tmpE = 0.0;
             tmpB = 0.0;
 
-            tmpR(2) = z + cellLength;
+            tmpR(2) = z + tw.cellLength;
             tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
-            tmpR(2) += startCoreField;
+            tmpR(2) += tw.startCoreField;
 
             if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
                 return;
             }
 
             computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
-            E += core2ElectricScale * tmpE;
-            B += core2MagneticScale * tmpB;
+            E += tw.core2ElectricScale * tmpE;
+            B += tw.core2MagneticScale * tmpB;
         } else {
-            tmpR(2) -= mappedStartExitField;
+            tmpR(2) -= tw.mappedStartExitField;
 
             if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
                 return;
             }
 
             computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
-            E += exitElectricScale * tmpE;
-            B += exitMagneticScale * tmpB;
+            E += tw.exitElectricScale * tmpE;
+            B += tw.exitMagneticScale * tmpB;
         }
     }
 
@@ -257,34 +277,24 @@ public:
      *
      * @param pc Particle container.
      *
-     * @param entryElectricScale Scale factor applied to E in the entry region.
-     * @param entryMagneticScale Scale factor applied to B in the entry region.
-     *
-     * @param core1ElectricScale Scale factor applied to the first core contribution in E.
-     * @param core1MagneticScale Scale factor applied to the first core contribution in B.
-     *
-     * @param core2ElectricScale Scale factor applied to the second core contribution in E.
-     * @param core2MagneticScale Scale factor applied to the second core contribution in B.
-     *
-     * @param exitElectricScale Scale factor applied to E in the exit region.
-     * @param exitMagneticScale Scale factor applied to B in the exit region.
-     *
-     * @param startField Longitudinal beginning of the full traveling-wave structure.
-     * @param startCoreField Longitudinal beginning of the periodic core region.
-     * @param startExitField Longitudinal beginning of the exit region.
-     * @param mappedStartExitField Shift used to remap the exit region into field-map coordinates.
-     * @param periodLength Period length of the base field-map cell.
-     * @param cellLength Cell-to-cell longitudinal shift in the core region.
-     * @param elementLength Total longitudinal length of the traveling-wave element.
+     * @param tw Scales and positions of the entry, core and exit parts.
+     * @param regions Where the element applies its field.
      */
     void applyTravelingWave(
-            std::shared_ptr<ParticleContainer_t> pc, double entryElectricScale,
-            double entryMagneticScale, double core1ElectricScale, double core1MagneticScale,
-            double core2ElectricScale, double core2MagneticScale, double exitElectricScale,
-            double exitMagneticScale, double startField, double startCoreField,
-            double startExitField, double mappedStartExitField, double periodLength,
-            double cellLength, double elementLength,
+            std::shared_ptr<ParticleContainer_t> pc, const TravelingWaveParameters& tw,
             const ElementRegions& regions = ElementRegions());
+
+    /**
+     * @brief The traveling-wave field at one point, on the host; the same as
+     * applyTravelingWave() for one particle inside the field region.
+     * @param R Position [m] in the element frame.
+     * @param tw Scales and positions of the three parts.
+     * @param E Electric field [V/m], added to.
+     * @param B Magnetic field [T], added to.
+     */
+    void getTravelingWaveField(
+            const Vector_t<double, 3>& R, const TravelingWaveParameters& tw, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) const;
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double>>& F) override;
 

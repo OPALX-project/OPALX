@@ -19,6 +19,7 @@
 #define OPALX_TravelingWave_HH
 
 #include "AbsBeamline/RFCavity.h"
+#include "Fields/Astra1DDynamic.h"
 #include "Physics/Physics.h"
 
 #include <cmath>
@@ -46,13 +47,12 @@ public:
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
-    virtual void apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    using RFCavity::applyOnHost;
 
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /// @brief Add the field at one point in the local frame; see RFCavity::applyOnHost().
+    void applyOnHost(
+            const Vector_t<double, 3>& R, double t, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            bool includeErrors) override;
 
     virtual void initialise(PartBunch_t* bunch) override;
 
@@ -75,6 +75,14 @@ public:
     std::optional<ApertureShape> getFieldMapRange() const override;
 
 private:
+    /// The field map; throws unless it is an Astra1DDynamic map.
+    Astra1DDynamic& getAstraMap() const;
+
+    /// Scales of the three parts at time t [s], with or without DVOLT and DLAG, and their
+    /// positions.
+    Astra1DDynamic::TravelingWaveParameters getTravelingWaveParameters(
+            double t, bool includeErrors) const;
+
     double scaleCore_m;
     double scaleCoreError_m;
 
