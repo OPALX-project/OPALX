@@ -69,6 +69,10 @@ public:
     /// Return next input token.
     static Token readToken();
 
+    /// Names of disk files currently being parsed, including active CALL parents.
+    /// Memory-backed macro/string streams are excluded.
+    static std::vector<std::string> getActiveInputFiles();
+
 protected:
     /// Execute or check the current command.
     void execute(Object*, const std::string&) const;

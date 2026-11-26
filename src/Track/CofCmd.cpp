@@ -1,19 +1,22 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Track/CofCmd.h"
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <iomanip>
 #include <limits>
 #include <locale>
 #include <memory>
+#include <random>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -27,6 +30,7 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalBeamline.h"
+#include "OpalParser/OpalParser.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "Structure/Beam.h"
 #include "Utilities/OpalException.h"
@@ -159,35 +163,92 @@ namespace {
         });
         return text;
     }
-    // Keep the previous result intact until a complete replacement is closed.
-    // A unique sibling file also avoids collisions between independent runs.
-    void writeResult(const std::string& output, const std::string& json) {
-        std::string temporary = output + ".tmp.XXXXXX";
-        const int fd          = ::mkstemp(temporary.data());
-        if (fd < 0)
-            throw OpalException(
-                    "COF", "Cannot create temporary COF OUTPUT for " + output + ": "
-                                   + std::strerror(errno));
-        struct Cleanup {
-            const std::string& path;
-            ~Cleanup() {
-                std::error_code ignored;
-                std::filesystem::remove(path, ignored);
-            }
-        } cleanup{temporary};
-        std::unique_ptr<FILE, decltype(&std::fclose)> file(::fdopen(fd, "w"), &std::fclose);
-        if (!file) {
-            const std::string message = std::strerror(errno);
-            ::close(fd);
-            throw OpalException(
-                    "COF", "Cannot open temporary COF OUTPUT for " + output + ": " + message);
-        }
-        require(std::fwrite(json.data(), 1, json.size(), file.get()) == json.size(),
-                "Error writing COF OUTPUT: " + output);
-        require(std::fclose(file.release()) == 0, "Error closing COF OUTPUT: " + output);
+    // Protect the top-level deck as well as files on the active CALL stack.
+    // Canonical paths cover spelling/symlink aliases; equivalent also covers hard links.
+    void validateOutput(const std::string& output) {
+        namespace fs = std::filesystem;
         std::error_code error;
-        std::filesystem::rename(temporary, output, error);
+        const auto destination = fs::weakly_canonical(output, error);
+        require(!error, "Cannot resolve COF OUTPUT " + output + ": " + error.message());
+        const bool destinationExists = fs::exists(output, error);
+        require(!error, "Cannot inspect COF OUTPUT " + output + ": " + error.message());
+        auto inputs          = OpalParser::getActiveInputFiles();
+        const auto mainInput = OpalData::getInstance()->getInputFn();
+        if (!mainInput.empty()) inputs.push_back(mainInput);
+        for (const auto& input : inputs) {
+            const auto source = fs::weakly_canonical(input, error);
+            require(!error, "Cannot resolve COF input " + input + ": " + error.message());
+            const auto message = "COF OUTPUT resolves to an active input file: " + output;
+            require(destination != source, message);
+            if (destinationExists) {
+                const bool sourceExists = fs::exists(input, error);
+                require(!error, "Cannot inspect COF input " + input + ": " + error.message());
+                if (sourceExists) {
+                    const bool same = fs::equivalent(output, input, error);
+                    require(!error, "Cannot compare COF OUTPUT " + output + " with input " + input
+                                            + ": " + error.message());
+                    require(!same, message);
+                }
+            }
+        }
+    }
+    // Keep the previous result intact until a complete replacement is closed.
+    // Exclusive creation applies the umask without changing process-global state;
+    // the short sibling name does not consume the destination basename's NAME_MAX.
+    void writeResult(const std::string& output, const std::string& json) {
+        namespace fs    = std::filesystem;
+        const auto fail = [&](const char* operation, int error) {
+            throw OpalException(
+                    "COF",
+                    std::string(operation) + " COF OUTPUT " + output + ": " + std::strerror(error));
+        };
+        const fs::path directory = fs::path(output).parent_path();
+        std::random_device random;
+        fs::path temporary;
+        int fd = -1;
+        for (unsigned attempt = 0; attempt < 64; ++attempt) {
+            std::ostringstream name;
+            name << ".cof-" << std::hex << std::setfill('0') << std::setw(8)
+                 << static_cast<std::uint32_t>(random());
+            temporary = directory / name.str();
+            fd        = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+            if (fd >= 0) break;
+            if (errno != EEXIST) fail("Cannot create temporary", errno);
+        }
+        require(fd >= 0, "Cannot create a unique temporary COF OUTPUT for " + output);
+        struct Cleanup {
+            const fs::path& path;
+            int descriptor;
+            bool remove = true;
+            ~Cleanup() {
+                if (descriptor >= 0) ::close(descriptor);
+                std::error_code ignored;
+                if (remove) fs::remove(path, ignored);
+            }
+        } cleanup{temporary, fd};
+        struct stat created;
+        if (::fstat(fd, &created) != 0) fail("Cannot inspect temporary", errno);
+        // Write privately, then restore the creation mode or existing destination mode.
+        if (::fchmod(fd, 0600) != 0) fail("Cannot secure temporary", errno);
+        std::unique_ptr<FILE, decltype(&std::fclose)> file(::fdopen(fd, "w"), &std::fclose);
+        if (!file) fail("Cannot open temporary", errno);
+        cleanup.descriptor = -1;  // The FILE now owns the descriptor.
+        if (std::fwrite(json.data(), 1, json.size(), file.get()) != json.size())
+            fail("Error writing", errno);
+        if (std::fflush(file.get()) != 0) fail("Error flushing", errno);
+        mode_t mode = created.st_mode & 0777;
+        struct stat existing;
+        if (::stat(output.c_str(), &existing) == 0)
+            mode = existing.st_mode & 0777;
+        else if (errno != ENOENT)
+            fail("Cannot inspect existing", errno);
+        if (::fchmod(fd, mode) != 0) fail("Cannot set permissions for", errno);
+        if (std::fclose(file.release()) != 0) fail("Error closing", errno);
+        validateOutput(output);  // Recheck aliases immediately before publication.
+        std::error_code error;
+        fs::rename(temporary, output, error);
         require(!error, "Cannot replace COF OUTPUT " + output + ": " + error.message());
+        cleanup.remove = false;
     }
     struct Report {
         std::string details;
@@ -560,6 +621,7 @@ namespace {
             const std::vector<std::shared_ptr<ElementBase>>& ordered, const Controls& c,
             const RunSettings& s, ClosedOrbitInitialState& state) {
         require(!ordered.empty(), "RING must contain magnetic/transport elements.");
+        if (!s.output.empty()) validateOutput(s.output);
         std::ostringstream out;
         validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
         ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
