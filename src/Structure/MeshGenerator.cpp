@@ -3,6 +3,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
@@ -11,6 +12,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 extern Inform* gmsg;
@@ -200,25 +202,31 @@ void MeshGenerator::add(const ElementBase& element) {
 
         if (apert.second.size() >= 2 && isBoundedMeshHalfSize(apert.second[0])
             && isBoundedMeshHalfSize(apert.second[1])) {
-            switch (apert.first) {
-                case ApertureType::RECTANGULAR:
-                    mesh = getBox(length, apert.second[0], apert.second[1], 1.0);
-                    break;
-                case ApertureType::ELLIPTICAL:
-                    if (element.getType() == ElementType::MULTIPOLE
-                        && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex()
-                                   == 2) {
-                        mesh = getQuadrupole(length, apert.second[0], apert.second[1], 1.0);
-                    } else if (element.getType() == ElementType::RFCAVITY) {
-                        mesh = getRFCavity(length, apert.second[0], apert.second[1]);
-                    } else if (element.getType() == ElementType::TRAVELINGWAVE) {
-                        mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
-                    } else {
-                        mesh = getCylinder(length, apert.second[0], apert.second[1], 1.0);
-                    }
-                    break;
-                default:
-                    break;
+            if (element.getType() == ElementType::TRAVELINGWAVE
+                && (apert.first == ApertureType::RECTANGULAR
+                    || apert.first == ApertureType::ELLIPTICAL)) {
+                const auto& cavity = static_cast<const TravelingWave&>(element);
+                mesh               = getTravelingWave(
+                        length, apert.second[0], apert.second[1], cavity.getNumCells());
+            } else {
+                switch (apert.first) {
+                    case ApertureType::RECTANGULAR:
+                        mesh = getBox(length, apert.second[0], apert.second[1], 1.0);
+                        break;
+                    case ApertureType::ELLIPTICAL:
+                        if (element.getType() == ElementType::MULTIPOLE
+                            && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex()
+                                       == 2) {
+                            mesh = getQuadrupole(length, apert.second[0], apert.second[1], 1.0);
+                        } else if (element.getType() == ElementType::RFCAVITY) {
+                            mesh = getRFCavity(length, apert.second[0], apert.second[1]);
+                        } else {
+                            mesh = getCylinder(length, apert.second[0], apert.second[1], 1.0);
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
@@ -1575,28 +1583,80 @@ MeshData MeshGenerator::getRFCavity(double length, double minor, double major) {
     return mesh;
 }
 
-MeshData MeshGenerator::getTravelingWave(double length, double minor, double major) {
-    const double boreMinor            = 0.48 * minor;
-    const double boreMajor            = 0.48 * major;
-    const std::vector<double> profile = {0.92, 1.05, 0.92, 1.05, 0.92, 1.05, 0.92, 1.05};
-
+MeshData MeshGenerator::getTravelingWave(double length, double minor, double major, int numCells) {
     MeshData mesh;
-    const auto appendTubeSegment = [&](const double zStart, const double segmentLength,
-                                       const double scale) {
-        if (segmentLength <= 1e-12) {
-            return;
-        }
-        MeshData segment =
-                getTube(segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
-        translateMesh(segment, 0.0, 0.0, zStart);
-        appendMesh(mesh, segment);
-    };
-    const double segmentLength = length / static_cast<double>(profile.size());
-    double z                   = 0.0;
-    for (double scale : profile) {
-        appendTubeSegment(z, segmentLength, scale);
-        z += segmentLength;
+    constexpr unsigned azimuthalSamples = 36;
+    constexpr unsigned cellSamples      = 16;
+    if (!std::isfinite(length) || length <= 0.0 || !isBoundedMeshHalfSize(minor)
+        || !isBoundedMeshHalfSize(major) || numCells <= 0) {
+        return mesh;
     }
+    // Nine end/profile rings plus cellSamples rings per accelerating cell;
+    // two further rings define the bore. MeshData uses unsigned vertex indices.
+    const size_t outerRings = size_t(numCells) * cellSamples + 9;
+    if (outerRings + 2 > std::numeric_limits<unsigned>::max() / (2 * azimuthalSamples)) {
+        return mesh;
+    }
+    const double pitch = length / (double(numCells) + 2.0);
+    if (pitch == 0.0) return mesh;
+    const double scale = std::min(1.0, .8 * pitch / std::max(minor, major));
+    minor *= scale;
+    major *= scale;
+
+    // A continuous surface of revolution avoids overlapping individual tubes.
+    // The rounded cell profile joins a short constant-radius neck at each end.
+    const std::vector<std::pair<double, double>> inlet{
+            {0., .65}, {.12 * pitch, .65}, {.20 * pitch, .36}, {.75 * pitch, .36}, {pitch, .48}};
+    auto profile = inlet;
+    profile.reserve(outerRings);
+    for (int cell = 0; cell < numCells; ++cell) {
+        for (unsigned sample = 1; sample <= cellSamples; ++sample) {
+            const double t = double(sample) / cellSamples;
+            double radius  = .48;
+            if (t > .125 && t < .875) {
+                const double sine = std::sin(Physics::pi * (t - .125) / .75);
+                radius += .52 * sine * sine;
+            }
+            profile.emplace_back((1.0 + cell + t) * pitch, radius);
+        }
+    }
+    for (size_t i = inlet.size() - 1; i-- > 0;)
+        profile.emplace_back(length - inlet[i].first, inlet[i].second);
+
+    mesh.vertices_m.reserve((outerRings + 2) * azimuthalSamples);
+    mesh.triangles_m.reserve(2 * (outerRings + 2) * azimuthalSamples);
+    const auto addRing = [&](double z, double radius) {
+        for (unsigned i = 0; i < azimuthalSamples; ++i) {
+            const double angle = Physics::two_pi * i / azimuthalSamples;
+            mesh.vertices_m.emplace_back(
+                    radius * major * std::cos(angle), radius * minor * std::sin(angle), z);
+        }
+    };
+    for (const auto& [z, radius] : profile)
+        addRing(z, radius);
+    const unsigned boreStart = mesh.vertices_m.size();
+    addRing(0., .22);
+    const unsigned boreEnd = mesh.vertices_m.size();
+    addRing(length, .22);
+    for (unsigned i = 0; i < azimuthalSamples; ++i) {
+        const unsigned next = (i + 1) % azimuthalSamples;
+        for (size_t ring = 0; ring + 1 < outerRings; ++ring) {
+            const unsigned a = ring * azimuthalSamples + i;
+            const unsigned b = ring * azimuthalSamples + next;
+            const unsigned c = a + azimuthalSamples, d = b + azimuthalSamples;
+            mesh.triangles_m.emplace_back(a, b, c);
+            mesh.triangles_m.emplace_back(b, d, c);
+        }
+        // Inner wall faces the bore; annular end faces join it to the outer wall.
+        mesh.triangles_m.emplace_back(boreStart + i, boreEnd + i, boreStart + next);
+        mesh.triangles_m.emplace_back(boreStart + next, boreEnd + i, boreEnd + next);
+        mesh.triangles_m.emplace_back(i, boreStart + i, next);
+        mesh.triangles_m.emplace_back(next, boreStart + i, boreStart + next);
+        const unsigned end = (outerRings - 1) * azimuthalSamples;
+        mesh.triangles_m.emplace_back(end + i, end + next, boreEnd + i);
+        mesh.triangles_m.emplace_back(end + next, boreEnd + next, boreEnd + i);
+    }
+    mesh.decorations_m.emplace_back(Vector_t<double, 3>(0.), Vector_t<double, 3>(0., 0., length));
     return mesh;
 }
 

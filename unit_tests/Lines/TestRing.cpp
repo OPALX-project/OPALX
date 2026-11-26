@@ -59,12 +59,12 @@ TEST(RingMembershipTest, DefaultsValidatesAndSurvivesClone) {
             GeneralOpalException);
 
     drift.setBeamlineMembership(BeamlineTopology::RING, "R1");
-    drift.addLinearTransferMap(LinearTransferMap{});
     drift.setOverlapping(true);
     std::unique_ptr<ElementBase> clone(drift.clone());
     EXPECT_EQ(clone->getBeamlineTopology(), BeamlineTopology::RING);
     EXPECT_EQ(clone->getBeamlineOwnerName(), "R1");
-    EXPECT_TRUE(drift.hasLinearTransferMaps());
+    // Cloning populated TPS attachments is covered by the runtime storage tests.
+    EXPECT_FALSE(drift.hasLinearTransferMaps());
     EXPECT_FALSE(clone->hasLinearTransferMaps());
     EXPECT_TRUE(drift.isOverlapping());
     EXPECT_FALSE(clone->isOverlapping());

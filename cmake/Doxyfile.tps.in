@@ -1,0 +1,28 @@
+PROJECT_NAME = "OPALX TPS"
+PROJECT_NUMBER = @PROJECT_VERSION@
+OUTPUT_DIRECTORY = @PROJECT_BINARY_DIR@/docs/tps
+INPUT = @PROJECT_SOURCE_DIR@/src/tps \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearTransferMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearTransferMap.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsClosedOrbitMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsClosedOrbitMap.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/LinearMapEigenAnalysis.h \
+        @PROJECT_SOURCE_DIR@/src/Structure/LinearTransferMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/LinearTransferMapBuilder.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.cpp \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitSolver.h
+RECURSIVE = YES
+FILE_PATTERNS = *.h *.hpp *.cpp *.dox *.md
+EXTRACT_ALL = YES
+EXTRACT_PRIVATE = NO
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+USE_MATHJAX = YES
+MATHJAX_VERSION = MathJax_3
+QUIET = YES
+WARN_IF_UNDOCUMENTED = NO
+WARN_IF_DOC_ERROR = YES
+WARN_AS_ERROR = YES
+WARN_LOGFILE = @PROJECT_BINARY_DIR@/tps-doxygen-warnings.log
+EXAMPLE_PATH = @PROJECT_SOURCE_DIR@/unit_tests/tps

@@ -38,18 +38,18 @@ class BoundaryGeometry;
 class MeshGenerator;
 
 /**
- * @brief Borrowed view of one element-owned transfer-map copy.
+ * @brief Pinned view of one representative nominal owner and its immutable map.
  *
- * The shared element pointer keeps the occurrence alive, but does not stabilize its
- * map vector. Appending, clearing or recalculating maps can invalidate @c map.
- * For a shared-owner segment, @c element is one representative owner, not the full
- * owner set. Copy the LinearTransferMap value if it must survive recalculation.
+ * Copies survive attachment-vector clearing/recalculation. Does not describe the
+ * full owner set or ownerless intervals. Polynomial access ends at map-storage
+ * release/Kokkos finalization; metadata and occurrence handles remain usable.
  */
 struct ElementTransferMapRef {
-    /// Lifetime handle to the occurrence containing this particular map copy.
+    /// Lifetime handle to one representative occurrence.
     std::shared_ptr<const ElementBase> element;
-    /// Non-owning pointer into ElementBase::getLinearTransferMaps().
-    const LinearTransferMap* map{nullptr};
+    /// Shared immutable segment record, also retained by the complete pass.
+    LinearTransferMapHandle map;
+    std::size_t pass{0};
 };
 
 /**
@@ -131,21 +131,24 @@ public:
     ElementList getElementByType(ElementType);
 
     /**
-     * @brief Return an ordered view of all element-owned linear transfer maps.
+     * @brief Ordered owner view; shared-owner segments appear once by scoped traversal ID.
      *
-     * The element remains the owner of each attached map copy. Results are ordered by entrance
-     * path length; a segment attached to several overlapping elements is returned only once.
-     * Unowned intervals are not included here, even if a neighbouring field tail is present.
-     * OrbitThreader composes the complete ordered segment list, including those intervals.
-     *
-     * Deduplication uses LinearTransferMap::segment, not names: IDs must belong to the
-     * same calculation. Unassigned IDs (max(size_t)) are not deduplicated. Ties in entrance
-     * path length are ordered by attachment ordinal and then element name.
-     * Returned pointers borrow map-vector storage; see ElementTransferMapRef for lifetime.
-     * To obtain the complete product, use OrbitThreader::getCombinedLinearTransferMap()
-     * rather than multiplying this possibly incomplete view.
+     * Sorted by entrance path length, then attachment ordinal, then owner name.
+     * Ownerless intervals are absent. Use getTransferMapPass() for the complete
+     * sequence or combined polynomial. Returned values pin maps across recalculation.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
+
+    /// Complete ordered snapshot, including ownerless segments. Pins TPS until teardown.
+    std::shared_ptr<const TransferMapPass> getTransferMapPass() const { return transferMapPass_m; }
+    /// Remove pass and attachments; retained snapshots remain valid until runtime teardown.
+    void clearTransferMaps();
+    /// Publish validated attachments atomically after staging allocations. Empty clears.
+    /// Owners must belong to this lattice and segments to the supplied pass.
+    void publishTransferMapPass(
+            std::shared_ptr<const TransferMapPass> pass,
+            const std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>&
+                    attachments);
 
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);
@@ -164,6 +167,7 @@ private:
      */
     void placeElementsAlongReferencePath();
 
+    std::shared_ptr<const TransferMapPass> transferMapPass_m;
     ElementList elements_m;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
@@ -179,6 +183,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
     elements_m.push_back(elptr);
+    clearTransferMaps();
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }

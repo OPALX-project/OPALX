@@ -115,10 +115,11 @@ public:
      * For a periodic OrbitThreader this is a same-section return derivative; it becomes a
      * closed-orbit one-turn map only after reference position and momentum closure.
      * Absent before map generation or when no nondegenerate map interval was produced.
-     * The returned reference belongs to this threader, not the elements; copy the value
-     * if it must outlive the threader.
+     * Returns a derived Jacobian by value. getTransferMapPass() pins the underlying
+     * immutable TPS snapshot, also owned by the beamline. Snapshots remain usable
+     * across recalculation until explicit storage release/Kokkos finalization.
      */
-    const std::optional<matrix6x6_t>& getCombinedLinearTransferMap() const;
+    std::optional<matrix6x6_t> getCombinedLinearTransferMap() const;
 
     /**
      * @brief Absolute determinant error \f$|\det(M)-1|\f$ for the combined map.
@@ -127,7 +128,7 @@ public:
      * necessary but not sufficient for canonical symplecticity; the chosen noncanonical
      * coordinates need not preserve it universally. Availability/lifetime match the map.
      */
-    const std::optional<double>& getCombinedDeterminantResidual() const;
+    std::optional<double> getCombinedDeterminantResidual() const;
 
     /**
      * @brief Maximum component of \f$M^TJM-J\f$ for the combined map.
@@ -137,7 +138,10 @@ public:
      * physical tracking. Uses the J defined in LinearTransferMap; availability/lifetime
      * match getCombinedLinearTransferMap().
      */
-    const std::optional<double>& getCombinedSymplecticResidual() const;
+    std::optional<double> getCombinedSymplecticResidual() const;
+
+    /// Immutable snapshot of this threader's last complete pass; also published on the lattice.
+    std::shared_ptr<const TransferMapPass> getTransferMapPass() const { return transferMapPass_m; }
 
     /// Nominal circumference argument [m], supplied by Ring::getLength(); nonpositive for LINE.
     double getDesignCircumference() const { return period_m; }
@@ -216,9 +220,7 @@ private:
     /// Requested map entrance [m], excluding any reference pre-roll.
     double transferMapStartPathLength_m{0.0};
     std::vector<ReferenceSample> referenceSamples_m;
-    std::optional<matrix6x6_t> combinedLinearTransferMap_m;
-    std::optional<double> combinedDeterminantResidual_m;
-    std::optional<double> combinedSymplecticResidual_m;
+    std::shared_ptr<const TransferMapPass> transferMapPass_m;
 
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
@@ -254,15 +256,18 @@ inline IndexMap::key_t OrbitThreader::getRange(const IndexMap::value_t::value_ty
 
 inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBoundingBox_m; }
 
-inline const std::optional<matrix6x6_t>& OrbitThreader::getCombinedLinearTransferMap() const {
-    return combinedLinearTransferMap_m;
+inline std::optional<matrix6x6_t> OrbitThreader::getCombinedLinearTransferMap() const {
+    return transferMapPass_m ? std::optional<matrix6x6_t>(transferMapPass_m->matrix())
+                             : std::nullopt;
 }
 
-inline const std::optional<double>& OrbitThreader::getCombinedDeterminantResidual() const {
-    return combinedDeterminantResidual_m;
+inline std::optional<double> OrbitThreader::getCombinedDeterminantResidual() const {
+    return transferMapPass_m ? std::optional<double>(transferMapPass_m->determinantResidual())
+                             : std::nullopt;
 }
 
-inline const std::optional<double>& OrbitThreader::getCombinedSymplecticResidual() const {
-    return combinedSymplecticResidual_m;
+inline std::optional<double> OrbitThreader::getCombinedSymplecticResidual() const {
+    return transferMapPass_m ? std::optional<double>(transferMapPass_m->symplecticResidual())
+                             : std::nullopt;
 }
 #endif

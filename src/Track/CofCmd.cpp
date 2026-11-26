@@ -15,6 +15,7 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/TpsClosedOrbitMap.h"
 #include "Attributes/Attributes.h"
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -379,8 +380,10 @@ namespace {
         out << "Return time_s=" << returned.ray.time - c.tracking.time
             << " path_m=" << returned.ray.pathLength << " relative_energy_drift=" << drift << '\n';
         LinearMapEigenAnalysis::Settings ev;
-        ev.scales           = s.solver.scales;
-        const auto spectrum = LinearMapEigenAnalysis::analyze(result.matrix, ev);
+        ev.scales = s.solver.scales;
+        const auto opticsMap =
+                opalx::maps::toTpsClosedOrbitMap(result, c.section, c.tracking.momentum);
+        const auto spectrum = LinearMapEigenAnalysis::analyze(opticsMap, ev);
         LinearMapEigenAnalysis::writeReport(out, spectrum);
         OneTurnMap::FullTunes fullTunes;
         if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)

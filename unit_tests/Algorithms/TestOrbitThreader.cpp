@@ -1,3 +1,4 @@
+#include <tps/Map.hpp>
 #include "../TemporaryDirectory.h"
 #include "gtest/gtest.h"
 
@@ -256,7 +257,7 @@ protected:
         Options::linearTransferMapIntegrator = "BORIS";
     }
 
-    LinearTransferMap freeDriftMap(
+    LinearTransferMapDraft freeDriftMap(
             const unsigned levels, const double deltaStep, const double clockOrigin = 0.0,
             const std::string& method = "BORIS") {
         OpalBeamline beamline;
@@ -275,7 +276,11 @@ protected:
         settings.finiteDifferenceSteps[5] = deltaStep;
         settings.integrationMethod        = ExternalFieldRayTracker::parseIntegrationMethod(method);
         LinearTransferMapBuilder builder(beamline, reference, 1.e-11, settings);
-        return builder.build({{entrance}, {exit}}, 0.0).segments.front().map;
+        const auto handle = builder.build({{entrance}, {exit}}, 0.0).segments.front().map;
+        LinearTransferMapDraft result;
+        static_cast<LinearTransferMapMetadata&>(result) = handle->metadata();
+        result.matrix                                   = handle->matrix();
+        return result;
     }
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
@@ -376,11 +381,11 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     {
         orbit_threader_diagnostics::Session session(diagnostics);
         const auto measured = builder.build(samples, 0.0);
-        ASSERT_TRUE(measured.combined);
-        ASSERT_TRUE(result.combined);
+        ASSERT_TRUE(measured.combined());
+        ASSERT_TRUE(result.combined());
         for (unsigned i = 0; i < 6; ++i)
             for (unsigned j = 0; j < 6; ++j)
-                EXPECT_EQ((*measured.combined)(i, j), (*result.combined)(i, j));
+                EXPECT_EQ((*measured.combined())(i, j), (*result.combined())(i, j));
     }
     const auto& mapWork = diagnostics.work[orbit_threader_diagnostics::maps];
     EXPECT_EQ(mapWork.segments, 1);
@@ -394,13 +399,13 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     EXPECT_EQ(orbit_threader_diagnostics::activeReport, nullptr);
     EXPECT_EQ(orbit_threader_diagnostics::activeWork, nullptr);
     ASSERT_EQ(result.segments.size(), 1);
-    EXPECT_EQ(result.segments.front().map.richardsonLevels, 0);
-    EXPECT_EQ(result.segments.front().map.finiteDifferenceSteps[5], 1.e-3);
-    EXPECT_FALSE(result.segments.front().map.richardsonCorrection.has_value());
+    EXPECT_EQ(result.segments.front().map->metadata().richardsonLevels, 0);
+    EXPECT_EQ(result.segments.front().map->metadata().finiteDifferenceSteps[5], 1.e-3);
+    EXPECT_FALSE(result.segments.front().map->metadata().richardsonCorrection.has_value());
     EXPECT_TRUE(result.segments.front().owners.empty());
-    ASSERT_TRUE(result.combined);
-    EXPECT_NEAR((*result.combined)(0, 1), 0.1, 1.0e-9);
-    EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1.0e-7);
+    ASSERT_TRUE(result.combined());
+    EXPECT_NEAR((*result.combined())(0, 1), 0.1, 1.0e-9);
+    EXPECT_NEAR((*result.combined())(4, 5), 0.05, 1.0e-7);
     EXPECT_EQ(samples.front().state.pathLength, 0.0);
     EXPECT_EQ(samples.back().state.pathLength, 0.1);
 }
@@ -423,9 +428,9 @@ TEST_F(OrbitThreaderTest, HigherOrderMapsUseAcceleratedExitSearch) {
         orbit_threader_diagnostics::Report diagnostics;
         orbit_threader_diagnostics::Session session(diagnostics);
         const auto result = builder.build({{entrance}, {exit}}, 0.0);
-        ASSERT_TRUE(result.combined);
-        EXPECT_NEAR((*result.combined)(0, 1), 0.1, 1e-9);
-        EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1e-7);
+        ASSERT_TRUE(result.combined());
+        EXPECT_NEAR((*result.combined())(0, 1), 0.1, 1e-9);
+        EXPECT_NEAR((*result.combined())(4, 5), 0.05, 1e-7);
         const auto& work = diagnostics.work[orbit_threader_diagnostics::maps];
         EXPECT_EQ(work.rays, 12);
         EXPECT_LT(work.exitIterations, 10 * work.rays);
@@ -908,13 +913,14 @@ TEST_F(OrbitThreaderTest, MapBuilderClipsPrerollWithCompensatedReferenceClock) {
     LinearTransferMapBuilder builder(beamline, reference, 1.e-11);
     const auto result = builder.build({{before}, {after}}, 0.0);
     ASSERT_EQ(result.segments.size(), 1);
-    const auto& map = result.segments.front().map;
-    EXPECT_EQ(map.entrance.pathLength, 0.0);
-    EXPECT_NEAR(map.entrance.position(2), 0.0, 2.e-13);
-    const double elapsed = (map.entrance.time - before.time) - map.entrance.timeCorrection;
+    const auto& map = *result.segments.front().map;
+    EXPECT_EQ(map.metadata().entrance.pathLength, 0.0);
+    EXPECT_NEAR(map.metadata().entrance.position(2), 0.0, 2.e-13);
+    const double elapsed =
+            (map.metadata().entrance.time - before.time) - map.metadata().entrance.timeCorrection;
     EXPECT_NEAR(elapsed, 0.5 * flightTime, 1.e-21);
-    EXPECT_NEAR(map.matrix(0, 1), 0.05, 1.e-10);
-    EXPECT_NEAR(map.matrix(4, 5), 0.025, 1.e-7);  // Existing centered delta truncation.
+    EXPECT_NEAR(map.matrix()(0, 1), 0.05, 1.e-10);
+    EXPECT_NEAR(map.matrix()(4, 5), 0.025, 1.e-7);  // Existing centered delta truncation.
 }
 
 TEST_F(OrbitThreaderTest, BishopFrameRemainsOrthonormalThroughBendAndReversal) {
@@ -1337,7 +1343,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
 
     const auto findOverlap = [](const auto& maps) -> const LinearTransferMap* {
         for (const auto& map : maps) {
-            if (map.includesOverlappingFields) return &map;
+            if (map.map->metadata().includesOverlappingFields) return map.map.get();
         }
         return nullptr;
     };
@@ -1345,17 +1351,18 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     const auto* shortOverlap = findOverlap(runtimeShort->getLinearTransferMaps());
     ASSERT_NE(longOverlap, nullptr);
     ASSERT_NE(shortOverlap, nullptr);
-    EXPECT_EQ(longOverlap->richardsonLevels, 1);
-    EXPECT_EQ(shortOverlap->richardsonLevels, 1);
-    EXPECT_EQ(longOverlap->finestFiniteDifferenceSteps[0], 5.e-4);
-    EXPECT_TRUE(longOverlap->richardsonCorrection.has_value());
+    EXPECT_EQ(longOverlap->metadata().richardsonLevels, 1);
+    EXPECT_EQ(shortOverlap->metadata().richardsonLevels, 1);
+    EXPECT_EQ(longOverlap->metadata().finestFiniteDifferenceSteps[0], 5.e-4);
+    EXPECT_TRUE(longOverlap->metadata().richardsonCorrection.has_value());
     for (unsigned row = 0; row < 6; ++row)
         for (unsigned column = 0; column < 6; ++column)
-            EXPECT_EQ(longOverlap->matrix(row, column), shortOverlap->matrix(row, column));
-    EXPECT_EQ(longOverlap->segment, shortOverlap->segment);
+            EXPECT_EQ(longOverlap->matrix()(row, column), shortOverlap->matrix()(row, column));
+    EXPECT_EQ(longOverlap->metadata().segment, shortOverlap->metadata().segment);
     EXPECT_EQ(
             std::set<std::string>(
-                    longOverlap->activeElements.begin(), longOverlap->activeElements.end()),
+                    longOverlap->metadata().activeElements.begin(),
+                    longOverlap->metadata().activeElements.end()),
             (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
 
     const auto ordered = beamline.getLinearTransferMapsInReferenceOrder();
@@ -1363,6 +1370,28 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
     ASSERT_TRUE(threader.getCombinedDeterminantResidual().has_value());
     ASSERT_TRUE(threader.getCombinedSymplecticResidual().has_value());
+    const auto original = beamline.getTransferMapPass();
+    ASSERT_EQ(original, threader.getTransferMapPass());
+    const auto originalMatrix = original->matrix();
+    for (const auto [enabled, design] :
+         {std::pair{true, false}, std::pair{false, true}, std::pair{true, true}}) {
+        Options::enableLinearTransferMaps = enabled;
+        stepSizes.resetIterator();
+        OrbitThreader next(
+                reference, Vector_t<double, 3>(0.0), {0, 0, 1}, 0, 0, 0, 1e-11, stepSizes, beamline,
+                design);
+        next.execute();
+        if (enabled && design) {
+            ASSERT_TRUE(beamline.getTransferMapPass());
+            EXPECT_NE(beamline.getTransferMapPass()->id(), original->id());
+            EXPECT_EQ(beamline.getTransferMapPass(), next.getTransferMapPass());
+        } else {
+            EXPECT_EQ(beamline.getTransferMapPass(), original);
+            EXPECT_FALSE(next.getTransferMapPass());
+        }
+    }
+    EXPECT_TRUE(original->available());
+    EXPECT_EQ(original->matrix()(0, 1), originalMatrix(0, 1));
 }
 
 TEST_F(OrbitThreaderTest, RingReturnLengthIsMeasuredNotTakenFromDesignCircumference) {
@@ -1457,17 +1486,35 @@ TEST_F(OrbitThreaderTest, NominalDriftMapIncludesNeighbourFieldWithoutOwningItsS
     ASSERT_EQ(maps.size(), 2);
     EXPECT_EQ(maps[0].element->getName(), "FRINGE");
     EXPECT_EQ(maps[1].element->getName(), "D_FRINGE");
-    EXPECT_NEAR(maps[0].map->exit.pathLength, 0.1, 1.e-11);
-    EXPECT_NEAR(maps[1].map->entrance.pathLength, 0.1, 1.e-11);
-    EXPECT_NEAR(maps[1].map->exit.pathLength, 0.3, 1.e-11);
-    EXPECT_TRUE(maps[1].map->includesOverlappingFields);
-    EXPECT_EQ(maps[1].map->activeElements, (std::vector<std::string>{"D_FRINGE", "FRINGE"}));
+    EXPECT_NEAR(maps[0].map->metadata().exit.pathLength, 0.1, 1.e-11);
+    EXPECT_NEAR(maps[1].map->metadata().entrance.pathLength, 0.1, 1.e-11);
+    EXPECT_NEAR(maps[1].map->metadata().exit.pathLength, 0.3, 1.e-11);
+    EXPECT_TRUE(maps[1].map->metadata().includesOverlappingFields);
+    EXPECT_EQ(
+            maps[1].map->metadata().activeElements,
+            (std::vector<std::string>{"D_FRINGE", "FRINGE"}));
     // Acceleration in the nominal drift must change its momentum transfer, not act as a drift.
-    EXPECT_GT(std::abs(maps[1].map->matrix(5, 5) - 1.0), 1.e-4);
-    const auto product = prod(maps[1].map->matrix, maps[0].map->matrix);
+    EXPECT_GT(std::abs(maps[1].map->matrix()(5, 5) - 1.0), 1.e-4);
+    const auto left = maps[1].map->matrix(), right = maps[0].map->matrix();
+    const auto product  = prod(left, right);
+    const auto combined = *threader.getCombinedLinearTransferMap();
+    // Dense and TPS products can sum terms in different orders. Check each against
+    // a long-double dot product using gamma_12=sum/product roundoff for six terms.
+    // This replaces accidental bitwise equality, not a physics/FD error tolerance.
+    constexpr double epsilon = std::numeric_limits<double>::epsilon();
+    constexpr double gamma12 = 12 * epsilon / (1 - 12 * epsilon);
     for (unsigned i = 0; i < 6; ++i)
-        for (unsigned j = 0; j < 6; ++j)
-            EXPECT_EQ(product(i, j), (*threader.getCombinedLinearTransferMap())(i, j));
+        for (unsigned j = 0; j < 6; ++j) {
+            long double reference = 0, magnitude = 0;
+            for (unsigned k = 0; k < 6; ++k) {
+                const auto term = static_cast<long double>(left(i, k)) * right(k, j);
+                reference += term;
+                magnitude += std::abs(term);
+            }
+            const auto bound = gamma12 * magnitude;
+            EXPECT_LE(std::abs(static_cast<long double>(product(i, j)) - reference), bound);
+            EXPECT_LE(std::abs(static_cast<long double>(combined(i, j)) - reference), bound);
+        }
 }
 
 TEST_F(OrbitThreaderTest, NativeFringeCutoffConvergesAtFixedNominalGeometry) {
@@ -1514,10 +1561,10 @@ TEST_F(OrbitThreaderTest, NativeFringeCutoffConvergesAtFixedNominalGeometry) {
         for (const auto& entry : beamline.getLinearTransferMapsInReferenceOrder()) {
             if (entry.element->getName() == "B_CUTOFF") {
                 const auto localEntry = entry.element->getCSTrafoGlobal2Local().transformTo(
-                        entry.map->entrance.position);
+                        entry.map->metadata().entrance.position);
                 const auto localExit = (entry.element->getGeometry().getEdgeToEnd()
                                         * entry.element->getCSTrafoGlobal2Local())
-                                               .transformTo(entry.map->exit.position);
+                                               .transformTo(entry.map->metadata().exit.position);
                 EXPECT_NEAR(localEntry(2), 0.0, 1.e-10);
                 EXPECT_NEAR(localExit(2), 0.0, 1.e-10);
             }
@@ -1594,7 +1641,7 @@ TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
     ASSERT_EQ(runtimeElements.size(), 1);
     const auto& maps = (*runtimeElements.begin())->getLinearTransferMaps();
     ASSERT_EQ(maps.size(), 1);
-    const auto& map = maps.front().matrix;
+    const auto map = maps.front().map->matrix();
     EXPECT_NEAR(map(0, 0), 1.0, 1.0e-8);
     EXPECT_NEAR(map(0, 1), length, 2.0e-5);
     EXPECT_NEAR(map(2, 2), 1.0, 1.0e-8);
@@ -1714,4 +1761,312 @@ TEST_F(OrbitThreaderTest, Dop853DenseMidpointAccuracyAndWork) {
     std::cout << "DENSE_MIDPOINT local order=" << order << "\n";
     EXPECT_GT(order, 7.3);
     EXPECT_LT(order, 8.7);
+}
+
+TEST_F(OrbitThreaderTest, TpsCompositionKeepsSharedOverlapAndNonzeroOwnerlessTail) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    const auto first  = makePlacedQuadrupole("Q_LONG", 0.5, 0.0, 0.5);
+    const auto second = makePlacedQuadrupole("Q_SHORT", 0.1, 0.45, 0.8);
+    FieldSupportOnlyComponent tail("TAIL", 0, 0.25, 1e7);
+    tail.setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.55), Quaternion()));
+    tail.fixPosition();
+    beamline.visit(*first, visitor, *bunch);
+    beamline.visit(*second, visitor, *bunch);
+    beamline.visit(tail, visitor, *bunch);
+    beamline.prepareSections();
+    PartData particle(1, 9.382720813e8, 1e6);
+    constexpr double dt = 1e-11;
+    LinearTransferMapBuilder::Settings settings;
+    settings.integrationMethod = ExternalFieldRayTracker::IntegrationMethod::DOP853;
+    ExternalFieldRayTracker tracker(beamline, particle, settings.integrationMethod);
+    ExternalFieldRayTracker::State ray;
+    ray.momentum       = Vector_t<double, 3>(0, 0, 2.3);
+    auto reference     = LinearTransferMapBuilder::initialFrame(beamline, ray.momentum);
+    reference.momentum = ray.momentum;
+    std::vector<LinearTransferMapBuilder::ReferenceSample> samples{{reference}};
+    for (unsigned step = 0; ray.pathLength < 0.7 && step < 512; ++step) {
+        ray                  = tracker.advance(ray, dt);
+        reference            = LinearTransferMapBuilder::transportFrame(reference, ray.momentum);
+        reference.position   = ray.position;
+        reference.momentum   = ray.momentum;
+        reference.time       = ray.time;
+        reference.pathLength = ray.pathLength;
+        reference.positionCorrection   = ray.positionCorrection;
+        reference.timeCorrection       = ray.timeCorrection;
+        reference.pathLengthCorrection = ray.pathLengthCorrection;
+        samples.push_back({reference});
+    }
+    ASSERT_GT(ray.pathLength, 0.7);
+    LinearTransferMapBuilder builder(beamline, particle, dt, settings);
+    const auto result = builder.build(samples, 0);
+    ASSERT_TRUE(result.combined());
+    ASSERT_GE(result.segments.size(), 4u);
+    matrix6x6_t oracle, withoutTail;
+    unsigned overlaps = 0, fieldOnlyTails = 0;
+    for (const auto& segment : result.segments) {
+        matrix6x6_t next(0.0);
+        for (unsigned i = 0; i < 6; ++i)
+            for (unsigned j = 0; j < 6; ++j)
+                for (unsigned k = 0; k < 6; ++k)
+                    next(i, j) += segment.map->matrix()(i, k) * oracle(k, j);
+        oracle = next;
+        if (segment.owners.size() == 2) ++overlaps;
+        if (segment.owners.empty()) {
+            ++fieldOnlyTails;
+            EXPECT_NE(
+                    std::find(
+                            segment.map->metadata().activeElements.begin(),
+                            segment.map->metadata().activeElements.end(), "TAIL"),
+                    segment.map->metadata().activeElements.end());
+            EXPECT_GT(std::abs(segment.map->matrix()(5, 5) - 1), 1e-6);
+        } else {
+            withoutTail = prod(segment.map->matrix(), withoutTail);
+        }
+    }
+    EXPECT_EQ(overlaps, 1u);
+    EXPECT_EQ(fieldOnlyTails, 1u);
+    double missingTailError = 0;
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j) {
+            EXPECT_NEAR(
+                    (*result.combined())(i, j), oracle(i, j),
+                    2e-13 * std::max(1.0, std::abs(oracle(i, j))));
+            missingTailError =
+                    std::max(missingTailError, std::abs(oracle(i, j) - withoutTail(i, j)));
+        }
+    EXPECT_GT(missingTailError, 1e-4);
+    // Standalone building must not attach owner copies or change its input samples.
+    for (const auto& element : beamline.getElements())
+        EXPECT_FALSE(element->hasLinearTransferMaps());
+    EXPECT_EQ(samples.front().state.pathLength, 0);
+    EXPECT_EQ(samples.back().state.pathLength, reference.pathLength);
+
+    std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>> attachments;
+    std::map<
+            std::shared_ptr<ElementBase>, std::size_t,
+            std::owner_less<std::shared_ptr<ElementBase>>>
+            ordinals;
+    for (const auto& segment : result.segments)
+        for (const auto& owner : segment.owners)
+            attachments.push_back({owner, {segment.map, ordinals[owner]++}});
+    beamline.publishTransferMapPass(result.pass, attachments);
+    const auto snapshot  = beamline.getTransferMapPass();
+    const auto ownerView = beamline.getLinearTransferMapsInReferenceOrder();
+    ASSERT_FALSE(ownerView.empty());
+    ASSERT_EQ(snapshot, result.pass);
+    ASSERT_EQ(snapshot->segments().size(), result.segments.size());
+    EXPECT_EQ(
+            beamline.getLinearTransferMapsInReferenceOrder().size() + fieldOnlyTails,
+            snapshot->segments().size());
+    for (std::size_t i = 0; i < result.segments.size(); ++i)
+        EXPECT_EQ(snapshot->segments()[i], result.segments[i].map);
+    LinearTransferMapHandle sharedOverlap;
+    for (const auto& segment : result.segments)
+        if (segment.owners.size() == 2) sharedOverlap = segment.map;
+    ASSERT_TRUE(sharedOverlap);
+    std::vector<std::size_t> overlapOrdinals;
+    for (const auto& owner : beamline.getElements())
+        for (const auto& attached : owner->getLinearTransferMaps())
+            if (attached.map == sharedOverlap) overlapOrdinals.push_back(attached.pass);
+    ASSERT_EQ(overlapOrdinals.size(), 2u);
+    EXPECT_NE(overlapOrdinals[0], overlapOrdinals[1]);
+
+    // Publication rejects foreign handles before changing any published state.
+    auto invalid = attachments;
+    invalid.front().second.pass += 1;
+    EXPECT_THROW(beamline.publishTransferMapPass(result.pass, invalid), OpalException);
+    EXPECT_EQ(beamline.getTransferMapPass(), snapshot);
+    EXPECT_EQ(
+            beamline.getLinearTransferMapsInReferenceOrder().size() + fieldOnlyTails,
+            snapshot->segments().size());
+    auto clone = std::unique_ptr<ElementBase>(attachments.front().first->clone());
+    EXPECT_FALSE(clone->hasLinearTransferMaps());
+
+    // A later build has distinct traversal identity, without mutating the old snapshot.
+    const auto repeated = builder.build(samples, 0);
+    ASSERT_TRUE(repeated.pass);
+    EXPECT_NE(repeated.pass->id(), snapshot->id());
+    EXPECT_NE(repeated.pass->segments().front()->id(), snapshot->segments().front()->id());
+    invalid                    = attachments;
+    invalid.front().second.map = repeated.segments.front().map;
+    EXPECT_THROW(beamline.publishTransferMapPass(result.pass, invalid), OpalException);
+    invalid               = attachments;
+    invalid.front().first = std::shared_ptr<ElementBase>(invalid.front().first->clone());
+    EXPECT_THROW(beamline.publishTransferMapPass(result.pass, invalid), OpalException);
+    EXPECT_THROW(beamline.publishTransferMapPass(nullptr, attachments), OpalException);
+    EXPECT_EQ(beamline.getTransferMapPass(), snapshot);
+    const auto saved = snapshot->matrix();
+    beamline.clearTransferMaps();
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    EXPECT_TRUE(beamline.getLinearTransferMapsInReferenceOrder().empty());
+    EXPECT_TRUE(snapshot->available());
+    EXPECT_EQ(snapshot->matrix()(0, 1), saved(0, 1));
+    // Previously obtained owner views also pin map storage after vector clearing.
+    EXPECT_TRUE(sharedOverlap->available());
+    EXPECT_TRUE(ownerView.front().map->available());
+    EXPECT_EQ(ownerView.front().map->id(), snapshot->segments().front()->id());
+
+    beamline.publishTransferMapPass(result.pass, attachments);
+    OpalBeamline other;
+    beamline.swap(other);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    EXPECT_EQ(other.getTransferMapPass(), snapshot);
+    beamline.merge(other);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    EXPECT_FALSE(other.getTransferMapPass());
+    for (const auto& owner : beamline.getElements())
+        EXPECT_FALSE(owner->hasLinearTransferMaps());
+    EXPECT_TRUE(snapshot->available());
+    // Adding an occurrence invalidates a previously mapped geometry.
+    beamline.publishTransferMapPass(result.pass, attachments);
+    beamline.visit(*first, visitor, *bunch);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    for (const auto& owner : beamline.getElements())
+        EXPECT_FALSE(owner->hasLinearTransferMaps());
+}
+
+TEST_F(OrbitThreaderTest, TpsCompositionPreservesNonunitMomentumDriftAndEmptyResults) {
+    OpalBeamline beamline;
+    PartData particle(1, 9.382720813e8, 1e6);
+    auto entrance =
+            LinearTransferMapBuilder::initialFrame(beamline, Vector_t<double, 3>(0, 0, 2.3));
+    entrance.momentum       = Vector_t<double, 3>(0, 0, 2.3);
+    auto exit               = entrance;
+    constexpr double length = 0.13, gamma2 = 1 + 2.3 * 2.3;
+    exit.position(2) = exit.pathLength = length;
+    exit.time                          = length * std::sqrt(gamma2) / (2.3 * Physics::c);
+    LinearTransferMapBuilder builder(beamline, particle, 1e-11);
+    for (const auto& samples :
+         {std::vector<LinearTransferMapBuilder::ReferenceSample>{},
+          std::vector<LinearTransferMapBuilder::ReferenceSample>{{entrance}}}) {
+        const auto empty = builder.build(samples, 0);
+        EXPECT_TRUE(empty.segments.empty());
+        EXPECT_FALSE(empty.combined());
+        EXPECT_FALSE(empty.determinantResidual());
+        EXPECT_FALSE(empty.symplecticResidual());
+    }
+    const auto result = builder.build({{entrance}, {exit}}, 0);
+    ASSERT_TRUE(result.combined());
+    // In slopes the drift entry is L, not L/p0. Longitudinal central differencing
+    // retains its existing O(h^2) error, hence the established FD-level tolerance.
+    EXPECT_NEAR((*result.combined())(0, 1), length, 1e-9);
+    EXPECT_NEAR((*result.combined())(2, 3), length, 1e-9);
+    EXPECT_NEAR((*result.combined())(4, 5), length / gamma2, 1e-7);
+}
+
+TEST_F(OrbitThreaderTest, CompleteOwnerlessPassSurvivesBuilderAndFailedRecalculation) {
+    OpalBeamline beamline;
+    PartData particle(1, 9.382720813e8, 1e6);
+    auto entrance     = LinearTransferMapBuilder::initialFrame(beamline, {0, 0, 1});
+    entrance.momentum = {0, 0, 1};
+    auto exit         = entrance;
+    exit.position(2) = exit.pathLength = .1;
+    exit.time                          = .1 * std::sqrt(2.) / Physics::c;
+    {
+        LinearTransferMapBuilder builder(beamline, particle, 1e-11);
+        const auto result = builder.build({{entrance}, {exit}}, 0);
+        beamline.publishTransferMapPass(result.pass, {});
+    }
+    const auto snapshot = beamline.getTransferMapPass();
+    ASSERT_TRUE(snapshot);
+    auto rootId = snapshot->id();
+    int size    = static_cast<int>(rootId.size());
+    MPI_Bcast(&size, 1, MPI_INT, 0, ippl::Comm->getCommunicator());
+    rootId.resize(size);
+    MPI_Bcast(rootId.data(), size, MPI_CHAR, 0, ippl::Comm->getCommunicator());
+    EXPECT_EQ(snapshot->id(), rootId);  // Identical build sequences give identical IDs per rank.
+    EXPECT_EQ(snapshot->segments().front()->id(), rootId + "/segment:0");
+    ASSERT_EQ(snapshot->segments().size(), 1u);
+    EXPECT_TRUE(beamline.getLinearTransferMapsInReferenceOrder().empty());
+    EXPECT_NEAR(snapshot->matrix()(0, 1), .1, 1e-9);
+    EXPECT_EQ(snapshot->segments().front()->metadata().entrance.momentum(2), 1);
+    // Enabled recalculation clears first; a subsequent failed build leaves no stale pass.
+    beamline.clearTransferMaps();
+    exit.momentum = {0, 0, 0};
+    LinearTransferMapBuilder builder(beamline, particle, 1e-11);
+    EXPECT_THROW(builder.build({{entrance}, {exit}}, 0), OpalException);
+    EXPECT_FALSE(beamline.getTransferMapPass());
+    EXPECT_TRUE(snapshot->available());
+}
+
+TEST_F(OrbitThreaderTest, PersistentPassDoesNotKeepNominalOwnersAlive) {
+    std::weak_ptr<ElementBase> weakOwner;
+    std::shared_ptr<const TransferMapPass> retained;
+    {
+        auto bunch = makeBunch(0);
+        DummyBeamline line;
+        DefaultVisitor visitor(line, false, false);
+        OpalBeamline beamline;
+        auto element = makePlacedQuadrupole("OWNER", .2, 0, 0);
+        beamline.visit(*element, visitor, *bunch);
+        beamline.prepareSections();
+        auto owner = *beamline.getElements().begin();
+        weakOwner  = owner;
+        PartData particle(1, 9.382720813e8, 1e6);
+        auto entrance     = LinearTransferMapBuilder::initialFrame(beamline, {0, 0, 1});
+        entrance.momentum = {0, 0, 1};
+        auto exit         = entrance;
+        exit.position(2) = exit.pathLength = .1;
+        exit.time                          = .1 * std::sqrt(2.) / Physics::c;
+        LinearTransferMapBuilder builder(beamline, particle, 1e-11);
+        const auto result = builder.build({{entrance}, {exit}}, 0);
+        ASSERT_TRUE(result.pass);
+        beamline.publishTransferMapPass(result.pass, {{owner, {result.segments.front().map, 0}}});
+        retained = beamline.getTransferMapPass();
+    }
+    EXPECT_TRUE(weakOwner.expired());
+    ASSERT_TRUE(retained);
+    EXPECT_TRUE(retained->available());
+    EXPECT_NEAR(retained->matrix()(0, 1), .1, 1e-9);
+}
+
+TEST_F(OrbitThreaderTest, NearCoincidentMapBoundariesShareReferenceStates) {
+    // Zero-gradient quadrupoles supply independent body boundaries in free drift.
+    for (double gap : {-5e-13, 0.0, 5e-13, 5e-11}) {
+        SCOPED_TRACE(gap);
+        auto bunch = makeBunch(0);
+        DummyBeamline line;
+        DefaultVisitor visitor(line, false, false);
+        OpalBeamline beamline;
+        auto first  = makePlacedQuadrupole("FIRST", .1, .02, 0);
+        auto second = makePlacedQuadrupole("SECOND", .1, .12 + gap, 0);
+        beamline.visit(*first, visitor, *bunch);
+        beamline.visit(*second, visitor, *bunch);
+        beamline.prepareSections();
+        PartData particle(1, 9.382720813e8, 1e6);
+        auto start     = LinearTransferMapBuilder::initialFrame(beamline, {0, 0, 1});
+        start.momentum = {0, 0, 1};
+        for (double length : {.3, .22 + gap + 5e-13}) {
+            SCOPED_TRACE(length);
+            std::vector<LinearTransferMapBuilder::ReferenceSample> samples;
+            for (int i = 0; i <= 12; ++i) {
+                auto state        = start;
+                state.position(2) = state.pathLength = std::min(.025 * i, length);
+                state.time = state.pathLength * std::sqrt(2.) / Physics::c;
+                samples.push_back({state});
+                if (state.pathLength == length) break;
+            }
+            LinearTransferMapBuilder::Settings settings;
+            // Remove central-difference O(h^2) error from the analytic R56 check.
+            settings.richardsonLevels = 1;
+            LinearTransferMapBuilder builder(beamline, particle, 1e-11, settings);
+            const auto result = builder.build(samples, 0);
+            ASSERT_TRUE(result.pass);
+            const auto& maps = result.pass->segments();
+            ASSERT_GE(maps.size(), 3u);
+            for (std::size_t i = 1; i < maps.size(); ++i)
+                EXPECT_EQ(
+                        maps[i - 1]->polynomial().context().output(),
+                        maps[i]->polynomial().context().input());
+            EXPECT_DOUBLE_EQ(maps.front()->metadata().entrance.pathLength, 0);
+            EXPECT_DOUBLE_EQ(maps.back()->metadata().exit.pathLength, length);
+            EXPECT_NEAR(result.pass->matrix()(0, 1), length, 1e-9);
+            EXPECT_NEAR(result.pass->matrix()(2, 3), length, 1e-9);
+            EXPECT_NEAR(result.pass->matrix()(4, 5), length / 2, 1e-7);
+        }
+    }
 }

@@ -14,7 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include <array>
+#include <climits>
+#include <limits>
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "EngeDerivativeReference.h"
 #include "gtest/gtest.h"
 
 class TestAsymmetricEnge : public testing::Test {
@@ -100,6 +104,79 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
             double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-6) << " at x " << x << " n " << n;
             EXPECT_NEAR(yHost(i, n), dyRef, 1e-6) << " at x " << x << " n " << n;
+        }
+    }
+}
+
+TEST_F(TestAsymmetricEnge, HighestSupportedOrderAndInvalidRequests) {
+    using namespace endfieldmodel;
+    AsymmetricEnge model({.2}, 1., .5, {-.3}, 2., .7);
+    model.initialise();
+    constexpr int order = EngeConfig::max_derivative;
+    Kokkos::View<double*> points("points", 2);
+    Kokkos::deep_copy(points, .3);
+    Kokkos::View<double**> values("derivatives", 2, order + 1);
+    model.function(points, order, values);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_NEAR(host(i, 0), 1. / (1. + std::exp(.2)) + 1. / (1. + std::exp(-.3)) - 1., 1e-14);
+        for (int n = 1; n <= order; ++n)
+            EXPECT_DOUBLE_EQ(host(i, n), 0.);
+    }
+    EXPECT_DOUBLE_EQ(model.function(.3, order), 0.);
+    std::array<double, order + 1> output;
+    model.function(.3, order, output.data());
+    // Match the constant-value oracle tolerance across host/device math paths.
+    EXPECT_NEAR(output[0], host(0, 0), 1e-14);
+    for (int n = 1; n <= order; ++n)
+        EXPECT_DOUBLE_EQ(output[n], host(0, n));
+    output.fill(99.);
+    Kokkos::deep_copy(values, 99.);
+    for (int bad : {-1, order + 1, INT_MAX}) {
+        EXPECT_THROW(model.function(.3, bad), OpalException);
+        EXPECT_THROW(model.function(.3, bad, output.data()), OpalException);
+        EXPECT_THROW(model.function(points, bad, values), OpalException);
+    }
+    Kokkos::View<double**> wrongRows("wrong rows", 1, 1), wrongColumns("wrong columns", 2, 2);
+    EXPECT_THROW(model.function(points, 0, wrongRows), OpalException);
+    EXPECT_THROW(model.function(points, 0, wrongColumns), OpalException);
+    for (double value : output)
+        EXPECT_DOUBLE_EQ(value, 99.);
+    const auto unchanged = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (int i = 0; i < 2; ++i)
+        for (int n = 0; n <= order; ++n)
+            EXPECT_DOUBLE_EQ(unchanged(i, n), 99.);
+}
+
+TEST_F(TestAsymmetricEnge, NonlinearCompactedEndsMatchProductRuleReferenceThroughOrderTwelve) {
+    const std::vector<double> start{.2, .8, -.1}, end{-.3, .5, .04, -.01};
+    endfieldmodel::AsymmetricEnge model(start, .3, .7, end, .4, .9);
+    model.initialise();
+    constexpr std::array<double, 5> x{-1., -.2, 0., .4, 1.1};
+    Kokkos::View<double*> points("asymmetric equivalence points", x.size());
+    const auto input = Kokkos::create_mirror_view(points);
+    for (size_t i = 0; i < x.size(); ++i)
+        input(i) = x[i];
+    Kokkos::deep_copy(points, input);
+    Kokkos::View<double**> values(
+            "asymmetric compacted derivatives", x.size(), enge_test::maxOrder + 1);
+    model.function(points, enge_test::maxOrder, values);
+    const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
+    for (size_t i = 0; i < x.size(); ++i) {
+        const auto left  = enge_test::referenceEnd(start, -x[i] - .3L, .7);
+        const auto right = enge_test::referenceEnd(end, x[i] - .4L, .9);
+        for (int n = 0; n <= enge_test::maxOrder; ++n) {
+            SCOPED_TRACE(::testing::Message() << "x=" << x[i] << " n=" << n);
+            const auto [unusedLeft, scaleLeft] =
+                    enge_test::evaluateTable(endfieldmodel::Enge::getQIndex(n), left.g);
+            const auto [unusedRight, scaleRight] =
+                    enge_test::evaluateTable(endfieldmodel::Enge::getQIndex(n), right.g);
+            const long double expected =
+                    (n % 2 ? -1 : 1) * left.reciprocal[n] + right.reciprocal[n] - (n == 0 ? 1 : 0);
+            // Same cancellation-aware bound as the symmetric equivalence test.
+            const long double tolerance =
+                    128 * std::numeric_limits<double>::epsilon() * (1 + scaleLeft + scaleRight);
+            EXPECT_NEAR(host(i, n), expected, tolerance);
         }
     }
 }

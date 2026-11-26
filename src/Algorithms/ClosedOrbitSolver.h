@@ -10,6 +10,10 @@
  * scales S, column-pivoted Householder QR solves S^-1(M-I)S v=-S^-1 F;
  * delta=S v. No matrix inverse, collective operation or tracking state mutation
  * is used. This host-only solver does not change the pusher or its conservation.
+ * Part 1 deliberately retains this Newton QR implementation: its relative rank
+ * policy on scaled (M-I), column pivoting and damping are distinct from the TPS
+ * 6D map-construction LU policy. A future backend replacement must preserve or
+ * explicitly review those numerical contracts; TPS map analysis does not require it.
  * The callback must use the same fixed-energy section for every evaluation.
  * Coordinates are (x,px,y,py), metres and mechanical p/(mc), not slopes.
  *

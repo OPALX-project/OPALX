@@ -423,7 +423,9 @@ TEST_F(CyclotronProbeTest, CapacityGrowthPreservesArmedHistoryAndNewParticleIds)
     // its previous endpoint; new IDs must initialize without inventing a hit.
     const auto oldCapacity = pc->R.size();
     pc->createParticles(ippl::Comm->rank() == 0 ? oldCapacity + 1 : 0);
-    if (ippl::Comm->rank() == 0) EXPECT_GT(pc->R.size(), oldCapacity);
+    if (ippl::Comm->rank() == 0) {
+        EXPECT_GT(pc->R.size(), oldCapacity);
+    }
     position(pc, 1, 1);
     recorder.observe(pc, 2e-9, 0, 0);
     recorder.save();
@@ -612,5 +614,7 @@ TEST_F(CyclotronProbeTest, FailedCollectiveReferenceTrialFlushesOnlyAcceptedProb
             1e-9);
     EXPECT_EQ(flushes, 1);
     recorder.save();
-    if (ippl::Comm->rank() == 0) EXPECT_EQ(rows(c.output + ".loss").size(), 1u);
+    if (ippl::Comm->rank() == 0) {
+        EXPECT_EQ(rows(c.output + ".loss").size(), 1u);
+    }
 }

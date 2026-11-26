@@ -90,18 +90,6 @@ namespace DISTRIBUTION {
     };
 }
 
-/*
-namespace {
-    matrix6x6_t getUnit6x6() {
-        matrix6x6_t unit6x6(0.0);  // Initialize a 6x6 matrix with all elements as 0.0
-        for (unsigned int i = 0; i < 6u; ++i) {
-            unit6x6(i, i) = 1.0;  // Set diagonal elements to 1.0
-        }
-        return unit6x6;
-    }
-}
-*/
-
 Distribution::Distribution()
     : Definition(
               DISTRIBUTION::SIZE, "DISTRIBUTION",
