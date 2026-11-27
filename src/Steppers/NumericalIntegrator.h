@@ -1,0 +1,129 @@
+//
+// Class NumericalIntegrator
+//   The particle part of one time step, as an exchangeable integration scheme.
+//
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPALX.
+//
+// OPALX is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPALX. If not, see <https://www.gnu.org/licenses/>.
+//
+#ifndef OPALX_NUMERICAL_INTEGRATOR_H
+#define OPALX_NUMERICAL_INTEGRATOR_H
+
+#include "PartBunch/PartBunchFwd.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "Utility/IpplTimings.h"
+
+#include <memory>
+#include <string>
+
+class EmittingSamplers;
+class OpalBeamline;
+
+namespace opalx::spacecharge {
+    class SpaceChargeSolver;
+}  // namespace opalx::spacecharge
+
+/**
+ * @brief The order of the particle part of one time step: drifts, kicks, the self-field solve,
+ *        emission and external fields.
+ *
+ * ParallelTracker calls advance() once per step and owns the rest of the step: the bunch time,
+ * the reference particles, losses, output, stop rules and checkpoints. Between the operations all
+ * particle data are in the reference frame; frame changes happen and close inside
+ * solveSelfFields() (the solve frame) and addExternalFields() (the element frames).
+ */
+class NumericalIntegrator {
+public:
+    /// What the operations of a step act on. All borrowed; they must outlive the integrator.
+    struct Context {
+        PartBunch_t& bunch;
+        OpalBeamline& beamline;
+        opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver;
+        EmittingSamplers& emittingSamplers;
+        /// Source plane of the source-plane loss in addExternalFields().
+        opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
+        int minBinEmitted        = 0;      ///< OPTION MINBINEMITTED.
+        bool aggressiveStateSync = false;  ///< OPTION AGGRESSIVE_STATE_SYNC.
+    };
+
+    virtual ~NumericalIntegrator() = default;
+
+    /// @brief Advance all active particles from the bunch time t to t + dt.
+    virtual void advance() = 0;
+
+protected:
+    explicit NumericalIntegrator(Context context);
+
+    /// @brief Drift every particle over half its own dt (PartBunch::pushParticles()).
+    void halfDrift();
+
+    /// @brief Momentum kick of every particle over its own dt with the E and B it holds, between
+    ///        two spin half rotations (PartBunch::evolveSpinHalfStep()).
+    void kick();
+
+    /**
+     * @brief Replace E and B of the primary container with its self field at the current
+     *        positions and zero those of the other containers (PartBunch::resetFields(), then
+     *        SpaceChargeSolver::solveStep()). Collective.
+     *
+     * Elements add to E and B, so this must precede addExternalFields() of the same kick.
+     * Particles migrate between ranks only inside this operation.
+     */
+    void solveSelfFields();
+
+    /**
+     * @brief Append the particles born in this step (EmittingSamplers::emit()).
+     *
+     * Must be called between the two half drifts of a Boris scheme: the samplers pre-drift a new
+     * particle by half of its fractional time step, and the particle gets the external fields,
+     * the kick and the second half drift with that fractional dt, and no self field in its
+     * creation step.
+     */
+    void emit();
+
+    /**
+     * @brief Delete the particles moving backwards behind the source plane, then add the fields
+     *        of the elements to E and B (OpalBeamline::applyExternalFields()). Collective.
+     *
+     * The loss comes first, so these particles get no further kick. Elements sample their fields
+     * at t + dt/2 (StepTime::fieldTime()), and Monitor assumes positions in the middle of the
+     * step.
+     */
+    void addExternalFields();
+
+private:
+    Context context_m;
+
+    /// Created in the step order of BORIS; they do not overlap.
+    IpplTimings::TimerRef pushTimer_m;
+    IpplTimings::TimerRef spaceChargeTimer_m;
+    IpplTimings::TimerRef emissionTimer_m;
+    IpplTimings::TimerRef externalFieldsTimer_m;
+    IpplTimings::TimerRef spinTimer_m;
+    IpplTimings::TimerRef kickTimer_m;
+};
+
+/**
+ * @brief The integration scheme called @p name, acting on @p context.
+ *
+ * - "BORIS" (BorisMidpoint, the default): drift-kick-drift with the self field solved at
+ *   @f$R_{n+1/2}@f$; second order.
+ * - "BORIS-PRESTEP" (BorisPrestep): the self field is solved at @f$R_n@f$ and carried by the
+ *   particles through the first half drift; first order in the self-field term. This is the
+ *   timing of the OPAL-cycl leapfrog (field solved before the step and held), not of OPAL-T,
+ *   which solved at the midpoint.
+ * @throws OpalException for an unknown name.
+ */
+std::unique_ptr<NumericalIntegrator> makeNumericalIntegrator(
+        const std::string& name, NumericalIntegrator::Context context);
+
+#endif  // OPALX_NUMERICAL_INTEGRATOR_H

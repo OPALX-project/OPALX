@@ -1,8 +1,10 @@
 set (_SRCS
+    NumericalIntegrator.cpp
     )
 
 set (HDRS
     BorisPusher.h
+    NumericalIntegrator.h
     )
 
 opalx_include_source_directory()
