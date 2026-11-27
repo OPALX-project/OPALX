@@ -121,7 +121,8 @@ namespace opalx::run {
         bool zStopGiven = false;
         double zStart   = 0;
         double t0       = 0;
-        ObjectDescription run;        ///< Attributes of the RUN command.
+        std::string timeIntegrator = "BORIS";  ///< A makeNumericalIntegrator() name.
+        ObjectDescription run;                 ///< Attributes of the RUN command.
         std::string fieldSolverType;  ///< TYPE of the RUN FIELDSOLVER, if found. Not written.
     };
 

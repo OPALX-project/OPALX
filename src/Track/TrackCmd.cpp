@@ -49,7 +49,7 @@ namespace {
         ZSTART,    // Defines a z-location [m] where the reference particle starts
         ZSTOP,     // Defines a z-location [m], after which the simulation stops when the last
                    // particles passes
-        TIMEINTEGRATOR,  // the name of time integrator
+        TIMEINTEGRATOR,  // The particle integration scheme (BORIS, BORIS-PRESTEP).
         SIZE
     };
 
@@ -94,8 +94,12 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
             "passes.");
 
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString(
-            "TIMEINTEGRATOR", "Name of time integrator to be used.",
-            {"RK-4", "RK4", "LF-2", "LF2", "MTS"}, "RK4");
+            "TIMEINTEGRATOR",
+            "Particle integration scheme. BORIS: drift-kick-drift with the self field solved at "
+            "the half-step position, second order. BORIS-PRESTEP: the self field is solved at the "
+            "start of the step and held through it, first order in the self field (the timing of "
+            "the OPAL-cycl leapfrog).",
+            {"BORIS", "BORIS-PRESTEP"}, "BORIS");
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
@@ -189,7 +193,7 @@ void TrackCmd::execute() {
     std::vector<double> zstop                = getZStop();
 
     // Accepted so that old input files read unchanged; nothing uses them.
-    for (const int attr : {TIMEINTEGRATOR, DTSCINIT, DTAU}) {
+    for (const int attr : {DTSCINIT, DTAU}) {
         if (!itsAttr[attr].defaultUsed()) {
             *gmsg << level1 << "* TRACK " << itsAttr[attr].getName() << " has no effect in OPALX."
                   << endl;
@@ -214,6 +218,7 @@ void TrackCmd::execute() {
     track.zStop       = zstop;
     track.zStopGiven  = !Attributes::getRealArray(itsAttr[ZSTOP]).empty();
     track.zStart      = getZStart();
-    track.t0          = getT0();
-    openTrackSettings = std::move(track);
+    track.t0             = getT0();
+    track.timeIntegrator = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
+    openTrackSettings    = std::move(track);
 }

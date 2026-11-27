@@ -42,7 +42,7 @@ namespace TRACKRUN {
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
         TRACKBACK,         // In case we run the beam backwards
-        SCFIELDUPDATE,     // Time within a drift-kick-drift step at which self-fields are solved.
+        SCFIELDUPDATE,     // Replaced by TRACK TIMEINTEGRATOR; validate() refuses it.
         SIZE
     };
 }  // namespace TRACKRUN
@@ -54,11 +54,8 @@ TrackRun::TrackRun()
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
             "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
-    itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makePredefinedString(
-            "SCFIELDUPDATE",
-            "Space-charge field evaluation point: MIDPOINT uses positions after the first half "
-            "drift; PRESTEP reproduces historical OPAL by solving before that drift.",
-            {"MIDPOINT", "PRESTEP"}, "MIDPOINT");
+    itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makeString(
+            "SCFIELDUPDATE", "Replaced by TRACK, TIMEINTEGRATOR; setting it is an input error.");
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
             Attributes::makeString("FIELDSOLVER", "Field solver to be used.");

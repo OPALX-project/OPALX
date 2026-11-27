@@ -808,10 +808,8 @@ namespace opalx::run {
         setup.checkpointPath = CheckpointFile::defaultPath(context.inputBasename);
         setup.options        = options;
         setup.emFieldDumps   = description.emFieldDumps;
-        setup.timeIntegrator = ObjectValues(track.run).getString("SCFIELDUPDATE") == "PRESTEP"
-                                       ? "BORIS-PRESTEP"
-                                       : "BORIS";
-        setup.beamStops = makeBeamStops(description.beams, track, checkpoint.beamStops);
+        setup.timeIntegrator = track.timeIntegrator;
+        setup.beamStops      = makeBeamStops(description.beams, track, checkpoint.beamStops);
 
         // 10. The beamline: initialise, place and check the elements and build the element
         //     grid. The tracker steps with a positive time step, and elements read it in

@@ -19,8 +19,11 @@
 #include "Ippl.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
+#include "OpalParser/SimpleStatement.h"
 #include "OpalParser/StringStream.h"
+#include "Track/TrackCmd.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/ParseError.h"
 #include "Utility/Inform.h"
 
 extern Inform* gmsg;
@@ -159,6 +162,23 @@ TEST_F(RunDescriptionTest, OptionsTrackAndBeam) {
     const std::string beam = section(text, "beam B1");
     EXPECT_NE(beam.find("keyword = BEAM"), std::string::npos) << beam;
     EXPECT_NE(beam.find("reference.momentum = 99999999.99999998"), std::string::npos) << beam;
+}
+
+TEST_F(RunDescriptionTest, TimeIntegratorOfTheTrack) {
+    run(common + trackAndRun + R"(
+        TRACK, LINE = L1, BEAM = B1, TIMEINTEGRATOR = "BORIS-PRESTEP";
+        RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+        ENDTRACK;
+    )");
+    const std::string first = section(dump(1), "track"), second = section(dump(2), "track");
+    EXPECT_NE(first.find("timeIntegrator = BORIS\n"), std::string::npos) << first;
+    EXPECT_NE(second.find("timeIntegrator = BORIS-PRESTEP\n"), std::string::npos) << second;
+
+    // The integrators of OPAL are refused when the value is parsed.
+    TrackCmd track;
+    Statement::TokenList value{Token("test.in", 1, Token::IS_STRING, "RK4")};
+    SimpleStatement statement("TRACK", value);
+    EXPECT_THROW(track.findAttribute("TIMEINTEGRATOR")->parse(statement, true), ParseError);
 }
 
 TEST_F(RunDescriptionTest, FieldDumpsExecutedBeforeTheRun) {

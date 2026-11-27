@@ -180,6 +180,23 @@ TEST_F(BuildTrackingTest, StartBetweenTwoZStops_GetsDTOfItsSegment) {
     EXPECT_EQ(setup.bunch->getdT(), 2e-12);
 }
 
+TEST_F(BuildTrackingTest, TimeIntegratorComesFromTheTrack) {
+    parse(definitions);
+    opalx::run::TrackDescription track = defaultTrack();
+    EXPECT_EQ(track.timeIntegrator, "BORIS");
+    track.timeIntegrator                         = "BORIS-PRESTEP";
+    const opalx::run::RunDescription description = describeRun(track);
+    ASSERT_TRUE(opalx::run::validate(description).empty());
+
+    std::vector<std::string> errors;
+    std::vector<std::shared_ptr<ElementBase>> elements =
+            opalx::run::buildElements(description.line, description.context.p0, errors);
+    ASSERT_TRUE(errors.empty());
+    opalx::run::RunObjects objects;
+    TrackingSetup setup = opalx::run::buildTracking(description, std::move(elements), objects);
+    EXPECT_EQ(setup.timeIntegrator, "BORIS-PRESTEP");
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ippl::initialize(argc, argv);

@@ -144,7 +144,8 @@ namespace opalx::run {
            << "zStop = " << list(t.zStop) << "\n"
            << "zStopGiven = " << flag(t.zStopGiven) << "\n"
            << "zStart = " << number(t.zStart) << "\n"
-           << "t0 = " << number(t.t0) << "\n";
+           << "t0 = " << number(t.t0) << "\n"
+           << "timeIntegrator = " << t.timeIntegrator << "\n";
 
         os << "\n[run]\n";
         writeObject(t.run, os);

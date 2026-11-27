@@ -74,6 +74,12 @@ namespace opalx::run {
             errors.push_back("The attribute \"METHOD\" isn't set for the \"RUN\" command");
         }
 
+        if (const AttributeEntry* old = attribute(cmd, "SCFIELDUPDATE"); old && !old->defaultUsed) {
+            errors.push_back(
+                    "RUN SCFIELDUPDATE was replaced by TRACK TIMEINTEGRATOR: use TIMEINTEGRATOR = "
+                    "\"BORIS\" for MIDPOINT and \"BORIS-PRESTEP\" for PRESTEP.");
+        }
+
         // Field solver.
         if (text(cmd, "FIELDSOLVER").empty()) {
             errors.push_back("\"FIELDSOLVER\" must be set in \"RUN\" command.");
