@@ -174,9 +174,9 @@ TEST_F(RunDescriptionTest, TimeIntegratorOfTheTrack) {
     EXPECT_NE(first.find("timeIntegrator = BORIS\n"), std::string::npos) << first;
     EXPECT_NE(second.find("timeIntegrator = BORIS-PRESTEP\n"), std::string::npos) << second;
 
-    // The integrators of OPAL are refused when the value is parsed.
+    // The integrators of OPAL that OPALX does not have are refused when the value is parsed.
     TrackCmd track;
-    Statement::TokenList value{Token("test.in", 1, Token::IS_STRING, "RK4")};
+    Statement::TokenList value{Token("test.in", 1, Token::IS_STRING, "MTS")};
     SimpleStatement statement("TRACK", value);
     EXPECT_THROW(track.findAttribute("TIMEINTEGRATOR")->parse(statement, true), ParseError);
 }

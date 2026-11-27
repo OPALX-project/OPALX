@@ -179,6 +179,22 @@ TEST(ValidateRun, ScFieldUpdateNamesItsReplacement) {
             "\"BORIS\" for MIDPOINT and \"BORIS-PRESTEP\" for PRESTEP.");
 }
 
+TEST(ValidateRun, Rk4RefusesPolarizedBeams) {
+    RunDescription run       = validRun();
+    run.track.timeIntegrator = "RK4";
+    EXPECT_TRUE(validate(run).empty());
+
+    run.beams[0].hasPolarization = true;
+    const auto errors            = validate(run);
+    ASSERT_EQ(errors.size(), 1u) << joinErrors(errors);
+    EXPECT_EQ(
+            errors[0],
+            "Beam \"B1\" has a POLARIZATION, but TRACK TIMEINTEGRATOR = \"RK4\" does not "
+            "transport spin. Use TIMEINTEGRATOR = \"BORIS\".");
+    run.track.timeIntegrator = "BORIS";
+    EXPECT_TRUE(validate(run).empty());
+}
+
 TEST(ValidateRun, DecayDaughterBeams) {
     RunDescription run           = validRun();
     BeamDescription mu           = run.beams[0];

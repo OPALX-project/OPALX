@@ -126,7 +126,7 @@ private:
 
 /**
  * @brief The integration scheme called @p name, acting on @p context: "BORIS" is BorisMidpoint
- *        (the default), "BORIS-PRESTEP" is BorisPrestep.
+ *        (the default), "BORIS-PRESTEP" is BorisPrestep, "RK4" is RungeKutta4.
  * @throws OpalException for an unknown name.
  */
 std::unique_ptr<NumericalIntegrator> makeNumericalIntegrator(

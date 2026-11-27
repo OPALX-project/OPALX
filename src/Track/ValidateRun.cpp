@@ -142,6 +142,16 @@ namespace opalx::run {
             }
         }
 
+        // RK4 does not transport spin.
+        for (std::size_t i = 0; track.timeIntegrator == "RK4" && i < beams.size(); ++i) {
+            if (beams[i]->hasPolarization) {
+                errors.push_back(
+                        "Beam \"" + names[i]
+                        + "\" has a POLARIZATION, but TRACK TIMEINTEGRATOR = \"RK4\" does not "
+                          "transport spin. Use TIMEINTEGRATOR = \"BORIS\".");
+            }
+        }
+
         // Decay chains: a beam named as another beam's DAUGHTERBEAM follows the first beam of
         // its chain and has no momentum or emission sources of its own.
         std::optional<std::vector<std::size_t>> roots;

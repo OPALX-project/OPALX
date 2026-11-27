@@ -49,7 +49,7 @@ namespace {
         ZSTART,    // Defines a z-location [m] where the reference particle starts
         ZSTOP,     // Defines a z-location [m], after which the simulation stops when the last
                    // particles passes
-        TIMEINTEGRATOR,  // The particle integration scheme (BORIS, BORIS-PRESTEP).
+        TIMEINTEGRATOR,  // The particle integration scheme (BORIS, BORIS-PRESTEP, RK4).
         SIZE
     };
 
@@ -98,8 +98,10 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
             "Particle integration scheme. BORIS: drift-kick-drift with the self field solved at "
             "the half-step position, second order. BORIS-PRESTEP: the self field is solved at the "
             "start of the step and held through it, first order in the self field (the timing of "
-            "the OPAL-cycl leapfrog).",
-            {"BORIS", "BORIS-PRESTEP"}, "BORIS");
+            "the OPAL-cycl leapfrog). RK4: classical fourth-order Runge-Kutta with the external "
+            "fields at every stage and the self field solved once per step and held, first order "
+            "in the self field; no spin transport.",
+            {"BORIS", "BORIS-PRESTEP", "RK4"}, "BORIS");
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");

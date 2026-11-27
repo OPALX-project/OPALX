@@ -23,6 +23,7 @@
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
 #include "Steppers/BorisIntegrators.h"
+#include "Steppers/RungeKuttaIntegrator.h"
 #include "Utilities/OpalException.h"
 
 #include <utility>
@@ -96,5 +97,6 @@ std::unique_ptr<NumericalIntegrator> makeNumericalIntegrator(
         const std::string& name, NumericalIntegrator::Context context) {
     if (name == "BORIS") return std::make_unique<BorisMidpoint>(std::move(context));
     if (name == "BORIS-PRESTEP") return std::make_unique<BorisPrestep>(std::move(context));
+    if (name == "RK4") return std::make_unique<RungeKutta4>(std::move(context));
     throw OpalException("makeNumericalIntegrator", "Unknown time integrator \"" + name + "\".");
 }

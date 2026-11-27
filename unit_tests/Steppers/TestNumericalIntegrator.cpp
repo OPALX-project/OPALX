@@ -250,5 +250,5 @@ TEST_F(NumericalIntegratorTest, OrderInALinearSelfField) {
 }
 
 TEST_F(NumericalIntegratorTest, UnknownNameThrows) {
-    EXPECT_THROW(run("RK4", SelfField{}, 1), OpalException);
+    EXPECT_THROW(run("LF2", SelfField{}, 1), OpalException);
 }
