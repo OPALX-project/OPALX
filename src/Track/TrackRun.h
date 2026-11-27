@@ -32,6 +32,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "Algorithms/MatchedDistributionCovariance.h"
 
 class Beam;
 class OpalData;
@@ -68,6 +69,7 @@ public:
     Inform& print(Inform& os) const;
 
 private:
+    std::optional<MatchedDistributionCovariance::Matrix> matchedCovariance_m;
     enum class RunMethod : unsigned short { NONE, PARALLEL };
 
     // Not implemented.

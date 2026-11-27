@@ -118,7 +118,20 @@ public:
     void setSigmaR(const Vector_t<double, 3>& sigmaR) { sigmaR_m = sigmaR; }
     void setSigmaP(const Vector_t<double, 3>& sigmaP) { sigmaP_m = sigmaP; }
 
-    void setCovarianceMatrix(const Matrix_t& cov) { cov_m = cov; }
+    /// Replace covariance and keep the sigma-derived sampling bounds consistent.
+    void setCovarianceMatrix(const Matrix_t& cov);
+    /** Target population covariance after latent-normal cutoff. This source-aware
+     * sampler still borrows its Distribution; no emission/reference state is lost.
+     * All latent coordinates use their existing symmetric cutoffs. Only this opt-in
+     * path compensates their variance; ordinary sampling retains legacy semantics.
+     * For a standard normal conditioned on |Z|<=a, the variance is
+     * \f$v(a)=1-2a\exp(-a^2/2)/(\sqrt{2\pi}\,\mathrm{erf}(a/\sqrt{2}))\f$.
+     * Column j of the Cholesky factor is divided by sqrt(v(a_j)); therefore
+     * the bounded population has covariance cov. This does not impose an exact
+     * finite-sample covariance or restore Gaussian tails. Coordinates are
+     * interleaved (x,ux,y,uy,z,uz), in metres and p/(mc).
+     */
+    void setPopulationCovariance(const Matrix_t& cov);
 
     void setL(const Matrix_t& L) { L_m = L; }
 
@@ -178,8 +191,9 @@ private:
     /**
      * @brief Flag to exactly fix the mean R and P of particles after sampling.
      */
-    bool fixMeanR_m = true;
-    bool fixMeanP_m = true;
+    bool compensateCutoff_m = false;
+    bool fixMeanR_m         = true;
+    bool fixMeanP_m         = true;
 };
 
 #endif  // IPPL_MULTI_VARIATE_GAUSSIAN_H

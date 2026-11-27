@@ -12,6 +12,7 @@ set (_SRCS
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     MatchedCovariance.cpp
+    MatchedDistributionCovariance.cpp
     LinearMapEigenAnalysis.cpp
     TpsClosedOrbitMap.cpp
     TpsLinearMapAlgebra.cpp
@@ -60,6 +61,7 @@ set (HDRS
     ClosedOrbitInitialState.h
     ClosedOrbitOptics.h
     MatchedCovariance.h
+    MatchedDistributionCovariance.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

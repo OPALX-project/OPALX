@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 #include "Algorithms/MatchedCovariance.h"
+#include "Algorithms/MatchedDistributionCovariance.h"
 #include "Ippl.h"
 #include "gtest/gtest.h"
 
@@ -223,4 +224,61 @@ TEST_F(MatchedCovarianceTest, CovarianceDisplayUsesSixSignificantDigitsAndZeroes
         zeros >> value;
         EXPECT_EQ(value, "0.00000e+00");
     }
+}
+
+TEST_F(MatchedCovarianceTest, SamplingCovariancePreservesLongitudinalWidthsAndSectionMoments) {
+    auto source           = optics(rotations());
+    source.launch.section = CoordinateSystemTrafo(
+            ippl::Vector<double, 3>(1, 2, 3), Quaternion(std::cos(.2), 0, std::sin(.2), 0));
+    source.launch.momentum =
+            source.launch.section.rotateFrom(ippl::Vector<double, 3>(.3, -.2, 1.9));
+    source.transverseMagneticField = {.7, -.4};
+    source.normalMagneticField     = .8;
+    Matrix transverse{};
+    transverse[0][0] = 2e-6;
+    transverse[1][1] = 3e-6;
+    transverse[2][2] = 5e-6;
+    transverse[3][3] = 7e-6;
+    transverse[0][1] = transverse[1][0] = 1e-6;
+    const double sz = .001, spz = .0002;
+    const auto covariance = MatchedDistributionCovariance::compute(source, transverse, sz, spz);
+    const auto g          = MatchedDistributionCovariance::sectionProjection(source);
+    EXPECT_NEAR(covariance[4][4], sz * sz, sz * sz * 2e-13);
+    EXPECT_NEAR(covariance[5][5], spz * spz, spz * spz * 2e-13);
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j) {
+            double actual = 0;
+            for (unsigned k = 0; k < 6; ++k)
+                for (unsigned l = 0; l < 6; ++l)
+                    actual += g[i][k] * covariance[k][l] * g[j][l];
+            const double expected = i < 4 && j < 4 ? transverse[i][j]
+                                    : i == j       ? (i == 4 ? sz * sz : spz * spz)
+                                                   : 0;
+            EXPECT_NEAR(actual, expected, 1e-17) << i << ',' << j;
+        }
+}
+
+TEST_F(MatchedCovarianceTest, SamplingProjectionIncludesReferenceForceAndRejectsInvalidWidths) {
+    auto source                    = optics(rotations());
+    source.launch.massEV           = 2.99792458e8;  // q*c/m =1 in the selected OPAL units.
+    source.transverseMagneticField = {0, 2};
+    const auto g                   = MatchedDistributionCovariance::sectionProjection(source);
+    EXPECT_DOUBLE_EQ(g[0][0], 1);
+    EXPECT_NEAR(g[1][4], 2., 1e-15);  // u_x at section =u_x(common time)+2*z.
+    EXPECT_DOUBLE_EQ(g[1][1], 1);
+    const auto transverse = matched(optics(rotations()), {2e-6, 7e-6}).covariance;
+    const auto covariance = MatchedDistributionCovariance::compute(source, transverse, .001, .0002);
+    EXPECT_NEAR(covariance[1][4], -2e-6, 1e-20);
+    EXPECT_NEAR(covariance[1][1], transverse[1][1] + 4e-6, 1e-20);
+    for (double invalid : {0., -1., std::numeric_limits<double>::infinity()}) {
+        EXPECT_THROW(
+                MatchedDistributionCovariance::compute(source, transverse, invalid, .001),
+                OpalException);
+        EXPECT_THROW(
+                MatchedDistributionCovariance::compute(source, transverse, .001, invalid),
+                OpalException);
+    }
+    auto bad  = transverse;
+    bad[0][0] = -1;
+    EXPECT_THROW(MatchedDistributionCovariance::compute(source, bad, .001, .001), OpalException);
 }

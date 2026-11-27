@@ -24,6 +24,7 @@
 #include "Algorithms/PartData.h"
 #include "PartBunch/PartBunch.h"
 #include "Steppers/Steppers.h"
+#include "Track/MatchCmd.h"
 #include "Track/TrackCmd.h"
 #include "Track/TrackParser.h"
 
@@ -80,6 +81,12 @@ public:
 
     /// Independent snapshot selected by TRACK INITIALORBIT.
     std::optional<ClosedOrbitInitialState> initialOrbit;
+
+    /// Independent MATCH selected through the single source's MOMENTS at TRACK setup.
+    std::optional<MatchCmd::Result> matchedMoments;
+    std::string matchedMomentsName;
+    /// A MOMENTS TRACK permits one RUN; the legacy allocation flag is not reliable here.
+    bool matchedMomentsConsumed = false;
 
     /// Maximal number of timesteps
     std::vector<unsigned long long> localTimeSteps;

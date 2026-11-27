@@ -15,6 +15,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Track/TrackRun.h"
+#include "Track/MatchedSource.h"
 
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/DefaultVisitor.h"
@@ -457,6 +458,37 @@ void TrackRun::execute() {
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
+    // MOMENTS validation precedes output/container allocation and all sampling.
+    matchedCovariance_m.reset();
+    for (const auto& sources : emissionSourcesLists)
+        for (const auto* source : sources) {
+            auto* distribution = Distribution::find(source->getDistributionName());
+            if (distribution->getMomentsName().empty()) continue;
+            if (!Track::block->matchedMoments
+                || Track::block->matchedMomentsName != distribution->getMomentsName())
+                throw OpalException(
+                        "MOMENTS", "The source MATCH must be resolved by a fresh TRACK command.");
+            if (beams.size() != 1 || sources.size() != 1 || isFollowupTrack_m
+                || Track::block->matchedMomentsConsumed || opal_m->inRestartRun()
+                || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
+                throw OpalException(
+                        "MOMENTS",
+                        "Requires one fresh beam/source and ordinary tracking; no restart, reuse "
+                        "or SPECTRALTUNES.");
+            distribution->execute();
+            validateMatchedSource(*source);
+            const auto& selected = *Track::block->matchedMoments;
+            selected.source.launch.validate(
+                    Track::block->use->getOpalName(), beams.front()->getParticleName(),
+                    beams.front()->getReference());
+            matchedCovariance_m = MatchedDistributionCovariance::compute(
+                    selected.source, selected.transverse.covariance, distribution->getSigmaR()[2],
+                    distribution->getSigmaP()[2]);
+        }
+
+    if (Track::block->matchedMoments && !matchedCovariance_m)
+        throw OpalException("MOMENTS", "The selected MOMENTS source changed after TRACK setup.");
+
     const bool isRestart = opal_m->inRestartRun();
     if (isRestart) {
         opal_m->setOpenMode(OpalData::OpenMode::APPEND);
@@ -778,6 +810,7 @@ void TrackRun::execute() {
         static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial, settings);
     }
     itsTracker_m->execute();
+    if (Track::block->matchedMoments) Track::block->matchedMomentsConsumed = true;
 
     /*
     opal_m->setRestartRun(false);
@@ -1031,6 +1064,20 @@ std::optional<Vector_t<double, 3>> TrackRun::setupDistributionsAndSamplers(
                 break;
             case DistributionType::MULTIVARIATEGAUSS:
                 sampler = std::make_shared<MultiVariateGaussian>(pc, opalDist);
+                if (!opalDist->getMomentsName().empty()) {
+                    if (!matchedCovariance_m || index != 0 || sources.size() != 1)
+                        throw OpalException("MOMENTS", "Missing validated per-source covariance.");
+                    Distribution::Matrix_t covariance;
+                    for (unsigned i = 0; i < 6; ++i)
+                        for (unsigned j = 0; j < 6; ++j)
+                            covariance[i][j] = (*matchedCovariance_m)[i][j];
+                    static_cast<MultiVariateGaussian&>(*sampler).setPopulationCovariance(
+                            covariance);
+                    *gmsg << level2 << "* MOMENTS=" << opalDist->getMomentsName()
+                          << ": target population covariance; transverse inputs/all correlations "
+                             "overwritten, longitudinal widths retained."
+                          << endl;
+                }
                 break;
             case DistributionType::FLATTOP:
                 sampler = std::make_shared<FlatTop>(pc, opalDist);

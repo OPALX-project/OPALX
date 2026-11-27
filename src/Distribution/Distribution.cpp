@@ -19,15 +19,18 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Attributes/OpalString.h"
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALTypes.h"
+#include "OpalParser/Statement.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utilities/ParseError.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplTimings.h"
 
@@ -86,9 +89,29 @@ namespace DISTRIBUTION {
         /// If <= 0, this distribution does not specify its own N and
         /// TrackRun/BEAM logic is used instead.
         NPARTDIST,
+        MOMENTS,
         SIZE
     };
 }
+
+namespace {
+    // A distribution may precede its MATCH (COF itself can refer to the beam's
+    // source list). Parse the object name without evaluating/looking it up here.
+    class MomentsName : public Attributes::String {
+    public:
+        MomentsName()
+            : Attributes::String(
+                      "MOMENTS",
+                      "Named MATCH population moments; overrides transverse sigmas and all "
+                      "correlations.") {}
+        void parse(Attribute& attribute, Statement& statement, bool) const override {
+            std::string name;
+            if ((!statement.word(name) && !statement.str(name)) || name.empty())
+                throw ParseError("MOMENTS", "A nonempty MATCH object name is required.");
+            Attributes::setString(attribute, Util::toUpper(name));
+        }
+    };
+}  // namespace
 
 Distribution::Distribution()
     : Definition(
@@ -179,6 +202,7 @@ Distribution::Distribution()
             "If 0 or negative, this distribution does not specify its own count.",
             0.0);
 
+    itsAttr[DISTRIBUTION::MOMENTS] = Attribute(new MomentsName(), nullptr);
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
@@ -351,7 +375,10 @@ void Distribution::setDistParametersMultiVariateGauss() {
     setSigmaR_m();
     setSigmaP_m();
 
-    std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
+    // MOMENTS resolves covariance per source. User correlations are deliberately
+    // not evaluated, so even an obsolete CORR shape cannot override that result.
+    const auto cr = getMomentsName().empty() ? Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR])
+                                             : std::vector<double>{};
 
     if (!cr.empty()) {
         // read off-diagonal correlation coefficients from input file
@@ -466,6 +493,13 @@ void Distribution::printDistUniform(Inform& os) const {
 
 void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* Distribution type: MULTIVARIATEGAUSS" << endl;
+    if (!getMomentsName().empty()) {
+        os << "* MOMENTS = " << getMomentsName() << "; covariance resolved per source.\n"
+           << "* Transverse SIGMA and all correlation inputs are overwritten.\n"
+           << "* SIGMAZ = " << sigmaR_m[2] << " [m], SIGMAPZ = " << sigmaP_m[2]
+           << " [p/(mc)]; population widths after cutoff compensation." << endl;
+        return;
+    }
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
@@ -521,6 +555,10 @@ std::string Distribution::getFilename() const {
     return Attributes::getString(itsAttr[DISTRIBUTION::FNAME]);
 }
 
+std::string Distribution::getMomentsName() const {
+    return Attributes::getString(itsAttr[DISTRIBUTION::MOMENTS]);
+}
+
 void Distribution::setAttributes() {
     // Set distribution type and shape-related parameters.
     setDist();
@@ -528,6 +566,10 @@ void Distribution::setAttributes() {
     // Cache per-distribution particle count, if provided.
     // A value <= 0 means \"unspecified\" and will be handled by TrackRun/BEAM.
     const double npartDist = Attributes::getReal(itsAttr[DISTRIBUTION::NPARTDIST]);
+    if (!getMomentsName().empty()
+        && (!std::isfinite(npartDist) || npartDist <= 0 || std::floor(npartDist) != npartDist
+            || npartDist >= static_cast<double>(std::numeric_limits<size_t>::max())))
+        throw OpalException("MOMENTS", "NPARTDIST must be an explicit positive integer.");
     totalNumberParticles_m =
             npartDist > 0.0 ? static_cast<size_t>(npartDist) : static_cast<size_t>(0);
 }
@@ -540,7 +582,20 @@ void Distribution::setDist() {
     // validation. Initialize it from the input before dispatching to the
     // type-specific setup; otherwise non-flat-top distributions leave it
     // indeterminate.
-    emitting_m = Attributes::getBool(itsAttr[DISTRIBUTION::EMITTED]);
+    emitting_m         = Attributes::getBool(itsAttr[DISTRIBUTION::EMITTED]);
+    const auto moments = getMomentsName();
+    if (!itsAttr[DISTRIBUTION::MOMENTS].defaultUsed() && moments.empty())
+        throw OpalException("MOMENTS", "Explicit MOMENTS must not be empty.");
+    if (!moments.empty()) {
+        if (distrTypeT_m != DistributionType::MULTIVARIATEGAUSS || emitting_m)
+            throw OpalException("MOMENTS", "Requires TYPE=MULTIVARIATEGAUSS and EMITTED=FALSE.");
+        for (const auto attribute : {DISTRIBUTION::SIGMAZ, DISTRIBUTION::SIGMAPZ}) {
+            const double value = Attributes::getReal(itsAttr[attribute]);
+            if (itsAttr[attribute].defaultUsed() || !std::isfinite(value) || value <= 0)
+                throw OpalException(
+                        "MOMENTS", "Explicit positive finite SIGMAZ and SIGMAPZ are required.");
+        }
+    }
 
     // set distribution parameters
     switch (distrTypeT_m) {

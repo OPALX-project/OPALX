@@ -3,6 +3,7 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestGaussian USE_GTEST_MAIN)
 add_opalx_test(TestMultiVariateGaussian USE_GTEST_MAIN)
+add_opalx_test(TestMultiVariateGaussianMPI SOURCES TestMultiVariateGaussian.cpp NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestFlatTop USE_GTEST_MAIN)
 add_opalx_test(TestOpalFlatTop USE_GTEST_MAIN)
 add_opalx_test(TestFromFile USE_GTEST_MAIN)

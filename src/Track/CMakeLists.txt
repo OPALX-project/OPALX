@@ -12,6 +12,7 @@ set (_SRCS
 set (HDRS
     CofCmd.h
     MatchCmd.h
+    MatchedSource.h
     DecayChain.h
     TrackCmd.h
     TrackEnd.h

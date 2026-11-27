@@ -55,6 +55,11 @@ namespace {
                 });
                 json.numbers("coordinate_scales", source.scales);
                 json.number("normal_magnetic_field_T", source.normalMagneticField);
+                json.numbers(
+                        "section_magnetic_field_T",
+                        std::array{
+                                source.transverseMagneticField[0],
+                                source.transverseMagneticField[1], source.normalMagneticField});
                 json.number("relative_energy_drift", source.relativeEnergyDrift);
             });
             json.text("coordinate_order", "x,px,y,py");

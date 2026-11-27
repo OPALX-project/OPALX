@@ -509,7 +509,9 @@ namespace {
         setLaunchState(state, c, result.coordinates);
         Vector_t<double, 3> electric(0.0), magnetic(0.0);
         lattice.getFieldAt(state.position, state.momentum, state.time, electric, magnetic);
-        snapshot.normalMagneticField = c.section.rotateTo(magnetic)[2];
+        const auto sectionField          = c.section.rotateTo(magnetic);
+        snapshot.transverseMagneticField = {sectionField[0], sectionField[1]};
+        snapshot.normalMagneticField     = sectionField[2];
         require(std::isfinite(snapshot.normalMagneticField),
                 "Nonfinite section-normal magnetic field.");
         snapshot.coordinates         = result.coordinates;
@@ -583,7 +585,7 @@ namespace {
             *gmsg << level4 << report.optics << endl;
         }
         // Broadcast typed optics directly; MATCH never reconstructs data from JSON.
-        std::array<double, 26> optics{};
+        std::array<double, 28> optics{};
         if (rank == 0) {
             for (unsigned i = 0; i < 4; ++i) {
                 optics[i]     = snapshot.coordinates[i];
@@ -593,6 +595,8 @@ namespace {
             }
             optics[24] = snapshot.normalMagneticField;
             optics[25] = snapshot.relativeEnergyDrift;
+            optics[26] = snapshot.transverseMagneticField[0];
+            optics[27] = snapshot.transverseMagneticField[1];
         }
         MPI_Bcast(optics.data(), optics.size(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         for (unsigned i = 0; i < 4; ++i) {
@@ -601,8 +605,9 @@ namespace {
             for (unsigned j = 0; j < 4; ++j)
                 snapshot.matrix[i][j] = optics[8 + 4 * i + j];
         }
-        snapshot.normalMagneticField = optics[24];
-        snapshot.relativeEnergyDrift = optics[25];
+        snapshot.normalMagneticField     = optics[24];
+        snapshot.relativeEnergyDrift     = optics[25];
+        snapshot.transverseMagneticField = {optics[26], optics[27]};
         return snapshot;
     }
 }  // namespace

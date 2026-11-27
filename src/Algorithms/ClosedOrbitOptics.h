@@ -18,6 +18,8 @@ struct ClosedOrbitOptics {
     OneTurnMap::Coordinates coordinates{}, residual{};
     OneTurnMap::Matrix matrix{};
     OneTurnMap::Coordinates scales{1, 1, 1, 1};
+    /// Section Bx, By [T], retained for section/common-time sampling conversion.
+    std::array<double, 2> transverseMagneticField{};
     double normalMagneticField = 0;
     double relativeEnergyDrift = 0;
     std::string command;
