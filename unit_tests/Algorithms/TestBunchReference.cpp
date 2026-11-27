@@ -152,30 +152,35 @@ namespace {
         beamline_m.prepareSections();
         beamline_m.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
 
-        // The reference sits at the origin of its frame and moves obliquely.
+        // The reference sits at the origin of its frame and moves obliquely, with the reference
+        // step of each scheme.
         auto pc         = bunch_m->getParticleContainer(0);
         const Vector p0 = Vector({0.03, 0.0, 0.12});
-        pc->setRefPartR(Vector(0.0));
-        pc->setRefPartP(p0);
-        pc->set_sPos(0.3);
         const double dt = 1e-11;
         bunch_m->setTimeStep(dt);
-        const auto boris = scheme("BORIS");
-        BunchReference references(*bunch_m, beamline_m, *boris, {}, 0, {});
+        for (const std::string name : {"BORIS", "RK4"}) {
+            SCOPED_TRACE(name);
+            pc->setToLabTrafo(CoordinateSystemTrafo());
+            pc->setRefPartR(Vector(0.0));
+            pc->setRefPartP(p0);
+            pc->set_sPos(0.3);
+            const auto integrator = scheme(name);
+            BunchReference references(*bunch_m, beamline_m, *integrator, {}, 0, {});
 
-        // Nothing moves before the bunch time is positive.
-        bunch_m->setT(0.0);
-        references.advance();
-        expectNear(pc->getRefPartR(), Vector(0.0), 0.0);
-        EXPECT_EQ(pc->get_sPos(), 0.3);
+            // Nothing moves before the bunch time is positive.
+            bunch_m->setT(0.0);
+            references.advance();
+            expectNear(pc->getRefPartR(), Vector(0.0), 0.0);
+            EXPECT_EQ(pc->get_sPos(), 0.3);
 
-        bunch_m->setT(dt);
-        references.advance();
-        const double norm = std::sqrt(dot(p0, p0));
-        const double ds   = norm / std::sqrt(1.0 + norm * norm) * Physics::c * dt;
-        expectNear(pc->getRefPartR(), ds / norm * p0, 1e-16);
-        expectNear(pc->getRefPartP(), p0, 1e-16);
-        EXPECT_NEAR(pc->get_sPos(), 0.3 + ds, 1e-15);
-        EXPECT_FALSE(references.hitElement());
+            bunch_m->setT(dt);
+            references.advance();
+            const double norm = std::sqrt(dot(p0, p0));
+            const double ds   = norm / std::sqrt(1.0 + norm * norm) * Physics::c * dt;
+            expectNear(pc->getRefPartR(), ds / norm * p0, 1e-16);
+            expectNear(pc->getRefPartP(), p0, 1e-16);
+            EXPECT_NEAR(pc->get_sPos(), 0.3 + ds, 1e-15);
+            EXPECT_FALSE(references.hitElement());
+        }
     }
 }  // namespace

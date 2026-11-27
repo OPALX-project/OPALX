@@ -87,6 +87,17 @@ namespace {
         SelfField field_m;
     };
 
+    /// A VARIABLE_RF_CAVITY that counts the bunch calls allowed to record (StepTime::record).
+    class RecordingCavity final : public VariableRFCavity {
+    public:
+        RecordingCavity() : VariableRFCavity("RF") {}
+        void apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override {
+            records += time.record;
+            VariableRFCavity::apply(pc, time);
+        }
+        int records = 0;
+    };
+
     class NumericalIntegratorTest : public ::testing::Test {
     protected:
         static void SetUpTestSuite() {
@@ -124,6 +135,31 @@ namespace {
             beamline_m.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
         }
 
+        /// A cavity of 1 m^3 around all particles with E_z(t) = 10 MV/m sin(omega t + 0.3),
+        /// omega = 2 pi 100 MHz, and B = 0.
+        std::shared_ptr<RecordingCavity> placeCavity() {
+            const auto cavity = std::make_shared<RecordingCavity>();
+            cavity->setAmplitudeModel(
+                    std::make_shared<PolynomialTimeDependence>(std::vector{10.0}));
+            cavity->setFrequencyModel(
+                    std::make_shared<PolynomialTimeDependence>(std::vector{100.0}));
+            cavity->setPhaseModel(std::make_shared<PolynomialTimeDependence>(std::vector{0.3}));
+            cavity->setLength(1.0);
+            cavity->setWidth(1.0);
+            cavity->setHeight(1.0);
+            place(cavity, -0.5);
+            return cavity;
+        }
+
+        /// A quadrupole of @p gradient (T/m) over lab z in [-0.2, 0.8) m with a 0.1 m bore.
+        void placeQuadrupole(double gradient) {
+            const auto quadrupole = std::make_shared<Multipole>("Q");
+            quadrupole->getGeometry().setElementLength(1.0);
+            quadrupole->setNormalComponent(1, gradient);
+            quadrupole->setAperture(ApertureType::RECTANGULAR, {0.1, 0.1});
+            place(quadrupole, -0.2);
+        }
+
         /// Put the particles at @p state and give each the time step @p dt (s).
         void load(const State& state, double dt) {
             if (pc().getLocalNum() == 0) pc().createParticles(state.size());
@@ -157,6 +193,58 @@ namespace {
                     state[i] = {R(i), P(i)};
             }
             return states;
+        }
+
+        /**
+         * @brief For each scheme, one step of the particle @p start from bunch time @p t as bunch
+         *        step and as reference step (advanceReference() in the beamline's fields at lab
+         *        positions, which are the bunch frame here), compared within their rounding.
+         *
+         * The reference samples a stage at (t + dt) - dt + c_i dt instead of t + c_i dt, off by
+         * less than eps (t + dt), which changes a field by eps-relative amounts; the bunch goes
+         * into the element frame (z - z0) and back in each field evaluation, which rounds R_z by
+         * up to eps |z0| each time, at most five times. Both get one call per step that may
+         * record: the reference field callback and, if @p bunchRecords counts them, the bunch's
+         * element.
+         */
+        void expectReferenceStepIsBunchStep(
+                const std::array<Vector, 2>& start, double t, double dt, double z0,
+                const int* bunchRecords) {
+            for (const std::string name : {"BORIS", "BORIS-PRESTEP", "RK4"}) {
+                const int bunchRecordsBefore = bunchRecords ? *bunchRecords : 0;
+                load({start}, dt);
+                bunch_m->setT(t);
+                const auto bunchEnd = run(name, SelfField{}, 1).back()[0];
+                if (bunchRecords) EXPECT_EQ(*bunchRecords - bunchRecordsBefore, 1) << name;
+
+                SpaceChargeSolver solver(std::make_unique<PrescribedField>(pc(), SelfField{}), 1);
+                EmittingSamplers samplers;
+                const auto scheme = makeNumericalIntegrator(
+                        name,
+                        {*bunch_m, beamline_m, solver, samplers, DirichletPlaneConfig{}, 0, false});
+                int calls = 0, records = 0;
+                const auto end = scheme->advanceReference(
+                        {start[0], start[1]}, dt, t + dt, mass_m, charge_m,
+                        [&](const Vector& r, const Vector&, double time, bool record, Vector& E,
+                            Vector& B) {
+                            ++calls;
+                            records += record;
+                            return beamline_m.applyOnHost(r, time, E, B);
+                        });
+                EXPECT_EQ(calls, name == "RK4" ? 4 : 1) << name;
+                EXPECT_EQ(records, 1) << name;
+                for (unsigned d = 0; d < 3; ++d) {
+                    const double gain = std::abs(bunchEnd[1](d) - start[1](d));
+                    EXPECT_NEAR(
+                            end.position(d), bunchEnd[0](d),
+                            5 * eps * (std::abs(z0) + std::abs(bunchEnd[0](d))))
+                            << name << " " << d;
+                    EXPECT_NEAR(
+                            end.momentum(d), bunchEnd[1](d),
+                            4 * eps * (std::abs(start[1](d)) + gain))
+                            << name << " " << d;
+                }
+            }
         }
 
         std::unique_ptr<PartBunch_t> bunch_m;
@@ -273,15 +361,8 @@ TEST_F(NumericalIntegratorTest, OrderInALinearSelfField) {
 // (applyOnHost()) at the times StepTime::fieldTime() forms, so the residual is only the rounding
 // of the weighted sum and of its addition to P_z: a few eps (|P_z| + |gain|).
 TEST_F(NumericalIntegratorTest, StageTimesGiveSimpsonForRk4AndMidpointForBoris) {
-    const double t = 1e-9, dt = 1e-9, frequency = 100.0, phase = 0.3;  // s, s, MHz, rad
-    const auto cavity = std::make_shared<VariableRFCavity>("RF");
-    cavity->setAmplitudeModel(std::make_shared<PolynomialTimeDependence>(std::vector{10.0}));
-    cavity->setFrequencyModel(std::make_shared<PolynomialTimeDependence>(std::vector{frequency}));
-    cavity->setPhaseModel(std::make_shared<PolynomialTimeDependence>(std::vector{phase}));
-    cavity->setLength(1.0);
-    cavity->setWidth(1.0);
-    cavity->setHeight(1.0);
-    place(cavity, -0.5);
+    const double t = 1e-9, dt = 1e-9;
+    const auto cavity = placeCavity();
     const auto f = [&](double fraction) {
         Vector E(0.0), B(0.0);
         cavity->applyOnHost(Vector(0.0, 0.0, 0.5), t + fraction * dt, E, B);
@@ -312,11 +393,7 @@ TEST_F(NumericalIntegratorTest, StageTimesGiveSimpsonForRk4AndMidpointForBoris) 
 TEST_F(NumericalIntegratorTest, OrderInAQuadrupole) {
     const State start     = {{Vector(1e-3, 5e-4, 0.0), Vector(0.0, 0.0, 0.1)}};
     const double gradient = 10.0;  // T/m
-    const auto quadrupole = std::make_shared<Multipole>("Q");
-    quadrupole->getGeometry().setElementLength(1.0);
-    quadrupole->setNormalComponent(1, gradient);
-    quadrupole->setAperture(ApertureType::RECTANGULAR, {0.1, 0.1});
-    place(quadrupole, -0.2);
+    placeQuadrupole(gradient);
     const double gamma = std::sqrt(1 + dot(start[0][1], start[0][1]));
     const double omega = std::sqrt(
             charge_m * gradient * std::pow(Physics::c, 3) * start[0][1](2)
@@ -359,6 +436,20 @@ TEST_F(NumericalIntegratorTest, Rk4RotatesInAUniformHeldMagneticField) {
                 << i;
         EXPECT_EQ(end[i][1](2), p(2)) << i;
     }
+}
+
+// At t = 1.7 ns and dt = 0.9 ns, (t + dt) - dt differs from t by 2e-25 s.
+TEST_F(NumericalIntegratorTest, ReferenceStepIsTheBunchStepInACavity) {
+    const auto cavity = placeCavity();
+    expectReferenceStepIsBunchStep(
+            {Vector(1e-3, -2e-3, 0.0), Vector(0.02, -0.01, 0.1)}, 1.7e-9, 0.9e-9, -0.5,
+            &cavity->records);
+}
+
+TEST_F(NumericalIntegratorTest, ReferenceStepIsTheBunchStepInAQuadrupole) {
+    placeQuadrupole(10.0);
+    expectReferenceStepIsBunchStep(
+            {Vector(1e-3, 5e-4, 0.0), Vector(0.01, 0.0, 0.1)}, 1.7e-9, 0.9e-9, -0.2, nullptr);
 }
 
 TEST_F(NumericalIntegratorTest, UnknownNameThrows) {
