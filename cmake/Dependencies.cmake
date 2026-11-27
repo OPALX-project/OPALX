@@ -93,7 +93,7 @@ add_definitions (-DNOCTAssert)
 
 # Allow user to specify branch/tag, default to master. Numeric release versions such as
 # 3.5.0 are accepted as shorthand for IPPL-3.5.0.
-set(IPPL_GIT_TAG "3.5.0" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: master)")
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: master)")
 set(_opalx_ippl_fetch_ref "${IPPL_GIT_TAG}")
 if("${_opalx_ippl_fetch_ref}" MATCHES "^[0-9]+(\\.[0-9]+)*$")
     set(_opalx_ippl_fetch_ref "IPPL-${_opalx_ippl_fetch_ref}")
