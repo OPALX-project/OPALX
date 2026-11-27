@@ -1,11 +1,14 @@
 set (_SRCS
     NumericalIntegrator.cpp
+    RungeKuttaIntegrator.cpp
     )
 
 set (HDRS
     BorisIntegrators.h
     BorisPusher.h
     NumericalIntegrator.h
+    PhaseSpaceRate.h
+    RungeKuttaIntegrator.h
     RungeKuttaTableau.h
     )
 

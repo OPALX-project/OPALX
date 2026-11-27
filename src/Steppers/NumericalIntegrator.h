@@ -64,6 +64,9 @@ public:
 protected:
     explicit NumericalIntegrator(Context context);
 
+    /// The bunch, for the kernels of a scheme; its containers are writable.
+    const PartBunch_t& bunch() const { return context_m.bunch; }
+
     /// @brief Drift every particle over half its own dt (PartBunch::pushParticles()).
     void halfDrift();
 
