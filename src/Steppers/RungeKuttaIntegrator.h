@@ -42,6 +42,10 @@
  * elements sample its fields at the stage times of the bunch, not at its own; that costs the
  * fourth order in its creation step, an approximation of the kind the Boris schemes make.
  *
+ * Stage 0 samples the element fields at the start positions. A particle a rounding behind the
+ * start of a field region, e.g. the cathode plane at the entrance of an RF gun map, gets no field
+ * in k_0, where the Boris schemes sample half a drift later.
+ *
  * The reference particle keeps its Boris step in ParallelTracker.
  */
 class RungeKutta4 final : public NumericalIntegrator {
@@ -75,7 +79,8 @@ private:
      * emission, the only operations of the step that create, delete, migrate or reorder
      * particles, and are read until the last stage. Between those, OpalBeamline::
      * applyExternalFields() changes frames in place and the element apply() overrides only add
-     * fields, mark losses or record (Monitor). advanceStage() checks the particle count.
+     * fields or record (Monitor); losses are marked after the step. advanceStage() checks the
+     * particle count.
      */
     struct Scratch {
         Kokkos::View<Vector_t<double, 3>*> startR, startP, sumR, sumP, heldE, heldB;
