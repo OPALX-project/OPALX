@@ -137,7 +137,7 @@ int main() {
         near(zeros(0, 0), 0);
         near(zeros(1, 1), 0);
         // Each boundary field contributes to exact join compatibility.
-        for (int field = 0; field < 8; ++field) {
+        for (int field = 0; field < 9; ++field) {
             auto bad = b;
             switch (field) {
                 case 0:
@@ -164,10 +164,39 @@ int main() {
                 case 7:
                     bad.canonicalPairs = {{1, 0}};
                     break;
+                case 8:
+                    bad.parameters = {{"gauge", "1/m", 2}};
+                    break;
             }
             tps::Map<double> wrong(tps::MapContext(bad, c, 4), kick);
             rejects([&] {
                 (void)tps::compose(wrong, d, 4);
+            });
+        }
+        // Named chart parameters are values, units and names, not display-only labels.
+        auto parameterized       = b;
+        parameterized.parameters = {{"gauge", "1/m", 2}};
+        auto parameterInner      = tps::Map<double>(tps::MapContext(a, parameterized, 4), drift);
+        auto parameterOuter      = tps::Map<double>(tps::MapContext(parameterized, c, 4), kick);
+        near(tps::compose(parameterOuter, parameterInner, 4).evaluate(x)[1], -0.55);
+        for (int field = 0; field < 3; ++field) {
+            auto changed = parameterized;
+            if (field == 0) changed.parameters[0].value = 3;
+            if (field == 1) changed.parameters[0].name = "different";
+            if (field == 2) changed.parameters[0].unit = "1/cm";
+            auto wrong = tps::Map<double>(tps::MapContext(changed, c, 4), kick);
+            rejects([&] {
+                (void)tps::compose(wrong, parameterInner, 4);
+            });
+        }
+        for (int field = 0; field < 4; ++field) {
+            auto invalid = parameterized;
+            if (field == 0) invalid.parameters[0].value = std::numeric_limits<double>::infinity();
+            if (field == 1) invalid.parameters[0].name.clear();
+            if (field == 2) invalid.parameters[0].unit.clear();
+            if (field == 3) invalid.parameters.push_back(invalid.parameters.front());
+            rejects([&] {
+                (void)tps::MapContext(invalid, c, 4);
             });
         }
         tps::Map<double> duplicate(tps::MapContext(b, c, 4, {"drift"}), kick);

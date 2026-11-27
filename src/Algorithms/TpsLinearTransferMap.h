@@ -7,6 +7,12 @@
 #include "tps/Map.hpp"
 
 namespace opalx::maps {
+    /** @brief Validated section-slope chart shared by segment and space-charge adapters.
+     * Retains the existing (x,x',y,y',zeta,delta) metadata and compensated reference values.
+     * @throws OpalException Invalid reference or frame. Owns no Kokkos storage.
+     */
+    tps::PhaseSpaceChart linearTransferMapChart(const LinearTransferMapReference& reference);
+
     /**
      * @brief Represent a segment's differential matrix as a first-order TPS map.
      *

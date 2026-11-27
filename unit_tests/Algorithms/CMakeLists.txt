@@ -9,6 +9,9 @@ add_opalx_test(TestCoordinateSystemTrafo USE_GTEST_MAIN)
 add_opalx_test(TestIndexMap USE_GTEST_MAIN)
 add_opalx_test(TestOrbitThreader USE_GTEST_MAIN)
 add_opalx_test(TestTpsLinearTransferMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeMapMPI SOURCES TestSpaceChargeMap.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsLinearTransferMapMPI SOURCES TestTpsLinearTransferMap.cpp
                NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestSpectralTunes USE_GTEST_MAIN)

@@ -29,3 +29,5 @@ add_subdirectory (FFT2D5)
 add_subdirectory (CartesianPIC3D)
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge")
+install (FILES Analytic3D/FieldTensor.h
+         DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge/Analytic3D")

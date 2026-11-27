@@ -15,6 +15,8 @@ INPUT = @PROJECT_SOURCE_DIR@/src/tps \
         @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitOptics.h \
         @PROJECT_SOURCE_DIR@/src/Algorithms/MatchedCovariance.h \
         @PROJECT_SOURCE_DIR@/src/Algorithms/MatchedDistributionCovariance.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/SpaceChargeMap.h \
+        @PROJECT_SOURCE_DIR@/src/SpaceCharge/Analytic3D/FieldTensor.h \
         @PROJECT_SOURCE_DIR@/src/Track/MatchCmd.h
 RECURSIVE = YES
 FILE_PATTERNS = *.h *.hpp *.cpp *.dox *.md

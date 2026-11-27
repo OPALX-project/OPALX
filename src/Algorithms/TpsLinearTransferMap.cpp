@@ -47,6 +47,16 @@ namespace opalx::maps {
         }
     }  // namespace
 
+    tps::PhaseSpaceChart linearTransferMapChart(const LinearTransferMapReference& reference) {
+        try {
+            auto chart = boundaryChart(reference);
+            (void)tps::MapContext(chart, chart, 1);
+            return chart;
+        } catch (const std::invalid_argument& error) {
+            throw OpalException("linearTransferMapChart", error.what());
+        }
+    }
+
     tps::Map<double> toTpsLinearTransferMap(
             const LinearTransferMapDraft& segment, const std::string& occurrenceId) {
         // Validate all matrix entries before allocating any coefficient storage.
