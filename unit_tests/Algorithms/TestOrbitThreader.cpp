@@ -2195,3 +2195,169 @@ TEST_F(OrbitThreaderTest, NearCoincidentMapBoundariesShareReferenceStates) {
         }
     }
 }
+
+TEST_F(OrbitThreaderTest, SharedBeamlinePassesKeepIndependentOwnerSnapshots) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    const auto appendDrift = [&](OpalBeamline& lattice, const char* name, double z) {
+        DriftRep drift(name);
+        drift.getGeometry().setElementLength(.1);
+        drift.setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, z), Quaternion()));
+        drift.fixPosition();
+        lattice.visit(drift, visitor, *bunch);
+        lattice.prepareSections();
+    };
+    const auto publish = [](OpalBeamline& lattice, double momentum, double length) {
+        PartData particle(1, 9.382720813e8, 1e6);
+        auto entrance     = LinearTransferMapBuilder::initialFrame(lattice, {0, 0, momentum});
+        entrance.momentum = {0, 0, momentum};
+        auto exit         = entrance;
+        exit.position[2] = exit.pathLength = length;
+        exit.time = length * std::sqrt(1 + momentum * momentum) / (momentum * Physics::c);
+        LinearTransferMapBuilder builder(lattice, particle, 1e-11);
+        // Resolve each body with interior reference samples; endpoints alone can
+        // skip an entire private element whose exit equals the final sample.
+        std::vector<LinearTransferMapBuilder::ReferenceSample> samples;
+        for (unsigned i = 0; i <= 8; ++i) {
+            auto state        = entrance;
+            state.position[2] = state.pathLength = length * i / 8;
+            state.time                           = exit.time * i / 8;
+            samples.push_back({state});
+        }
+        const auto result = builder.build(samples, 0);
+        std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>
+                attachments;
+        std::map<
+                std::shared_ptr<ElementBase>, std::size_t,
+                std::owner_less<std::shared_ptr<ElementBase>>>
+                ordinals;
+        for (const auto& segment : result.segments)
+            for (const auto& owner : segment.owners)
+                attachments.push_back({owner, {segment.map, ordinals[owner]++}});
+        EXPECT_FALSE(attachments.empty());
+        lattice.publishTransferMapPass(result.pass, attachments);
+        // A rejected publication must preserve the pass and its entire owner snapshot.
+        const auto before = lattice.getLinearTransferMapsInReferenceOrder();
+        attachments.front().second.pass += 1;
+        EXPECT_THROW(lattice.publishTransferMapPass(result.pass, attachments), OpalException);
+        EXPECT_EQ(lattice.getTransferMapPass(), result.pass);
+        const auto after = lattice.getLinearTransferMapsInReferenceOrder();
+        EXPECT_EQ(before.size(), after.size());
+        for (std::size_t i = 0; i < std::min(before.size(), after.size()); ++i) {
+            EXPECT_EQ(before[i].element, after[i].element);
+            EXPECT_EQ(before[i].map, after[i].map);
+            EXPECT_EQ(before[i].pass, after[i].pass);
+        }
+        return result.pass;
+    };
+    const auto expectSnapshot = [](const OpalBeamline& lattice,
+                                   const std::shared_ptr<const TransferMapPass>& pass,
+                                   const std::vector<ElementTransferMapRef>& expected) {
+        EXPECT_EQ(lattice.getTransferMapPass(), pass);
+        const auto actual = lattice.getLinearTransferMapsInReferenceOrder();
+        ASSERT_EQ(actual.size(), expected.size());
+        std::set<LinearTransferMapHandle> seen;
+        for (std::size_t i = 0; i < actual.size(); ++i) {
+            EXPECT_EQ(actual[i].element, expected[i].element);
+            EXPECT_EQ(actual[i].map, expected[i].map);
+            EXPECT_EQ(actual[i].pass, expected[i].pass);
+            EXPECT_TRUE(seen.insert(actual[i].map).second);
+            EXPECT_NE(
+                    std::find(pass->segments().begin(), pass->segments().end(), actual[i].map),
+                    pass->segments().end());
+        }
+    };
+    for (int sharing = 0; sharing < 6; ++sharing)
+        for (bool partial : {false, true})
+            for (bool reverse : {false, true}) {
+                SCOPED_TRACE(::testing::Message() << sharing << ',' << partial << ',' << reverse);
+                OpalBeamline a, b;
+                appendDrift(a, "SHARED", 0);
+                switch (sharing) {
+                    case 0: {
+                        OpalBeamline copy(a);
+                        b.swap(copy);
+                        break;
+                    }
+                    case 1:
+                        b = a;
+                        break;
+                    case 2:
+                        b.merge(a);
+                        break;
+                    case 3: {
+                        OpalBeamline intermediate(a);
+                        b = intermediate;
+                        break;
+                    }
+                    case 4:
+                        b = a;
+                        b.merge(b);
+                        break;
+                    default:
+                        b = a;
+                        a.merge(a);
+                        break;
+                }
+                if (partial) {
+                    appendDrift(a, "PRIVATE_A", .1);
+                    appendDrift(b, "PRIVATE_B", .1);
+                }
+                std::shared_ptr<const TransferMapPass> passA, passB;
+                std::vector<ElementTransferMapRef> ownersA, ownersB;
+                for (int step = 0; step < 2; ++step) {
+                    const bool first  = (step == 0) != reverse;
+                    auto& target      = first ? a : b;
+                    const auto pass   = publish(target, first ? 1 : 2, partial ? .2 : .1);
+                    const auto owners = target.getLinearTransferMapsInReferenceOrder();
+                    ASSERT_EQ(owners.size(), partial ? 2u : 1u);
+                    if (first) {
+                        passA   = pass;
+                        ownersA = owners;
+                    } else {
+                        passB   = pass;
+                        ownersB = owners;
+                    }
+                }
+                ASSERT_NE(passA, passB);
+                expectSnapshot(a, passA, ownersA);
+                expectSnapshot(b, passB, ownersB);
+                // Copy/assignment/swap must carry both views of a publication together.
+                OpalBeamline copied(a), assigned;
+                assigned = b;
+                assigned = a;
+                expectSnapshot(copied, passA, ownersA);
+                expectSnapshot(assigned, passA, ownersA);
+                copied.swap(assigned);
+                expectSnapshot(copied, passA, ownersA);
+                OpalBeamline empty;
+                empty.swap(copied);
+                EXPECT_FALSE(copied.getTransferMapPass());
+                EXPECT_TRUE(copied.getLinearTransferMapsInReferenceOrder().empty());
+                expectSnapshot(empty, passA, ownersA);
+                // Clearing element-level attachments does not revoke beamline snapshots.
+                for (const auto& element : b.getElements())
+                    element->clearLinearTransferMaps();
+                expectSnapshot(a, passA, ownersA);
+                expectSnapshot(b, passB, ownersB);
+                b.clearTransferMaps();
+                EXPECT_FALSE(b.getTransferMapPass());
+                EXPECT_TRUE(b.getLinearTransferMapsInReferenceOrder().empty());
+                expectSnapshot(a, passA, ownersA);
+                passB = publish(b, 3, partial ? .2 : .1);
+                expectSnapshot(a, passA, ownersA);
+                appendDrift(b, "APPENDED", partial ? .2 : .1);
+                EXPECT_FALSE(b.getTransferMapPass());
+                EXPECT_TRUE(b.getLinearTransferMapsInReferenceOrder().empty());
+                expectSnapshot(a, passA, ownersA);
+                a.merge(b);
+                EXPECT_FALSE(a.getTransferMapPass());
+                EXPECT_TRUE(a.getLinearTransferMapsInReferenceOrder().empty());
+                EXPECT_FALSE(b.getTransferMapPass());
+                EXPECT_TRUE(b.getLinearTransferMapsInReferenceOrder().empty());
+                EXPECT_TRUE(passA->available());
+                EXPECT_TRUE(passB->available());
+            }
+}
