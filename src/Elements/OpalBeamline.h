@@ -64,6 +64,13 @@ class OpalBeamline {
 public:
     OpalBeamline();
     OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation);
+    /** Share runtime element occurrences, as merge() does; pass handles remain snapshots.
+     * Copying a nonempty lattice marks both lists as potentially aliased. Setup
+     * copies and mutations must be serialized, as for publication and placement.
+     */
+    OpalBeamline(const OpalBeamline&);
+    /// Replace the list with shared occurrences and retain the conservative alias state.
+    OpalBeamline& operator=(const OpalBeamline&);
     ~OpalBeamline();
 
     void activateElements();
@@ -141,7 +148,8 @@ public:
 
     /// Complete ordered snapshot, including ownerless segments. Pins TPS until teardown.
     std::shared_ptr<const TransferMapPass> getTransferMapPass() const { return transferMapPass_m; }
-    /// Remove pass and attachments; retained snapshots remain valid until runtime teardown.
+    /// Remove the local pass and attachments on its elements, including shared occurrences.
+    /// Other aliases observe cleared attachments; retained immutable passes remain valid.
     void clearTransferMaps();
     /// Publish validated attachments atomically after staging allocations. Empty clears.
     /// Owners must belong to this lattice and segments to the supplied pass.
@@ -151,6 +159,7 @@ public:
                     attachments);
 
     void swap(OpalBeamline& rhs);
+    /// Append shared occurrences without consuming rhs; both lists may subsequently alias.
     void merge(OpalBeamline& rhs);
 
 private:
@@ -169,6 +178,10 @@ private:
 
     std::shared_ptr<const TransferMapPass> transferMapPass_m;
     ElementList elements_m;
+    // Copies/merges share attachment-bearing ElementBase objects. A local null pass
+    // is then insufficient to skip invalidation. Retain this conservative flag
+    // through clear/swap, even after other aliases die; no ownership scan is needed.
+    mutable bool elementsMayBeShared_m = false;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
 
@@ -183,7 +196,9 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
     elements_m.push_back(elptr);
-    clearTransferMaps();
+    // A different lattice can publish attachments onto shared occurrences.
+    // Fresh unmapped lattices still avoid any all-element invalidation scan.
+    if (transferMapPass_m || elementsMayBeShared_m) clearTransferMaps();
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }

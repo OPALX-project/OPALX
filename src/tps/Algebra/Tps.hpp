@@ -30,11 +30,6 @@ namespace tps {
     // Helper functions.
 
     template <class T>
-    inline void Tps<T>::setMaxOrder(int order) {
-        rep->maxOrd = order;
-    }
-
-    template <class T>
     inline void Tps<T>::unique() {
         if (rep->ref > 1) {
             auto* copy = rep->clone();
@@ -201,17 +196,20 @@ namespace tps {
 
     template <class T>
     Tps<T> Tps<T>::filter(int minOrder, int maxOrder) const {
-        // Compute order limits.
-        maxOrder      = std::min(maxOrder, getMaxOrder());
-        int trcOrder  = getTruncOrder();
-        int variables = getVariables();
-
-        // Construct filtered TpsRep.
-        TpsRep<T>* p = TpsRep<T>::create(maxOrder, trcOrder, variables);
-        int bot      = getSize(minOrder - 1);
-        int top      = getSize(maxOrder);
-        std::copy(rep->data() + bot, rep->data() + top, p->data() + bot);
-        return Tps<T>(p);
+        if (minOrder < 0 || maxOrder < minOrder)
+            throw ::CLRangeError("Tps::filter()", "Requires 0 <= lowOrder <= highOrder.");
+        const int storedTop = std::min(maxOrder, getMaxOrder());
+        // The owning series releases its representation if coefficient copying throws.
+        Tps<T> result(TpsRep<T>::create(storedTop, getTruncOrder(), getVariables()));
+        if (minOrder <= storedTop) {
+            // Only query indices within this representation, never a larger shared
+            // cache. Scalars have one coefficient even when getSize(-1) says one.
+            const int begin = minOrder == 0 ? 0 : getSize(minOrder - 1);
+            const int end   = getSize(storedTop);
+            std::copy(rep->data() + begin, rep->data() + end, result.rep->data() + begin);
+        }
+        // An empty intersection leaves a zero series with the same variables and precision.
+        return result;
     }
 
     template <class T>
@@ -644,7 +642,6 @@ namespace tps {
             temporary[0] = coefficient;
         } else {
             TpsMonomial monomial(nVar);
-            int observedOrder = 0;
             for (;;) {
                 if (!(is >> coefficient)) return is;
                 bool terminator = true;
@@ -662,10 +659,9 @@ namespace tps {
                 if (negative || order > maxOrder)
                     throw ::FormatError("Tps::get()", "Invalid monomial or terminator.");
                 temporary[monomial.getIndex()] = coefficient;
-                if (coefficient != T(0))
-                    observedOrder = std::max(observedOrder, static_cast<int>(order));
             }
-            temporary.setMaxOrder(observedOrder);
+            // Keep the declared order and its matching allocation, including
+            // trailing zero coefficients. Arithmetic sizes storage by this order.
         }
         // Commit only a completely extracted scalar or terminated polynomial.
         *this = temporary;

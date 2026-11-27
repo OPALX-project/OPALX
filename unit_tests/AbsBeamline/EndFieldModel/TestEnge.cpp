@@ -28,6 +28,19 @@
 #include "Physics/Physics.h"
 #include "gtest/gtest.h"
 
+namespace endfieldmodel {
+    struct EngeHostMirrorTestAccess {
+        static void evaluate(const Enge& model, double x, int n, double* values) {
+            Enge::validateDerivativeOrder(n);
+            Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+                    output(values, n + 1);
+            std::lock_guard<std::mutex> lock(model.host_mutex_m);
+            model.prepareHostConfig(n);
+            Enge::functionPoint(model.host_config_m, x, n, output);
+        }
+    };
+}  // namespace endfieldmodel
+
 static_assert(
         std::extent_v<decltype(endfieldmodel::EngeWorkspace::enge)>
         == endfieldmodel::EngeConfig::max_derivative + 1);
@@ -388,4 +401,43 @@ TEST_F(TestEnge, HostPointsMatchBatchedValuesAfterModelUpdates) {
     model.setCoefficients({.2, 1.});
     model.initialise();
     check(model);
+}
+
+TEST_F(TestEnge, ConfigurationReplacementRefreshesWarmHostMirrors) {
+    using namespace endfieldmodel;
+    Enge model({.1, 1.2, -.05}, .2, .15);
+    model.initialise();
+    std::array<double, EngeConfig::max_derivative + 1> mirrored{};
+    EngeHostMirrorTestAccess::evaluate(model, .02, EngeConfig::max_derivative, mirrored.data());
+    const double previous = mirrored[0];
+    // Allocate a distinct coefficient/index configuration. Updating shared
+    // views in place could hide stale mirrors on host-accessible backends.
+    Enge replacement({-.4, .7, .03, -.01}, .35, .22);
+    replacement.initialise();
+    auto config = replacement.getConfig();
+    model.setConfig(config);
+    EXPECT_GT(std::abs(replacement.function(.02, 0) - previous), .01);
+    Kokkos::View<double*> points("replacement points", 3);
+    auto hostPoints = Kokkos::create_mirror_view(points);
+    hostPoints(0)   = -.31;
+    hostPoints(1)   = .02;
+    hostPoints(2)   = .27;
+    Kokkos::deep_copy(points, hostPoints);
+    for (int order : {0, 3, 6, EngeConfig::max_derivative}) {
+        Kokkos::View<double**> batched("replacement derivatives", 3, order + 1);
+        model.function(points, order, batched);
+        const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), batched);
+        for (int point = 0; point < 3; ++point) {
+            std::array<double, EngeConfig::max_derivative + 1> expected{}, scalar{};
+            replacement.function(hostPoints(point), order, expected.data());
+            model.function(hostPoints(point), order, scalar.data());
+            EngeHostMirrorTestAccess::evaluate(model, hostPoints(point), order, mirrored.data());
+            for (int n = 0; n <= order; ++n) {
+                const double tolerance = 1e-12 * std::max(1., std::abs(expected[n]));
+                EXPECT_NEAR(mirrored[n], expected[n], tolerance) << point << ',' << n;
+                EXPECT_NEAR(scalar[n], expected[n], tolerance) << point << ',' << n;
+                EXPECT_NEAR(host(point, n), expected[n], tolerance) << point << ',' << n;
+            }
+        }
+    }
 }

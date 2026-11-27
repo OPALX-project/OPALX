@@ -243,6 +243,9 @@ namespace tps {
 
     template <class T>
     Vps<T> Vps<T>::filter(int lowOrder, int highOrder) const {
+        // Validate even when the vector has no components to delegate to.
+        if (lowOrder < 0 || highOrder < lowOrder)
+            throw ::CLRangeError("Vps::filter()", "Requires 0 <= lowOrder <= highOrder.");
         check();
         Vps<T> z(getDimension(), variables);
 
@@ -255,14 +258,7 @@ namespace tps {
 
     template <class T>
     Vps<T> Vps<T>::truncate(int trunc) {
-        check();
-        Vps<T> z(getDimension(), variables);
-
-        for (int i = 0; i < getDimension(); i++) {
-            z.data[i] = data[i].truncate(trunc);
-        }
-
-        return *this;
+        return filter(0, trunc);
     }
 
 }  // namespace tps

@@ -185,8 +185,13 @@ namespace endfieldmodel {
         /** Get a copy of the Config object */
         inline EngeConfig getConfig() const { return config_m; }
 
-        /** Get a copy of the Config object */
-        inline void setConfig(EngeConfig& config) { config_m = config; }
+        /** Replace the configuration and discard cached host coefficients/indices.
+         * As with other setters, callers must serialize changes with evaluation.
+         */
+        inline void setConfig(EngeConfig& config) {
+            config_m = config;
+            invalidateHostConfig();
+        }
 
         /** Returns the value of the Enge function or its \f$n^{th}\f$ derivative.
          *
@@ -254,6 +259,8 @@ namespace endfieldmodel {
         static void releaseEngeConfig(EngeConfig& config);
 
     private:
+        // Exercise the device-memory host-mirror path in CPU regression tests.
+        friend struct EngeHostMirrorTestAccess;
         Enge(const Enge& enge);
         Enge& operator=(const Enge& enge);
         EngeConfig config_m;
