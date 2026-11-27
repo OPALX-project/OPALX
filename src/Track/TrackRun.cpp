@@ -42,7 +42,6 @@ namespace TRACKRUN {
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
         TRACKBACK,         // In case we run the beam backwards
-        SCFIELDUPDATE,     // Replaced by TRACK TIMEINTEGRATOR; validate() refuses it.
         SIZE
     };
 }  // namespace TRACKRUN
@@ -53,9 +52,6 @@ TrackRun::TrackRun()
              "the given lattice.") {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
             "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
-
-    itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makeString(
-            "SCFIELDUPDATE", "Replaced by TRACK, TIMEINTEGRATOR; setting it is an input error.");
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
             Attributes::makeString("FIELDSOLVER", "Field solver to be used.");

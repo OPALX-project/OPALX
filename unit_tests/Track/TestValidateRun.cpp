@@ -163,22 +163,6 @@ TEST(ValidateRun, OlderVersionListsLaterChanges) {
     EXPECT_TRUE(contains(errors, "\nOPTION, VERSION = "));
 }
 
-TEST(ValidateRun, ScFieldUpdateNamesItsReplacement) {
-    RunDescription run = validRun();
-    AttributeEntry unset;  // as freeze() records an attribute the input did not set
-    unset.name = "SCFIELDUPDATE";
-    run.track.run.attributes.push_back(unset);
-    EXPECT_TRUE(validate(run).empty());
-
-    run.track.run.attributes.back() = entry("SCFIELDUPDATE", std::string("PRESTEP"));
-    const auto errors               = validate(run);
-    ASSERT_EQ(errors.size(), 1u) << joinErrors(errors);
-    EXPECT_EQ(
-            errors[0],
-            "RUN SCFIELDUPDATE was replaced by TRACK TIMEINTEGRATOR: use TIMEINTEGRATOR = "
-            "\"BORIS\" for MIDPOINT and \"BORIS-PRESTEP\" for PRESTEP.");
-}
-
 TEST(ValidateRun, Rk4RefusesPolarizedBeams) {
     RunDescription run       = validRun();
     run.track.timeIntegrator = "RK4";
