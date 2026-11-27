@@ -1,7 +1,8 @@
 //
-// Tests of the schemes makeNumericalIntegrator() builds: Boris invariants in uniform fields, and
-// the order of BORIS and BORIS-PRESTEP in a position-dependent self field. A test double of the
-// space-charge algorithm prescribes the self field; the beamline holds no elements.
+// Tests of the schemes makeNumericalIntegrator() builds: Boris invariants in uniform fields, the
+// stage times of RK4 and BORIS in a time-dependent element field, the orders in a quadrupole and in
+// a position-dependent self field, and RK4 in a uniform held self field. A test double of the
+// space-charge algorithm prescribes the self field; a test that needs an element adds it.
 //
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
@@ -13,6 +14,9 @@
 #include "../BunchBeam.h"
 #include "../KeywordObjects.h"
 #include "AbsBeamline/ElementRegions.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/VariableRFCavity.h"
+#include "Algorithms/PolynomialTimeDependence.h"
 #include "Distribution/EmittingSamplers.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
@@ -28,6 +32,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -108,6 +113,16 @@ namespace {
         }
 
         ParticleContainer_t& pc() { return *bunch_m->getParticleContainer(); }
+
+        /// Add @p element with its local origin at lab z = @p z0 to the beamline.
+        void place(const std::shared_ptr<ElementBase>& element, double z0) {
+            element->setCSTrafoGlobal2Local(
+                    CoordinateSystemTrafo(Vector(0.0, 0.0, z0), Quaternion()));
+            element->fixPosition();
+            beamline_m.addElement(element, *bunch_m);
+            beamline_m.prepareSections();
+            beamline_m.buildElementMapping(defaultElementMappingGrid, defaultElementReach);
+        }
 
         /// Put the particles at @p state and give each the time step @p dt (s).
         void load(const State& state, double dt) {
@@ -240,12 +255,109 @@ TEST_F(NumericalIntegratorTest, OrderInALinearSelfField) {
         return run(name, field, steps).back()[0][0](0);
     };
     const double reference = finalX("BORIS", 4096);
-    for (const auto& [name, order] : {std::pair{"BORIS", 2.0}, std::pair{"BORIS-PRESTEP", 1.0}}) {
+    // RK4 holds the self field of the step start through its stages, like BORIS-PRESTEP.
+    for (const auto& [name, order] :
+         {std::pair{"BORIS", 2.0}, std::pair{"BORIS-PRESTEP", 1.0}, std::pair{"RK4", 1.0}}) {
         std::array<double, 3> error{};
         for (int j = 0; j < 3; ++j)
             error[j] = std::abs(finalX(name, 32 << j) - reference);
         EXPECT_NEAR(std::log2(error[0] / error[1]), order, 0.2) << name;
         EXPECT_NEAR(std::log2(error[1] / error[2]), order, 0.2) << name;
+    }
+}
+
+// E_z(t) = E0 sin(omega t + phi) of a VARIABLE_RF_CAVITY around all particles, B = 0: the gain of
+// P_z in one step is RK4's quadrature of f(t) = q c E_z(t) / M at its stage times, Simpson's
+// rule, and the midpoint rule for BORIS; P_x and P_y do not change. With omega dt = 0.63 the two
+// rules differ by 1.6 % of the gain. f is sampled with the element's own formula
+// (applyOnHost()) at the times StepTime::fieldTime() forms, so the residual is only the rounding
+// of the weighted sum and of its addition to P_z: a few eps (|P_z| + |gain|).
+TEST_F(NumericalIntegratorTest, StageTimesGiveSimpsonForRk4AndMidpointForBoris) {
+    const double t = 1e-9, dt = 1e-9, frequency = 100.0, phase = 0.3;  // s, s, MHz, rad
+    const auto cavity = std::make_shared<VariableRFCavity>("RF");
+    cavity->setAmplitudeModel(std::make_shared<PolynomialTimeDependence>(std::vector{10.0}));
+    cavity->setFrequencyModel(std::make_shared<PolynomialTimeDependence>(std::vector{frequency}));
+    cavity->setPhaseModel(std::make_shared<PolynomialTimeDependence>(std::vector{phase}));
+    cavity->setLength(1.0);
+    cavity->setWidth(1.0);
+    cavity->setHeight(1.0);
+    place(cavity, -0.5);
+    const auto f = [&](double fraction) {
+        Vector E(0.0), B(0.0);
+        cavity->applyOnHost(Vector(0.0, 0.0, 0.5), t + fraction * dt, E, B);
+        return charge_m * Physics::c / mass_m * E(2);
+    };
+    const double simpson  = dt / 6 * (f(0.0) + 4 * f(0.5) + f(1.0));
+    const double midpoint = dt * f(0.5);
+    ASSERT_GT(std::abs(simpson - midpoint), 1e-2 * std::abs(simpson));
+    for (const auto& [name, gain] : {std::pair{"RK4", simpson}, std::pair{"BORIS", midpoint}}) {
+        load(protons, dt);
+        bunch_m->setT(t);
+        const State end = run(name, SelfField{}, 1).back();
+        for (size_t i = 0; i < protons.size(); ++i) {
+            const Vector& p = protons[i][1];
+            EXPECT_EQ(end[i][1](0), p(0)) << name << " " << i;
+            EXPECT_EQ(end[i][1](1), p(1)) << name << " " << i;
+            EXPECT_NEAR(end[i][1](2) - p(2), gain, 4 * eps * (std::abs(p(2)) + std::abs(gain)))
+                    << name << " " << i;
+        }
+    }
+}
+
+// One proton in a quadrupole of 10 T/m over T = 1/omega, the inverse betatron frequency, at
+// beta = 0.1; the reference is RK4 with 1024 steps. With omega dt = 1/8 to 1/32 (RK4) and 1/32 to
+// 1/128 (BORIS) the next order shifts the measured orders by less than 0.2, and the smallest RK4
+// error, 8e-12 m, is far above the round-off of the position (1e-17 m per step) and of the
+// reference (1e-15 m).
+TEST_F(NumericalIntegratorTest, OrderInAQuadrupole) {
+    const State start     = {{Vector(1e-3, 5e-4, 0.0), Vector(0.0, 0.0, 0.1)}};
+    const double gradient = 10.0;  // T/m
+    const auto quadrupole = std::make_shared<Multipole>("Q");
+    quadrupole->getGeometry().setElementLength(1.0);
+    quadrupole->setNormalComponent(1, gradient);
+    quadrupole->setAperture(ApertureType::RECTANGULAR, {0.1, 0.1});
+    place(quadrupole, -0.2);
+    const double gamma = std::sqrt(1 + dot(start[0][1], start[0][1]));
+    const double omega = std::sqrt(
+            charge_m * gradient * std::pow(Physics::c, 3) * start[0][1](2)
+            / (gamma * gamma * mass_m));
+    const auto finalR = [&](const std::string& name, int steps) {
+        load(start, 1 / omega / steps);
+        return run(name, SelfField{}, steps).back()[0][0];
+    };
+    const Vector reference = finalR("RK4", 1024);
+    for (const auto& [name, order, steps] :
+         {std::tuple{"RK4", 4.0, 8}, std::tuple{"BORIS", 2.0, 32}}) {
+        std::array<double, 3> error{};
+        for (int j = 0; j < 3; ++j)
+            error[j] = norm(Vector(finalR(name, steps << j) - reference));
+        EXPECT_NEAR(std::log2(error[0] / error[1]), order, 0.2) << name;
+        EXPECT_NEAR(std::log2(error[1] / error[2]), order, 0.2) << name;
+    }
+}
+
+// In a uniform B the held self field is the exact field: P rotates about B_z with
+// Omega = q c^2 B / (gamma M), clockwise for q B_z > 0, and P_z stays. RK4's step factor for a
+// rotation differs from exp(-i Omega dt) by (Omega dt)^5 / 120, so after n steps P is off by about
+// n (Omega dt)^5 / 120 |P_perp|, 1e-7 |P_perp| here; the bound allows twice that.
+TEST_F(NumericalIntegratorTest, Rk4RotatesInAUniformHeldMagneticField) {
+    const double dt       = 5e-10;  // about 0.05 rad per step in 1 T
+    const SelfField field = {.b0 = Vector(0.0, 0.0, 1.0)};
+    const int steps       = 50;
+    load(protons, dt);
+    const State end = run("RK4", field, steps).back();
+    for (size_t i = 0; i < protons.size(); ++i) {
+        const Vector& p    = protons[i][1];
+        const double angle = -charge_m * Physics::c * Physics::c * field.b0(2)
+                             / (std::sqrt(1 + dot(p, p)) * mass_m) * dt * steps;
+        const Vector exact(
+                p(0) * std::cos(angle) - p(1) * std::sin(angle),
+                p(0) * std::sin(angle) + p(1) * std::cos(angle), p(2));
+        const double perp  = std::hypot(p(0), p(1));
+        const double theta = std::abs(angle) / steps;
+        EXPECT_LE(norm(Vector(end[i][1] - exact)), 2 * steps * std::pow(theta, 5) / 120 * perp)
+                << i;
+        EXPECT_EQ(end[i][1](2), p(2)) << i;
     }
 }
 
