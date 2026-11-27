@@ -23,7 +23,6 @@ set (HDRS
     BunchReference.h
     CavityAutophaser.h
     CompensatedSum.h
-    RungeKuttaTableau.h
     GeneralElementMapping.h
     ExternalFieldRayTracker.h
     ParallelTracker.h

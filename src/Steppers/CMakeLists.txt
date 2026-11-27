@@ -6,6 +6,7 @@ set (HDRS
     BorisIntegrators.h
     BorisPusher.h
     NumericalIntegrator.h
+    RungeKuttaTableau.h
     )
 
 opalx_include_source_directory()

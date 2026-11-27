@@ -4,8 +4,8 @@
 #include <cmath>
 #include "Algorithms/CompensatedSum.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/RungeKuttaTableau.h"
 #include "Elements/OpalBeamline.h"
+#include "Steppers/RungeKuttaTableau.h"
 #include "Utilities/OpalException.h"
 
 namespace {
@@ -16,7 +16,7 @@ namespace {
     template <unsigned Stages>
     State rkAdvance(
             const State& initial, double h, const Fields& fields, const PartData& reference,
-            const external_field_rk::Tableau<Stages>& table, bool& hitMaterial,
+            const runge_kutta::Tableau<Stages>& table, bool& hitMaterial,
             State* midpoint = nullptr) {
         constexpr unsigned WorkStages = Stages == 12 ? 16 : Stages;
         std::array<std::array<double, 7>, WorkStages> k{};
@@ -70,8 +70,8 @@ namespace {
                 if (hitMaterial) return end;
                 for (unsigned i = 13; i < 16; ++i) {
                     const State ray = displace(
-                            sum(external_field_rk::dop853DenseA[i - 13], i),
-                            external_field_rk::dop853DenseC[i - 13]);
+                            sum(runge_kutta::dop853DenseA[i - 13], i),
+                            runge_kutta::dop853DenseC[i - 13]);
                     evaluate(ray, i);
                     if (hitMaterial) return ray;
                 }
@@ -82,7 +82,7 @@ namespace {
                     f[2][d] = 2 * delta[d] - (k[0][d] + k[12][d]);
                 }
                 for (unsigned i = 0; i < 4; ++i)
-                    f[3 + i] = sum(external_field_rk::dop853DenseD[i], 16);
+                    f[3 + i] = sum(runge_kutta::dop853DenseD[i], 16);
                 std::array<double, 7> half{};
                 // At theta=1/2 both alternating Horner factors equal 1/2.
                 for (int i = 6; i >= 0; --i)
@@ -160,15 +160,15 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::rungeKuttaStep(
     if (dt == 0.0) return result;
     if (integrationMethod_m == IntegrationMethod::DOP853) {
         result.end = rkAdvance(
-                initial, dt, fields, reference_m, external_field_rk::dop853, result.hitMaterial,
+                initial, dt, fields, reference_m, runge_kutta::dop853, result.hitMaterial,
                 &result.midpoint);
     } else {
         result.end = rkAdvance(
-                initial, dt, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
+                initial, dt, fields, reference_m, runge_kutta::rk4, result.hitMaterial);
         if (result.hitMaterial) return result;
         // Independent RK4 half solve; it is not composed into the endpoint.
         result.midpoint = rkAdvance(
-                initial, 0.5 * dt, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
+                initial, 0.5 * dt, fields, reference_m, runge_kutta::rk4, result.hitMaterial);
     }
     if (result.hitMaterial) return result;
     result.hitMaterial = fields(result.midpoint, result.electric, result.magnetic);

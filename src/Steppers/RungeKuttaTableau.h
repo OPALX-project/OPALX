@@ -1,10 +1,12 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
-#ifndef OPAL_RUNGE_KUTTA_TABLEAU_H
-#define OPAL_RUNGE_KUTTA_TABLEAU_H
+#ifndef OPALX_RUNGE_KUTTA_TABLEAU_H
+#define OPALX_RUNGE_KUTTA_TABLEAU_H
 
 #include <array>
 
-namespace external_field_rk {
+/// Butcher tableaus of explicit Runge-Kutta formulas: stage i is evaluated at t + c[i] h with
+/// the state y0 + h sum_{j<i} a[i][j] k_j, and the step ends at y0 + h sum_i b[i] k_i.
+namespace runge_kutta {
     template <unsigned Stages>
     struct Tableau {
         std::array<double, Stages> c;
@@ -24,7 +26,6 @@ namespace external_field_rk {
      * See Hairer, Norsett & Wanner, Solving Ordinary Differential Equations I,
      * 2nd edition, section II.6. The integration tableau and seventh-order dense
      * output are used without an embedded 5/3 error controller or stiffness detection.
-     * Kept separate from particle steppers; no external dependency is modified.
      */
     inline constexpr Tableau<12> dop853{
             {0.0, 0.526001519587677318785587544488e-1, 0.789002279381515978178381316732e-1,
@@ -96,5 +97,5 @@ namespace external_field_rk {
               357.63911791061412, 93.405324183624316, -37.458323136451632, 104.0996495089623,
               29.840293426660502, -43.533456590011141, 96.324553959188279, -39.177261675615441,
               -149.72683625798564}}};
-}  // namespace external_field_rk
+}  // namespace runge_kutta
 #endif
