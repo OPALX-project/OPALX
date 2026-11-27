@@ -200,7 +200,9 @@ namespace tps {
             throw ::CLRangeError("Tps::filter()", "Requires 0 <= lowOrder <= highOrder.");
         const int storedTop = std::min(maxOrder, getMaxOrder());
         // The owning series releases its representation if coefficient copying throws.
-        Tps<T> result(TpsRep<T>::create(storedTop, getTruncOrder(), getVariables()));
+        // A temporary global arithmetic cap must not lower the stored precision
+        // of copied coefficients; their availability is unchanged by filtering.
+        Tps<T> result(TpsRep<T>::create(storedTop, rep->trcOrd, getVariables()));
         if (minOrder <= storedTop) {
             // Only query indices within this representation, never a larger shared
             // cache. Scalars have one coefficient even when getSize(-1) says one.

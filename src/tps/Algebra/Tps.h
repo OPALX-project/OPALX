@@ -64,6 +64,7 @@ namespace tps {
         /// Return orders lowOrder..highOrder inclusive, leaving this series unchanged.
         /// Requires 0 <= lowOrder <= highOrder; otherwise throws ::CLRangeError.
         /// Retain variable count and precision; stored degree is min(highOrder, getMaxOrder()).
+        /// Preserve stored precision independently of the current global arithmetic cap.
         /// An empty intersection with stored orders returns zero; order zero includes scalars.
         Tps<T> filter(int lowOrder, int highOrder) const;
 
