@@ -1,4 +1,5 @@
 set (_SRCS
+    Analytic3D/FieldTensor.cpp
     SpaceChargeConfig.cpp
     SpaceChargeConfigBuilder.cpp
     SpaceChargeFactory.cpp
@@ -11,6 +12,7 @@ set (HDRS
     )
 
 set (_PRIVATE_HDRS
+    Analytic3D/FieldTensor.h
     SpaceChargeAlgorithm.h
     SpaceChargeSolver.h
     SpaceChargeFrames.h
