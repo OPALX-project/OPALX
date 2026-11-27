@@ -30,7 +30,6 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalBeamline.h"
-#include "OpalParser/OpalParser.h"
 #include "PartBunch/CartesianDomainConfig.h"
 #include "Structure/Beam.h"
 #include "Utilities/OpalException.h"
@@ -163,7 +162,7 @@ namespace {
         });
         return text;
     }
-    // Protect the top-level deck as well as files on the active CALL stack.
+    // Protect the top-level deck and every disk input opened during this run.
     // Canonical paths cover spelling/symlink aliases; equivalent also covers hard links.
     void validateOutput(const std::string& output) {
         namespace fs = std::filesystem;
@@ -172,13 +171,13 @@ namespace {
         require(!error, "Cannot resolve COF OUTPUT " + output + ": " + error.message());
         const bool destinationExists = fs::exists(output, error);
         require(!error, "Cannot inspect COF OUTPUT " + output + ": " + error.message());
-        auto inputs          = OpalParser::getActiveInputFiles();
+        auto inputs          = OpalData::getInstance()->getInputFiles();
         const auto mainInput = OpalData::getInstance()->getInputFn();
         if (!mainInput.empty()) inputs.push_back(mainInput);
         for (const auto& input : inputs) {
             const auto source = fs::weakly_canonical(input, error);
             require(!error, "Cannot resolve COF input " + input + ": " + error.message());
-            const auto message = "COF OUTPUT resolves to an active input file: " + output;
+            const auto message = "COF OUTPUT resolves to an input file: " + output;
             require(destination != source, message);
             if (destinationExists) {
                 const bool sourceExists = fs::exists(input, error);
@@ -238,9 +237,13 @@ namespace {
         if (std::fflush(file.get()) != 0) fail("Error flushing", errno);
         mode_t mode = created.st_mode & 0777;
         struct stat existing;
-        if (::stat(output.c_str(), &existing) == 0)
+        if (::stat(output.c_str(), &existing) == 0) {
+            // chown can clear permission bits, so restore the mode afterwards.
+            if (existing.st_gid != created.st_gid
+                && ::fchown(fd, static_cast<uid_t>(-1), existing.st_gid) != 0)
+                fail("Cannot preserve group for", errno);
             mode = existing.st_mode & 0777;
-        else if (errno != ENOENT)
+        } else if (errno != ENOENT)
             fail("Cannot inspect existing", errno);
         if (::fchmod(fd, mode) != 0) fail("Cannot set permissions for", errno);
         if (std::fclose(file.release()) != 0) fail("Error closing", errno);

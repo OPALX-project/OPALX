@@ -21,6 +21,7 @@
 #include "OpalParser/FileStream.h"
 #include <iomanip>
 #include <iostream>
+#include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 #include "Utilities/ParseError.h"
 #include "Utility/IpplInfo.h"
@@ -34,6 +35,7 @@ FileStream::FileStream(const std::string& name) : AbsFileStream(name), is(name.c
     if (is.fail()) {
         throw ParseError("FileStream::FileStream()", "Cannot open file \"" + name + "\".");
     }
+    OpalData::getInstance()->registerInputFile(name);
 }
 
 FileStream::~FileStream() {}

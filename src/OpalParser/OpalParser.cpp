@@ -25,7 +25,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ValueDefinition.h"
 #include "Attributes/Attributes.h"
-#include "OpalParser/AbsFileStream.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
@@ -606,13 +605,6 @@ void OpalParser::run() const {
 
         if (stopFlag) break;
     }
-}
-
-std::vector<std::string> OpalParser::getActiveInputFiles() {
-    std::vector<std::string> files;
-    for (const auto& stream : inputStack)
-        if (dynamic_cast<const AbsFileStream*>(stream.get())) files.push_back(stream->getName());
-    return files;
 }
 
 void OpalParser::run(TokenStream* is) const {

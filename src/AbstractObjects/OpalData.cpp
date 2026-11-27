@@ -43,6 +43,7 @@
 #include "ValueDefinitions/StringConstant.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <list>
 #include <set>
@@ -96,6 +97,8 @@ struct OpalDataImpl {
 
     // Input file name
     std::string inputFn_m;
+
+    std::set<std::string> inputFiles_m;
 
     std::set<std::string> outFiles_m;
 
@@ -574,6 +577,20 @@ void OpalData::setP0(ValueDefinition* p0) { p->referenceMomentum = p0; }
 void OpalData::storeTitle(const std::string& title) { p->itsTitle_m = title; }
 
 void OpalData::storeInputFn(const std::string& fn) { p->inputFn_m = fn; }
+
+void OpalData::registerInputFile(const std::string& fn) {
+    std::error_code error;
+    const auto path = std::filesystem::canonical(fn, error);
+    if (error)
+        throw OpalException(
+                "OpalData::registerInputFile",
+                "Cannot resolve input file " + fn + ": " + error.message());
+    p->inputFiles_m.insert(path.string());
+}
+
+std::vector<std::string> OpalData::getInputFiles() const {
+    return {p->inputFiles_m.begin(), p->inputFiles_m.end()};
+}
 
 void OpalData::printTitle(std::ostream& os) { os << p->itsTitle_m; }
 

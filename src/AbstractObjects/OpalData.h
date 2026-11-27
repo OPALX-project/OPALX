@@ -210,6 +210,13 @@ public:
     /// store opals input filename
     void storeInputFn(const std::string& fn);
 
+    /// Register a successfully opened input's canonical filename for this run.
+    void registerInputFile(const std::string& fn);
+
+    /// All registered disk inputs, including CALL files that have finished parsing.
+    /// This history belongs to the instance and is cleared by reset().
+    std::vector<std::string> getInputFiles() const;
+
     /// checks the output file names of all items to avoid duplicates
     void checkAndAddOutputFileName(const std::string& outfn);
 
