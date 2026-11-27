@@ -3,6 +3,7 @@ set (_SRCS
     )
 
 set (HDRS
+    BorisIntegrators.h
     BorisPusher.h
     NumericalIntegrator.h
     )

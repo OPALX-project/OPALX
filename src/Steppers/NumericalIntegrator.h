@@ -1,6 +1,7 @@
 //
 // Class NumericalIntegrator
-//   The particle part of one time step, as an exchangeable integration scheme.
+//   The particle part of one time step, as an exchangeable integration scheme. Each scheme
+//   family has a file of its own next to this one, e.g. BorisIntegrators.h.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -113,14 +114,8 @@ private:
 };
 
 /**
- * @brief The integration scheme called @p name, acting on @p context.
- *
- * - "BORIS" (BorisMidpoint, the default): drift-kick-drift with the self field solved at
- *   @f$R_{n+1/2}@f$; second order.
- * - "BORIS-PRESTEP" (BorisPrestep): the self field is solved at @f$R_n@f$ and carried by the
- *   particles through the first half drift; first order in the self-field term. This is the
- *   timing of the OPAL-cycl leapfrog (field solved before the step and held), not of OPAL-T,
- *   which solved at the midpoint.
+ * @brief The integration scheme called @p name, acting on @p context: "BORIS" is BorisMidpoint
+ *        (the default), "BORIS-PRESTEP" is BorisPrestep.
  * @throws OpalException for an unknown name.
  */
 std::unique_ptr<NumericalIntegrator> makeNumericalIntegrator(

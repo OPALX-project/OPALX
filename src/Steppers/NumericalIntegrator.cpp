@@ -1,6 +1,7 @@
 //
 // Class NumericalIntegrator
-//   The particle part of one time step, as an exchangeable integration scheme.
+//   The operations of a step and the factory makeNumericalIntegrator(); the schemes are in
+//   their own files, e.g. BorisIntegrators.h.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -21,41 +22,10 @@
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
+#include "Steppers/BorisIntegrators.h"
 #include "Utilities/OpalException.h"
 
 #include <utility>
-
-namespace {
-
-    class BorisMidpoint final : public NumericalIntegrator {
-    public:
-        explicit BorisMidpoint(Context context) : NumericalIntegrator(std::move(context)) {}
-
-        void advance() override {
-            halfDrift();
-            solveSelfFields();
-            emit();
-            addExternalFields();
-            kick();
-            halfDrift();
-        }
-    };
-
-    class BorisPrestep final : public NumericalIntegrator {
-    public:
-        explicit BorisPrestep(Context context) : NumericalIntegrator(std::move(context)) {}
-
-        void advance() override {
-            solveSelfFields();
-            halfDrift();
-            emit();
-            addExternalFields();
-            kick();
-            halfDrift();
-        }
-    };
-
-}  // namespace
 
 NumericalIntegrator::NumericalIntegrator(Context context)
     : context_m(std::move(context)),
