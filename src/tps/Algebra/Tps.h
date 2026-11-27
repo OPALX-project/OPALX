@@ -153,6 +153,7 @@ namespace tps {
         Tps<T>& operator-=(const T& y);
 
         /// Multiply by constant and assign.
+        /// The scalar may reference one of this series' coefficients.
         Tps<T>& operator*=(const T& y);
 
         /// Divide by constant and assign.

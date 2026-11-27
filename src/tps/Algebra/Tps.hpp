@@ -431,10 +431,12 @@ namespace tps {
 
     template <class T>
     Tps<T>& Tps<T>::operator*=(const T& rhs) {
+        // rhs can alias a coefficient that detachment or multiplication changes.
+        const T factor(rhs);
         unique();
         T* x = rep->data();
-        std::transform(x, x + rep->len, x, [&rhs](const T& value) {
-            return value * rhs;
+        std::transform(x, x + rep->len, x, [&factor](const T& value) {
+            return value * factor;
         });
         return *this;
     }
