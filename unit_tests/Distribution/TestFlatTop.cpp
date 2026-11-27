@@ -7,6 +7,7 @@
 #include "Distribution/FlatTop.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "Physics/Physics.h"
 #include "Utilities/Options.h"
 #include "Utility/IpplTimings.h"
 
@@ -113,7 +114,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
     const size_t nNew   = 100000;
 
     pc->createParticles(nNew);
-    sampler.generateUniformDisk(nlocal, nNew, 1.0e-12);
+    sampler.generateUniformDisk(nlocal, nNew, 1.0e-12, EmissionStart::HalfDrifted);
 
     auto Rview_d = pc->R.getView();
     auto Pview_d = pc->P.getView();
@@ -163,6 +164,29 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
     // E[x^2] = σx^2 / 4, E[y^2] = σy^2 / 4
     EXPECT_NEAR(varx, sigmaR[0] * sigmaR[0] / 4.0, 1e-2);
     EXPECT_NEAR(vary, sigmaR[1] * sigmaR[1] / 4.0, 1e-2);
+}
+
+// HalfDrifted moves z by half the drift over the particle's fractional dt; Birth keeps z = R0z.
+TEST_F(FlatTopTest, HalfDriftedShiftsZAndBirthKeepsIt) {
+    FlatTop sampler(
+            pc, Options::seed, /*emitting=*/false, /*sigmaTFall=*/1.0, /*sigmaTRise=*/1.0,
+            /*cutoff=*/4.0, /*tPulseLengthFWHM=*/1.0, /*sigmaR=*/{0.5, 1.0, 0.0});
+    const Vector_t<double, 3> P0 = {0.0, 0.0, 0.3};
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), P0, 0.0, "NONE");
+    const size_t nNew = 100;
+    pc->createParticles(2 * nNew);
+    sampler.generateUniformDisk(0, nNew, 1.0e-12, EmissionStart::HalfDrifted);
+    sampler.generateUniformDisk(nNew, nNew, 1.0e-12, EmissionStart::Birth);
+
+    auto R             = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto dt            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+    const double betaZ = P0[2] / std::sqrt(1.0 + P0[2] * P0[2]);
+    for (size_t i = 0; i < nNew; ++i) {
+        EXPECT_DOUBLE_EQ(R(i)[2], 0.5 * betaZ * Physics::c * dt(i));
+        EXPECT_EQ(R(nNew + i)[2], 0.0);
+        EXPECT_GE(dt(nNew + i), 0.0);
+        EXPECT_LT(dt(nNew + i), 1.0e-12);
+    }
 }
 
 /**

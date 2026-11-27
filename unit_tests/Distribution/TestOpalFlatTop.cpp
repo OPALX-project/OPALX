@@ -112,7 +112,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     const double dts[] = {0.07, 0.11, 0.05, 0.13};
     for (int step = 0; step < 1000 && !sampler.isEmissionDone(t); ++step) {
         const double dt = dts[step % 4];
-        sampler.emitParticles(t, dt);
+        sampler.emitParticles(t, dt, EmissionStart::HalfDrifted);
         t += dt;
     }
 
@@ -138,7 +138,7 @@ TEST_F(OpalFlatTopTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) {
     const size_t nranks = static_cast<size_t>(std::max(1, ippl::Comm->size()));
     pc->allocateParticles(4 / nranks + 2 * nranks + 8);
 
-    EXPECT_THROW(sampler.emitParticles(0.0, 5.0e-13), OpalException);
+    EXPECT_THROW(sampler.emitParticles(0.0, 5.0e-13, EmissionStart::HalfDrifted), OpalException);
     EXPECT_EQ(sampler.getNextGlobalIndex(), 0u);
     EXPECT_EQ(globalLocalNum(), 0u);
 }
@@ -160,7 +160,7 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
     const size_t nranks = static_cast<size_t>(std::max(1, ippl::Comm->size()));
     pc->allocateParticles(3 / nranks + 2 * nranks + 8);
 
-    sampler.emitParticles(0.0, 5.0e-13);
+    sampler.emitParticles(0.0, 5.0e-13, EmissionStart::HalfDrifted);
 
     const size_t totalNew       = 2;
     const size_t rank           = static_cast<size_t>(ippl::Comm->rank());
@@ -198,6 +198,27 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
     EXPECT_EQ(globalLocalNum(), totalNew);
 }
 
+// Without the half drift a new particle stays on the cathode plane z = R0z, with the same dt.
+TEST_F(OpalFlatTopTest, BirthStartKeepsTheBirthPosition) {
+    OpalFlatTop sampler(
+            pc, Options::seed, /*emitting=*/true, /*sigmaTFall=*/1.0e-12, /*sigmaTRise=*/1.0e-12,
+            /*cutoff=*/{4.0, 4.0, 4.0}, /*tPulseLengthFWHM=*/4.0e-12, /*sigmaR=*/{0.5, 0.5, 0.0});
+    sampler.setEmissionOffsets(0.0, Vector_t<double, 3>({0.0, 0.0, 0.1}), 0.0, "NONE");
+    const std::vector<double> birthTimes(2 * std::max(1, ippl::Comm->size()), 1.0e-13);
+    sampler.setBirthTimesForTest(birthTimes);
+    pc->allocateParticles(8);
+
+    sampler.emitParticles(0.0, 5.0e-13, EmissionStart::Birth);
+
+    ASSERT_EQ(globalLocalNum(), birthTimes.size());
+    auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto dt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        EXPECT_EQ(R(i)[2], 0.0);
+        EXPECT_NEAR(dt(i), 4.0e-13, 1.0e-18);
+    }
+}
+
 TEST_F(OpalFlatTopTest, EmittedParticlesGetBeamPolarization) {
     pc                               = makeContainer(/*spin=*/true);
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
@@ -214,8 +235,8 @@ TEST_F(OpalFlatTopTest, EmittedParticlesGetBeamPolarization) {
 
     const size_t nranks = static_cast<size_t>(std::max(1, ippl::Comm->size()));
     pc->allocateParticles(3 / nranks + 2 * nranks + 8);
-    sampler.emitParticles(0.0, 5.0e-13);
-    sampler.emitParticles(5.0e-13, 5.0e-13);
+    sampler.emitParticles(0.0, 5.0e-13, EmissionStart::HalfDrifted);
+    sampler.emitParticles(5.0e-13, 5.0e-13, EmissionStart::HalfDrifted);
     ASSERT_EQ(globalLocalNum(), 3u);
 
     auto pol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->Pol.getView());
@@ -270,7 +291,7 @@ TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
     pc->allocateParticles(totalParticles / nranks + 2 * nranks + 16);
     sampler.setBirthTimesForTest(std::vector<double>(totalParticles, 0.0));
 
-    sampler.emitParticles(0.0, 1.0e-12);
+    sampler.emitParticles(0.0, 1.0e-12, EmissionStart::HalfDrifted);
 
     EXPECT_EQ(globalLocalNum(), totalParticles);
 

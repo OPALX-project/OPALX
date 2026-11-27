@@ -26,6 +26,9 @@
 /**
  * @brief Drift-kick-drift with the self field solved at @f$R_{n+1/2}@f$; second order. The
  *        default scheme, "BORIS".
+ *
+ * Both Boris schemes emit between the half drifts, so a new particle gets the external fields,
+ * the kick and the second half drift over its fractional dt; it starts half drifted.
  */
 class BorisMidpoint final : public NumericalIntegrator {
 public:
@@ -34,7 +37,7 @@ public:
     void advance() override {
         halfDrift();
         solveSelfFields();
-        emit();
+        emit(EmissionStart::HalfDrifted);
         applySourcePlaneLoss();
         addExternalFields();
         kick();
@@ -56,7 +59,7 @@ public:
     void advance() override {
         solveSelfFields();
         halfDrift();
-        emit();
+        emit(EmissionStart::HalfDrifted);
         applySourcePlaneLoss();
         addExternalFields();
         kick();

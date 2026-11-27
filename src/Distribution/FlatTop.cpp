@@ -69,7 +69,8 @@ void FlatTop::setInternalVariables(
     sigmaR_m = sigmaR;
 }
 
-void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
+void FlatTop::generateUniformDisk(
+        size_type nlocal, size_t nNew, double dt, EmissionStart start) {
     if (nNew == 0) {
         return;
     }
@@ -135,6 +136,9 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
                 "unitDisk_P_none", range, KOKKOS_LAMBDA(const size_t j) { Pview(j) = P0; });
     }
     Kokkos::fence();
+    if (start != EmissionStart::HalfDrifted) {
+        return;
+    }
 
     // Correct z for the missed first half drift.
     //
@@ -328,7 +332,7 @@ void FlatTop::allocateParticles(size_t numberOfParticles) {
     // limit in ParallelTracker.
 }
 
-void FlatTop::emitParticles(double t, double dt) {
+void FlatTop::emitParticles(double t, double dt, EmissionStart start) {
     Inform msgAll = Inform("FlatTop::emitParticles", INFORM_ALL_NODES);
 
     // Time profile uses (t - t0) so sampling begins at t0.
@@ -361,7 +365,7 @@ void FlatTop::emitParticles(double t, double dt) {
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
     // Each particle receives a fractional per-particle dt for sub-timestep spreading.
     msgAll << level3 << "* generate particles on a disc" << endl;
-    generateUniformDisk(nlocal, nNew, dt);
+    generateUniformDisk(nlocal, nNew, dt, start);
 
     fillPolarization(nlocal, nNew);
 

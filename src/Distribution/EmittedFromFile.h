@@ -62,7 +62,7 @@ public:
      * @param t Start time of the current tracker step.
      * @param dt Time step size.
      */
-    void emitParticles(double t, double dt) override;
+    void emitParticles(double t, double dt, EmissionStart start) override;
 
     /**
      * @brief Returns whether all file records in the inventory have been emitted.
@@ -149,7 +149,8 @@ public:
      * @param dt Time step size.
      */
     void generateLocalParticles(
-            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt);
+            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt,
+            EmissionStart start);
 
 private:
     /**

@@ -101,7 +101,7 @@ public:
      * For GAUSS, this emits once when [t, t+dt] crosses t0 for sources with t0 > 0.
      * Initial sampling at t0 == 0 is handled via generateParticles.
      */
-    void emitParticles(double t, double dt) override;
+    void emitParticles(double t, double dt, EmissionStart start) override;
 
     void setSigmaR(const Vector_t<double, 3>& sigmaR) { sigmaR_m = sigmaR; }
 

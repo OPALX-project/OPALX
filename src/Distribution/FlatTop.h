@@ -117,8 +117,9 @@ public:
      * @param nlocal Number of local particles.
      * @param nNew Number of new particles to generate.
      * @param dt Global timestep; used to sample fractional per-particle dt.
+     * @param start HalfDrifted shifts z by half the drift over the particle's dt.
      */
-    void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
+    void generateUniformDisk(size_type nlocal, size_t nNew, double dt, EmissionStart start);
 
     /**
      * @brief Generates particles with a given number and grid configuration.
@@ -170,7 +171,7 @@ public:
      * @param t Start time.
      * @param dt Time step.
      */
-    void emitParticles(double t, double dt) override;
+    void emitParticles(double t, double dt, EmissionStart start) override;
 
     void setInternalVariables(
             bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,

@@ -19,6 +19,7 @@
 #ifndef OPALX_NUMERICAL_INTEGRATOR_H
 #define OPALX_NUMERICAL_INTEGRATOR_H
 
+#include "Distribution/EmittingSamplers.h"
 #include "PartBunch/PartBunchFwd.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "Utility/IpplTimings.h"
@@ -26,7 +27,6 @@
 #include <memory>
 #include <string>
 
-class EmittingSamplers;
 class OpalBeamline;
 
 namespace opalx::spacecharge {
@@ -82,14 +82,13 @@ protected:
     void solveSelfFields();
 
     /**
-     * @brief Append the particles born in this step (EmittingSamplers::emit()).
+     * @brief Append the particles born in this step in state @p start, each with its fractional
+     *        dt (EmittingSamplers::emit()).
      *
-     * Must be called between the two half drifts of a Boris scheme: the samplers pre-drift a new
-     * particle by half of its fractional time step, and the particle gets the external fields,
-     * the kick and the second half drift with that fractional dt, and no self field in its
-     * creation step.
+     * A new particle carries no self field in its creation step: the scheme calls this after
+     * solveSelfFields(), and new particles start with zero E and B.
      */
-    void emit();
+    void emit(EmissionStart start);
 
     /**
      * @brief Delete the particles moving backwards behind the source plane

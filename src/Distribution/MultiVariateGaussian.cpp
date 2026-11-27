@@ -373,7 +373,7 @@ void MultiVariateGaussian::generateParticles(
     IpplTimings::stopTimer(samplerTimer_m);
 }
 
-void MultiVariateGaussian::emitParticles(double t, double dt) {
+void MultiVariateGaussian::emitParticles(double t, double dt, EmissionStart /*start*/) {
     // One-shot delayed emission for multivariate Gaussian sources.
     const double tStart = t;
     const double tEnd   = t + dt;

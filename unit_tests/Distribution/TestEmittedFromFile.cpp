@@ -158,7 +158,7 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
     ASSERT_EQ(requested, static_cast<size_t>(3));
 
     const double tStart = -sampler.getGlobalTimeShift();
-    sampler.emitParticles(tStart, 1.0e-12);
+    sampler.emitParticles(tStart, 1.0e-12, EmissionStart::HalfDrifted);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(2));
 
     if (ippl::Comm->size() == 1) {
@@ -188,12 +188,34 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
         EXPECT_NEAR(Rview(1)[2], 0.3 + 0.5 * Physics::c * secondDt * 0.6 / secondGamma, 1.0e-12);
     }
 
-    sampler.emitParticles(tStart + 1.0e-12, 1.0e-12);
+    sampler.emitParticles(tStart + 1.0e-12, 1.0e-12, EmissionStart::HalfDrifted);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(3));
     EXPECT_TRUE(sampler.isEmissionDone(tStart + 2.0e-12));
 
-    sampler.emitParticles(tStart + 2.0e-12, 1.0e-12);
+    sampler.emitParticles(tStart + 2.0e-12, 1.0e-12, EmissionStart::HalfDrifted);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(3));
+}
+
+// Without the half drift a new particle stays on the emission plane z = R0z.
+TEST_F(EmittedFromFileTest, BirthStartKeepsTheEmissionPlane) {
+    writeCountHeaderDump();
+    allocate(4);
+
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(
+            Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    sampler.emitParticles(-sampler.getGlobalTimeShift(), 3.0e-12, EmissionStart::Birth);
+    ASSERT_EQ(globalParticleCount(), static_cast<size_t>(3));
+
+    auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto dt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        EXPECT_EQ(R(i)[2], 0.3);
+        EXPECT_GT(dt(i), 0.0);
+        EXPECT_LE(dt(i), 3.0e-12);
+    }
 }
 
 TEST_F(EmittedFromFileTest, EmittedParticlesGetBeamPolarization) {
@@ -208,8 +230,8 @@ TEST_F(EmittedFromFileTest, EmittedParticlesGetBeamPolarization) {
     size_t requested = 0;
     sampler.generateParticles(requested, nr);
     const double tStart = -sampler.getGlobalTimeShift();
-    sampler.emitParticles(tStart, 1.0e-12);
-    sampler.emitParticles(tStart + 1.0e-12, 1.0e-12);
+    sampler.emitParticles(tStart, 1.0e-12, EmissionStart::HalfDrifted);
+    sampler.emitParticles(tStart + 1.0e-12, 1.0e-12, EmissionStart::HalfDrifted);
     ASSERT_EQ(globalParticleCount(), static_cast<size_t>(3));
 
     auto pol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->Pol.getView());
@@ -236,7 +258,7 @@ TEST_F(EmittedFromFileTest, HonorsRequestedParticleLimitBeforeSorting) {
     EXPECT_DOUBLE_EQ(refP[1], 0.0);
     EXPECT_DOUBLE_EQ(refP[2], 0.3);
 
-    sampler.emitParticles(-sampler.getGlobalTimeShift(), 3.0e-12);
+    sampler.emitParticles(-sampler.getGlobalTimeShift(), 3.0e-12, EmissionStart::HalfDrifted);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(2));
 }
 
@@ -250,7 +272,7 @@ TEST_F(EmittedFromFileTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) 
     size_t requested = 0;
     sampler.generateParticles(requested, nr);
 
-    EXPECT_THROW(sampler.emitParticles(1.0e-12, 1.0e-12), OpalException);
+    EXPECT_THROW(sampler.emitParticles(1.0e-12, 1.0e-12, EmissionStart::HalfDrifted), OpalException);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(0));
 }
 

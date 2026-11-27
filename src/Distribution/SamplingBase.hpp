@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include "Distribution/DistributionSettings.h"
+#include "Distribution/EmittingSamplers.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/ParticleContainer.hpp"
@@ -82,10 +83,10 @@ public:
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
-    /// @brief Append the particles born in this step in the beamline frame. Existing particles are
-    /// in the reference frame and must stay untouched and in place, because EmittingSamplers::emit
-    /// transforms only the appended range (adoptParticles).
-    virtual void emitParticles(double /*t*/, double /*dt*/) {}
+    /// @brief Append the particles born in this step in the beamline frame, in state @p start.
+    /// Existing particles are in the reference frame and must stay untouched and in place, because
+    /// EmittingSamplers::emit transforms only the appended range (adoptParticles).
+    virtual void emitParticles(double /*t*/, double /*dt*/, EmissionStart /*start*/) {}
 
     /// @brief Whether this sampler has finished all emission (no more particles will be created).
     /// @param t Current simulation time (s).

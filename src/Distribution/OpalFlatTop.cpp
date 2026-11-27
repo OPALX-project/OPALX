@@ -256,7 +256,7 @@ std::pair<size_t, size_t> OpalFlatTop::computeLocalEmitRange(size_t totalToEmit)
     return {offset, nlocal[static_cast<size_t>(rank)]};
 }
 
-void OpalFlatTop::emitParticles(double t, double dt) {
+void OpalFlatTop::emitParticles(double t, double dt, EmissionStart start) {
     if (!inventoryBuilt_m || birthTimes_m.empty()) {
         return;
     }
@@ -287,13 +287,14 @@ void OpalFlatTop::emitParticles(double t, double dt) {
     const size_type nlocalBefore   = pc_m->getLocalNum();
     pc_m->createParticles(static_cast<size_type>(nNew));
 
-    generateLocalParticles(nlocalBefore, nextGlobalIndex_m + localOffset, nNew, t, dt);
+    generateLocalParticles(nlocalBefore, nextGlobalIndex_m + localOffset, nNew, t, dt, start);
     fillPolarization(nlocalBefore, nNew);
     nextGlobalIndex_m = globalEnd;
 }
 
 void OpalFlatTop::generateLocalParticles(
-        size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt) {
+        size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt,
+        EmissionStart start) {
     if (nNew == 0) {
         return;
     }
@@ -337,6 +338,7 @@ void OpalFlatTop::generateLocalParticles(
     const size_type offset = nlocalBefore;
     const double twoPi     = Physics::two_pi;
     const double c         = Physics::c;
+    const bool halfDrift   = start == EmissionStart::HalfDrifted;
     Kokkos::parallel_for(
             "OpalFlatTop_generateLocalParticles", nNew, KOKKOS_LAMBDA(const size_t i) {
                 auto generator     = randPool.get_state();
@@ -362,11 +364,14 @@ void OpalFlatTop::generateLocalParticles(
                 Pview(j)       = p;
                 dtView(j)      = stepDt(i);
 
-                const double gamma = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
-                const double drift = 0.5 * c * stepDt(i) / gamma;
-                Rview(j)[0] += p[0] * drift;
-                Rview(j)[1] += p[1] * drift;
-                Rview(j)[2] += p[2] * drift;
+                if (halfDrift) {
+                    const double gamma =
+                            Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+                    const double drift = 0.5 * c * stepDt(i) / gamma;
+                    Rview(j)[0] += p[0] * drift;
+                    Rview(j)[1] += p[1] * drift;
+                    Rview(j)[2] += p[2] * drift;
+                }
             });
     Kokkos::fence();
 }

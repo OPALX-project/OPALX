@@ -413,7 +413,7 @@ std::pair<size_t, size_t> EmittedFromFile::computeLocalEmitRange(size_t totalToE
     return {offset, nlocal[static_cast<size_t>(rank)]};
 }
 
-void EmittedFromFile::emitParticles(double t, double dt) {
+void EmittedFromFile::emitParticles(double t, double dt, EmissionStart start) {
     if (!inventoryBuilt_m || records_m.empty()) {
         return;
     }
@@ -445,13 +445,14 @@ void EmittedFromFile::emitParticles(double t, double dt) {
     const size_type nlocalBefore   = pc_m->getLocalNum();
     pc_m->createParticles(static_cast<size_type>(nNew));
 
-    generateLocalParticles(nlocalBefore, nextGlobalIndex_m + localOffset, nNew, t, dt);
+    generateLocalParticles(nlocalBefore, nextGlobalIndex_m + localOffset, nNew, t, dt, start);
     fillPolarization(nlocalBefore, nNew);
     nextGlobalIndex_m = globalEnd;
 }
 
 void EmittedFromFile::generateLocalParticles(
-        size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt) {
+        size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt,
+        EmissionStart start) {
     if (nNew == 0) {
         return;
     }
@@ -491,6 +492,7 @@ void EmittedFromFile::generateLocalParticles(
     const Vector_t<double, 3> P0 = P0_m;
     const size_type offset       = nlocalBefore;
     const double c               = Physics::c;
+    const bool halfDrift         = start == EmissionStart::HalfDrifted;
 
     Kokkos::parallel_for(
             "EmittedFromFile_generateLocalParticles", nNew, KOKKOS_LAMBDA(const size_t i) {
@@ -506,11 +508,14 @@ void EmittedFromFile::generateLocalParticles(
                 Pview(j)    = p;
                 dtView(j)   = stepDt;
 
-                const double gamma = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
-                const double drift = 0.5 * c * stepDt / gamma;
-                Rview(j)[0] += p[0] * drift;
-                Rview(j)[1] += p[1] * drift;
-                Rview(j)[2] += p[2] * drift;
+                if (halfDrift) {
+                    const double gamma =
+                            Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+                    const double drift = 0.5 * c * stepDt / gamma;
+                    Rview(j)[0] += p[0] * drift;
+                    Rview(j)[1] += p[1] * drift;
+                    Rview(j)[2] += p[2] * drift;
+                }
             });
     Kokkos::fence();
 }

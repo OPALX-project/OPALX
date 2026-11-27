@@ -47,7 +47,9 @@ EmittingSamplers::InitialReference EmittingSamplers::initialReference(std::size_
     return offsets;
 }
 
-void EmittingSamplers::emit(PartBunch_t& bunch, const OpalBeamline& beamline, double t, double dt) {
+void EmittingSamplers::emit(
+        PartBunch_t& bunch, const OpalBeamline& beamline, double t, double dt,
+        EmissionStart start) {
     const auto& containers = bunch.getParticleContainers();
     for (size_t ci = 0; ci < containers.size(); ++ci) {
         const auto& pc = containers[ci];
@@ -69,7 +71,7 @@ void EmittingSamplers::emit(PartBunch_t& bunch, const OpalBeamline& beamline, do
         if (ci < samplers_m.size()) {
             for (const auto& sampler : samplers_m[ci]) {
                 if (sampler) {
-                    sampler->emitParticles(t, dt);
+                    sampler->emitParticles(t, dt, start);
                 }
             }
         }

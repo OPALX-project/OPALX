@@ -227,7 +227,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     IpplTimings::stopTimer(samperTimer_m);
 }
 
-void Gaussian::emitParticles(double t, double dt) {
+void Gaussian::emitParticles(double t, double dt, EmissionStart /*start*/) {
     // One-shot delayed emission for GAUSS: emit once when [t, t+dt] crosses t0_m.
     const double tStart = t;
     const double tEnd   = t + dt;

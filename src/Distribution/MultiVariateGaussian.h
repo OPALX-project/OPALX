@@ -98,7 +98,7 @@ public:
      * configured with t0 > 0 and a positive NPARTDIST. Initial sampling at
      * t0 == 0 is handled via generateParticles.
      */
-    void emitParticles(double t, double dt) override;
+    void emitParticles(double t, double dt, EmissionStart start) override;
 
     /**
      * @brief Timer for performance profiling.

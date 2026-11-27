@@ -461,7 +461,7 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     fillPolarization(nlocalCurrent, nlocal);
 }
 
-void FromFile::emitParticles(double t, double dt) {
+void FromFile::emitParticles(double t, double dt, EmissionStart /*start*/) {
     // One-shot delayed emission for FROMFILE sources.
     const double tStart = t;
     const double tEnd   = t + dt;

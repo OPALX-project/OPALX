@@ -30,6 +30,20 @@ class OpalBeamline;
 class SamplingBase;
 
 /**
+ * @brief The state in which a sampler appends a particle born at t_b within the step from t over
+ *        dt. Its dt attribute is t + dt - t_b in both.
+ *
+ * Only the samplers that emit during a step (OPALFLATTOP, EMITTEDFROMFILE, FLATTOP) use it;
+ * those that emit all their particles at one instant ignore it.
+ */
+enum class EmissionStart {
+    Birth,       ///< The sampled state at t_b.
+    HalfDrifted  ///< Drifted over half its dt with the birth momentum (FLATTOP: z only). For a
+                 ///< drift-kick-drift scheme, which gives a new particle only the second half
+                 ///< drift.
+};
+
+/**
  * @brief The samplers that emit particles into the containers of a bunch during tracking.
  *
  * Holds, per container, the samplers of the emission sources that emit during tracking
@@ -60,10 +74,13 @@ public:
      *        born in the step from @p t [s] over @p dt [s], bring the new particles from the
      *        beamline frame into the container's frame and switch on the containers that now
      *        hold particles.
+     * @param start The state of the new particles; the integration scheme decides it.
      * @throws OpalException if the local particle storage of a container was resized during
      *         emission, which loses the particles tracked so far.
      */
-    void emit(PartBunch_t& bunch, const OpalBeamline& beamline, double t, double dt);
+    void emit(
+            PartBunch_t& bunch, const OpalBeamline& beamline, double t, double dt,
+            EmissionStart start);
 
     /// Switch on each container with a sampler that still emits at time @p t [s].
     void activateEmittingContainers(PartBunch_t& bunch, double t) const;

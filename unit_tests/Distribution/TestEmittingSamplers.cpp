@@ -35,7 +35,7 @@ namespace {
               endTime_m(endTime),
               timeStep_m(timeStep) {}
 
-        void emitParticles(double, double) override {
+        void emitParticles(double, double, EmissionStart) override {
             ++calls;
             const size_t index = pc_m->getLocalNum();
             pc_m->createParticles(1);
@@ -153,7 +153,7 @@ namespace {
         bunch_m->setPcAtSStop(1);
         const OpalBeamline beamline;
         for (int step = 1; step <= 2; ++step) {
-            samplers.emit(*bunch_m, beamline, step * 1e-12, 1e-12);
+            samplers.emit(*bunch_m, beamline, step * 1e-12, 1e-12, EmissionStart::Birth);
             EXPECT_EQ(first->calls, step);
             EXPECT_EQ(second->calls, step);
         }
@@ -194,7 +194,7 @@ namespace {
                 {{std::make_shared<StubSampler>(pc, 0.5, 1e-9),
                   std::make_shared<StubSampler>(pc, 0.5, 1e-9)}});
         bunch.resetPcActive();
-        samplers.emit(bunch, OpalBeamline(), 1e-12, 1e-12);
+        samplers.emit(bunch, OpalBeamline(), 1e-12, 1e-12, EmissionStart::Birth);
         ASSERT_EQ(pc->getTotalNum(), 2u);
 
         EXPECT_DOUBLE_EQ(pc->getTotalCharge(), 2.0 * 2.0);

@@ -85,7 +85,7 @@ public:
      * @param t Start time of the current tracker step.
      * @param dt Time step size.
      */
-    void emitParticles(double t, double dt) override;
+    void emitParticles(double t, double dt, EmissionStart start) override;
 
     /**
      * @brief Returns whether all precomputed particles have been emitted.
@@ -292,7 +292,8 @@ public:
      * @param dt Time step size.
      */
     void generateLocalParticles(
-            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt);
+            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt,
+            EmissionStart start);
 };
 
 #endif  // IPPL_OPAL_FLAT_TOP_H

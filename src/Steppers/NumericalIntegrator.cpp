@@ -67,10 +67,11 @@ void NumericalIntegrator::solveSelfFields() {
     IpplTimings::stopTimer(spaceChargeTimer_m);
 }
 
-void NumericalIntegrator::emit() {
+void NumericalIntegrator::emit(EmissionStart start) {
     IpplTimings::startTimer(emissionTimer_m);
     context_m.emittingSamplers.emit(
-            context_m.bunch, context_m.beamline, context_m.bunch.getT(), context_m.bunch.getdT());
+            context_m.bunch, context_m.beamline, context_m.bunch.getT(), context_m.bunch.getdT(),
+            start);
     IpplTimings::stopTimer(emissionTimer_m);
 }
 
