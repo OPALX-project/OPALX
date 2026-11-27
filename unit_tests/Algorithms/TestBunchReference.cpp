@@ -16,11 +16,15 @@
 #include "Moments/BeamMoments.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
+#include "SpaceCharge/SpaceChargeAlgorithm.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
+#include "Steppers/NumericalIntegrator.h"
 #include "Structure/Beam.h"
 
 #include <cmath>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 extern Inform* gmsg;
@@ -36,6 +40,18 @@ namespace {
         Vector getInitialReferencePosition() const override { return Vector({1e-3, 0.0, 0.02}); }
         bool hasInitialReferenceMomentum() const override { return true; }
         Vector getInitialReferenceMomentum() const override { return Vector({0.0, 0.01, 0.2}); }
+    };
+
+    /// A space-charge algorithm without self field; the references see none anyway.
+    class NoSelfField final : public opalx::spacecharge::SpaceChargeAlgorithm {
+    public:
+        opalx::spacecharge::SpaceChargeSolveResult solve(
+                const opalx::spacecharge::SpaceChargeSolveContext&) override {
+            return {};
+        }
+        opalx::spacecharge::SolveFrame solveFrame() const override {
+            return opalx::spacecharge::SolveFrame::Reference;
+        }
     };
 
     class BunchReferenceTest : public ::testing::Test {
@@ -73,6 +89,12 @@ namespace {
             bunch_m->resetPcActive();
         }
 
+        /// The integration scheme @p name, whose reference step BunchReference uses.
+        std::unique_ptr<NumericalIntegrator> scheme(const std::string& name) {
+            return makeNumericalIntegrator(
+                    name, {*bunch_m, beamline_m, solver_m, samplers_m, {}, 0, false});
+        }
+
         static void expectNear(const Vector& actual, const Vector& expected, double tolerance) {
             for (unsigned d = 0; d < 3; ++d)
                 EXPECT_NEAR(actual(d), expected(d), tolerance) << d;
@@ -80,6 +102,8 @@ namespace {
 
         std::unique_ptr<PartBunch_t> bunch_m;
         OpalBeamline beamline_m;
+        opalx::spacecharge::SpaceChargeSolver solver_m{std::make_unique<NoSelfField>(), 3};
+        EmittingSamplers samplers_m;
     };
 
     TEST_F(BunchReferenceTest, InitialPoseFromMeanThenSamplerThenDesign) {
@@ -87,7 +111,8 @@ namespace {
                 *bunch_m->getParticleContainer(0),
                 opalx::moments::Moment::MeanPosition | opalx::moments::Moment::MeanMomentum);
         const auto sampler = std::make_shared<OffsetSampler>(bunch_m->getParticleContainer(1));
-        BunchReference references(*bunch_m, beamline_m, {}, 0, {});
+        const auto boris   = scheme("BORIS");
+        BunchReference references(*bunch_m, beamline_m, *boris, {}, 0, {});
         references.setInitialPoses(EmittingSamplers({{}, {sampler}, {}}));
 
         const auto& withParticles = *bunch_m->getParticleContainer(0);
@@ -109,7 +134,8 @@ namespace {
     TEST_F(BunchReferenceTest, BeamReferenceMomentumOverridesTheMean) {
         const auto mean = opalx::moments::compute(
                 *bunch_m->getParticleContainer(0), opalx::moments::Moment::MeanPosition);
-        BunchReference references(*bunch_m, beamline_m, {Vector({0.0, 0.0, 0.5})}, 0, {});
+        const auto boris = scheme("BORIS");
+        BunchReference references(*bunch_m, beamline_m, *boris, {Vector({0.0, 0.0, 0.5})}, 0, {});
         references.setInitialPoses(EmittingSamplers());
 
         const auto& pc = *bunch_m->getParticleContainer(0);
@@ -134,7 +160,8 @@ namespace {
         pc->set_sPos(0.3);
         const double dt = 1e-11;
         bunch_m->setTimeStep(dt);
-        BunchReference references(*bunch_m, beamline_m, {}, 0, {});
+        const auto boris = scheme("BORIS");
+        BunchReference references(*bunch_m, beamline_m, *boris, {}, 0, {});
 
         // Nothing moves before the bunch time is positive.
         bunch_m->setT(0.0);

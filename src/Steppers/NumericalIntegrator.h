@@ -22,6 +22,7 @@
 #include "Distribution/EmittingSamplers.h"
 #include "PartBunch/PartBunchFwd.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
+#include "Steppers/TrackReferenceStep.h"
 #include "Utility/IpplTimings.h"
 
 #include <memory>
@@ -60,6 +61,17 @@ public:
 
     /// @brief Advance all active particles from the bunch time t to t + dt.
     virtual void advance() = 0;
+
+    /**
+     * @brief One step of one particle from endTime - dt to endTime in the external fields
+     *        @p field only, for the reference particles (BunchReference).
+     *
+     * The default is the Boris step track_reference::advance(), the single-particle form of both
+     * Boris schemes, which differ only in the self field.
+     */
+    virtual track_reference::State advanceReference(
+            const track_reference::State& start, double dt, double endTime, double mass,
+            double charge, const track_reference::FieldEvaluator& field) const;
 
 protected:
     explicit NumericalIntegrator(Context context);

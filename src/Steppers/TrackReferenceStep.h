@@ -20,13 +20,15 @@ namespace track_reference {
     };
 
     /// Field callback of a reference step: adds E (V/m) and B (T) at position r, momentum p and
-    /// time t, and returns whether r is in material.
+    /// time t, and returns whether r is in material. record is true in one call per step, at the
+    /// state half a step after the start, where a MONITOR records the reference
+    /// (Monitor::recordReference()).
     using FieldEvaluator = std::function<bool(
-            const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double t,
+            const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double t, bool record,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B)>;
 
-    /** Advance a copy. The field callback receives the midpoint (R,P,t,E,B)
-     * and returns a material flag. A trial callback must have no output or state
+    /** Advance a copy by one Boris step. The field callback receives the midpoint (R,P,t) with
+     * record = true and returns a material flag. A trial callback must have no output or state
      * side effects. No energy or section projection is applied.
      */
     template <class Field>
@@ -41,7 +43,7 @@ namespace track_reference {
         state.position *= scale;
         Vector_t<double, 3> electric(0), magnetic(0);
         state.hitMaterial =
-                field(state.position, state.momentum, endTime - 0.5 * dt, electric, magnetic);
+                field(state.position, state.momentum, endTime - 0.5 * dt, true, electric, magnetic);
         pusher.kick(state.position, state.momentum, electric, magnetic, dt, mass, charge);
         state.position /= scale;
         pusher.push(state.position, state.momentum, dt);

@@ -30,6 +30,7 @@
 
 class EmittingSamplers;
 class Inform;
+class NumericalIntegrator;
 class OpalBeamline;
 class StepSizeConfig;
 
@@ -37,8 +38,8 @@ namespace track_reference {
     /**
      * @brief The field callback of a reference step in the elements of @p beamline at a lab
      *        position (OpalBeamline::applyOnHost()).
-     * @param diagnostics Let the monitors record the reference (committed steps only); without
-     *        it the callback has no side effects, for trials.
+     * @param diagnostics Let the monitors record the reference (committed steps only, in the call
+     *        with record = true); without it the callback has no side effects, for trials.
      */
     FieldEvaluator beamlineFields(OpalBeamline& beamline, bool diagnostics);
 }  // namespace track_reference
@@ -50,21 +51,23 @@ namespace track_reference {
  * and momentum, a path length and the reference-to-lab transform of its particles, all stored in
  * the container. A decay daughter container copies those of its root. This class sets them for a
  * fresh run, moves them to the start position, traces the primary reference once through the
- * lattice and advances them in every step.
+ * lattice and advances them in every step with the single-particle step of the integration
+ * scheme, so that a particle on the reference stays on it.
  *
- * Borrows the bunch and the beamline of the tracker; owns the cavity phases that autophase sets
- * and a checkpoint stores, and whether a reference particle hit an element.
+ * Borrows the bunch, the beamline and the scheme of the tracker; owns the cavity phases that
+ * autophase sets and a checkpoint stores, and whether a reference particle hit an element.
  */
 class BunchReference {
 public:
     /**
+     * @param scheme Its NumericalIntegrator::advanceReference() advances the references.
      * @param beamReferenceMomenta Per container, the reference momentum [beta*gamma] set on BEAM;
      *        an empty entry uses the bunch mean.
      * @param autoPhase Value of OPTION AUTOPHASE.
      * @param cavityPhases Phases a checkpoint restored; autophase adds to them.
      */
     BunchReference(
-            PartBunch_t& bunch, OpalBeamline& beamline,
+            PartBunch_t& bunch, OpalBeamline& beamline, const NumericalIntegrator& scheme,
             std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta, int autoPhase,
             CavityPhases cavityPhases);
 
@@ -136,6 +139,7 @@ private:
 
     PartBunch_t& bunch_m;
     OpalBeamline& beamline_m;
+    const NumericalIntegrator& scheme_m;
     std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
     int autoPhase_m;
     CavityPhases cavityPhases_m;

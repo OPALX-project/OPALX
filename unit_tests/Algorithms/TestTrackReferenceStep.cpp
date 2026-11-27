@@ -48,8 +48,9 @@ TEST_F(TrackReferenceStepTest, DriftAndMidpointTime) {
     const State start{Vector(0.2, -0.1, 0.3), Vector(0.3, 0.4, 1.2)};
     const double dt = 1e-10, time = 2e-9;
     int calls  = 0;
-    auto field = [&](const Vector& r, const Vector& p, double t, Vector&, Vector&) {
+    auto field = [&](const Vector& r, const Vector& p, double t, bool record, Vector&, Vector&) {
         ++calls;
+        EXPECT_TRUE(record);
         EXPECT_DOUBLE_EQ(t, time - 0.5 * dt);
         for (unsigned d = 0; d < 3; ++d)
             EXPECT_NEAR(
@@ -79,7 +80,7 @@ TEST_F(TrackReferenceStepTest, MagneticBorisAngleAndEnergyForBothCharges) {
     for (double charge : {-1., 1.}) {
         const auto end = track_reference::advance(
                 start, dt, dt, mass, charge,
-                [&](const Vector&, const Vector&, double, Vector&, Vector& b) {
+                [&](const Vector&, const Vector&, double, bool, Vector&, Vector& b) {
                     b(1) = fieldStrength;
                     return false;
                 });

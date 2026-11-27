@@ -172,8 +172,9 @@ private:
     IpplTimings::TimerRef stepCheckpointTimer_m;
     IpplTimings::TimerRef trackFinishTimer_m;
 
-    /// Reference particles; borrows the bunch and the beamline. Constructed after the timers
-    /// above, so the timing report lists its ReferencePass timer after them.
+    /// Reference particles; borrows the bunch, the beamline and integrator_m, which is declared
+    /// before it. Constructed after the timers above, so the timing report lists its
+    /// ReferencePass timer after them.
     BunchReference references_m;
 };
 

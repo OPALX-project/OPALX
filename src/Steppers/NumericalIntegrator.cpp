@@ -93,6 +93,12 @@ void NumericalIntegrator::addExternalFields(double fieldFraction, bool record) {
     IpplTimings::stopTimer(externalFieldsTimer_m);
 }
 
+track_reference::State NumericalIntegrator::advanceReference(
+        const track_reference::State& start, double dt, double endTime, double mass, double charge,
+        const track_reference::FieldEvaluator& field) const {
+    return track_reference::advance(start, dt, endTime, mass, charge, field);
+}
+
 std::unique_ptr<NumericalIntegrator> makeNumericalIntegrator(
         const std::string& name, NumericalIntegrator::Context context) {
     if (name == "BORIS") return std::make_unique<BorisMidpoint>(std::move(context));

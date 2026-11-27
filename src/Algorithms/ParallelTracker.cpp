@@ -70,7 +70,7 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       stepCheckpointTimer_m(IpplTimings::getTimer("Step: checkpoint")),
       trackFinishTimer_m(IpplTimings::getTimer("Track: finish")),
       references_m(
-              *setup.bunch, itsOpalBeamline_m, std::move(setup.beamReferenceMomenta),
+              *setup.bunch, itsOpalBeamline_m, *integrator_m, std::move(setup.beamReferenceMomenta),
               options_m.autoPhase, std::move(setup.cavityPhases)) {
     for (unsigned int i = 0; i < setup.sStop.size(); ++i) {
         stepSizes_m.push_back(setup.dt[i], setup.sStop[i], setup.maxSteps[i]);
