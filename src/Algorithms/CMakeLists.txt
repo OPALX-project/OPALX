@@ -14,6 +14,7 @@ set (_SRCS
     MatchedCovariance.cpp
     MatchedDistributionCovariance.cpp
     SpaceChargeMap.cpp
+    SpaceChargeTransport.cpp
     LinearMapEigenAnalysis.cpp
     TpsClosedOrbitMap.cpp
     TpsLinearMapAlgebra.cpp
@@ -64,6 +65,7 @@ set (HDRS
     MatchedCovariance.h
     MatchedDistributionCovariance.h
     SpaceChargeMap.h
+    SpaceChargeTransport.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

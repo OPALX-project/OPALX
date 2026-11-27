@@ -13,6 +13,14 @@ namespace opalx::maps {
 
     using SpaceChargeMatrix = Kokkos::Array<Kokkos::Array<double, 6>, 6>;
 
+    /** @brief Transport centered covariance by a 6D first-order origin-preserving TPS map.
+     * Returns J*Sigma*J^T with equilibrated SPD checks. Input covariance is in the map's input
+     * chart; output is in its output chart. Reject nonlinear/order-zero maps, affine offsets,
+     * nonfinite Jacobians and numerically non-SPD covariances. Active Kokkos/serialized host use.
+     */
+    SpaceChargeMatrix transportSpaceChargeCovariance(
+            const tps::Map<double>& map, const SpaceChargeMatrix& covariance);
+
     /** @brief Reference event and EXTERNAL fields sampled there; fields use laboratory axes. */
     struct SpaceChargeReference {
         LinearTransferMapReference orbit;

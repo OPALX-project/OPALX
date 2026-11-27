@@ -6,6 +6,7 @@
 #include "Algorithms/MapExitRoot.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/TpsLinearMapAlgebra.h"
+#include "Algorithms/TpsLinearTransferMap.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 #include "tps/Map.hpp"
@@ -81,13 +82,67 @@ LinearTransferMapBuilder::LinearTransferMapBuilder(
         OpalBeamline& beamline, const PartData& reference, const double dt,
         const Settings& settings)
     : itsOpalBeamline_m(beamline),
-      tracker_m(beamline, reference, settings.integrationMethod),
+      tracker_m(beamline, reference, settings.integrationMethod, settings.requireIsolatedFields),
       dt_m(dt),
       settings_m(settings) {
     settings_m.validate();
     if (!std::isfinite(dt) || dt == 0.0)
         throw OpalException(
                 "LinearTransferMapBuilder", "The ray time step must be finite and nonzero.");
+}
+
+LinearTransferMapDraft LinearTransferMapBuilder::externalInterval(
+        const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
+        std::size_t ordinal) {
+    (void)opalx::maps::linearTransferMapChart(entrance);
+    (void)opalx::maps::linearTransferMapChart(exit);
+    if (dt_m <= 0 || flightTime(entrance, exit) <= 0
+        || compensated::difference(
+                   exit.pathLength, exit.pathLengthCorrection, entrance.pathLength,
+                   entrance.pathLengthCorrection)
+                   <= 0)
+        throw OpalException(
+                "LinearTransferMapBuilder::externalInterval",
+                "A forward nonzero interval is required.");
+    return makeLinearTransferMap(entrance, exit, ordinal);
+}
+
+LinearTransferMapReference LinearTransferMapBuilder::referenceAtPath(
+        const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
+        double target) {
+    (void)opalx::maps::linearTransferMapChart(entrance);
+    (void)opalx::maps::linearTransferMapChart(exit);
+    const double start  = entrance.pathLength - entrance.pathLengthCorrection;
+    const double finish = exit.pathLength - exit.pathLengthCorrection;
+    if (!std::isfinite(target) || dt_m <= 0 || flightTime(entrance, exit) <= 0 || target < start
+        || target > finish || finish <= start)
+        throw OpalException(
+                "LinearTransferMapBuilder::referenceAtPath", "Invalid forward path target.");
+    if (target == start) return entrance;
+    if (target == finish) return exit;
+    auto current = entrance;
+    for (unsigned step = 0; step < 1000000; ++step) {
+        const double remaining = flightTime(current, exit);
+        if (remaining <= 0) break;
+        const double dt = std::min(dt_m, remaining);
+        const auto next = tracker_m.advance(rayState(current), dt);
+        if (compensated::difference(next.pathLength, next.pathLengthCorrection, target, 0) >= 0) {
+            const auto ray = tracker_m.advanceToPathLength(rayState(current), dt, target);
+            auto result    = transportFrame(current, ray.momentum);
+            assignRayState(result, ray);
+            return result;
+        }
+        if (compensated::difference(
+                    next.pathLength, next.pathLengthCorrection, current.pathLength,
+                    current.pathLengthCorrection)
+            <= 0)
+            break;
+        current = transportFrame(current, next.momentum);
+        assignRayState(current, next);
+    }
+    throw OpalException(
+            "LinearTransferMapBuilder::referenceAtPath",
+            "Reference did not reach the path target within its recorded interval.");
 }
 
 void LinearTransferMapBuilder::Settings::validate() const {

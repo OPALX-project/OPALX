@@ -90,6 +90,10 @@ namespace opalx::maps {
                     "Covariance is not numerically positive definite.");
             return result;
         }
+        Matrix transportCovariance(const HostMatrix& transform, const Matrix& covariance) {
+            const auto input = validatedCovariance(covariance);
+            return validatedCovariance(stored(transform * host(input) * transform.transpose()));
+        }
         tps::Map<double> linearMap(
                 const Matrix& matrix, const tps::PhaseSpaceChart& input,
                 const tps::PhaseSpaceChart& output, const std::string& id) {
@@ -123,6 +127,17 @@ namespace opalx::maps {
                     a[0] * b[1] - a[1] * b[0]};
         }
     }  // namespace
+
+    SpaceChargeMatrix transportSpaceChargeCovariance(
+            const tps::Map<double>& map, const Matrix& covariance) {
+        require(map.context().order() == 1 && map.context().input().coordinates.size() == 6
+                        && map.context().output().coordinates.size() == 6,
+                "Covariance transport requires a first-order 6D map.");
+        for (unsigned i = 0; i < 6; ++i)
+            require(map.polynomial()[i][0] == 0,
+                    "Covariance transport requires a zero affine term.");
+        return transportCovariance(map.jacobian(std::array<double, 6>{}), covariance);
+    }
 
     SpaceChargeCoordinates::SpaceChargeCoordinates(const SpaceChargeReference& reference)
         : massEV_m(reference.massEV), chargeE_m(reference.chargeE) {
@@ -232,10 +247,8 @@ namespace opalx::maps {
 
     SpaceChargeMatrix SpaceChargeCoordinates::convertCovariance(
             const Matrix& covariance, Chart from, Chart to) const {
-        const auto input     = validatedCovariance(covariance);
         const auto transform = host(jacobian(from, to));
-        const auto output    = stored(transform * host(input) * transform.transpose());
-        return validatedCovariance(output);
+        return transportCovariance(transform, covariance);
     }
 
     SpaceChargeKick makeSpaceChargeKick(
