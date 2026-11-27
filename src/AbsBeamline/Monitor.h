@@ -52,7 +52,9 @@ public:
      * @brief Record the reference particle if it crosses the monitor plane in the next step.
      *
      * A monitor has no field. Called by OpalBeamline::recordReference() for the reference
-     * step of the step loop; does nothing while setRecordReference(false).
+     * step of the step loop, with the state half a step after the start (under RK4 the
+     * momentum is the half-advanced one, as in apply()); does nothing while
+     * setRecordReference(false).
      * @param R Position [m] in the monitor's local frame.
      * @param P Momentum (beta gamma) in the monitor's local frame.
      * @param t Time [s].

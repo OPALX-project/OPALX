@@ -39,7 +39,8 @@ namespace opalx::spacecharge {
  *        emission and external fields.
  *
  * ParallelTracker calls advance() once per step and owns the rest of the step: the bunch time,
- * the reference particles, losses, output, stop rules and checkpoints. Between the operations all
+ * losses, output, stop rules, checkpoints and, through BunchReference, the reference particles,
+ * which take the same step for one particle (advanceReference()). Between the operations all
  * particle data are in the reference frame; frame changes happen and close inside
  * solveSelfFields() (the solve frame) and addExternalFields() (the element frames).
  */

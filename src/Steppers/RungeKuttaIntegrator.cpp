@@ -66,6 +66,29 @@ void RungeKutta4::advance() {
     }
 }
 
+track_reference::State RungeKutta4::advanceReference(
+        const track_reference::State& start, double dt, double endTime, double mass, double charge,
+        const track_reference::FieldEvaluator& field) const {
+    track_reference::checkStep(dt, endTime);
+    track_reference::State state = start;
+    PhaseSpaceRate sum{Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0)};
+    bool hit = false;
+    for (unsigned i = 0; i < numStages; ++i) {
+        Vector_t<double, 3> E(0.0), B(0.0);
+        const double t = endTime - dt + rk4.c[i] * dt;
+        hit            = field(state.position, state.momentum, t, i == recordingStage, E, B) || hit;
+        const PhaseSpaceRate k = phaseSpaceRate(state.momentum, E, B, charge, mass);
+        sum.dR += rk4.b[i] * k.dR;
+        sum.dP += rk4.b[i] * k.dP;
+        const bool last = i + 1 == numStages;
+        const double h  = last ? dt : rk4.c[i + 1] * dt;
+        state.position  = start.position + h * (last ? sum.dR : k.dR);
+        state.momentum  = start.momentum + h * (last ? sum.dP : k.dP);
+    }
+    state.hitMaterial = hit;
+    return state;
+}
+
 void RungeKutta4::holdSelfField() {
     IpplTimings::startTimer(stageTimer_m);
     scratch_m.resize(bunch().getNumParticleContainers());

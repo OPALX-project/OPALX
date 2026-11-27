@@ -46,13 +46,20 @@
  * start of a field region, e.g. the cathode plane at the entrance of an RF gun map, gets no field
  * in k_0, where the Boris schemes sample half a drift later.
  *
- * The reference particle keeps its Boris step in ParallelTracker.
+ * advanceReference() takes the same stages for one particle in the external fields, so a particle
+ * on its reference particle stays on it.
  */
 class RungeKutta4 final : public NumericalIntegrator {
 public:
     explicit RungeKutta4(Context context);
 
     void advance() override;
+
+    /// The stages of advanceStage() on the host, at the times endTime - dt + c_i dt; a stage in
+    /// material marks the step.
+    track_reference::State advanceReference(
+            const track_reference::State& start, double dt, double endTime, double mass,
+            double charge, const track_reference::FieldEvaluator& field) const override;
 
     // The kernels of advance(), public only because CUDA requires the function that encloses a
     // device lambda to be public.

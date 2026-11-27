@@ -27,6 +27,12 @@ namespace track_reference {
             const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double t, bool record,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B)>;
 
+    /// @throws std::invalid_argument unless dt is finite and nonzero and endTime is finite.
+    inline void checkStep(double dt, double endTime) {
+        if (!std::isfinite(dt) || dt == 0 || !std::isfinite(endTime))
+            throw std::invalid_argument("Invalid TRACK reference step duration/time");
+    }
+
     /** Advance a copy by one Boris step. The field callback receives the midpoint (R,P,t) with
      * record = true and returns a material flag. A trial callback must have no output or state
      * side effects. No energy or section projection is applied.
@@ -34,8 +40,7 @@ namespace track_reference {
     template <class Field>
     State advance(
             State state, double dt, double endTime, double mass, double charge, Field&& field) {
-        if (!std::isfinite(dt) || dt == 0 || !std::isfinite(endTime))
-            throw std::invalid_argument("Invalid TRACK reference step duration/time");
+        checkStep(dt, endTime);
         const BorisPusher pusher;
         const double scale = Physics::c * dt;
         state.position /= scale;
