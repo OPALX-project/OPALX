@@ -145,20 +145,11 @@ void PartBunch<T, Dim>::pushParticles() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::kickAndPushParticles() {
+void PartBunch<T, Dim>::kickParticles() {
     for (size_t i = 0; i < pcontainers_m.size(); ++i) {
-        if (!pcActive_m[i]) {
-            continue;
+        if (pcActive_m[i]) {
+            pcontainers_m[i]->kickParticles();
         }
-        const auto& pc = pcontainers_m[i];
-        pc->kickParticles();
-        if (pc->hasSpin()) {
-            pc->evolveSpinHalfStep();  // second half of the spin rotation, momentum after the kick
-        }
-        pc->pushParticles();
-        // Emitted particles start with a fraction of a step as their dt; from here on they use
-        // the bunch dt. CheckpointFile writes the particle dt and Decay copies it to daughters.
-        pc->dt = this->getdT();
     }
 }
 

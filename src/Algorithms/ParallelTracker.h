@@ -93,8 +93,8 @@ private:
 
     /**
      * @brief The particle part of one step: space charge (PRESTEP or MIDPOINT), the
-     *        drift-kick-drift push, emission, external fields, spin, and the global processes
-     *        with their deletions.
+     *        drift-kick-drift push, emission, external fields, spin, the reset of the particle
+     *        dt to the bunch time step, and the global processes with their deletions.
      *
      * @par Frame of reference
      * Particle R and mesh are in the reference frame for the whole step except inside
@@ -136,7 +136,8 @@ private:
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1();
 
-    /// @brief Second half: kick then push all active containers.
+    /// @brief Second half: spin half rotation, kick, spin half rotation, then the second half
+    ///        drift of all active containers.
     void timeIntegration2();
 
     /// @brief The space-charge solve of this step (SpaceChargeSolver::solveStep()).

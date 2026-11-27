@@ -324,17 +324,14 @@ void ParallelTracker::advanceParticles() {
     computeExternalFields();
     IpplTimings::stopTimer(stepExternalFieldsTimer_m);
 
-    // First half of the Thomas-BMT spin rotation (momentum before the kick);
-    // timeIntegration2 does the second half after the kick.
-    // No-op for containers that have not registered the Pol attribute.
-    IpplTimings::startTimer(stepSpinTimer_m);
-    itsBunch_m->evolveSpinHalfStep();
-    IpplTimings::stopTimer(stepSpinTimer_m);
-
     // Second half of the time integration
-    IpplTimings::startTimer(stepKickAndPushTimer_m);
     timeIntegration2();
-    IpplTimings::stopTimer(stepKickAndPushTimer_m);
+
+    // Emitted particles used a fraction of the step as their dt in their creation step; from here
+    // on they use the bunch dt. Decay copies dt to the daughters and the checkpoint stores it.
+    IpplTimings::startTimer(stepTimeStepTimer_m);
+    itsBunch_m->setTimeStep(itsBunch_m->getdT());
+    IpplTimings::stopTimer(stepTimeStepTimer_m);
 
     // Apply global processes (e.g. decay) and mark affected particles for deletion
     IpplTimings::startTimer(stepProcessesTimer_m);
@@ -446,7 +443,23 @@ void ParallelTracker::timeIntegration1() {
 void ParallelTracker::timeIntegration2() {
     Inform m("ParallelTracker::timeIntegration2");
 
-    itsBunch_m->kickAndPushParticles();
+    // The kick between the two halves of the Thomas-BMT spin rotation, which see the momentum
+    // before and after it; no-op for containers without Pol.
+    IpplTimings::startTimer(stepSpinTimer_m);
+    itsBunch_m->evolveSpinHalfStep();
+    IpplTimings::stopTimer(stepSpinTimer_m);
+
+    IpplTimings::startTimer(stepKickAndPushTimer_m);
+    itsBunch_m->kickParticles();
+    IpplTimings::stopTimer(stepKickAndPushTimer_m);
+
+    IpplTimings::startTimer(stepSpinTimer_m);
+    itsBunch_m->evolveSpinHalfStep();
+    IpplTimings::stopTimer(stepSpinTimer_m);
+
+    IpplTimings::startTimer(stepKickAndPushTimer_m);
+    itsBunch_m->pushParticles();
+    IpplTimings::stopTimer(stepKickAndPushTimer_m);
     m << level4 << "Kick/push particles done for all containers." << endl;
 }
 

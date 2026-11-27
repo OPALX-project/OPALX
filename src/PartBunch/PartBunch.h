@@ -43,8 +43,8 @@ struct BunchBeam {
  * The particles, the macro charge and mass, the reference particle, the path length and the
  * bunch-to-lab transform are not held here; they live in each ParticleContainer.
  *
- * The step functions (pushParticles(), kickAndPushParticles(), ...) loop over the containers and
- * skip those that are not active.
+ * The step functions (pushParticles(), kickParticles(), ...) loop over the containers and skip
+ * those that are not active.
  *
  * @tparam T   Floating-point type for positions/fields (typically double).
  * @tparam Dim Spatial dimension (3 for OPALX).
@@ -155,18 +155,17 @@ public:
 
     // --- Particle push, fields and loss over the containers ---
 
-    /// @brief First half of the leapfrog step: half drift of every active container.
+    /// @brief Half drift of every active container, each particle over half its own dt.
     void pushParticles();
 
-    /// @brief Second half of the leapfrog step for every active container: kick, second half of
-    ///        the spin rotation with the momentum after the kick, half drift; then each
-    ///        container's particle dt is set to the bunch time step.
-    void kickAndPushParticles();
+    /// @brief Momentum kick of every active container, each particle over its own dt with the
+    ///        E and B it holds.
+    void kickParticles();
 
-    /// @brief First half of the Thomas-BMT spin rotation for every active container that stores
-    ///        Pol, with the momentum before the kick. kickAndPushParticles() does the second
-    ///        half, so the spin update is second order in dt. Call after the external and
-    ///        space-charge fields at the half-step position have been accumulated.
+    /// @brief Half of the Thomas-BMT spin rotation for every active container that stores Pol,
+    ///        each particle over half its own dt with its current P, E and B. Called once before
+    ///        and once after kickParticles(), with the momentum before and after the kick, so the
+    ///        spin update is second order in dt. E and B must hold the full field of the kick.
     void evolveSpinHalfStep();
 
     /// @brief Zero E and B on every active container.
