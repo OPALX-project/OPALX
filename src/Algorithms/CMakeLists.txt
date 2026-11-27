@@ -12,6 +12,7 @@ set (_SRCS
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     MatchedCovariance.cpp
+    CanonicalModes6D.cpp
     MatchedDistributionCovariance.cpp
     SpaceChargeMap.cpp
     SpaceChargeTransport.cpp
@@ -63,6 +64,7 @@ set (HDRS
     ClosedOrbitInitialState.h
     ClosedOrbitOptics.h
     MatchedCovariance.h
+    CanonicalModes6D.h
     MatchedDistributionCovariance.h
     SpaceChargeMap.h
     SpaceChargeTransport.h
