@@ -21,6 +21,7 @@
 
 #include "Algorithms/CavityAutophaser.h"
 #include "OPALTypes.h"
+#include "Steppers/TrackReferenceStep.h"
 #include "Utility/IpplTimings.h"
 
 #include <functional>
@@ -31,6 +32,16 @@ class EmittingSamplers;
 class Inform;
 class OpalBeamline;
 class StepSizeConfig;
+
+namespace track_reference {
+    /**
+     * @brief The field callback of a reference step in the elements of @p beamline at a lab
+     *        position (OpalBeamline::applyOnHost()).
+     * @param diagnostics Let the monitors record the reference (committed steps only); without
+     *        it the callback has no side effects, for trials.
+     */
+    FieldEvaluator beamlineFields(OpalBeamline& beamline, bool diagnostics);
+}  // namespace track_reference
 
 /**
  * @brief The reference particles of the containers of a bunch.

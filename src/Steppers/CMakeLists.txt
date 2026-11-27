@@ -10,6 +10,7 @@ set (HDRS
     PhaseSpaceRate.h
     RungeKuttaIntegrator.h
     RungeKuttaTableau.h
+    TrackReferenceStep.h
     )
 
 opalx_include_source_directory()

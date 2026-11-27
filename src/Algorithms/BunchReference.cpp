@@ -21,7 +21,6 @@
 #include "AbsBeamline/RFCavity.h"
 #include "Algorithms/ReferenceTracer.h"
 #include "Algorithms/StepSizeConfig.h"
-#include "Algorithms/TrackReferenceStep.h"
 #include "Distribution/EmittingSamplers.h"
 #include "Elements/OpalBeamline.h"
 #include "Moments/BeamMoments.h"
@@ -36,6 +35,18 @@
 extern Inform* gmsg;
 
 using opalx::moments::Moment;
+
+track_reference::FieldEvaluator track_reference::beamlineFields(
+        OpalBeamline& beamline, bool diagnostics) {
+    return [&beamline, diagnostics](
+                   const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double t,
+                   Vector_t<double, 3>& electric, Vector_t<double, 3>& magnetic) {
+        const ElementSet elements = beamline.getElements(r);
+        const bool hit            = beamline.applyOnHost(elements, r, t, electric, magnetic);
+        if (diagnostics) beamline.recordReference(elements, r, p, t);
+        return hit;
+    };
+}
 
 BunchReference::BunchReference(
         PartBunch_t& bunch, OpalBeamline& beamline,
@@ -298,10 +309,9 @@ void BunchReference::updateReferenceParticles() {
         }
         auto& pc                = *pcPtr;
         const PartData& refKick = *pc.getReference();
-        const auto advance      = track_reference::advanceInBeamline;
-        const auto end =
-                advance(beamline_m, refKick, {pc.getRefPartR(), pc.getRefPartP()}, dt,
-                        bunch_m.getT(), true);
+        const auto end          = track_reference::advance(
+                {pc.getRefPartR(), pc.getRefPartP()}, dt, bunch_m.getT(), refKick.getM(),
+                refKick.getQ(), track_reference::beamlineFields(beamline_m, true));
         pc.getRefPartR() = end.position;
         pc.getRefPartP() = end.momentum;
         if (end.hitMaterial) {

@@ -7,7 +7,6 @@ set (_SRCS
     ExternalFieldRayTracker.cpp
     ReferenceTracer.cpp
     ParallelTracker.cpp
-    TrackReferenceStep.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
@@ -27,7 +26,6 @@ set (HDRS
     ExternalFieldRayTracker.h
     ParallelTracker.h
     ReferenceTracer.h
-    TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h

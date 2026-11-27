@@ -3,12 +3,10 @@
 #define OPALX_TRACK_REFERENCE_STEP_H
 
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 #include "OPALTypes.h"
 #include "Steppers/BorisPusher.h"
-
-class OpalBeamline;
-class PartData;
 
 /** Internal host-side TRACK transport, independent of particle storage.
  * Positions are metres, momenta P/(mc), times seconds, mass rest energy [eV],
@@ -20,6 +18,12 @@ namespace track_reference {
         Vector_t<double, 3> position, momentum;
         bool hitMaterial = false;
     };
+
+    /// Field callback of a reference step: adds E (V/m) and B (T) at position r, momentum p and
+    /// time t, and returns whether r is in material.
+    using FieldEvaluator = std::function<bool(
+            const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B)>;
 
     /** Advance a copy. The field callback receives the midpoint (R,P,t,E,B)
      * and returns a material flag. A trial callback must have no output or state
@@ -44,13 +48,6 @@ namespace track_reference {
         state.position *= scale;
         return state;
     }
-
-    /** One reference step in the fields of the beamline (OpalBeamline::applyOnHost()).
-     * diagnostics=true also lets the monitors record the reference (committed steps only);
-     * diagnostics=false is for side-effect-free trials.
-     */
-    State advanceInBeamline(
-            OpalBeamline&, const PartData&, State, double dt, double endTime, bool diagnostics);
 
 }  // namespace track_reference
 #endif

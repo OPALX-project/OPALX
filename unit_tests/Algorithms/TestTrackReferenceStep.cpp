@@ -2,8 +2,8 @@
 #include "../KeywordObjects.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "Algorithms/BunchReference.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/TrackReferenceStep.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
@@ -109,11 +109,13 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     ASSERT_NE(stored, nullptr);
     const PartData reference(1., 9.382720813e8, 1e6);
     const State start{Vector(0, 0, 0.2), Vector(0, 0, 1)};
-    const auto trial =
-            track_reference::advanceInBeamline(lattice, reference, start, 1e-10, 1e-10, false);
+    const auto trial = track_reference::advance(
+            start, 1e-10, 1e-10, reference.getM(), reference.getQ(),
+            track_reference::beamlineFields(lattice, false));
     EXPECT_EQ(stored->calls, 0);
-    const auto committed =
-            track_reference::advanceInBeamline(lattice, reference, start, 1e-10, 1e-10, true);
+    const auto committed = track_reference::advance(
+            start, 1e-10, 1e-10, reference.getM(), reference.getQ(),
+            track_reference::beamlineFields(lattice, true));
     EXPECT_EQ(stored->calls, 1);
     for (unsigned d = 0; d < 3; ++d) {
         EXPECT_DOUBLE_EQ(trial.position(d), committed.position(d));
@@ -156,8 +158,9 @@ TEST_F(TrackReferenceStepTest, LineOrderMakesReferenceFieldSumsIndependentOfAddr
         Vector electric(0.), magnetic(0.);
         lattice.applyOnHost(start.position, 0., electric, magnetic);
         EXPECT_EQ(magnetic(1), (dipoles[0] + dipoles[1]) + dipoles[2]);
-        const auto end =
-                track_reference::advanceInBeamline(lattice, reference, start, 1e-9, 1e-9, false);
+        const auto end = track_reference::advance(
+                start, 1e-9, 1e-9, reference.getM(), reference.getQ(),
+                track_reference::beamlineFields(lattice, false));
         for (unsigned d = 0; d < 3; ++d) {
             snapshots[arrangement][d]     = electric(d);
             snapshots[arrangement][3 + d] = magnetic(d);
@@ -209,8 +212,9 @@ TEST_F(TrackReferenceStepTest, MisalignmentMovesTheElementForBunchAndReference) 
             OpalException);
     // On the nominal axis the reference is 3 mm off the misaligned axis and gets a kick.
     const PartData reference(1., 9.382720813e8, 1e6);
-    const auto end = track_reference::advanceInBeamline(
-            lattice, reference, State{Vector(0., 0., 0.5), forward}, 1e-10, 1e-10, false);
+    const auto end = track_reference::advance(
+            State{Vector(0., 0., 0.5), forward}, 1e-10, 1e-10, reference.getM(), reference.getQ(),
+            track_reference::beamlineFields(lattice, false));
     EXPECT_FALSE(end.hitMaterial);
     EXPECT_NE(end.momentum(0), 0.);
     EXPECT_EQ(end.momentum(1), 0.);
