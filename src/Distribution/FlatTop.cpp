@@ -136,15 +136,15 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     }
     Kokkos::fence();
 
-    // Correct z for the missed timeIntegration1 half-push.
+    // Correct z for the missed first half drift.
     //
-    // New particles are born between timeIntegration1 and timeIntegration2.
-    // They only receive the timeIntegration2 push: Δz = 0.5·β_z·c·(frac·dt).
+    // New particles are born between the two half drifts of the step.
+    // They only receive the second half drift: Δz = 0.5·β_z·c·(frac·dt).
     // The inter-batch spacing is β_z·c·dt (a full step). Without correction the
     // batch spread is 0.5·β_z·c·dt — half the spacing — leaving 50% gaps that
     // appear as visible "discs" under strong acceleration.
     //
-    // Adding the equivalent of the missed timeIntegration1 half-push at birth:
+    // Adding the equivalent of the missed first half drift at birth:
     //   z_init += 0.5·β_z(birth)·c·(frac·dt)
     // makes the total spread β_z·c·frac·dt ∈ [0, β_z·c·dt], exactly tiling the
     // inter-batch gap. The approximation is that β_z is evaluated at birth

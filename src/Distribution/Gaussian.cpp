@@ -270,8 +270,8 @@ void Gaussian::emitParticles(double t, double dt) {
     // R by 1/(c * dtview(i)).  New particles come with dtview = 0 (Kokkos
     // zero-init), so that division produces inf, and the subsequent multiply by
     // c*0 in switchOffUnitlessPositions gives inf*0 = NaN positions.
-    // Assign the remaining fraction of the current timestep so the push in
-    // timeIntegration2 moves them by the correct sub-step distance.
+    // Assign the remaining fraction of the current timestep so the second
+    // half drift moves them by the correct sub-step distance.
     //
     // Note that this is not necessary inside generateParticles, since for injection at start,
     // setTime is called before any calculations inside ParallelTracker::execute.

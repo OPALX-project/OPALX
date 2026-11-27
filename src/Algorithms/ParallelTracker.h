@@ -29,9 +29,10 @@
 #include "Distribution/EmittingSamplers.h"
 #include "Elements/OpalBeamline.h"
 #include "Moments/BeamMoments.h"
-#include "SpaceCharge/SpaceChargeConfig.h"
+#include "Steppers/NumericalIntegrator.h"
 #include "Structure/DataSink.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -43,9 +44,10 @@ namespace opalx::spacecharge {
  * @brief The time-step loop of one RUN: the order of operations before the first step and within
  *        a step, and the hand-over of results between the components that own the work.
  *
- * The tracker owns the step-size schedule, the restart position and the checkpoints. The bunch
- * (PartBunch) owns the particles and their push, the beamline (OpalBeamline) the elements, frames
- * and apertures, BunchReference the reference particles, EmittingSamplers the emission,
+ * The tracker owns the step-size schedule, the restart position and the checkpoints. The
+ * integrator (NumericalIntegrator) owns the order of the particle part of a step, the bunch
+ * (PartBunch) the particles and their push, the beamline (OpalBeamline) the elements, frames and
+ * apertures, BunchReference the reference particles, EmittingSamplers the emission,
  * SpaceChargeSolver the self fields, BeamStops the stop rules; DataSink writes the output.
  *
  * @note RUN in the input file constructs a ParallelTracker and runs ParallelTracker::execute().
@@ -91,16 +93,8 @@ private:
      */
     void startSegment(unsigned long long stepsCompletedInSegment);
 
-    /**
-     * @brief The particle part of one step: space charge (PRESTEP or MIDPOINT), the
-     *        drift-kick-drift push, emission, external fields, spin, the reset of the particle
-     *        dt to the bunch time step, and the global processes with their deletions.
-     *
-     * @par Frame of reference
-     * Particle R and mesh are in the reference frame for the whole step except inside
-     * computeSpaceChargeFields() (the solve frame) and computeExternalFields() (each element's
-     * local frame, through a FrameScope).
-     */
+    /// @brief The particle part of one step: NumericalIntegrator::advance(), the reset of the
+    ///        particle dt to the bunch time step, and the global processes with their deletions.
     void advanceParticles();
 
     /// @brief Advance the bunch time by one step, then the reference particles and the
@@ -133,19 +127,6 @@ private:
     /// @brief Set the time step of the bunch and of all its containers to selectDT().
     void changeDT();
 
-    /// @brief First half of the leapfrog step: push all active containers.
-    void timeIntegration1();
-
-    /// @brief Second half: spin half rotation, kick, spin half rotation, then the second half
-    ///        drift of all active containers.
-    void timeIntegration2();
-
-    /// @brief The space-charge solve of this step (SpaceChargeSolver::solveStep()).
-    void computeSpaceChargeFields();
-
-    /// @brief Source-plane loss, then the external fields of the elements near each container.
-    void computeExternalFields();
-
     // --- Output ---
 
     /// The external fields at the reference particles for the dumps (OpalBeamline).
@@ -157,15 +138,11 @@ private:
     PartBunch_t* itsBunch_m;
     /// OPTION values of this RUN.
     opalx::run::OptionValues options_m;
-    SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
-            SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
-            spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver; never null.
-    /// Source plane of the source-plane loss (OpalBeamline::markBackwardParticlesAtSourcePlane()).
-    opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
-    OpalBeamline itsOpalBeamline_m;       ///< Tracked field elements and coordinate transforms.
-    BeamStops beamStops_m;                ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
+            spaceChargeSolver_m;     ///< Borrowed run-lifetime space-charge solver; never null.
+    OpalBeamline itsOpalBeamline_m;  ///< Tracked field elements and coordinate transforms.
+    BeamStops beamStops_m;           ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
     EmittingSamplers emittingSamplers_m;  ///< Per container, the samplers that emit.
 
     StepSizeConfig stepSizes_m;  ///< Step-size segments: s-stop, dt and steps per segment.
@@ -184,12 +161,9 @@ private:
     /// computeMoments and Write Stat) are detail and not part of that sum.
     IpplTimings::TimerRef trackStartTimer_m;
     IpplTimings::TimerRef stepTimeStepTimer_m;
-    IpplTimings::TimerRef stepSpaceChargeTimer_m;
-    IpplTimings::TimerRef stepFirstPushTimer_m;
-    IpplTimings::TimerRef stepEmissionTimer_m;
-    IpplTimings::TimerRef stepExternalFieldsTimer_m;
-    IpplTimings::TimerRef stepSpinTimer_m;
-    IpplTimings::TimerRef stepKickAndPushTimer_m;
+    /// The particle part of each step, scheme TrackingSetup::timeIntegrator. It borrows the
+    /// beamline and the samplers above and creates its timers here, between those around it.
+    std::unique_ptr<NumericalIntegrator> integrator_m;
     IpplTimings::TimerRef stepProcessesTimer_m;
     IpplTimings::TimerRef stepReferenceTimer_m;
     IpplTimings::TimerRef stepRemoveLostTimer_m;

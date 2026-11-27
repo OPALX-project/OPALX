@@ -784,7 +784,8 @@ namespace opalx::run {
         bunch.print(*gmsg, initialMoments);
 
         // 9. Everything the tracker reads, in one struct: schedule, start, emission, restart
-        //    values, OPTION values, field dumps, SCFIELDUPDATE and the stop rule of each beam.
+        //    values, OPTION values, field dumps, the time integrator and the stop rule of each
+        //    beam.
         const CheckpointFile::Metadata& checkpoint = start.checkpoint;
         TrackingSetup setup;
         setup.bunch                = &bunch;
@@ -807,10 +808,9 @@ namespace opalx::run {
         setup.checkpointPath = CheckpointFile::defaultPath(context.inputBasename);
         setup.options        = options;
         setup.emFieldDumps   = description.emFieldDumps;
-        setup.spaceChargeFieldUpdate =
-                ObjectValues(track.run).getString("SCFIELDUPDATE") == "PRESTEP"
-                        ? SpaceChargeFieldUpdate::PRESTEP
-                        : SpaceChargeFieldUpdate::MIDPOINT;
+        setup.timeIntegrator = ObjectValues(track.run).getString("SCFIELDUPDATE") == "PRESTEP"
+                                       ? "BORIS-PRESTEP"
+                                       : "BORIS";
         setup.beamStops = makeBeamStops(description.beams, track, checkpoint.beamStops);
 
         // 10. The beamline: initialise, place and check the elements and build the element

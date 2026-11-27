@@ -65,8 +65,8 @@ namespace opalx::run {
      *  8. Print the start summary of each container.
      *  9. The TrackingSetup: the DT/ZSTOP/MAXSTEPS schedule, the start, the emitting samplers,
      *     the reference momenta from file distributions, the values a restart resumes with, the
-     *     OPTION values, the DUMPEMFIELDS requests, RUN SCFIELDUPDATE and the stop rule of
-     *     each beam.
+     *     OPTION values, the DUMPEMFIELDS requests, the time integrator (BORIS-PRESTEP for RUN
+     *     SCFIELDUPDATE = PRESTEP, else BORIS) and the stop rule of each beam.
      * 10. The beamline: every element gets the OPTION values and the run context, each field
      *     element is initialised and added, then all are placed, the lattice files written,
      *     the cavity phases of a checkpoint restored, the apertures checked against the reach

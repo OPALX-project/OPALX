@@ -42,10 +42,8 @@ extern Inform* gmsg;
 ParallelTracker::ParallelTracker(TrackingSetup setup)
     : itsBunch_m(setup.bunch),
       options_m(std::move(setup.options)),
-      spaceChargeFieldUpdate_m(setup.spaceChargeFieldUpdate),
       itsDataSink_m(setup.dataSink),
       spaceChargeSolver_m(setup.spaceChargeSolver),
-      dirichletPlane_m(std::move(setup.dirichletPlane)),
       itsOpalBeamline_m(std::move(setup.beamline)),
       beamStops_m(std::move(setup.beamStops)),
       emittingSamplers_m(std::move(setup.emittingSamplers)),
@@ -60,12 +58,10 @@ ParallelTracker::ParallelTracker(TrackingSetup setup)
       emFieldDumps_m(std::move(setup.emFieldDumps)),
       trackStartTimer_m(IpplTimings::getTimer("Track: start")),
       stepTimeStepTimer_m(IpplTimings::getTimer("Step: time step")),
-      stepSpaceChargeTimer_m(IpplTimings::getTimer("Step: space charge")),
-      stepFirstPushTimer_m(IpplTimings::getTimer("Step: first push")),
-      stepEmissionTimer_m(IpplTimings::getTimer("Step: emission")),
-      stepExternalFieldsTimer_m(IpplTimings::getTimer("Step: ext. fields")),
-      stepSpinTimer_m(IpplTimings::getTimer("Step: spin")),
-      stepKickAndPushTimer_m(IpplTimings::getTimer("Step: kick and push")),
+      integrator_m(makeNumericalIntegrator(
+              setup.timeIntegrator,
+              {*setup.bunch, itsOpalBeamline_m, *setup.spaceChargeSolver, emittingSamplers_m,
+               setup.dirichletPlane, options_m.minBinEmitted, options_m.aggressiveStateSync})),
       stepProcessesTimer_m(IpplTimings::getTimer("Step: processes")),
       stepReferenceTimer_m(IpplTimings::getTimer("Step: reference")),
       stepRemoveLostTimer_m(IpplTimings::getTimer("Step: remove lost")),
@@ -290,42 +286,7 @@ void ParallelTracker::advanceParticles() {
     Inform m("ParallelTracker::advanceParticles");
     const long long step = itsBunch_m->getGlobalTrackStep();
 
-    // Historical OPAL evaluated the self-field at R_n and carried the gathered per-particle field
-    // through the first half drift. Keep this as an explicit compatibility mode; the default
-    // evaluates the field at R_{n+1/2} below.
-    if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
-        IpplTimings::startTimer(stepSpaceChargeTimer_m);
-        itsBunch_m->resetFields();
-        computeSpaceChargeFields();
-        IpplTimings::stopTimer(stepSpaceChargeTimer_m);
-    }
-
-    // First half of the time integration
-    IpplTimings::startTimer(stepFirstPushTimer_m);
-    timeIntegration1();
-    m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-    IpplTimings::stopTimer(stepFirstPushTimer_m);
-
-    if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
-        IpplTimings::startTimer(stepSpaceChargeTimer_m);
-        itsBunch_m->resetFields();
-        computeSpaceChargeFields();
-        IpplTimings::stopTimer(stepSpaceChargeTimer_m);
-    }
-
-    // Emit particles in the reference frame with their own fractional timesteps.
-    // They experience external fields in their creation step, but no space charge.
-    IpplTimings::startTimer(stepEmissionTimer_m);
-    emittingSamplers_m.emit(
-            *itsBunch_m, itsOpalBeamline_m, itsBunch_m->getT(), itsBunch_m->getdT());
-    IpplTimings::stopTimer(stepEmissionTimer_m);
-
-    IpplTimings::startTimer(stepExternalFieldsTimer_m);
-    computeExternalFields();
-    IpplTimings::stopTimer(stepExternalFieldsTimer_m);
-
-    // Second half of the time integration
-    timeIntegration2();
+    integrator_m->advance();
 
     // Emitted particles used a fraction of the step as their dt in their creation step; from here
     // on they use the bunch dt. Decay copies dt to the daughters and the checkpoint stores it.
@@ -430,65 +391,6 @@ void ParallelTracker::finishTracking() {
     *gmsg << level1 << endl
           << "* Done executing ParallelTracker at " << myt3.time() << endl
           << endl;
-}
-
-// --- PIC integration and fields ---
-
-void ParallelTracker::timeIntegration1() {
-    Inform m("ParallelTracker::timeIntegration1");
-    itsBunch_m->pushParticles();
-    m << level4 << "Push particles done for all containers." << endl;
-}
-
-void ParallelTracker::timeIntegration2() {
-    Inform m("ParallelTracker::timeIntegration2");
-
-    // The kick between the two halves of the Thomas-BMT spin rotation, which see the momentum
-    // before and after it; no-op for containers without Pol.
-    IpplTimings::startTimer(stepSpinTimer_m);
-    itsBunch_m->evolveSpinHalfStep();
-    IpplTimings::stopTimer(stepSpinTimer_m);
-
-    IpplTimings::startTimer(stepKickAndPushTimer_m);
-    itsBunch_m->kickParticles();
-    IpplTimings::stopTimer(stepKickAndPushTimer_m);
-
-    IpplTimings::startTimer(stepSpinTimer_m);
-    itsBunch_m->evolveSpinHalfStep();
-    IpplTimings::stopTimer(stepSpinTimer_m);
-
-    IpplTimings::startTimer(stepKickAndPushTimer_m);
-    itsBunch_m->pushParticles();
-    IpplTimings::stopTimer(stepKickAndPushTimer_m);
-    m << level4 << "Kick/push particles done for all containers." << endl;
-}
-
-void ParallelTracker::computeSpaceChargeFields() {
-    spaceChargeSolver_m->solveStep(*itsBunch_m, options_m.minBinEmitted, [this] {
-        return emittingSamplers_m.spaceChargeEmissionProgress(
-                itsBunch_m->getT(), options_m.aggressiveStateSync);
-    });
-}
-
-void ParallelTracker::computeExternalFields() {
-    Inform msg("ParallelTracker ", *gmsg);
-
-    // Source-plane loss has to be handled here, before external fields are evaluated. Deferring it
-    // to the post-step invalid-particle cleanup would let particles behind the cathode receive one
-    // more field kick.
-    //
-    // "Source-plane" refers to the X/Y plane at z=R0Z defined through the emitting EMISSIONSOURCE,
-    // from where particles are emitted. It can happen that particles land behind the source plane
-    // because e.g. of space-charge kicks. Particles with negative z momentum located behind R0Z
-    // (with a certain threshold) are then removed from the simulation.
-    const size_t nSourceMarked =
-            itsOpalBeamline_m.markBackwardParticlesAtSourcePlane(*itsBunch_m, dirichletPlane_m);
-    if (nSourceMarked > 0) {
-        itsBunch_m->deleteInvalidParticles(
-                true, msg, "backward source-plane particles during external-field evaluation");
-    }
-
-    itsOpalBeamline_m.applyExternalFields(*itsBunch_m);
 }
 
 // --- Time step ---

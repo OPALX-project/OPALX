@@ -28,12 +28,6 @@ namespace opalx::spacecharge {
     class SpaceChargeSolver;
 }  // namespace opalx::spacecharge
 
-/// Position within drift-kick-drift at which the particle self-field is evaluated.
-enum class SpaceChargeFieldUpdate {
-    MIDPOINT,  ///< Solve after the first half drift (default OPALX ordering).
-    PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
-};
-
 /**
  * @brief Everything buildTracking() makes for one RUN and ParallelTracker reads.
  *
@@ -79,7 +73,8 @@ struct TrackingSetup {
 
     std::vector<BeamStop> beamStops;  ///< Per container: ZSTOP plane, UNTILMAXSTEPS.
 
-    SpaceChargeFieldUpdate spaceChargeFieldUpdate = SpaceChargeFieldUpdate::MIDPOINT;
+    /// Name of the integration scheme of the particle part of a step (makeNumericalIntegrator()).
+    std::string timeIntegrator = "BORIS";
 
     /// OPTION values of this RUN (output frequencies, checkpoints, particle loss, ...).
     opalx::run::OptionValues options;
