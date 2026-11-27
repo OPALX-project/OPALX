@@ -64,6 +64,7 @@ namespace tps {
         /// Return orders lowOrder..highOrder inclusive, leaving this series unchanged.
         /// Requires 0 <= lowOrder <= highOrder; otherwise throws ::CLRangeError.
         /// Retain variable count and precision; stored degree is min(highOrder, getMaxOrder()).
+        /// Preserve stored precision independently of the current global arithmetic cap.
         /// An empty intersection with stored orders returns zero; order zero includes scalars.
         Tps<T> filter(int lowOrder, int highOrder) const;
 
@@ -152,6 +153,7 @@ namespace tps {
         Tps<T>& operator-=(const T& y);
 
         /// Multiply by constant and assign.
+        /// The scalar may reference one of this series' coefficients.
         Tps<T>& operator*=(const T& y);
 
         /// Divide by constant and assign.
@@ -239,6 +241,7 @@ namespace tps {
         std::istream& get(std::istream& is);
 
         /// Put Tps to the stream is.
+        /// Coefficients and exponents are whitespace-separated regardless of field width.
         std::ostream& put(std::ostream& os) const;
 
         /// Get exponents.

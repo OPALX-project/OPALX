@@ -143,6 +143,8 @@ public:
      * Sorted by entrance path length, then attachment ordinal, then owner name.
      * Ownerless intervals are absent. Use getTransferMapPass() for the complete
      * sequence or combined polynomial. Returned values pin maps across recalculation.
+     * Both accessors describe this lattice's last publication, even when another
+     * lattice publishes or clears attachments on shared element occurrences.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 
@@ -150,6 +152,7 @@ public:
     std::shared_ptr<const TransferMapPass> getTransferMapPass() const { return transferMapPass_m; }
     /// Remove the local pass and attachments on its elements, including shared occurrences.
     /// Other aliases observe cleared attachments; retained immutable passes remain valid.
+    /// Other lattices retain their own pass and ordered owner snapshot.
     void clearTransferMaps();
     /// Publish validated attachments atomically after staging allocations. Empty clears.
     /// Owners must belong to this lattice and segments to the supplied pass.
@@ -177,6 +180,9 @@ private:
     void placeElementsAlongReferencePath();
 
     std::shared_ptr<const TransferMapPass> transferMapPass_m;
+    // Published together with transferMapPass_m; never reconstructed from shared
+    // elements' mutable latest-publication attachments. The pass itself owns no elements.
+    std::vector<ElementTransferMapRef> transferMapOwners_m;
     ElementList elements_m;
     // Copies/merges share attachment-bearing ElementBase objects. A local null pass
     // is then insufficient to skip invalidation. Retain this conservative flag

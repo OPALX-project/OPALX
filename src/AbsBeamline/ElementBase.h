@@ -241,6 +241,8 @@ public:
      * segments; all nominal owners of a shared segment hold the same immutable record.
      * Field contribution alone does not imply ownership: a magnet's fringe can act
      * in a drift-owned map. These are runtime results, not maps of isolated fields.
+     * Shared occurrences expose the most recent publication on any alias. Use the
+     * beamline's ordered owner snapshot for maps belonging to that lattice's pass.
      *
      * The vector belongs to this element. Copy an attachment to pin its map across
      * vector clearing or recalculation. Polynomial access ends at map-storage release

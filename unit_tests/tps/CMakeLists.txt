@@ -11,6 +11,9 @@ foreach(name comprehensive_algebra numerical truncation cache_bounds coefficient
              kokkos_linear_algebra linear_solve runtime_lifecycle public_api)
   add_tps_regression(${name})
 endforeach()
+add_tps_regression(filter_precision)
+add_tps_regression(scalar_aliasing)
+add_tps_regression(stream_roundtrip)
 add_tps_regression(prepared_map device_map_header.cpp)
 foreach(regression constant_multiplication linear_substitution)
   add_opalx_test(tps_${regression} SOURCES numerical.cpp ARGS ${regression}
