@@ -160,9 +160,10 @@ void OpalBeamline::setMonitorsRecordReference(bool record) {
         static_cast<Monitor*>(element.get())->setRecordReference(record);
 }
 
-void OpalBeamline::applyExternalFields(PartBunch_t& bunch) {
+void OpalBeamline::applyExternalFields(PartBunch_t& bunch, double fieldFraction, bool record) {
     const StepTime time{
-            bunch.getT(), bunch.getdT(), static_cast<long long>(bunch.getGlobalTrackStep())};
+            bunch.getT(), bunch.getdT(), static_cast<long long>(bunch.getGlobalTrackStep()),
+            fieldFraction, record};
     forEachElementInBunchFrame(
             bunch,
             [](const ElementBase& element) {

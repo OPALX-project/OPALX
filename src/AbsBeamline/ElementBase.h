@@ -102,9 +102,15 @@ struct StepTime {
     double t       = 0.0;  ///< Bunch time at the start of the step (s).
     double dt      = 0.0;  ///< Time step (s).
     long long step = 0;    ///< Global step number.
+    /// Fraction of the step at which the fields are sampled: 1/2 for the Boris kick, the stage
+    /// fraction c_i for a Runge-Kutta stage.
+    double fieldFraction = 0.5;
+    /// Whether diagnostics (MONITOR) record in this call. A scheme that evaluates the fields
+    /// several times per step lets them record in one of these calls only.
+    bool record = true;
 
-    /// Time at the middle of the step, where the push evaluates the field (s).
-    double fieldTime() const { return t + 0.5 * dt; }
+    /// Time at which the fields are sampled (s).
+    double fieldTime() const { return t + fieldFraction * dt; }
 };
 
 /// How ParallelTracker uses an element of the tracked line.

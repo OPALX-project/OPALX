@@ -53,7 +53,7 @@ Monitor::Monitor(const std::string& name)
 Monitor::~Monitor() {}
 
 void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) {
-    if (!online_m || lossDs_m == nullptr || pc == nullptr) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr || !time.record) {
         return;
     }
 
@@ -101,7 +101,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTi
     const bool qmAreAttributes =
             (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
-    const double bunchTime = time.t;
+    const double fieldTime = time.fieldTime();
 
     for (size_t i = 0; i < nLoc; ++i) {
         const Vector_t<double, 3> R = hR(i);
@@ -118,7 +118,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc, const StepTi
             const double frac = -R(2) / singleStep(2);
 
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
-            const double crossingTime           = bunchTime + 0.5 * time.dt + frac * dt;
+            const double crossingTime           = fieldTime + frac * dt;
 
             const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q       = qmAreAttributes ? hQ(i) : hQ(0);

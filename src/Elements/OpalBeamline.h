@@ -104,8 +104,10 @@ public:
      * Elements get the bunch time, time step and step number (ElementBase::apply()). Each
      * container goes from one element's frame directly to the next and returns to its reference
      * frame after its last element, also when an element throws.
+     * @param fieldFraction Elements sample their fields at t + fieldFraction dt.
+     * @param record Whether MONITORs record (StepTime::record).
      */
-    void applyExternalFields(PartBunch_t& bunch);
+    void applyExternalFields(PartBunch_t& bunch, double fieldFraction = 0.5, bool record = true);
 
     /**
      * @brief Mark the particles outside the transverse aperture of each element near their

@@ -35,6 +35,16 @@ public:
     Monitor(const Monitor&);
     ~Monitor() override;
 
+    /**
+     * @brief Record the particles whose straight path over one own dt from their current
+     *        position crosses the monitor plane, at time time.fieldTime() plus the crossed
+     *        fraction of that dt. Does nothing unless time.record.
+     *
+     * The positions must be those half a step after the step start, the position of the Boris
+     * kick. RK4 records at its first middle stage, where position and momentum are the start
+     * state advanced by half a step with the start derivative; the recorded momentum is that
+     * half-advanced one, where a Boris scheme records the momentum before the kick.
+     */
     virtual void apply(
             const std::shared_ptr<ParticleContainer_t>& pc, const StepTime& time) override;
 
