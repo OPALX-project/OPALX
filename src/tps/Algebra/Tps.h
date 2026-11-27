@@ -241,6 +241,7 @@ namespace tps {
         std::istream& get(std::istream& is);
 
         /// Put Tps to the stream is.
+        /// Coefficients and exponents are whitespace-separated regardless of field width.
         std::ostream& put(std::ostream& os) const;
 
         /// Get exponents.

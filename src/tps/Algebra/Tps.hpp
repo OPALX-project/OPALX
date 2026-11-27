@@ -689,7 +689,7 @@ namespace tps {
                     os << std::setw(24) << rep->data()[i];
 
                     for (int var = 0; var < nVar; var++) {
-                        os << std::setw(3) << getExponents(i)[var];
+                        os << ' ' << std::setw(3) << getExponents(i)[var];
                     }
 
                     os << std::endl;
@@ -699,7 +699,7 @@ namespace tps {
             os << std::setw(24) << T(0);
 
             for (int var = 0; var < nVar; var++) {
-                os << std::setw(3) << (-1);
+                os << ' ' << std::setw(3) << (-1);
             }
         }
 
