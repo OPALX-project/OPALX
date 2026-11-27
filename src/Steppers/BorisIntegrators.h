@@ -35,6 +35,7 @@ public:
         halfDrift();
         solveSelfFields();
         emit();
+        applySourcePlaneLoss();
         addExternalFields();
         kick();
         halfDrift();
@@ -56,6 +57,7 @@ public:
         solveSelfFields();
         halfDrift();
         emit();
+        applySourcePlaneLoss();
         addExternalFields();
         kick();
         halfDrift();

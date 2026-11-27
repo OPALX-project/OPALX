@@ -74,19 +74,20 @@ void NumericalIntegrator::emit() {
     IpplTimings::stopTimer(emissionTimer_m);
 }
 
-void NumericalIntegrator::addExternalFields() {
+void NumericalIntegrator::applySourcePlaneLoss() {
     IpplTimings::startTimer(externalFieldsTimer_m);
-    // The source plane is the X/Y plane at z = R0Z of the emitting EMISSIONSOURCE. Space-charge
-    // kicks can push particles behind it; the loss cannot wait for the cleanup after the step.
     const size_t nSourceMarked = context_m.beamline.markBackwardParticlesAtSourcePlane(
             context_m.bunch, context_m.dirichletPlane);
     if (nSourceMarked > 0) {
-        Inform m("NumericalIntegrator::addExternalFields");
-        context_m.bunch.deleteInvalidParticles(
-                true, m, "backward source-plane particles during external-field evaluation");
+        Inform m("NumericalIntegrator::applySourcePlaneLoss");
+        context_m.bunch.deleteInvalidParticles(true, m, "backward source-plane particles");
     }
+    IpplTimings::stopTimer(externalFieldsTimer_m);
+}
 
-    context_m.beamline.applyExternalFields(context_m.bunch);
+void NumericalIntegrator::addExternalFields(double fieldFraction, bool record) {
+    IpplTimings::startTimer(externalFieldsTimer_m);
+    context_m.beamline.applyExternalFields(context_m.bunch, fieldFraction, record);
     IpplTimings::stopTimer(externalFieldsTimer_m);
 }
 

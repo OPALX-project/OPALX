@@ -50,7 +50,7 @@ public:
         OpalBeamline& beamline;
         opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver;
         EmittingSamplers& emittingSamplers;
-        /// Source plane of the source-plane loss in addExternalFields().
+        /// Source plane of applySourcePlaneLoss().
         opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
         int minBinEmitted        = 0;      ///< OPTION MINBINEMITTED.
         bool aggressiveStateSync = false;  ///< OPTION AGGRESSIVE_STATE_SYNC.
@@ -92,14 +92,23 @@ protected:
     void emit();
 
     /**
-     * @brief Delete the particles moving backwards behind the source plane, then add the fields
-     *        of the elements to E and B (OpalBeamline::applyExternalFields()). Collective.
+     * @brief Delete the particles moving backwards behind the source plane
+     *        (OpalBeamline::markBackwardParticlesAtSourcePlane()). Collective.
      *
-     * The loss comes first, so these particles get no further kick. Elements sample their fields
-     * at t + dt/2 (StepTime::fieldTime()), and Monitor assumes positions in the middle of the
-     * step.
+     * Space-charge kicks can push particles behind the cathode, and the loss cannot wait for the
+     * cleanup after the step: a scheme calls it before it adds the external fields, so these
+     * particles get no further kick.
      */
-    void addExternalFields();
+    void applySourcePlaneLoss();
+
+    /**
+     * @brief Add the fields of the elements to E and B (OpalBeamline::applyExternalFields()).
+     *        Collective.
+     * @param fieldFraction Elements sample their fields at t + fieldFraction dt.
+     * @param record Whether MONITORs record. Monitor::apply() assumes the positions half a step
+     *        after the step start.
+     */
+    void addExternalFields(double fieldFraction = 0.5, bool record = true);
 
 private:
     Context context_m;
