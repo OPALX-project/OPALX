@@ -316,7 +316,7 @@ void OrbitThreader::execute() {
         std::ostringstream summary;
         summary << std::setprecision(6);
         orbit_threader_diagnostics::print(summary, diagnostics);
-        *gmsg << level1 << summary.str() << endl;
+        *gmsg << level5 << summary.str() << endl;
     }
 }
 

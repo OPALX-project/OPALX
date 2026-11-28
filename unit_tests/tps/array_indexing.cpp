@@ -1,4 +1,5 @@
 #include <Kokkos_Core.hpp>
+#include <array>
 #include <climits>
 #include <iostream>
 #include <stdexcept>
@@ -150,7 +151,9 @@ int main() {
         Array2D<int> matrixCopy = m;
         matrixCopy[0][0]        = 20;
         require(cm[0][0] == 0, "2D copy independence");
-        for (auto shape : {std::pair<int, int>{-1, 2}, {2, -1}, {INT_MAX, 2}, {2, INT_MAX}}) {
+        const std::array<std::pair<int, int>, 4> invalidShapes{{
+            {-1, 2}, {2, -1}, {INT_MAX, 2}, {2, INT_MAX}}};
+        for (auto shape : invalidShapes) {
             rejects([&] {
                 Array2D<int> bad(shape.first, shape.second);
             });

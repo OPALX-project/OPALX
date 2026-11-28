@@ -54,6 +54,7 @@ jobs:
           cd build_sycl
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_CXX_COMPILER=icpx \
             -DPLATFORMS=SYCL \
             -DARCH=INTEL_PVC \
