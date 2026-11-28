@@ -11,6 +11,7 @@
 #   [SOURCES <src1> <src2> ...]        # default: <name>.cpp
 #   [ARGS <arg1> <arg2> ...]           # args passed to the test binary
 #   [MPI_ARGS <arg1> <arg2> ...]       # extra args for mpiexec
+#   [CTEST_NAME <name>]                # optional CTest name, independent of target name
 #   [NUM_PROCS <N>]                    # default: OPALX_DEFAULT_TEST_PROCS (1)
 #   [TIMEOUT <sec>]                    # default: 300
 #   [WORKING_DIRECTORY <dir>]          # default: current binary dir
@@ -29,7 +30,7 @@ set(OPALX_DEFAULT_TEST_PROCS "1" CACHE STRING "Default MPI ranks per unit test")
 
 function(add_opalx_test TEST_NAME)
   set(options NO_MPI REQUIRE_MPI RUN_SERIAL USE_GTEST_MAIN)
-  set(oneValueArgs NUM_PROCS TIMEOUT WORKING_DIRECTORY)
+  set(oneValueArgs NUM_PROCS TIMEOUT WORKING_DIRECTORY CTEST_NAME)
   set(multiValueArgs LABELS ARGS MPI_ARGS SOURCES LAUNCH PROPERTIES)
   cmake_parse_arguments(TEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -107,7 +108,11 @@ function(add_opalx_test TEST_NAME)
 
   # Name prefix for nicer grouping: unit.<relpath>.<name> file(RELATIVE_PATH _rel
   # "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}") string(REPLACE "/" "." _rel "${_rel}")
-  set(_ctest_name "${TEST_NAME}")
+  if(TEST_CTEST_NAME)
+    set(_ctest_name "${TEST_CTEST_NAME}")
+  else()
+    set(_ctest_name "${TEST_NAME}")
+  endif()
 
   # Register the test
   if(BUILD_TESTING)

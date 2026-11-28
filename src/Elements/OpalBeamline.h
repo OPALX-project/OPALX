@@ -38,18 +38,18 @@ class BoundaryGeometry;
 class MeshGenerator;
 
 /**
- * @brief Borrowed view of one element-owned transfer-map copy.
+ * @brief Pinned view of one representative nominal owner and its immutable map.
  *
- * The shared element pointer keeps the occurrence alive, but does not stabilize its
- * map vector. Appending, clearing or recalculating maps can invalidate @c map.
- * For a shared-owner segment, @c element is one representative owner, not the full
- * owner set. Copy the LinearTransferMap value if it must survive recalculation.
+ * Copies survive attachment-vector clearing/recalculation. Does not describe the
+ * full owner set or ownerless intervals. Polynomial access ends at map-storage
+ * release/Kokkos finalization; metadata and occurrence handles remain usable.
  */
 struct ElementTransferMapRef {
-    /// Lifetime handle to the occurrence containing this particular map copy.
+    /// Lifetime handle to one representative occurrence.
     std::shared_ptr<const ElementBase> element;
-    /// Non-owning pointer into ElementBase::getLinearTransferMaps().
-    const LinearTransferMap* map{nullptr};
+    /// Shared immutable segment record, also retained by the complete pass.
+    LinearTransferMapHandle map;
+    std::size_t pass{0};
 };
 
 /**
@@ -64,6 +64,13 @@ class OpalBeamline {
 public:
     OpalBeamline();
     OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation);
+    /** Share runtime element occurrences, as merge() does; pass handles remain snapshots.
+     * Copying a nonempty lattice marks both lists as potentially aliased. Setup
+     * copies and mutations must be serialized, as for publication and placement.
+     */
+    OpalBeamline(const OpalBeamline&);
+    /// Replace the list with shared occurrences and retain the conservative alias state.
+    OpalBeamline& operator=(const OpalBeamline&);
     ~OpalBeamline();
 
     void activateElements();
@@ -131,23 +138,31 @@ public:
     ElementList getElementByType(ElementType);
 
     /**
-     * @brief Return an ordered view of all element-owned linear transfer maps.
+     * @brief Ordered owner view; shared-owner segments appear once by scoped traversal ID.
      *
-     * The element remains the owner of each attached map copy. Results are ordered by entrance
-     * path length; a segment attached to several overlapping elements is returned only once.
-     * Unowned intervals are not included here, even if a neighbouring field tail is present.
-     * OrbitThreader composes the complete ordered segment list, including those intervals.
-     *
-     * Deduplication uses LinearTransferMap::segment, not names: IDs must belong to the
-     * same calculation. Unassigned IDs (max(size_t)) are not deduplicated. Ties in entrance
-     * path length are ordered by attachment ordinal and then element name.
-     * Returned pointers borrow map-vector storage; see ElementTransferMapRef for lifetime.
-     * To obtain the complete product, use OrbitThreader::getCombinedLinearTransferMap()
-     * rather than multiplying this possibly incomplete view.
+     * Sorted by entrance path length, then attachment ordinal, then owner name.
+     * Ownerless intervals are absent. Use getTransferMapPass() for the complete
+     * sequence or combined polynomial. Returned values pin maps across recalculation.
+     * Both accessors describe this lattice's last publication, even when another
+     * lattice publishes or clears attachments on shared element occurrences.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 
+    /// Complete ordered snapshot, including ownerless segments. Pins TPS until teardown.
+    std::shared_ptr<const TransferMapPass> getTransferMapPass() const { return transferMapPass_m; }
+    /// Remove the local pass and attachments on its elements, including shared occurrences.
+    /// Other aliases observe cleared attachments; retained immutable passes remain valid.
+    /// Other lattices retain their own pass and ordered owner snapshot.
+    void clearTransferMaps();
+    /// Publish validated attachments atomically after staging allocations. Empty clears.
+    /// Owners must belong to this lattice and segments to the supplied pass.
+    void publishTransferMapPass(
+            std::shared_ptr<const TransferMapPass> pass,
+            const std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>&
+                    attachments);
+
     void swap(OpalBeamline& rhs);
+    /// Append shared occurrences without consuming rhs; both lists may subsequently alias.
     void merge(OpalBeamline& rhs);
 
 private:
@@ -164,7 +179,15 @@ private:
      */
     void placeElementsAlongReferencePath();
 
+    std::shared_ptr<const TransferMapPass> transferMapPass_m;
+    // Published together with transferMapPass_m; never reconstructed from shared
+    // elements' mutable latest-publication attachments. The pass itself owns no elements.
+    std::vector<ElementTransferMapRef> transferMapOwners_m;
     ElementList elements_m;
+    // Copies/merges share attachment-bearing ElementBase objects. A local null pass
+    // is then insufficient to skip invalidation. Retain this conservative flag
+    // through clear/swap, even after other aliases die; no ownership scan is needed.
+    mutable bool elementsMayBeShared_m = false;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
 
@@ -179,6 +202,9 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     // placeElementsAlongReferencePath() during prepareSections().
     elptr->initialise(&bunch);
     elements_m.push_back(elptr);
+    // A different lattice can publish attachments onto shared occurrences.
+    // Fresh unmapped lattices still avoid any all-element invalidation scan.
+    if (transferMapPass_m || elementsMayBeShared_m) clearTransferMaps();
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }

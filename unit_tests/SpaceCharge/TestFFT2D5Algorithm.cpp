@@ -731,8 +731,9 @@ namespace opalx::spacecharge {
                             ASSERT_EQ(actualR(n)[d], oracleR(n)[d])
                                     << scenario << " " << repeat << " " << n << " " << d;
                     }
-                    if (scenario == 5)
+                    if (scenario == 5) {
                         EXPECT_EQ(actualI(2), 0u);  // Identical later segment loses the tie.
+                    }
                 }
             }
         }

@@ -15,6 +15,10 @@ C++ classes.
 <P>
 
 <P>
+See \ref tps_overview for TPS map algebra, mathematical conventions and the
+host-to-device preparation boundary.
+</P>
+<P>
 For further information please contact us on the <a href="mailto:opal@lists.psi.ch">OPAL mailing
 list</a>
 </P>

@@ -5,8 +5,10 @@
 #include "Algorithms/CompensatedSum.h"
 #include "Algorithms/MapExitRoot.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
+#include "Algorithms/TpsLinearMapAlgebra.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
+#include "tps/Map.hpp"
 
 namespace {
     constexpr double boundaryTolerance = 1.0e-12;
@@ -69,106 +71,6 @@ namespace {
                + axis * dot(axis, value) * (1.0 - std::cos(angle));
     }
 
-    double invert6x6(const matrix6x6_t& input, matrix6x6_t& inverse) {
-        double augmented[6][12]{};
-        double normInput = 0.0;
-        for (int row = 0; row < 6; ++row) {
-            double rowSum = 0.0;
-            for (int col = 0; col < 6; ++col) {
-                augmented[row][col]     = input(row, col);
-                augmented[row][col + 6] = row == col ? 1.0 : 0.0;
-                rowSum += std::abs(input(row, col));
-            }
-            normInput = std::max(normInput, rowSum);
-        }
-
-        for (int col = 0; col < 6; ++col) {
-            int pivot = col;
-            for (int row = col + 1; row < 6; ++row) {
-                if (std::abs(augmented[row][col]) > std::abs(augmented[pivot][col])) pivot = row;
-            }
-            if (std::abs(augmented[pivot][col]) < 1.0e-18) {
-                throw OpalException(
-                        "LinearTransferMapBuilder::makeLinearTransferMap",
-                        "The finite-difference input matrix is singular.");
-            }
-            if (pivot != col) {
-                for (int j = 0; j < 12; ++j)
-                    std::swap(augmented[pivot][j], augmented[col][j]);
-            }
-            const double diagonal = augmented[col][col];
-            for (int j = 0; j < 12; ++j)
-                augmented[col][j] /= diagonal;
-            for (int row = 0; row < 6; ++row) {
-                if (row == col) continue;
-                const double factor = augmented[row][col];
-                for (int j = 0; j < 12; ++j)
-                    augmented[row][j] -= factor * augmented[col][j];
-            }
-        }
-
-        double normInverse = 0.0;
-        for (int row = 0; row < 6; ++row) {
-            double rowSum = 0.0;
-            for (int col = 0; col < 6; ++col) {
-                inverse(row, col) = augmented[row][col + 6];
-                rowSum += std::abs(inverse(row, col));
-            }
-            normInverse = std::max(normInverse, rowSum);
-        }
-        return normInput * normInverse;
-    }
-
-    double symplecticResidual(const matrix6x6_t& map) {
-        matrix6x6_t j(0.0);
-        for (int pair = 0; pair < 3; ++pair) {
-            j(2 * pair, 2 * pair + 1) = 1.0;
-            j(2 * pair + 1, 2 * pair) = -1.0;
-        }
-        const matrix6x6_t residual = prod(get_transpose(map), prod(j, map));
-        double maximum             = 0.0;
-        for (int row = 0; row < 6; ++row) {
-            for (int col = 0; col < 6; ++col) {
-                maximum = std::max(maximum, std::abs(residual(row, col) - j(row, col)));
-            }
-        }
-        return maximum;
-    }
-
-    double determinant(const matrix6x6_t& map) {
-        double work[6][6]{};
-        for (int row = 0; row < 6; ++row) {
-            for (int col = 0; col < 6; ++col) {
-                work[row][col] = map(row, col);
-            }
-        }
-
-        double result = 1.0;
-        for (int col = 0; col < 6; ++col) {
-            int pivot = col;
-            for (int row = col + 1; row < 6; ++row) {
-                if (std::abs(work[row][col]) > std::abs(work[pivot][col])) pivot = row;
-            }
-            if (work[pivot][col] == 0.0) return 0.0;
-            if (pivot != col) {
-                for (int j = col; j < 6; ++j) {
-                    std::swap(work[pivot][j], work[col][j]);
-                }
-                result = -result;
-            }
-            const double diagonal = work[col][col];
-            result *= diagonal;
-            for (int row = col + 1; row < 6; ++row) {
-                const double factor = work[row][col] / diagonal;
-                for (int j = col + 1; j < 6; ++j) {
-                    work[row][j] -= factor * work[col][j];
-                }
-            }
-        }
-        return result;
-    }
-
-    double determinantResidual(const matrix6x6_t& map) { return std::abs(determinant(map) - 1.0); }
 }  // namespace
 
 LinearTransferMapBuilder::LinearTransferMapBuilder(
@@ -416,22 +318,13 @@ matrix6x6_t LinearTransferMapBuilder::makeCenteredMap(
         }
     }
 
-    matrix6x6_t inverseInput(0.0);
-    condition = invert6x6(inputDifferences, inverseInput);
-    if (!std::isfinite(condition) || condition > 1.0e12) {
-        throw OpalException(
-                "LinearTransferMapBuilder::makeLinearTransferMap",
-                "The finite-difference input matrix is ill-conditioned (condition number "
-                        + std::to_string(condition) + ").");
-    }
-
-    return prod(outputDifferences, inverseInput);
+    return opalx::maps::solveInputDifferences(inputDifferences, outputDifferences, condition);
 }
 
-LinearTransferMap LinearTransferMapBuilder::makeLinearTransferMap(
+LinearTransferMapDraft LinearTransferMapBuilder::makeLinearTransferMap(
         const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
-        const std::size_t pass) {
-    LinearTransferMap result;
+        const std::size_t segment) {
+    LinearTransferMapDraft result;
     result.finiteDifferenceSteps = settings_m.finiteDifferenceSteps;
     result.richardsonLevels      = settings_m.richardsonLevels;
     result.integrationMethod =
@@ -471,9 +364,10 @@ LinearTransferMap LinearTransferMapBuilder::makeLinearTransferMap(
     result.matrix                    = previous.back();
     result.entrance                  = entrance;
     result.exit                      = exit;
-    result.pass                      = pass;
-    result.determinantResidual       = determinantResidual(result.matrix);
-    result.symplecticResidual        = symplecticResidual(result.matrix);
+    result.segment                   = segment;
+    const auto diagnostics           = opalx::maps::diagnoseLinearMap(result.matrix);
+    result.determinantResidual       = diagnostics.determinantResidual;
+    result.symplecticResidual        = diagnostics.symplecticResidual;
     result.includesOverlappingFields = false;
     return result;
 }
@@ -585,13 +479,35 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         return left.element->getName() < right.element->getName();
     });
 
+    // Collapse near-coincident body events onto one complete reference state.
+    // Anchor each group to its first event (not to successive neighbours), so a
+    // chain of short intervals cannot erase an arbitrarily long physical span.
+    // This changes ownership boundaries only; ray integration still sums all fields.
+    constexpr double minimumSegmentLength = 1.0e-12;
+    for (std::size_t first = 0; first < events.size();) {
+        std::size_t end = first + 1;
+        while (end < events.size()
+               && events[end].state.pathLength - events[first].state.pathLength
+                          <= minimumSegmentLength)
+            ++end;
+        auto shared        = events[first].state;
+        const auto& start  = referenceSamples_m.front().state;
+        const auto& finish = referenceSamples_m.back().state;
+        if (shared.pathLength - start.pathLength <= minimumSegmentLength)
+            shared = start;
+        else if (finish.pathLength - shared.pathLength <= minimumSegmentLength)
+            shared = finish;
+        for (std::size_t i = first; i < end; ++i)
+            events[i].state = shared;
+        first = end;
+    }
+
     std::vector<Segment> segments;
     IndexMap::value_t active =
             itsOpalBeamline_m.getBodyElements(referenceSamples_m.front().state.position);
     LinearTransferMapReference segmentEntrance = referenceSamples_m.front().state;
-    constexpr double minimumSegmentLength      = 1.0e-12;
     for (const auto& event : events) {
-        if (event.state.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+        if (event.state.pathLength > segmentEntrance.pathLength) {
             segments.push_back({segmentEntrance, event.state, active});
         }
         if (event.entering) {
@@ -602,7 +518,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         segmentEntrance = event.state;
     }
     const auto& finalState = referenceSamples_m.back().state;
-    if (finalState.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+    if (finalState.pathLength > segmentEntrance.pathLength) {
         segments.push_back({segmentEntrance, finalState, active});
     }
 
@@ -610,12 +526,16 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     segmentationTime.stop();
     TimedPhase mapTime(maps);
     count(&Work::segments, segments.size());
+    static std::size_t nextGeneration = 0;  // Serialized host construction, same sequence per rank.
+    if (nextGeneration == std::numeric_limits<std::size_t>::max())
+        throw OpalException("LinearTransferMapBuilder::build", "Map generation exhausted.");
+    const auto passId       = "reference-pass:" + std::to_string(nextGeneration++);
     std::size_t sampleIndex = 1;
     for (std::size_t segment = 0; segment < segments.size(); ++segment) {
         const auto& interval = segments[segment];
         validateActiveSet(interval.active);
-        LinearTransferMap map = makeLinearTransferMap(interval.entrance, interval.exit, segment);
-        map.segment           = segment;
+        LinearTransferMapDraft map =
+                makeLinearTransferMap(interval.entrance, interval.exit, segment);
         // Ownership follows bodies, while contributors can change inside one body interval.
         // Contributor names are sampled at reference-bracket chord midpoints for diagnostics.
         // They are not a field mask: each shadow ray queries its own summed field at every
@@ -637,16 +557,37 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
             map.activeElements.push_back(element->getName());
         }
         std::sort(map.activeElements.begin(), map.activeElements.end());
-        result.segments.push_back({std::move(map), interval.active});
+        result.segments.push_back(
+                {std::make_shared<const LinearTransferMap>(
+                         map, passId + "/segment:" + std::to_string(segment)),
+                 interval.active});
     }
 
     if (result.segments.empty()) return result;
-    matrix6x6_t combined;
-    for (const auto& segment : result.segments) {
-        combined = prod(segment.map.matrix, combined);
+    // Compose the unique intervals, including ownerless tails, before attaching
+    // handles to element owners. Names identify traversal occurrences, not owners.
+    std::vector<tps::Map<double>> segmentMaps;
+    segmentMaps.reserve(result.segments.size());
+    for (const auto& segment : result.segments)
+        segmentMaps.push_back(segment.map->polynomial());
+    std::optional<tps::Map<double>> composed;
+    tps::Matrix<double> derivative;
+    try {
+        composed.emplace(tps::composeSequence<double>(segmentMaps, 1));
+        derivative = composed->jacobian(std::array<double, 6>{});
+    } catch (const std::invalid_argument& error) {
+        throw OpalException("LinearTransferMapBuilder::compose", error.what());
     }
-    result.combined            = combined;
-    result.determinantResidual = determinantResidual(combined);
-    result.symplecticResidual  = symplecticResidual(combined);
+    matrix6x6_t combined(0.0);
+    for (unsigned row = 0; row < 6; ++row)
+        for (unsigned column = 0; column < 6; ++column)
+            combined(row, column) = derivative(row, column);
+    std::vector<LinearTransferMapHandle> handles;
+    for (const auto& segment : result.segments)
+        handles.push_back(segment.map);
+    const auto diagnostics = opalx::maps::diagnoseLinearMap(combined);
+    result.pass            = std::shared_ptr<const TransferMapPass>(new TransferMapPass(
+            passId, std::move(handles), std::move(*composed), diagnostics.determinantResidual,
+            diagnostics.symplecticResidual));
     return result;
 }

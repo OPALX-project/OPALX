@@ -1,12 +1,133 @@
+#include <climits>
 #include <cmath>
+#include <limits>
 #include <map>
+#include <memory>
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "BeamlineCore/SBendRep.h"
+#include "BeamlineCore/TravelingWaveRep.h"
 #include "Structure/MeshGenerator.h"
 #include "gtest/gtest.h"
 
 class MeshGeneratorTest : public ::testing::Test {
 protected:
+    static void checkTravelingWaveCloneMesh() {
+        TravelingWaveRep original("CLICG");
+        original.getGeometry().setElementLength(.233284666);
+        original.setAperture(ApertureType::ELLIPTICAL, {.05, .05});
+        original.setNumCells(26);
+        const std::unique_ptr<ElementBase> cloned(original.clone());
+        MeshGenerator generator;
+        generator.add(original);
+        generator.add(*cloned);
+        ASSERT_EQ(generator.elements_m.size(), 2u);
+        const auto& source = generator.elements_m[0];
+        const auto& copy   = generator.elements_m[1];
+        ASSERT_FALSE(source.vertices_m.empty());
+        ASSERT_FALSE(source.triangles_m.empty());
+        ASSERT_EQ(copy.vertices_m.size(), source.vertices_m.size());
+        ASSERT_EQ(copy.triangles_m.size(), source.triangles_m.size());
+        EXPECT_EQ(copy.type_m, MeshGenerator::TRAVELINGWAVE);
+        for (size_t i = 0; i < source.vertices_m.size(); ++i)
+            for (int d = 0; d < 3; ++d) {
+                EXPECT_TRUE(std::isfinite(copy.vertices_m[i](d)));
+                EXPECT_DOUBLE_EQ(copy.vertices_m[i](d), source.vertices_m[i](d));
+            }
+        for (size_t i = 0; i < source.triangles_m.size(); ++i)
+            for (int d = 0; d < 3; ++d)
+                EXPECT_EQ(copy.triangles_m[i](d), source.triangles_m[i](d));
+        EXPECT_EQ(cloned->getAperture(), original.getAperture());
+    }
+
+    static void checkTravelingWaveCells(int cells, double minor, double major) {
+        const double length = (cells + 2) * .012;
+        const auto mesh     = MeshGenerator::getTravelingWave(length, minor, major, cells);
+        ASSERT_FALSE(mesh.vertices_m.empty());
+        ASSERT_FALSE(mesh.triangles_m.empty());
+        // One maximum-radius plane per accelerating cell; the smaller end
+        // flanges do not count. Inspect geometry instead of a vertex-count formula.
+        std::map<double, double> radiusByZ;
+        for (const auto& v : mesh.vertices_m) {
+            for (int d = 0; d < 3; ++d)
+                EXPECT_TRUE(std::isfinite(v(d)));
+            EXPECT_LE(std::abs(v(0)), major);
+            EXPECT_LE(std::abs(v(1)), minor);
+            EXPECT_GE(v(2), 0.);
+            EXPECT_LE(v(2), length);
+            const double radius = std::hypot(v(0) / major, v(1) / minor);
+            radiusByZ[v(2)]     = std::max(radiusByZ[v(2)], radius);
+        }
+        EXPECT_DOUBLE_EQ(radiusByZ.begin()->first, 0.);
+        EXPECT_DOUBLE_EQ(radiusByZ.rbegin()->first, length);
+        double maxRadius = 0;
+        for (const auto& [z, radius] : radiusByZ)
+            maxRadius = std::max(maxRadius, radius);
+        int bulges = 0;
+        for (auto current = std::next(radiusByZ.begin()); std::next(current) != radiusByZ.end();
+             ++current) {
+            if (current->second > .9 * maxRadius && current->second > std::prev(current)->second
+                && current->second > std::next(current)->second) {
+                ++bulges;
+            }
+        }
+        EXPECT_EQ(bulges, cells);
+
+        // Every edge has two opposite face directions: no cracks or overlapping
+        // per-cell tube walls. Positive signed volume establishes outward winding.
+        std::map<std::pair<unsigned, unsigned>, std::pair<int, int>> edges;
+        double volume = 0;
+        for (const auto& t : mesh.triangles_m) {
+            for (int d = 0; d < 3; ++d)
+                ASSERT_LT(t(d), mesh.vertices_m.size());
+            const auto a = mesh.vertices_m[t(0)], b = mesh.vertices_m[t(1)],
+                       c                 = mesh.vertices_m[t(2)];
+            const Vector_t<double, 3> ab = b - a, ac = c - a;
+            const Vector_t<double, 3> normal = cross(ab, ac), bc = cross(b, c);
+            EXPECT_GT(dot(normal, normal), 0.);
+            volume += dot(a, bc) / 6.;
+            for (int d = 0; d < 3; ++d) {
+                const unsigned from = t(d), to = t((d + 1) % 3);
+                auto& edge = edges[{std::min(from, to), std::max(from, to)}];
+                ++edge.first;
+                edge.second += from < to ? 1 : -1;
+            }
+        }
+        for (const auto& [key, incidence] : edges) {
+            EXPECT_EQ(incidence.first, 2);
+            EXPECT_EQ(incidence.second, 0);
+        }
+        EXPECT_GT(volume, 0.);
+
+        // The add() path must use NUMCELLS for both supported aperture shapes.
+        for (auto shape : {ApertureType::ELLIPTICAL, ApertureType::RECTANGULAR}) {
+            TravelingWaveRep cavity("TW");
+            cavity.getGeometry().setElementLength(length);
+            cavity.setAperture(shape, {minor, major});
+            cavity.setNumCells(cells);
+            MeshGenerator generator;
+            generator.add(cavity);
+            ASSERT_EQ(generator.elements_m.size(), 1u);
+            EXPECT_EQ(generator.elements_m[0].vertices_m.size(), mesh.vertices_m.size());
+            EXPECT_EQ(generator.elements_m[0].type_m, MeshGenerator::TRAVELINGWAVE);
+            EXPECT_EQ(cavity.getNumCells(), cells);
+            EXPECT_EQ(cavity.getAperture().first, shape);
+            EXPECT_EQ(cavity.getAperture().second, (std::vector<double>{minor, major}));
+            EXPECT_DOUBLE_EQ(cavity.getGeometry().getElementLength(), length);
+        }
+    }
+
+    static void checkInvalidTravelingWaveDisplay() {
+        for (int cells : {0, -1, INT_MAX}) {
+            EXPECT_TRUE(MeshGenerator::getTravelingWave(1., .05, .05, cells).vertices_m.empty());
+        }
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        for (double bad : {0., -1., nan, std::numeric_limits<double>::infinity()}) {
+            EXPECT_TRUE(MeshGenerator::getTravelingWave(bad, .05, .05, 26).vertices_m.empty());
+            EXPECT_TRUE(MeshGenerator::getTravelingWave(1., bad, .05, 26).vertices_m.empty());
+            EXPECT_TRUE(MeshGenerator::getTravelingWave(1., .05, bad, 26).vertices_m.empty());
+        }
+    }
+
     static void checkFFA(double radius, double spiral) {
         ScalingFFAMagnet magnet("FFA");
         magnet.setR0(radius);
@@ -172,3 +293,19 @@ TEST_F(MeshGeneratorTest, ScalingFFASectorsHaveClosedOutwardSurfacesForBothBendD
 TEST_F(MeshGeneratorTest, ScalingFFAPlacementTransformsTheMeshOnce) { checkFFAPlacement(); }
 
 TEST_F(MeshGeneratorTest, ProbePlaneUsesGlobalEndpointsAndDisplayOnlyHeight) { checkProbePlane(); }
+
+TEST_F(MeshGeneratorTest, TravelingWaveCloneKeepsItsRenderableBody) {
+    checkTravelingWaveCloneMesh();
+}
+
+TEST_F(MeshGeneratorTest, TravelingWaveHasOneRoundedBulgePerConfiguredCell) {
+    for (int cells : {1, 2, 9, 26}) {
+        SCOPED_TRACE(cells);
+        checkTravelingWaveCells(cells, .02, .03);
+        checkTravelingWaveCells(cells, .003, .004);
+    }
+}
+
+TEST_F(MeshGeneratorTest, InvalidTravelingWaveDisplayDimensionsOrCountsProduceNoMesh) {
+    checkInvalidTravelingWaveDisplay();
+}

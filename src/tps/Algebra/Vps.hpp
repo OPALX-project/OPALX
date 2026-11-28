@@ -1,0 +1,266 @@
+#ifndef TPS_VPS_IMPLEMENTATION_HPP
+#define TPS_VPS_IMPLEMENTATION_HPP
+#include "Utilities/DivideError.h"
+#include "Utilities/FormatError.h"
+#include "Utilities/LogicalError.h"
+// Copyright: see LICENSE
+
+// Class: Vps
+//   Vector truncated power series in n variables.
+
+#include <algorithm>
+#include <iostream>
+#include "tps/Algebra/Matrix.h"
+#include "tps/Algebra/Tps.h"
+#include "tps/Algebra/TpsMonomial.h"
+#include "tps/Algebra/Vector.h"
+#include "tps/Algebra/Vps.h"
+
+#include <cstring>
+
+namespace tps {
+
+    // Template class Vps<T>
+
+    template <class T>
+    Vps<T>::Vps() : data(), variables(0) {}
+
+    template <class T>
+    Vps<T>::Vps(int nDim, int nVar) : data(nDim, Tps<T>(0, nVar)), variables(nVar) {}
+
+    template <class T>
+    Vps<T>::Vps(const Vps<T>& rhs) : data(rhs.data), variables(rhs.variables) {
+        // No call to check, assume rhs is correct.
+    }
+
+    template <class T>
+    Vps<T>::Vps(const Matrix<T>& x) : data(x.nrows()), variables(x.ncols()) {
+        for (int i = 0; i < x.nrows(); i++) {
+            data[i] = Tps<T>(1, x.ncols());
+
+            for (int j = 0; j < x.ncols(); j++) {
+                data[i][j + 1] = x(i, j);
+            }
+        }
+    }
+
+    template <class T>
+    Vps<T>::Vps(const Vector<T>& x) : data(x.size()), variables(0) {
+        for (int i = 0; i < getDimension(); i++)
+            data[i] = Tps<T>(x[i]);
+    }
+
+    template <class T>
+    Vps<T>::~Vps() {}
+
+    template <class T>
+    Vps<T>& Vps<T>::operator=(const Vps<T>& y) {
+        data      = y.data;
+        variables = y.variables;
+        return *this;
+    }
+
+    template <class T>
+    const Tps<T>& Vps<T>::getComponent(int index) const {
+        return data(index);
+    }
+
+    template <class T>
+    void Vps<T>::setComponent(int index, const Tps<T>& value) {
+        check();
+        if (value.getVariables() != variables) {
+            throw ::LogicalError("Vps::setComponent()", "Index out of range.");
+        }
+        data(index) = value;
+    }
+
+    template <class T>
+    void Vps<T>::check() const {
+        variables = 0;
+
+        for (const Tps<T>* p = data.begin(); p != data.end(); ++p) {
+            if (int var = p->getVariables()) {
+                if (variables != 0 && var != variables) {
+                    throw ::LogicalError(
+                            "Vps::check()", "Vps has inconsistent number of variables.");
+                }
+                variables = var;
+            }
+        }
+    }
+
+    template <class T>
+    Vps<T> Vps<T>::operator+() const {
+        return *this;
+    }
+
+    template <class T>
+    Vps<T> Vps<T>::operator-() const {
+        Vps<T> z(getDimension(), variables);
+        for (int i = 0; i < getDimension(); i++)
+            z[i] = -data[i];
+        return z;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator*=(const Tps<T>& y) {
+        for (int i = 0; i < getDimension(); i++)
+            data[i] *= y;
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator/=(const Tps<T>& y) {
+        Tps<T> t = y.inverse(Tps<T>::getGlobalTruncOrder());
+        for (int i = 0; i < getDimension(); i++)
+            data[i] *= t;
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator*=(const T& y) {
+        for (int i = 0; i < getDimension(); i++)
+            data[i] *= y;
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator/=(const T& y) {
+        if (y == T(0)) throw ::DivideError("Vps::operator/()");
+        T t = T(1) / y;
+        for (int i = 0; i < getDimension(); i++)
+            data[i] *= t;
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator+=(const Vps<T>& y) {
+        if (getDimension() != y.getDimension()) {
+            throw ::LogicalError("Vps::operator+=()", "Inconsistent dimensions.");
+        }
+
+        for (int i = 0; i < getDimension(); i++)
+            data[i] += y.data[i];
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator-=(const Vps<T>& y) {
+        if (getDimension() != y.getDimension()) {
+            throw ::LogicalError("Vps::operator-=()", "Inconsistent dimensions.");
+        }
+
+        for (int i = 0; i < getDimension(); i++)
+            data[i] -= y.data[i];
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator+=(const Vector<T>& y) {
+        if (getDimension() != y.size()) {
+            throw ::LogicalError("Vps::operator+=()", "Inconsistent dimensions.");
+        }
+
+        for (int i = 0; i < getDimension(); i++)
+            data[i] += y[i];
+        return *this;
+    }
+
+    template <class T>
+    Vps<T>& Vps<T>::operator-=(const Vector<T>& y) {
+        if (getDimension() != y.size()) {
+            throw ::LogicalError("Vps::operator-=()", "Inconsistent dimensions.");
+        }
+
+        for (int i = 0; i < getDimension(); i++)
+            data[i] -= y[i];
+        return *this;
+    }
+
+    template <class T>
+    std::istream& Vps<T>::get(std::istream& is) {
+        std::string head;
+        if (!(is >> head)) return is;
+        if (head != "Vps") throw ::FormatError("Vps::get()", "Flag word \"Vps\" missing.");
+        int dimension;
+        if (!(is >> dimension)) return is;
+        if (dimension <= 0) throw ::FormatError("Vps::get()", "Positive Vps dimension required.");
+        Vps<T> temporary(dimension);
+        for (int i = 0; i < dimension; ++i) {
+            if (!(is >> temporary.data[i])) return is;
+        }
+        temporary.check();
+        // Default-constructed and differently sized destinations are supported;
+        // no partial component updates escape on failed extraction/validation.
+        *this = temporary;
+
+        return is;
+    }
+
+    template <class T>
+    std::ostream& Vps<T>::put(std::ostream& os) const {
+        int nDim = getDimension();
+        os << "Vps " << nDim << std::endl;
+        for (int i = 0; i < nDim; i++)
+            os << data[i];
+        return os;
+    }
+
+    template <class T>
+    int Vps<T>::getDimension() const {
+        return data.size();
+    }
+
+    template <class T>
+    int Vps<T>::getTopOrder() const {
+        const Tps<T>* p = data.begin();
+        int topOrder    = p->getMaxOrder();
+
+        while (++p < data.end()) {
+            topOrder = std::max(topOrder, p->getMaxOrder());
+        }
+
+        return topOrder;
+    }
+
+    template <class T>
+    int Vps<T>::getTruncOrder() const {
+        const Tps<T>* p = data.begin();
+        int truncOrder  = p->getTruncOrder();
+
+        while (++p < data.end()) {
+            truncOrder = std::min(truncOrder, p->getTruncOrder());
+        }
+
+        return truncOrder;
+    }
+
+    template <class T>
+    int Vps<T>::getVariables() const {
+        check();
+        return variables;
+    }
+
+    template <class T>
+    Vps<T> Vps<T>::filter(int lowOrder, int highOrder) const {
+        // Validate even when the vector has no components to delegate to.
+        if (lowOrder < 0 || highOrder < lowOrder)
+            throw ::CLRangeError("Vps::filter()", "Requires 0 <= lowOrder <= highOrder.");
+        check();
+        Vps<T> z(getDimension(), variables);
+
+        for (int i = 0; i < getDimension(); i++) {
+            z.data[i] = data[i].filter(lowOrder, highOrder);
+        }
+
+        return z;
+    }
+
+    template <class T>
+    Vps<T> Vps<T>::truncate(int trunc) {
+        return filter(0, trunc);
+    }
+
+}  // namespace tps
+
+#endif

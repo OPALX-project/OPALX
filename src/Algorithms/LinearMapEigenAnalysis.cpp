@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <sstream>
 #include "Utilities/OpalException.h"
+#include "tps/Map.hpp"
 
 namespace {
     void require(bool valid, const std::string& message) {
@@ -134,6 +135,38 @@ LinearMapEigenAnalysis::Result LinearMapEigenAnalysis::analyze(
         return std::arg(x.eigenvalue) < std::arg(y.eigenvalue);
     });
     return result;
+}
+
+LinearMapEigenAnalysis::Result LinearMapEigenAnalysis::analyze(
+        const tps::Map<double>& map, const Settings& settings) {
+    const auto& context = map.context();
+    const auto& chart   = context.input();
+    require(context.order() == 1 && chart.coordinates.size() == 4 && context.output() == chart,
+            "TPS eigenanalysis requires a first-order same-chart 4D map.");
+    require(chart.convention == tps::CoordinateConvention::mechanical
+                    && chart.referenceMomentum.has_value() && chart.momentumUnit == "p/(mc)"
+                    && !chart.referenceTime.has_value(),
+            "TPS eigenanalysis requires an autonomous fixed-momentum COF chart.");
+    const double momentum            = *chart.referenceMomentum;
+    const double longitudinalSquared = momentum * momentum - chart.reference[1] * chart.reference[1]
+                                       - chart.reference[3] * chart.reference[3];
+    require(std::isfinite(longitudinalSquared) && longitudinalSquared > 0,
+            "Invalid fixed-momentum COF reference.");
+    const std::array<std::string, 4> names{"x", "px", "y", "py"};
+    for (unsigned i = 0; i < 4; ++i) {
+        require(chart.coordinates[i].name == names[i]
+                        && chart.coordinates[i].unit == (i % 2 ? "p/(mc)" : "m"),
+                "TPS eigenanalysis requires (x,px,y,py) in metres and mechanical p/(mc).");
+        const auto& component = map.polynomial()[i];
+        for (int j = 0; j < component.getSize(); ++j)
+            require(std::isfinite(component[j]), "Nonfinite TPS coefficient.");
+    }
+    const auto local = map.jacobian(OneTurnMap::Coordinates{});
+    Matrix physical{};
+    for (unsigned i = 0; i < 4; ++i)
+        for (unsigned j = 0; j < 4; ++j)
+            physical[i][j] = local(i, j) * chart.coordinates[i].scale / chart.coordinates[j].scale;
+    return analyze(physical, settings);
 }
 
 void LinearMapEigenAnalysis::writeReport(std::ostream& output, const Result& result) {

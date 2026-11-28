@@ -56,6 +56,7 @@
 #undef private
 
 #include "AbsBeamline/ElementBase.h"
+#include "BeamlineCore/TravelingWaveRep.h"
 #include "Fields/Fieldmap.h"
 
 #include <cmath>
@@ -213,6 +214,35 @@ protected:
 // Basic API
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetType) { EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE); }
+
+TEST_F(TravelingWaveTest, ConfiguredCellCountIsAvailableForDisplay) {
+    EXPECT_EQ(tw_->getNumCells(), 3);
+    tw_->setNumCells(26);
+    EXPECT_EQ(tw_->getNumCells(), 26);
+}
+
+TEST_F(TravelingWaveTest, RepresentationCopyAndClonePreserveGeometry) {
+    TravelingWaveRep original("CLICG");
+    original.getGeometry() = Geometry::makeStraight(.233284666);
+    original.getGeometry().setStartZ(-.0124973928);
+    original.setAperture(ApertureType::ELLIPTICAL, {.05, .05});
+    original.setAmplitude(60.);
+    original.setNumCells(26);
+    TravelingWaveRep copied(original);
+    const std::unique_ptr<ElementBase> cloned(original.clone());
+    for (const ElementBase* element : {static_cast<ElementBase*>(&copied), cloned.get()}) {
+        EXPECT_EQ(element->getGeometry().kind(), GeometryKind::Straight);
+        EXPECT_DOUBLE_EQ(element->getGeometry().getElementLength(), .233284666);
+        EXPECT_DOUBLE_EQ(element->getGeometry().getArcLength(), .233284666);
+        EXPECT_DOUBLE_EQ(element->getGeometry().getStartZ(), -.0124973928);
+        EXPECT_EQ(element->getAperture(), original.getAperture());
+        EXPECT_EQ(static_cast<const TravelingWave*>(element)->getNumCells(), 26);
+    }
+    EXPECT_DOUBLE_EQ(copied.getAmplitude(), original.getAmplitude());
+    copied.getGeometry().setElementLength(.5);
+    EXPECT_DOUBLE_EQ(original.getGeometry().getElementLength(), .233284666);
+    EXPECT_DOUBLE_EQ(cloned->getGeometry().getElementLength(), .233284666);
+}
 
 TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
     tw_->setAmplitude(5.0);

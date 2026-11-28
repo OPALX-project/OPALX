@@ -48,3 +48,6 @@ __pycache__/
 *.pyc
 sandbox
 
+# TPS mathematical/API source documentation is versioned.
+!src/tps/docs/
+!src/tps/docs/**

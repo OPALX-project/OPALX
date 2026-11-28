@@ -1,4 +1,5 @@
 set (_SRCS
+  LinearTransferMap.cpp
   Beam.cpp
   EmissionSource.cpp
   BoundingBox.cpp

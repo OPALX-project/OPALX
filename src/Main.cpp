@@ -35,6 +35,7 @@ extern "C" {
 
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "BasicActions/Option.h"
+#include "Structure/LinearTransferMap.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -605,6 +606,7 @@ int main(int argc, char* argv[]) {
         // \todo we should not need this OpalData::deleteInstance();
 
         delete gmsg;
+        releaseTransferMapStorage();
         ippl::finalize();
         return 0;
     }

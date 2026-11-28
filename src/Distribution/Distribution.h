@@ -27,7 +27,6 @@
 #include <memory>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/Matrix.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
