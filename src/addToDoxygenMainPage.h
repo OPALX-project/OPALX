@@ -16,7 +16,9 @@ C++ classes.
 
 <P>
 See \ref tps_overview for TPS map algebra, mathematical conventions and the
-host-to-device preparation boundary.
+host-to-device preparation boundary. See MatchedCovariance for the fixed-energy
+magnetic-section conversion and normalized RMS covariance equations, and MatchCmd
+for the named transverse MATCH command.
 </P>
 <P>
 For further information please contact us on the <a href="mailto:opal@lists.psi.ch">OPAL mailing

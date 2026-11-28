@@ -22,8 +22,11 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "Beamlines/Beamline.h"
+#include "Distribution/Distribution.h"
 #include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
+#include "Track/MatchedSource.h"
 #include "Track/Track.h"
 #include "Track/TrackParser.h"
 #include "Utilities/OpalException.h"
@@ -204,6 +207,44 @@ void TrackCmd::execute() {
         beams.push_back(Beam::find(name));  // fail fast
     }
 
+    // Resolve MOMENTS for the actual source, not while a reusable Distribution is
+    // defined. Keep a value snapshot; a later MATCH rerun must not alter this TRACK.
+    std::optional<MatchCmd::Result> matchedMoments;
+    std::string matchedMomentsName;
+    for (auto* selectedBeam : beams) {
+        if (!selectedBeam->hasEmissionSources()) continue;
+        auto* list = dynamic_cast<EmissionSourceList*>(
+                OpalData::getInstance()->find(selectedBeam->getEmissionSourceListName()));
+        if (!list) continue;  // Ordinary source lookup keeps its existing RUN validation.
+        const auto& sources = list->fetchSources();
+        for (auto* source : sources) {
+            auto* distribution = dynamic_cast<Distribution*>(
+                    OpalData::getInstance()->find(source->getDistributionName()));
+            if (!distribution || distribution->getMomentsName().empty()) continue;
+            if (beams.size() != 1 || sources.size() != 1 || matchedMoments.has_value()
+                || OpalData::getInstance()->inRestartRun()
+                || OpalData::getInstance()->hasBunchAllocated()
+                || theLineToTrack->fetchLine()->getBeamlineTopology() != BeamlineTopology::RING)
+                throw OpalException(
+                        "MOMENTS",
+                        "Requires exactly one fresh beam and source in a RING; no restart or "
+                        "populated bunch.");
+            if (!selectedBeam->getGlobalProcessNames().empty()
+                || !selectedBeam->getDaughterBeamName().empty())
+                throw OpalException(
+                        "MOMENTS", "Global processes and decay chains are unsupported.");
+            distribution->execute();
+            validateMatchedSource(*source);
+            matchedMomentsName = distribution->getMomentsName();
+            matchedMoments     = MatchCmd::findResult(matchedMomentsName);
+            if (!selectedBeam->hasExplicitEnergy())
+                throw OpalException("MOMENTS", "BEAM requires explicit energy.");
+            matchedMoments->source.launch.validate(
+                    theLineToTrack->getOpalName(), selectedBeam->getParticleName(),
+                    selectedBeam->getReference());
+        }
+    }
+
     // Current tracker supports only a single beam; use the first one for now.
     Beam* beam = beams.front();
 
@@ -241,11 +282,27 @@ void TrackCmd::execute() {
     if (!itsAttr[EKINSTOP].defaultUsed() && (!std::isfinite(kineticStop) || kineticStop <= 0))
         throw OpalException("TrackCmd::execute", "EKINSTOP must be finite and positive [GeV].");
     std::optional<ClosedOrbitInitialState> initialOrbit;
+    if (matchedMoments) {
+        const auto& launch = matchedMoments->source.launch;
+        if (zstart != 0 || (!itsAttr[T0].defaultUsed() && t0 != launch.time))
+            throw OpalException(
+                    "MOMENTS", "ZSTART must be zero and TRACK T0 must agree with MATCH.");
+        initialOrbit = launch;
+        t0           = launch.time;
+    }
     if (!itsAttr[INITIALORBIT].defaultUsed()) {
         if (beams.size() != 1 || OpalData::getInstance()->inRestartRun() || zstart != 0)
             throw OpalException("INITIALORBIT", "Requires one beam, a fresh run and ZSTART=0.");
         const std::string initialOrbitName = Attributes::getString(itsAttr[INITIALORBIT]);
         const auto& initial                = CofCmd::findResult(initialOrbitName);
+        if (matchedMoments) {
+            const auto& explicitOrbit = CofCmd::findOptics(initialOrbitName);
+            const auto& selected      = matchedMoments->source;
+            if (explicitOrbit.command != selected.command
+                || explicitOrbit.generation != selected.generation)
+                throw OpalException(
+                        "MOMENTS", "INITIALORBIT must reference the COF execution used by MATCH.");
+        }
         if (!beam->hasExplicitEnergy())
             throw OpalException("INITIALORBIT", "BEAM must specify the same energy as COF.");
         initial.validate(
@@ -260,6 +317,8 @@ void TrackCmd::execute() {
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
     Track::block->kineticEnergyStopGeV = kineticStop;
     Track::block->initialOrbit         = std::move(initialOrbit);
+    Track::block->matchedMoments       = std::move(matchedMoments);
+    Track::block->matchedMomentsName   = std::move(matchedMomentsName);
 
     Track::block->parser.run();
 

@@ -90,6 +90,11 @@ public:
     /// If 0, the distribution did not specify its own NPARTDIST.
     size_t getNumParticles() const;
 
+    /// Optional MATCH reference, resolved for the actual source/beam at TRACK setup.
+    /// Transverse sigma and all correlation inputs are overridden; longitudinal
+    /// widths remain explicit. The registry-owned Distribution stores no result.
+    std::string getMomentsName() const;
+
     Inform& printInfo(Inform& os) const;
 
     ippl::Vector<double, 3> get_pmean() const;

@@ -1,4 +1,5 @@
 set (_SRCS
+    Analytic3D/FieldTensor.cpp
     SpaceChargeConfig.cpp
     SpaceChargeConfigBuilder.cpp
     SpaceChargeFactory.cpp
@@ -11,6 +12,7 @@ set (HDRS
     )
 
 set (_PRIVATE_HDRS
+    Analytic3D/FieldTensor.h
     SpaceChargeAlgorithm.h
     SpaceChargeSolver.h
     SpaceChargeFrames.h
@@ -27,3 +29,5 @@ add_subdirectory (FFT2D5)
 add_subdirectory (CartesianPIC3D)
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge")
+install (FILES Analytic3D/FieldTensor.h
+         DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge/Analytic3D")

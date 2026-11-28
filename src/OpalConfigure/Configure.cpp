@@ -46,6 +46,7 @@
 
 // Commands introducing a special mode.
 #include "Track/CofCmd.h"
+#include "Track/MatchCmd.h"
 #include "Track/TrackCmd.h"
 
 // Table-related commands.
@@ -121,6 +122,7 @@ namespace {
         opal->create(new Title());
         opal->create(new TrackCmd());
         opal->create(new CofCmd());
+        opal->create(new MatchCmd());
         opal->create(new Value());
     }
 

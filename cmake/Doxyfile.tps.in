@@ -11,7 +11,15 @@ INPUT = @PROJECT_SOURCE_DIR@/src/tps \
         @PROJECT_SOURCE_DIR@/src/Algorithms/LinearTransferMapBuilder.h \
         @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.h \
         @PROJECT_SOURCE_DIR@/src/Algorithms/TpsLinearMapAlgebra.cpp \
-        @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitSolver.h
+        @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitSolver.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/ClosedOrbitOptics.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/MatchedCovariance.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/CanonicalModes6D.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/MatchedDistributionCovariance.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/SpaceChargeMap.h \
+        @PROJECT_SOURCE_DIR@/src/Algorithms/SpaceChargeTransport.h \
+        @PROJECT_SOURCE_DIR@/src/SpaceCharge/Analytic3D/FieldTensor.h \
+        @PROJECT_SOURCE_DIR@/src/Track/MatchCmd.h
 RECURSIVE = YES
 FILE_PATTERNS = *.h *.hpp *.cpp *.dox *.md
 EXTRACT_ALL = YES

@@ -25,6 +25,16 @@ namespace tps {
         Kokkos::Array<double, 9> axes{1, 0, 0, 0, 1, 0, 0, 0, 1};
         bool operator==(const ReferenceFrame&) const = default;
     };
+    /** @brief A named physical parameter defining a chart, included in exact boundary matching.
+     * For example, normalized magnetic-field components specify a local canonical gauge.
+     * Parameters describe coordinate meaning, not the map's algorithm or integration settings.
+     */
+    struct ChartParameter {
+        std::string name;
+        std::string unit;
+        double value                                 = 0;
+        bool operator==(const ChartParameter&) const = default;
+    };
     /** @brief A labelled expansion chart, including reference values and normalization.
      * @details reference is in the corresponding Coordinate::unit. referenceTime is
      * in seconds; referenceMomentum is in momentumUnit (no automatic conversion).
@@ -41,6 +51,7 @@ namespace tps {
         std::string momentumUnit;
         CoordinateConvention convention = CoordinateConvention::unspecified;
         std::vector<std::pair<std::size_t, std::size_t>> canonicalPairs;
+        std::vector<ChartParameter> parameters;  ///< Additional coordinate-defining values.
         bool operator==(const PhaseSpaceChart&) const = default;
     };
     /** @brief Validated, value-owned map boundaries, finite order and segment provenance.
@@ -129,6 +140,15 @@ namespace tps {
                 }
             } else if (!chart.canonicalPairs.empty())
                 throw std::invalid_argument("MapContext: pairs require canonical convention");
+            for (std::size_t i = 0; i < chart.parameters.size(); ++i) {
+                const auto& parameter = chart.parameters[i];
+                if (parameter.name.empty() || parameter.unit.empty()
+                    || !std::isfinite(parameter.value))
+                    throw std::invalid_argument("MapContext: invalid chart parameter");
+                for (std::size_t j = 0; j < i; ++j)
+                    if (parameter.name == chart.parameters[j].name)
+                        throw std::invalid_argument("MapContext: duplicate chart parameter");
+            }
         }
         PhaseSpaceChart input_, output_;
         int order_;

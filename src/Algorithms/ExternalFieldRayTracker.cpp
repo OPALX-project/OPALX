@@ -122,8 +122,12 @@ std::string ExternalFieldRayTracker::integrationMethodName(const IntegrationMeth
 }
 
 ExternalFieldRayTracker::ExternalFieldRayTracker(
-        OpalBeamline& beamline, const PartData& reference, const IntegrationMethod method)
-    : beamline_m(beamline), reference_m(reference), integrationMethod_m(method) {
+        OpalBeamline& beamline, const PartData& reference, const IntegrationMethod method,
+        bool requireIsolatedFields)
+    : beamline_m(beamline),
+      reference_m(reference),
+      integrationMethod_m(method),
+      requireIsolatedFields_m(requireIsolatedFields) {
     integrationMethodName(method);  // Validate even when no ray will be advanced.
     for (const auto& element : beamline_m.getElements()) {
         if (element->getType() == ElementType::MARKER || element->getType() == ElementType::MONITOR)
@@ -138,6 +142,53 @@ ExternalFieldRayTracker::ExternalFieldRayTracker(
         if (bodyLength > 0.0)
             maximumStep_m = std::min(maximumStep_m, bodyLength / (4.0 * Physics::c));
     }
+}
+
+bool ExternalFieldRayTracker::evaluateFields(
+        const State& ray, const ElementSet& selected, Vector_t<double, 3>& electric,
+        Vector_t<double, 3>& magnetic) const {
+    using namespace orbit_threader_diagnostics;
+    const auto diagnostic = [](const auto& element) {
+        return element->getType() == ElementType::MARKER
+               || element->getType() == ElementType::MONITOR;
+    };
+    if (requireIsolatedFields_m) {
+        const auto check = [&](const ElementSet& elements) {
+            unsigned count = 0;
+            for (const auto& element : elements) {
+                if (diagnostic(element)) continue;
+                if (++count > 1 || element->getType() == ElementType::RFCAVITY
+                    || element->getType() == ElementType::TRAVELINGWAVE)
+                    throw OpalException(
+                            "ExternalFieldRayTracker",
+                            "Analytic SC transport requires isolated non-RF elements; overlaps are "
+                            "deferred.");
+            }
+        };
+        check(selected);
+        check(beamline_m.getBodyElements(ray.position));
+    }
+    for (const auto& element : selected) {
+        if (diagnostic(element)) continue;
+        const auto localR = beamline_m.transformToLocalCS(element, ray.position);
+        const auto localP = beamline_m.rotateToLocalCS(element, ray.momentum);
+        Vector_t<double, 3> localE(0.0), localB(0.0);
+        count(&Work::elementFields);
+        if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB))
+            return true;
+        electric += beamline_m.rotateFromLocalCS(element, localE);
+        magnetic += beamline_m.rotateFromLocalCS(element, localB);
+    }
+    return false;
+}
+
+void ExternalFieldRayTracker::sampleExternalFields(
+        const State& ray, Vector_t<double, 3>& electric, Vector_t<double, 3>& magnetic) const {
+    electric = magnetic = Vector_t<double, 3>(0.0);
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
+    if (evaluateFields(ray, beamline_m.getElements(ray.position), electric, magnetic))
+        throw OpalException(
+                "ExternalFieldRayTracker::sampleExternalFields", "Reference hits material.");
 }
 
 ExternalFieldRayTracker::Step ExternalFieldRayTracker::step(
@@ -295,20 +346,7 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     const auto trial = step(initial, dt, [&](const State& ray, auto& electric, auto& magnetic) {
         const auto stageSet = beamline_m.getElements(ray.position);
         crossedSupport      = crossedSupport || stageSet != initialSet;
-        for (const auto& element : stageSet) {
-            if (element->getType() == ElementType::MARKER
-                || element->getType() == ElementType::MONITOR)
-                continue;
-            const auto localR = beamline_m.transformToLocalCS(element, ray.position);
-            const auto localP = beamline_m.rotateToLocalCS(element, ray.momentum);
-            Vector_t<double, 3> localE(0.0), localB(0.0);
-            count(&Work::elementFields);
-            if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB))
-                return true;
-            electric += beamline_m.rotateFromLocalCS(element, localE);
-            magnetic += beamline_m.rotateFromLocalCS(element, localB);
-        }
-        return false;
+        return evaluateFields(ray, stageSet, electric, magnetic);
     });
     // Preserve the original query's short circuit. Only this trial's accepted
     // endpoint can become a sibling's start; a rejected trial follows another path.

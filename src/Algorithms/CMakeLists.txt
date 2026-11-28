@@ -11,6 +11,11 @@ set (_SRCS
     CyclotronProbeRecorder.cpp
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
+    MatchedCovariance.cpp
+    CanonicalModes6D.cpp
+    MatchedDistributionCovariance.cpp
+    SpaceChargeMap.cpp
+    SpaceChargeTransport.cpp
     LinearMapEigenAnalysis.cpp
     TpsClosedOrbitMap.cpp
     TpsLinearMapAlgebra.cpp
@@ -57,6 +62,12 @@ set (HDRS
     OrbitThreaderDiagnostics.h
     ParallelTracker.h
     ClosedOrbitInitialState.h
+    ClosedOrbitOptics.h
+    MatchedCovariance.h
+    CanonicalModes6D.h
+    MatchedDistributionCovariance.h
+    SpaceChargeMap.h
+    SpaceChargeTransport.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

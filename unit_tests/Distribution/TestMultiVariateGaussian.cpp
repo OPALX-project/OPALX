@@ -420,3 +420,55 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
         }
     }
 }
+
+TEST_F(MultiVariateGaussianTest, PopulationCovarianceCompensatesThreeSigmaLatentCutoff) {
+    const Vector_t<double, 3> meanR(0.0), meanP(0, 0, 2), oldSigma(1.0), cutoff(3.0);
+    const auto savedSeed = Options::seed;
+    Options::seed        = 20261126;  // Independent rank seeds, reproducible across MPI tests.
+    MultiVariateGaussian sampler(pc, meanR, meanP, oldSigma, oldSigma, cutoff, cutoff);
+    Options::seed = savedSeed;
+    Matrix_t covariance;
+    const double sigma[6] = {.002, .2, .003, .1, .005, .0001};
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j)
+            covariance[i][j] = i == j ? sigma[i] * sigma[i] : 0;
+    covariance[0][1] = covariance[1][0] = -.6 * sigma[0] * sigma[1];
+    covariance[2][3] = covariance[3][2] = .4 * sigma[2] * sigma[3];
+    sampler.setPopulationCovariance(covariance);
+    size_t total = 400000;
+    preallocateParticleCapacity(pc, total);
+    sampler.generateParticles(total, nr);
+    double mean[6], actual[6][6];
+    computeMeanRAndP(pc, total, mean);
+    computeCovariance6x6(pc, mean, total, actual);
+    // >=6 normal standard errors for all entries at N=400k. This is below
+    // the 2.6663% systematic diagonal bias if cutoff compensation is absent.
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j)
+            EXPECT_NEAR(actual[i][j], covariance[i][j], .015 * sigma[i] * sigma[j])
+                    << i << ',' << j;
+    EXPECT_NEAR(mean[5], 2., 1e-12);
+}
+
+TEST_F(MultiVariateGaussianTest, OrdinaryCovarianceRetainsThreeSigmaCutoffConvention) {
+    const Vector_t<double, 3> zero(0.0), sigma(1.0), cutoff(3.0);
+    const auto savedSeed = Options::seed;
+    Options::seed        = 20261126;
+    MultiVariateGaussian sampler(pc, zero, zero, sigma, sigma, cutoff, cutoff);
+    Options::seed = savedSeed;
+    Matrix_t covariance;
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j)
+            covariance[i][j] = i == j ? 1.0 : 0.0;
+    sampler.setPopulationCovariance(covariance);
+    sampler.setCovarianceMatrix(covariance);  // Explicitly return to the ordinary convention.
+    size_t total = 400000;
+    preallocateParticleCapacity(pc, total);
+    sampler.generateParticles(total, nr);
+    double mean[6], actual[6][6];
+    computeMeanRAndP(pc, total, mean);
+    computeCovariance6x6(pc, mean, total, actual);
+    // Same statistical margin as the population test; distinguish 0.973337 from 1.
+    for (unsigned i = 0; i < 6; ++i)
+        EXPECT_NEAR(actual[i][i], .9733369246625415, .015);
+}

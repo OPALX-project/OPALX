@@ -120,7 +120,17 @@ public:
 
     ExternalFieldRayTracker(
             OpalBeamline& beamline, const PartData& reference,
-            IntegrationMethod method = IntegrationMethod::BORIS);
+            IntegrationMethod method   = IntegrationMethod::BORIS,
+            bool requireIsolatedFields = false);
+
+    /** @brief Sample external E/B in laboratory axes at one reference state.
+     * Clears outputs; uses the same element selection, reference-field evaluation and
+     * frame rotation as advance(). Material hits throw. With requireIsolatedFields,
+     * reject RF and simultaneous non-diagnostic field/body contributors wherever sampled.
+     * This is a sampled restriction, not a certificate of unresolved geometry.
+     */
+    void sampleExternalFields(
+            const State&, Vector_t<double, 3>& electric, Vector_t<double, 3>& magnetic) const;
 
     /// Conservative geometry-based time-step cap [s]. Support events may refine further.
     double maximumTimeStep() const { return maximumStep_m; }
@@ -146,9 +156,12 @@ private:
     const PartData& reference_m;
     BorisPusher integrator_m;
     IntegrationMethod integrationMethod_m;
+    bool requireIsolatedFields_m;
     double maximumStep_m{std::numeric_limits<double>::max()};
     Step borisStep(const State& initial, double dt, const FieldEvaluator& fields) const;
     Step rungeKuttaStep(const State& initial, double dt, const FieldEvaluator& fields) const;
+    bool evaluateFields(
+            const State&, const ElementSet&, Vector_t<double, 3>&, Vector_t<double, 3>&) const;
     /** Reuse only membership evaluated at the identical recursive start or an
      * accepted endpoint. Containment must remain a fixed function of position
      * during advance(). No field values, rejected endpoints, or states from a

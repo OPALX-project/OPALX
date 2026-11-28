@@ -211,6 +211,24 @@ void MultiVariateGaussian::generateParticles(
 
     // compute boundaries of normal random numbers
     ComputeCenteredBounds();
+    if (compensateCutoff_m) {
+        // E[Z^2] for Z~N(0,1) conditioned on |Z|<=a. Correct each independent
+        // latent coordinate, not the correlated physical coordinate marginals.
+        for (unsigned j = 0; j < 6; ++j) {
+            const double a = j % 2 ? cutoffP_m[j / 2] : cutoffR_m[j / 2];
+            if (!std::isfinite(a) || a <= 0)
+                throw OpalException(
+                        "MOMENTS", "Gaussian latent cutoffs must be positive and finite.");
+            const double variance =
+                    1
+                    - 2 * a * std::exp(-0.5 * a * a)
+                              / (std::sqrt(2 * std::acos(-1.0)) * std::erf(a / std::sqrt(2.0)));
+            if (!std::isfinite(variance) || variance <= 0)
+                throw OpalException("MOMENTS", "Invalid Gaussian cutoff variance.");
+            for (unsigned i = j; i < 6; ++i)
+                L_m[i][j] /= std::sqrt(variance);
+        }
+    }
 
     const double par[6] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
     using Dist_t        = ippl::random::NormalDistribution<double, 3>;
@@ -415,4 +433,26 @@ void MultiVariateGaussian::emitParticles(double t, double dt) {
                 KOKKOS_LAMBDA(const size_t j) { dtview(offset + j) = fracDt; });
         Kokkos::fence();
     }
+}
+
+void MultiVariateGaussian::setCovarianceMatrix(const Matrix_t& cov) {
+    for (unsigned i = 0; i < 6; ++i) {
+        if (!std::isfinite(cov[i][i]) || cov[i][i] <= 0)
+            throw OpalException(
+                    "MultiVariateGaussian", "Covariance diagonal must be positive and finite.");
+        for (unsigned j = 0; j < 6; ++j)
+            if (!std::isfinite(cov[i][j]) || cov[i][j] != cov[j][i])
+                throw OpalException(
+                        "MultiVariateGaussian", "Covariance must be finite and symmetric.");
+    }
+    cov_m              = cov;
+    compensateCutoff_m = false;
+    for (unsigned i = 0; i < 3; ++i) {
+        sigmaR_m[i] = std::sqrt(cov[2 * i][2 * i]);
+        sigmaP_m[i] = std::sqrt(cov[2 * i + 1][2 * i + 1]);
+    }
+}
+void MultiVariateGaussian::setPopulationCovariance(const Matrix_t& cov) {
+    setCovarianceMatrix(cov);
+    compensateCutoff_m = true;
 }

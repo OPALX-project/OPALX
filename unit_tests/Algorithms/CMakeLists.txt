@@ -9,6 +9,12 @@ add_opalx_test(TestCoordinateSystemTrafo USE_GTEST_MAIN)
 add_opalx_test(TestIndexMap USE_GTEST_MAIN)
 add_opalx_test(TestOrbitThreader USE_GTEST_MAIN)
 add_opalx_test(TestTpsLinearTransferMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeMap USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeTransport USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeTransportMPI SOURCES TestSpaceChargeTransport.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestSpaceChargeMapMPI SOURCES TestSpaceChargeMap.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsLinearTransferMapMPI SOURCES TestTpsLinearTransferMap.cpp
                NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestSpectralTunes USE_GTEST_MAIN)
@@ -24,7 +30,12 @@ add_opalx_test(TestPassiveRingProbe USE_GTEST_MAIN)
 add_opalx_test(TestBorisMidpoint USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitInitialState USE_GTEST_MAIN)
 add_opalx_test(TestClosedOrbitSolver USE_GTEST_MAIN)
+add_opalx_test(TestMatchedCovariance USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestMatchedCovarianceMPI SOURCES TestMatchedCovariance.cpp NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestLinearMapEigenAnalysis USE_GTEST_MAIN)
+add_opalx_test(TestCanonicalModes6D USE_GTEST_MAIN LABELS tps)
+add_opalx_test(TestCanonicalModes6DMPI SOURCES TestCanonicalModes6D.cpp
+               NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsClosedOrbitMap USE_GTEST_MAIN LABELS tps)
 add_opalx_test(TestTpsClosedOrbitMapMPI SOURCES TestTpsClosedOrbitMap.cpp
                NUM_PROCS 2 USE_GTEST_MAIN LABELS tps)

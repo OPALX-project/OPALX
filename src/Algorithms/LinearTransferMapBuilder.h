@@ -68,6 +68,9 @@ public:
         /// Fixed-nominal-step integrator for reference and shadow rays; default BORIS.
         ExternalFieldRayTracker::IntegrationMethod integrationMethod{
                 ExternalFieldRayTracker::IntegrationMethod::BORIS};
+        /// Opt-in restriction for analytic SC transport; sampled body/support overlaps and RF
+        /// are rejected at reference/shadow field evaluations. Legacy map construction sums fields.
+        bool requireIsolatedFields = false;
         /// Require finite positive amplitudes that remain nonzero after refinement,
         /// delta amplitude < 1, an allowed level count and a supported integration method.
         /// @throws OpalException If any of these conditions fails.
@@ -134,6 +137,26 @@ public:
      * No maps or overlap flags on the elements are changed.
      */
     Result build(std::vector<ReferenceSample> samples, double startPathLength);
+
+    /** @brief Calculate an actual external map between supplied reference planes.
+     * Reuses the unchanged centered-difference/Richardson construction. Does not attach/publish
+     * maps or infer a half-map from an existing matrix. Caller supplies a consistent forward
+     * reference trajectory and must resolve all relevant field geometry.
+     * Returns numerical/reference diagnostics; sampled contributor/owner diagnostics from
+     * build() are not populated by this standalone draft calculation.
+     */
+    LinearTransferMapDraft externalInterval(
+            const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
+            std::size_t ordinal);
+    /** @brief Locate an interior path station by nominal-DT tracking and tracked bisection.
+     * Uses actual positions/times/momenta/path and transports the frame. Retains the localized
+     * path within the tracker's target tolerance, preserving supplied endpoints exactly.
+     * Forward intervals only; no linear
+     * state/time interpolation. Resolution is that of advanceToPathLength, independent of NS.
+     */
+    LinearTransferMapReference referenceAtPath(
+            const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
+            double target);
 
     /// Project the beamline x axis perpendicular to nonzero lab momentum, using its y axis
     /// as fallback. Returns axes only; other reference-state fields retain default values.
