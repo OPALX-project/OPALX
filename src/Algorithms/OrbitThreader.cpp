@@ -188,14 +188,12 @@ void OrbitThreader::execute() {
         *gmsg << level1 << settings.str() << endl;
     }
     if (calculateMaps) {
+        itsOpalBeamline_m.clearTransferMaps();
         for (const auto& element : itsOpalBeamline_m.getElements()) {
-            element->clearLinearTransferMaps();
             element->setOverlapping(false);
         }
         referenceSamples_m.clear();
-        combinedLinearTransferMap_m.reset();
-        combinedDeterminantResidual_m.reset();
-        combinedSymplecticResidual_m.reset();
+        transferMapPass_m.reset();
         transferMapStartPathLength_m = initialPathLength;
         collectReferenceSamples_m    = true;
         recordReferenceSample();
@@ -293,16 +291,15 @@ void OrbitThreader::execute() {
                 std::shared_ptr<ElementBase>, std::size_t,
                 std::owner_less<std::shared_ptr<ElementBase>>>
                 passes;
-        for (auto& segment : result.segments) {
+        std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>
+                attachments;
+        for (const auto& segment : result.segments) {
             for (const auto& element : segment.owners) {
-                auto attached = segment.map;
-                attached.pass = passes[element]++;
-                element->addLinearTransferMap(std::move(attached));
+                attachments.push_back({element, {segment.map, passes[element]++}});
             }
         }
-        combinedLinearTransferMap_m   = result.combined;
-        combinedDeterminantResidual_m = result.determinantResidual;
-        combinedSymplecticResidual_m  = result.symplecticResidual;
+        itsOpalBeamline_m.publishTransferMapPass(result.pass, attachments);
+        transferMapPass_m = result.pass;
         attachmentTime.stop();
         TimedPhase mapOutputTime(output);
         printCombinedLinearTransferMap();
@@ -687,7 +684,7 @@ Vector_t<double, 3> OrbitThreader::nextMidpointPosition() const {
 }
 
 void OrbitThreader::printCombinedLinearTransferMap() const {
-    if (!combinedLinearTransferMap_m || ippl::Comm->rank() != 0) return;
+    if (!transferMapPass_m || ippl::Comm->rank() != 0) return;
     *gmsg << level1 << "* Linear-map integrator: "
           << ExternalFieldRayTracker::integrationMethodName(mapSettings_m.integrationMethod)
           << "; Richardson levels: " << mapSettings_m.richardsonLevels
@@ -704,7 +701,7 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
           << (period_m > 0.0 ? "\n* Combined one-turn linear transfer map"
                              : "\n* Combined linear transfer map")
           << "  (x, x', y, y', zeta, delta):\n";
-    const auto& map = *combinedLinearTransferMap_m;
+    const auto map = transferMapPass_m->matrix();
     for (int row = 0; row < 6; ++row) {
         *gmsg << "  ";
         for (int column = 0; column < 6; ++column) {
@@ -712,8 +709,8 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
         }
         *gmsg << "\n";
     }
-    const double determinantError = *combinedDeterminantResidual_m;
-    const double symplecticError  = *combinedSymplecticResidual_m;
+    const double determinantError = transferMapPass_m->determinantResidual();
+    const double symplecticError  = transferMapPass_m->symplecticResidual();
     *gmsg << "* Volume-preservation diagnostic: "
           << (determinantError <= mapDiagnosticTolerance ? "PASS" : "FAIL") << "\n"
           << "*   |det(M) - 1| = " << std::setprecision(7) << std::scientific << determinantError

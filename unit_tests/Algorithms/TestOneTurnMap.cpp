@@ -1,5 +1,8 @@
+#include <Kokkos_Core.hpp>
+#include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/OneTurnMap.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/TpsClosedOrbitMap.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
@@ -354,4 +357,48 @@ TEST(OneTurnMap, InternalStepCapPreventsUnproductiveCoarseTraversals) {
     EXPECT_NEAR(full.tunes[1], 2.72, 1e-8);
     EXPECT_GE(full.samples, 4096u);
     EXPECT_LT(advances, 41500u);
+}
+
+TEST(OneTurnMap, TpsEigenanalysisPreservesFullTuneWindingWithoutAdditionalRays) {
+    Kokkos::ScopeGuard runtime;
+    auto tracking     = settings();
+    tracking.dt       = 2 * std::acos(-1.0) / 512;
+    tracking.maxSteps = 1024;
+    auto advance      = harmonicRing(3.41, 2.72);
+    unsigned calls    = 0;
+    OneTurnMap map(
+            [&](const auto& ray, double dt, auto* accepted) {
+                ++calls;
+                return advance(ray, dt, accepted);
+            },
+            CoordinateSystemTrafo(), tracking);
+    ClosedOrbitSolver::Settings solver;
+    solver.finiteDifferenceSteps.fill(1e-5);
+    const auto orbit = ClosedOrbitSolver::solve(map, OneTurnMap::Coordinates{}, solver);
+    ASSERT_EQ(orbit.status, ClosedOrbitSolver::Status::Converged) << orbit.message;
+    const auto saved = orbit;
+    const auto before =
+            map.fullTunes(orbit.coordinates, solver.finiteDifferenceSteps, orbit.matrix);
+    ASSERT_TRUE(before.available) << before.diagnostic;
+    const unsigned beforeTps = calls;
+    const auto tpsMap =
+            opalx::maps::toTpsClosedOrbitMap(orbit, CoordinateSystemTrafo(), tracking.momentum);
+    const auto spectrum =
+            LinearMapEigenAnalysis::analyze(tpsMap, LinearMapEigenAnalysis::Settings{});
+    EXPECT_EQ(calls, beforeTps);
+    EXPECT_EQ(spectrum.stability, LinearMapEigenAnalysis::Stability::Stable);
+    ASSERT_EQ(spectrum.modes.size(), 2u);
+    EXPECT_NEAR(*spectrum.modes[0].tune, 0.28, 1e-8);
+    EXPECT_NEAR(*spectrum.modes[1].tune, 0.41, 1e-8);
+    const auto after = map.fullTunes(orbit.coordinates, solver.finiteDifferenceSteps, orbit.matrix);
+    EXPECT_EQ(orbit.coordinates, saved.coordinates);
+    EXPECT_EQ(orbit.residual, saved.residual);
+    EXPECT_EQ(orbit.matrix, saved.matrix);
+    EXPECT_EQ(after.available, before.available);
+    EXPECT_EQ(after.tunes, before.tunes);
+    EXPECT_EQ(after.samples, before.samples);
+    EXPECT_EQ(after.maximumPhaseStep, before.maximumPhaseStep);
+    EXPECT_EQ(after.diagnostic, before.diagnostic);
+    EXPECT_NEAR(after.tunes[0], 3.41, 1e-8);
+    EXPECT_NEAR(after.tunes[1], 2.72, 1e-8);
 }

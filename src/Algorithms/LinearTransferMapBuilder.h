@@ -15,8 +15,18 @@ class PartData;
  *
  * Owns Bishop-frame transport, boundary refinement, the perturbed rays,
  * the pivoted finite-difference solve and ordered composition. The caller owns
- * the reference pass and attaches the returned maps to their runtime elements.
+ * the reference pass and publishes the returned snapshot on the runtime beamline.
  * The builder neither modifies the beamline nor writes diagnostics to stdout.
+ * Unique segment matrices are represented as first-order mechanical TPS maps
+ * and composed in reference-path order. The combined TPS polynomial is retained; Jacobians are
+ * derived values in the existing reporting matrix type. Adjacent boundary charts must match
+ * exactly; there is no implicit reference/frame/normalization conversion. This requires an active
+ * Kokkos runtime and serialized host TPS algebra. Finite differences, Richardson extrapolation and
+ * the input-difference solve are independent of the TPS composition and retain their existing
+ * numerical implementation. Body events within a first-event-anchored path span
+ * of 1e-12 m share one complete reference state before maps are constructed.
+ * Endpoint groups use the pass endpoint; all positive remaining intervals are
+ * transported. Coalescing changes owner boundaries, never the summed field model.
  *
  * Two independent selections are used: nominal body containment splits the sampled
  * orbit into constant-owner segments, while each private ray selects field supports
@@ -69,23 +79,31 @@ public:
     struct ReferenceSample {
         LinearTransferMapReference state;
     };
-    /// One unique nominal-owner interval; a caller may attach a map copy to each owner.
+    /// One unique nominal-owner interval; a caller may attach the same immutable handle to each
+    /// owner.
     struct Segment {
-        LinearTransferMap map;
+        LinearTransferMapHandle map;
         /// Runtime nominal body owners, possibly empty; NOT the field-contributor set.
         /// Shared pointers keep these occurrences alive while the result exists.
         IndexMap::value_t owners;
     };
-    /// Value-owned calculation results, independent of any later attachment to elements.
+    /// Shared immutable calculation results, independent of any later attachment to elements.
     struct Result {
         /// Includes unowned intervals (possibly containing fringe fields); each overlap once.
         std::vector<Segment> segments;
         /// M_N ... M_1 in reference-path order; absent if no nondegenerate segments were built.
-        std::optional<matrix6x6_t> combined;
-        /// |det(combined)-1|; populated exactly when combined is populated.
-        std::optional<double> determinantResidual;
+        std::shared_ptr<const TransferMapPass> pass;
+        std::optional<matrix6x6_t> combined() const {
+            return pass ? std::optional<matrix6x6_t>(pass->matrix()) : std::nullopt;
+        }
+        /// |det(combined)-1|; available exactly when pass is present.
+        std::optional<double> determinantResidual() const {
+            return pass ? std::optional<double>(pass->determinantResidual()) : std::nullopt;
+        }
         /// Canonical-form diagnostic defined in LinearTransferMap; same availability as combined.
-        std::optional<double> symplecticResidual;
+        std::optional<double> symplecticResidual() const {
+            return pass ? std::optional<double>(pass->symplecticResidual()) : std::nullopt;
+        }
     };
 
     /// Construct with Settings defaults; does not read global OPTION values.
@@ -144,11 +162,12 @@ private:
     RayState trackRayToExit(
             const RayState& initial, const LinearTransferMapReference& exit,
             double referenceFlightTime);
-    LinearTransferMap makeLinearTransferMap(
+    LinearTransferMapDraft makeLinearTransferMap(
             const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
-            std::size_t pass);
-    /// Launch twelve rays and form D_out * inverse(D_in); condition is the unscaled input
-    /// infinity-norm condition estimate, not an optics error estimate.
+            std::size_t segment);
+    /// Launch twelve rays and solve M D_in=D_out using TPS/Kokkos pivoted LU.
+    /// Condition is ||D_in||_inf ||D_in^-1||_inf, unscaled, not an optics error estimate.
+    /// Preserve the absolute pivot floor 1e-18 and condition ceiling 1e12.
     matrix6x6_t makeCenteredMap(
             const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
             const std::array<double, 6>& steps, double& condition);

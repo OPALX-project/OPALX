@@ -1,21 +1,14 @@
 set (_SRCS
-    ArithmeticError.cpp
-    CLRangeError.cpp
     ExpressionRandom.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
-    DivideError.cpp
-    DomainError.cpp
-    FormatError.cpp
     GeneralOpalException.cpp
-    LogicalError.cpp
     Options.cpp
     OverflowError.cpp
     ParseError.cpp
     PortableGraymapReader.cpp
     Util.cpp
     SDDSParser.cpp
-    OpalException.cpp
     OpalFilter.cpp
     RegularExpression.cpp
     Timer.cpp
@@ -26,6 +19,7 @@ set (_SRCS
 
 set (HDRS
     ArithmeticError.h
+    SingularMatrixError.h
     CLRangeError.h
     ElementList.h
     ExpressionRandom.h

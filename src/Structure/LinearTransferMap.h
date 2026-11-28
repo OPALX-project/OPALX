@@ -10,6 +10,11 @@
 #include <array>
 #include <cstddef>
 #include <limits>
+#include <memory>
+namespace tps {
+    template <class T>
+    class Map;
+}
 #include <optional>
 #include <string>
 #include <vector>
@@ -91,13 +96,13 @@ struct LinearTransferMapReference {
  * The matrix is a differential map (no affine offset is stored). An entry has the units
  * of its output coordinate divided by those of its input coordinate; R16 and R26 mean
  * matrix(0,5) [m] and matrix(1,5) [dimensionless], respectively.
- * Each stored matrix covers one unique path segment over which the nominal body-owner set is
- * constant. A copy is attached to every nominal owner in that segment. Consequently an element
- * can own several consecutive segment maps, while an overlap segment is calculated only once for
- * ordered beamline composition. @c activeElements records sampled field-support contributors,
- * and may differ from the owners (see its sampling definition below). A drift map includes any
- * neighbouring fringe fields; no fringe-support length is added to the nominal body. Shadow rays
- * instead select the active set \f$A(\mathbf r)\f$ at their own positions and see
+ * Each completed polynomial covers one unique path segment over which the nominal body-owner set is
+ * constant. An immutable handle is attached to every nominal owner in that segment. Consequently an
+ * element can own several consecutive segment maps, while an overlap segment is calculated only
+ * once for ordered beamline composition. @c activeElements records sampled field-support
+ * contributors, and may differ from the owners (see its sampling definition below). A drift map
+ * includes any neighbouring fringe fields; no fringe-support length is added to the nominal body.
+ * Shadow rays instead select the active set \f$A(\mathbf r)\f$ at their own positions and see
  * \f[
  *   \mathbf E(\mathbf r,t)=\sum_{i\in A(\mathbf r)}\mathbf E_i(\mathbf r,t),
  *   \qquad
@@ -107,8 +112,11 @@ struct LinearTransferMapReference {
  * \f[
  *   M_{\mathrm{total}}=M_N M_{N-1}\cdots M_1,
  * \f]
- * including unowned intervals (which can contain field tails). A shared overlap segment must occur
- * only once in this product, even though a copy is attached to every participating element.
+ * including unowned intervals (which can contain field tails). The builder now computes this
+ * product through first-order TPS composition in these same noncanonical coordinates;
+ * it does not introduce affine offsets or change finite-difference construction.
+ * A shared overlap segment must occur
+ * only once in this product, even though a handle is attached to every participating element.
  *
  * For each coordinate \f$j\f$, two private rays are launched with \f$\pm\epsilon_j\f$.  With
  * \f[
@@ -137,9 +145,7 @@ struct LinearTransferMapReference {
  * \f$J=\mathrm{diag}(J_2,J_2,J_2)\f$ with
  * \f$J_2=\left(\begin{smallmatrix}0&1\\-1&0\end{smallmatrix}\right)\f$.
  */
-struct LinearTransferMap {
-    /// Segment derivative in the coordinate order above; zero-initialized, not an identity map.
-    matrix6x6_t matrix{0.0};
+struct LinearTransferMapMetadata {
     /// Starting positive perturbation amplitudes (x,x',y,y',zeta,delta), not time steps.
     /// Metres in entries 0,2,4; dimensionless in entries 1,3,5.
     std::array<double, 6> finiteDifferenceSteps{};
@@ -157,11 +163,8 @@ struct LinearTransferMap {
     /// Output section and normalization reference; each ray is tracked to this plane.
     LinearTransferMapReference exit;
     /// Zero-based identity within one builder result / OrbitThreader execution.
-    /// Shared-owner copies retain this ID for deduplication; max(size_t) means unassigned.
+    /// Local diagnostic ordinal; the completed record uses a pass-scoped traversal ID.
     std::size_t segment{std::numeric_limits<std::size_t>::max()};
-    /// Zero-based attachment ordinal within one element's map vector, NOT a turn number.
-    /// Initially the segment ordinal in the builder; OrbitThreader assigns it per owner.
-    std::size_t pass{0};
     /// Sorted names from support queries at chord midpoints of reference sample brackets
     /// intersecting this interval. Descriptive only: not the owner set or a field-selection mask.
     /// Brackets may straddle a body boundary; repeated occurrence names are not unique IDs.
@@ -177,6 +180,90 @@ struct LinearTransferMap {
     /// True for multiple nominal owners OR a sampled contributor set of size > 1.
     /// Support participation does not require nonzero fields; not a 3D overlap certificate.
     bool includesOverlappingFields{false};
+};
+
+/** @brief Mutable construction scratch, never published as map storage. */
+struct LinearTransferMapDraft : LinearTransferMapMetadata {
+    matrix6x6_t matrix{0.0};
+};
+
+/**
+ * @brief Runtime-owned immutable polynomial storage with explicit teardown.
+ *
+ * Serialized host use only. Copies pin the same payload. Payloads are released by
+ * releaseTransferMapStorage() before IPPL/Kokkos finalization; a finalize hook is
+ * a fallback for embedded callers. Handles may survive teardown, but polynomial()
+ * then throws. Borrowed polynomial references must not cross release/finalization.
+ */
+class StoredTransferMap {
+public:
+    explicit StoredTransferMap(tps::Map<double> map);
+    const tps::Map<double>& polynomial() const;
+    bool available() const;
+    matrix6x6_t matrix() const;
+
+private:
+    struct State;
+    std::shared_ptr<State> state_m;
+    static std::vector<std::weak_ptr<State>>& registry();
+    friend void releaseTransferMapStorage();
+};
+
+/// Revoke all persistent map payloads while Kokkos is still active. Idempotent.
+/// Metadata/handles survive; reconstruct maps to use them again. Host-serialized.
+void releaseTransferMapStorage();
+
+/** @brief Completed segment: TPS is authoritative; matrices are derived values. */
+class LinearTransferMap {
+public:
+    LinearTransferMap(const LinearTransferMapDraft& draft, const std::string& occurrenceId);
+    const LinearTransferMapMetadata& metadata() const { return metadata_m; }
+    const std::string& id() const { return id_m; }
+    const tps::Map<double>& polynomial() const { return payload_m.polynomial(); }
+    matrix6x6_t matrix() const { return payload_m.matrix(); }
+    bool available() const { return payload_m.available(); }
+
+private:
+    LinearTransferMapMetadata metadata_m;
+    std::string id_m;
+    StoredTransferMap payload_m;
+};
+using LinearTransferMapHandle = std::shared_ptr<const LinearTransferMap>;
+
+/// One nominal owner's attachment; pass is its local ordinal, not a turn number.
+struct LinearTransferMapAttachment {
+    LinearTransferMapHandle map;
+    std::size_t pass{0};
+};
+
+/**
+ * @brief Complete reference-pass snapshot, including intervals without body owners.
+ *
+ * Contains no owning element pointers, so attachments cannot form ownership cycles.
+ * Only the builder constructs coherent segment/composition snapshots. Retained
+ * handles survive recalculation; TPS payload use requires an active runtime and
+ * ends at releaseTransferMapStorage(). Generation IDs are process-local, not UUIDs.
+ */
+class TransferMapPass {
+public:
+    const std::vector<LinearTransferMapHandle>& segments() const { return segments_m; }
+    const std::string& id() const { return id_m; }
+    const tps::Map<double>& polynomial() const { return combined_m.polynomial(); }
+    matrix6x6_t matrix() const { return combined_m.matrix(); }
+    bool available() const { return combined_m.available(); }
+    double determinantResidual() const { return determinantResidual_m; }
+    double symplecticResidual() const { return symplecticResidual_m; }
+
+private:
+    friend class LinearTransferMapBuilder;
+    TransferMapPass(
+            std::string id, std::vector<LinearTransferMapHandle> segments,
+            tps::Map<double> combined, double determinant, double symplectic);
+    std::string id_m;
+    std::vector<LinearTransferMapHandle> segments_m;
+    StoredTransferMap combined_m;
+    double determinantResidual_m;
+    double symplecticResidual_m;
 };
 
 #endif  // OPAL_LINEAR_TRANSFER_MAP_H

@@ -36,7 +36,8 @@ namespace {
 
 TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}
 
-TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right) : TravelingWave(right) {}
+TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right)
+    : TravelingWave(right), geometry(right.geometry) {}
 
 TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name) {}
 

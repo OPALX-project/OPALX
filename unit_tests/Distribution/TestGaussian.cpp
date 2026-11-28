@@ -476,7 +476,9 @@ TEST_F(GaussianTest, ZeroWidthAxesPreserveCountOffsetsAndFiniteMomenta) {
                     EXPECT_TRUE(std::isfinite(r(i)[d]));
                     EXPECT_TRUE(std::isfinite(p(i)[d]));
                     EXPECT_EQ(p(i)[d], (d == 2 ? 0.25 : 0.0) + momentumOffset[d]);
-                    if (mask & (1u << d)) EXPECT_EQ(r(i)[d], offset[d]);
+                    if (mask & (1u << d)) {
+                        EXPECT_EQ(r(i)[d], offset[d]);
+                    }
                 }
             }
             double mean[3];
@@ -491,7 +493,9 @@ TEST_F(GaussianTest, ZeroWidthAxesPreserveCountOffsetsAndFiniteMomenta) {
                 for (unsigned d = 0; d < 3; ++d)
                     // A 5% width band is wider than the ~0.7% sampling uncertainty
                     // for N=10001, but excludes a collapsed or incorrectly scaled axis.
-                    if (!(mask & (1u << d))) EXPECT_NEAR(sd[d], sigma[d], 5e-5);
+                    if (!(mask & (1u << d))) {
+                        EXPECT_NEAR(sd[d], sigma[d], 5e-5);
+                    }
             }
         }
     }

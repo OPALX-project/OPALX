@@ -48,6 +48,9 @@ public:
 
     virtual void setPhasem(double phase) override;
 
+    /// Configured number of accelerating cells, used by tracking and display.
+    int getNumCells() const { return numCells_m; }
+
     void setNumCells(int NumCells);
 
     void setMode(double mode);

@@ -238,21 +238,20 @@ public:
      * @brief Maps attached to this nominal body by the design-orbit threader.
      *
      * OrbitThreader appends in reference-path order. One element may receive several
-     * segments, and a segment with several nominal owners is copied to each owner.
+     * segments; all nominal owners of a shared segment hold the same immutable record.
      * Field contribution alone does not imply ownership: a magnet's fringe can act
      * in a drift-owned map. These are runtime results, not maps of isolated fields.
+     * Shared occurrences expose the most recent publication on any alias. Use the
+     * beamline's ordered owner snapshot for maps belonging to that lattice's pass.
      *
-     * The vector belongs to this element. References/pointers to its entries can be
-     * invalidated by addLinearTransferMap(), clearLinearTransferMaps(), or a new
-     * map-enabled design pass. Clones start with an empty vector.
+     * The vector belongs to this element. Copy an attachment to pin its map across
+     * vector clearing or recalculation. Polynomial access ends at map-storage release
+     * or Kokkos finalization. Clones start with an empty vector.
      * @see OpalBeamline::getLinearTransferMapsInReferenceOrder()
      */
-    const std::vector<LinearTransferMap>& getLinearTransferMaps() const;
+    const std::vector<LinearTransferMapAttachment>& getLinearTransferMaps() const;
 
-    /// Append a map by value; does not validate, sort, deduplicate, or update overlap flags.
-    void addLinearTransferMap(LinearTransferMap map);
-
-    /// Remove attached maps only; membership and isOverlapping() are unchanged.
+    /// Remove attachments only; the beamline pass, membership and overlap flag are unchanged.
     void clearLinearTransferMaps();
 
     /**
@@ -267,7 +266,7 @@ public:
      *
      * Initially false, not inherited by clones, and reset before map-enabled design
      * threading. Secondary-species threading leaves the design result unchanged.
-     * @see LinearTransferMap::includesOverlappingFields
+     * @see LinearTransferMapMetadata::includesOverlappingFields
      */
     bool isOverlapping() const;
 
@@ -552,8 +551,9 @@ private:
     /// Logical sequence tag, preserved by the copy constructor; see BeamlineMembership.
     BeamlineMembership beamlineMembership_m;
 
-    /// Host-owned map copies. Runtime results below are deliberately not copied.
-    std::vector<LinearTransferMap> linearTransferMaps_m;
+    /// Shared immutable map attachments. Runtime results below are deliberately not copied.
+    friend class OpalBeamline;
+    std::vector<LinearTransferMapAttachment> linearTransferMaps_m;
     /// Reference-pass support-overlap diagnostic, not static lattice membership.
     bool isOverlapping_m{false};
 

@@ -28,8 +28,9 @@
 
 #include <filesystem>
 #include <fstream>
-#include <limits>
+#include <map>
 #include <regex>
+#include "Utilities/OpalException.h"
 
 namespace {
     /// Order the element list by ascending field-start position (path length s), ties broken by
@@ -55,6 +56,25 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
       prepared_m(false),
       referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
+
+OpalBeamline::OpalBeamline(const OpalBeamline& rhs)
+    : transferMapPass_m(rhs.transferMapPass_m),
+      transferMapOwners_m(rhs.transferMapOwners_m),
+      elements_m(rhs.elements_m),
+      elementsMayBeShared_m(!elements_m.empty()),
+      prepared_m(rhs.prepared_m),
+      referencePathPlacementCompiled_m(rhs.referencePathPlacementCompiled_m),
+      coordTransformationTo_m(rhs.coordTransformationTo_m) {
+    if (elementsMayBeShared_m) rhs.elementsMayBeShared_m = true;
+}
+
+OpalBeamline& OpalBeamline::operator=(const OpalBeamline& rhs) {
+    if (this != &rhs) {
+        OpalBeamline copy(rhs);
+        swap(copy);
+    }
+    return *this;
+}
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
@@ -154,35 +174,83 @@ void OpalBeamline::prepareSections() {
 void OpalBeamline::print(Inform& /*msg*/) const {}
 
 std::vector<ElementTransferMapRef> OpalBeamline::getLinearTransferMapsInReferenceOrder() const {
-    std::vector<ElementTransferMapRef> result;
-    std::set<std::size_t> seenSegments;
-    for (const auto& element : elements_m) {
-        for (const auto& map : element->getLinearTransferMaps()) {
-            if (map.segment != std::numeric_limits<std::size_t>::max()
-                && !seenSegments.insert(map.segment).second) {
-                continue;
-            }
-            result.push_back({element, &map});
-        }
+    return transferMapOwners_m;
+}
+
+void OpalBeamline::clearTransferMaps() {
+    for (const auto& element : elements_m)
+        element->clearLinearTransferMaps();
+    transferMapOwners_m.clear();
+    transferMapPass_m.reset();
+}
+
+void OpalBeamline::publishTransferMapPass(
+        std::shared_ptr<const TransferMapPass> pass,
+        const std::vector<std::pair<std::shared_ptr<ElementBase>, LinearTransferMapAttachment>>&
+                attachments) {
+    std::map<
+            std::shared_ptr<ElementBase>, std::vector<LinearTransferMapAttachment>,
+            std::owner_less<std::shared_ptr<ElementBase>>>
+            staged;
+    for (const auto& element : elements_m)
+        staged.emplace(element, std::vector<LinearTransferMapAttachment>{});
+    std::set<LinearTransferMapHandle> valid;
+    if (pass) {
+        if (!pass->available())
+            throw OpalException("OpalBeamline::publishTransferMapPass", "Released pass.");
+        valid.insert(pass->segments().begin(), pass->segments().end());
     }
-    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
-        if (left.map->entrance.pathLength != right.map->entrance.pathLength) {
-            return left.map->entrance.pathLength < right.map->entrance.pathLength;
-        }
-        if (left.map->pass != right.map->pass) return left.map->pass < right.map->pass;
+    for (const auto& [owner, attachment] : attachments) {
+        const auto found = staged.find(owner);
+        if (found == staged.end() || !attachment.map || !valid.contains(attachment.map)
+            || attachment.pass != found->second.size())
+            throw OpalException(
+                    "OpalBeamline::publishTransferMapPass", "Invalid owner, segment or ordinal.");
+        found->second.push_back(attachment);
+    }
+    std::vector<ElementTransferMapRef> ordered;
+    std::set<std::string> seenSegments;
+    for (const auto& element : elements_m)
+        for (const auto& attachment : staged.at(element))
+            if (seenSegments.insert(attachment.map->id()).second)
+                ordered.push_back({element, attachment.map, attachment.pass});
+    std::sort(ordered.begin(), ordered.end(), [](const auto& left, const auto& right) {
+        if (left.map->metadata().entrance.pathLength != right.map->metadata().entrance.pathLength)
+            return left.map->metadata().entrance.pathLength
+                   < right.map->metadata().entrance.pathLength;
+        if (left.pass != right.pass) return left.pass < right.pass;
         return left.element->getName() < right.element->getName();
     });
-    return result;
+    // All validation/allocations precede publication; swaps and shared_ptr moves cannot throw.
+    for (auto& [owner, maps] : staged)
+        owner->linearTransferMaps_m.swap(maps);
+    transferMapOwners_m.swap(ordered);
+    transferMapPass_m = std::move(pass);
 }
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
+    std::swap(transferMapPass_m, rhs.transferMapPass_m);
+    transferMapOwners_m.swap(rhs.transferMapOwners_m);
     std::swap(elements_m, rhs.elements_m);
+    std::swap(elementsMayBeShared_m, rhs.elementsMayBeShared_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
 }
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
+    if (this == &rhs) {
+        OpalBeamline copy(rhs);
+        merge(copy);  // Avoid inserting from the list being modified.
+        return;
+    }
+    clearTransferMaps();
+    rhs.clearTransferMaps();
+    if (!rhs.elements_m.empty()) {
+        // Set before insertion so allocation failure can only leave conservative
+        // false positives, never untracked sharing.
+        elementsMayBeShared_m = rhs.elementsMayBeShared_m = true;
+    }
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;

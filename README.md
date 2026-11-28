@@ -251,3 +251,42 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
+
+## TPS map library
+
+`src/tps` provides C++20 Taylor-series algebra, context-bearing polynomial maps,
+and immutable prepared maps for device evaluation. Include `<tps/tps.hpp>`;
+`OPALX::opalx` links `TPS::tps` publicly. The library reuses IPPL's Kokkos backend
+and uses Kokkos Kernels for dense linear algebra. OPALX uses first-order TPS for
+ordered segment-map composition and the COF linearization passed to eigenanalysis.
+The runtime beamline owns a complete immutable TPS pass, including ownerless
+field-tail segments; element attachments share segment handles with separate
+local ordinals. Reporting matrices are derived Jacobians. Finite-difference ray
+construction and Richardson refinement retain their existing algorithms. The 6D
+input solve and diagnostics use TPS/Kokkos host kernels with the existing pivot
+and condition policies.
+COF retains its existing Newton QR, LAPACK spectrum and full-tune winding policies.
+
+Host map construction, composition and analysis are serialized per MPI rank.
+Retained snapshots survive recalculation, but polynomial use ends at explicit
+`releaseTransferMapStorage()` or Kokkos finalization. Call the release function
+before IPPL finalization; a Kokkos hook also revokes payloads in retained handles.
+Prepared maps can be evaluated in parallel with separate workspace per particle.
+Coordinate/reference conversion, tracking orchestration, apertures and space-charge
+splitting remain OPALX integration tasks. Design reports and mathematical documentation
+are archived separately in `opalx-documents/prs/693/tps-docs`.
+Host algebra failures use OPALX's `OpalException` hierarchy: `CLRangeError` for
+indices/orders, `LogicalError` for incompatible dimensions/preconditions, and the
+existing divide/domain/format categories. `SingularMatrixError` derives from
+`ArithmeticError` and identifies singular or rejected-pivot LU factorizations.
+Catch `OpalException` explicitly; it does not derive from `std::exception`.
+Map/context validation retains standard exceptions and device evaluation returns
+status values. `TPS::tps` links the shared `opalx_exceptions` implementation.
+The repository license is provided in root `LICENSE`.
+The historical baseline remains in the standalone test bed; it is not built here.
+
+With `OPALX_ENABLE_UNIT_TESTS=ON`, run `ctest --test-dir <build> -L tps
+--output-on-failure`. This includes standalone numerical regressions, independent
+header compilation, and OPALX/IPPL integration on one and two MPI ranks.
+Configure `OPALX_BUILD_DOCS=ON` and build `tps_docs` or `opalx_docs` for HTML
+references under `<build>/docs/tps/html` and `<build>/docs/html`, respectively.

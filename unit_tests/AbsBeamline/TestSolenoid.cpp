@@ -321,13 +321,16 @@ TEST_F(SolenoidPlacementTest, LinearTransferMapUsesTabulatedFieldMap) {
     ASSERT_EQ(elements.size(), 1u);
     const auto& maps = (*elements.begin())->getLinearTransferMaps();
     ASSERT_EQ(maps.size(), 1u);
-    EXPECT_NEAR(maps.front().exit.pathLength - maps.front().entrance.pathLength, 0.2, 2.0e-5);
+    EXPECT_NEAR(
+            maps.front().map->metadata().exit.pathLength
+                    - maps.front().map->metadata().entrance.pathLength,
+            0.2, 2.0e-5);
     double transverseCoupling = 0.0;
     for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
-            ASSERT_TRUE(std::isfinite(maps.front().matrix(row, column)));
+            ASSERT_TRUE(std::isfinite(maps.front().map->matrix()(row, column)));
             if ((row < 2) != (column < 2)) {
-                transverseCoupling += std::abs(maps.front().matrix(row, column));
+                transverseCoupling += std::abs(maps.front().map->matrix()(row, column));
             }
         }
     }
@@ -489,20 +492,25 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
     EXPECT_NE(script.find("numVertices = [1008]"), std::string::npos);
 }
 
-TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
+TEST_F(SolenoidPlacementTest, TravelingWaveExportUsesConfiguredCellCount) {
     TravelingWaveRep travelingWave("TW1");
     travelingWave.getGeometry().setElementLength(0.8);
     travelingWave.setElementPosition(0.0);
     travelingWave.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
 
-    MeshGenerator mesh;
-    mesh.add(travelingWave);
-    mesh.write(testStem_);
+    for (const auto& [cells, vertices] : std::vector<std::pair<int, int>>{{2, 1548}, {26, 15372}}) {
+        SCOPED_TRACE(cells);
+        travelingWave.setNumCells(cells);
+        MeshGenerator mesh;
+        mesh.add(travelingWave);
+        mesh.write(testStem_);
 
-    std::ifstream py(outputPath("_ElementPositions.py"));
-    ASSERT_TRUE(py.is_open());
-    const std::string script(
-            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
-    EXPECT_NE(script.find("color = [7]"), std::string::npos);
-    EXPECT_NE(script.find("numVertices = [1152]"), std::string::npos);
+        std::ifstream py(outputPath("_ElementPositions.py"));
+        ASSERT_TRUE(py.is_open());
+        const std::string script(
+                (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+        EXPECT_NE(script.find("color = [7]"), std::string::npos);
+        EXPECT_NE(
+                script.find("numVertices = [" + std::to_string(vertices) + "]"), std::string::npos);
+    }
 }

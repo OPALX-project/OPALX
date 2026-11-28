@@ -189,17 +189,23 @@ private:
     static MeshData getRFCavity(double length, double minor, double major);
 
     /**
-     * @brief Build a traveling-wave structure with repeated shallow corrugations.
+     * @brief Build a schematic rounded-cell traveling-wave structure.
      *
-     * Compared to the standing-wave cavity, the modulation is more uniform and
-     * elongated to suggest a periodic accelerating structure.
+     * Draw exactly numCells accelerating bulges joined by narrow necks, with
+     * an end pipe/flange at each end and a continuous axial bore. One pitch is
+     * reserved for each end section, so pitch = length/(numCells+2). Outer radii
+     * are scaled together to fit both the supplied aperture and 0.8*pitch;
+     * these are display proportions, not inferred mechanical cavity dimensions.
+     * The closed surface has outward winding and never modifies tracking data.
+     * Invalid dimensions/counts or an unrepresentable vertex count give an empty mesh.
      *
-     * @param length Body length along the local z-axis.
-     * @param minor Outer semi-axis in the local y-direction.
-     * @param major Outer semi-axis in the local x-direction.
+     * @param length Nominal body length along the local z-axis [m].
+     * @param minor Maximum display semi-axis in the local y-direction [m].
+     * @param major Maximum display semi-axis in the local x-direction [m].
+     * @param numCells Number of accelerating cells, excluding the end sections.
      * @return Triangulated traveling-wave cavity mesh.
      */
-    static MeshData getTravelingWave(double length, double minor, double major);
+    static MeshData getTravelingWave(double length, double minor, double major, int numCells);
 
     static MeshData getBox(double length, double width, double height, double formFactor);
 

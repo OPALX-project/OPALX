@@ -180,6 +180,8 @@ namespace rf_event {
     /** Host adapter for element virtual calls and unrestricted visited storage.
      * The bridge is never a device policy. Guarded bodies let CUDA compile the
      * shared template while std::function and host elements stay on the host.
+     * Parameters are used only by the host callbacks. HIP's device pass removes
+     * those calls, so maybe_unused documents that intentional device-side case.
      */
     struct HostPolicy {
         size_t number = 0;
@@ -193,38 +195,44 @@ namespace rf_event {
 
         KOKKOS_INLINE_FUNCTION size_t count() const { return number; }
         KOKKOS_INLINE_FUNCTION bool magnetic(
-                Vector& r, Vector& p, double dt, double t, double mass) const {
+                [[maybe_unused]] Vector& r, [[maybe_unused]] Vector& p, [[maybe_unused]] double dt,
+                [[maybe_unused]] double t, [[maybe_unused]] double mass) const {
             KOKKOS_IF_ON_HOST((return magneticAdvance(r, p, dt, t, mass);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return false;
         }
-        KOKKOS_INLINE_FUNCTION double distance(size_t j, const Vector& r) const {
+        KOKKOS_INLINE_FUNCTION double distance(
+                [[maybe_unused]] size_t j, [[maybe_unused]] const Vector& r) const {
             KOKKOS_IF_ON_HOST((return planeDistance(j, r);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return 0;
         }
-        KOKKOS_INLINE_FUNCTION bool supports(size_t j, const Vector& r) const {
+        KOKKOS_INLINE_FUNCTION bool supports(
+                [[maybe_unused]] size_t j, [[maybe_unused]] const Vector& r) const {
             KOKKOS_IF_ON_HOST((return inProfile(j, r);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return false;
         }
         KOKKOS_INLINE_FUNCTION bool kick(
-                size_t j, const Vector& r, Vector& p, double t, double mass) const {
+                [[maybe_unused]] size_t j, [[maybe_unused]] const Vector& r,
+                [[maybe_unused]] Vector& p, [[maybe_unused]] double t,
+                [[maybe_unused]] double mass) const {
             KOKKOS_IF_ON_HOST((return applyKick(j, r, p, t, mass);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return false;
         }
-        KOKKOS_INLINE_FUNCTION bool visited(size_t j) const {
+        KOKKOS_INLINE_FUNCTION bool visited([[maybe_unused]] size_t j) const {
             KOKKOS_IF_ON_HOST((return wasVisited(j);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return false;
         }
-        KOKKOS_INLINE_FUNCTION void markVisited(size_t j) const {
+        KOKKOS_INLINE_FUNCTION void markVisited([[maybe_unused]] size_t j) const {
             KOKKOS_IF_ON_HOST((mark(j);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
         }
         KOKKOS_INLINE_FUNCTION bool accepted(
-                size_t j, const Vector& r, const Vector& p, double t) const {
+                [[maybe_unused]] size_t j, [[maybe_unused]] const Vector& r,
+                [[maybe_unused]] const Vector& p, [[maybe_unused]] double t) const {
             KOKKOS_IF_ON_HOST((return onAccepted(j, r, p, t);))
             KOKKOS_IF_ON_DEVICE((Kokkos::abort("RF host policy called on device");))
             return false;

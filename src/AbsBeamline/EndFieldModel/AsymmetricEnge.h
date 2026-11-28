@@ -73,6 +73,7 @@ namespace endfieldmodel {
         inline double function(double x, int n) const override;
 
         void function(double x, int n, double* values) const override {
+            Enge::validateDerivativeOrder(n);
             if constexpr (Kokkos::SpaceAccessibility<
                                   Kokkos::HostSpace,
                                   Kokkos::DefaultExecutionSpace::memory_space>::accessible) {
@@ -88,7 +89,9 @@ namespace endfieldmodel {
                 const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values) const override;
 
-        /** Host side static wrapper */
+        /** Host wrapper: orders 0..12; output shape must be xView.extent(0) by n+1.
+         * Invalid requests throw OpalException before launching work.
+         */
         static inline void functionHost(
                 const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values);
@@ -141,6 +144,7 @@ namespace endfieldmodel {
     };
 
     double AsymmetricEnge::function(double x, int n) const {
+        Enge::validateDerivativeOrder(n);
         Kokkos::View<double*> xView("tmpX", 1);
         Kokkos::deep_copy(xView, x);
         Kokkos::View<double**> valueView("tmpY", 1, n + 1);
@@ -160,6 +164,10 @@ namespace endfieldmodel {
     void AsymmetricEnge::functionHost(
             const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
             Kokkos::View<double**>& values) {
+        Enge::validateDerivativeOrder(n);
+        if (values.extent(0) != xView.extent(0) || values.extent(1) != size_t(n + 1))
+            throw OpalException(
+                    "AsymmetricEnge::functionHost", "Output shape must be points by n+1.");
         const size_t count = xView.extent(0);
         Kokkos::parallel_for(
                 "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
